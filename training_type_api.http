@@ -1,0 +1,33 @@
+### GET training types
+GET http://localhost/api/gym
+
+###
+
+### GET concrete training type
+GET http://localhost/api/gym/1
+
+###
+
+### POST new training type
+POST http://localhost/api/gym
+Content-Type: application/json
+
+{
+  "name": "Fitness",
+  "description": "Fitness training is a versatile workout format focused on overall body conditioning, improving endurance, reducing body fat, and developing foundational strength. It typically combines cardio exercises, bodyweight and equipment-based strength training, along with stretching and posture work."
+}
+
+###
+
+### PATCH training type
+PATCH http://localhost/api/gym/100
+Content-Type: application/json
+
+{
+  "name": ""
+}
+
+###
+
+### DELETE training type
+DELETE http://localhost/api/gym/16

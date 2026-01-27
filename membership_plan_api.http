@@ -1,0 +1,35 @@
+### GET membership plans
+GET http://localhost/api/memberships
+
+###
+
+### GET concrete membership plan
+GET http://localhost/api/memberships/1
+
+###
+
+### POST new membership plan
+POST http://localhost/api/memberships
+Content-Type: application/json
+
+{
+  "name": "8 visits",
+  "duration_days": 30,
+  "session_limit": 8,
+  "price": "80"
+}
+
+###
+
+### PATCH training type
+PATCH http://localhost/api/memberships/3
+Content-Type: application/json
+
+{
+  "price": "85"
+}
+
+###
+
+### DELETE training type
+DELETE http://localhost/api/memberships/3

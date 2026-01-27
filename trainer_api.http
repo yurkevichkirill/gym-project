@@ -1,0 +1,42 @@
+### GET all trainers
+GET http://localhost/api/trainers
+
+###
+
+### GET concrete trainer
+GET http://localhost/api/trainers/3
+
+###
+
+### POST trainer
+POST http://localhost/api/trainers
+Content-Type: application/json
+
+{
+  "firstName": "Oleg",
+  "lastName": "Ivanov",
+  "email": "fergerger@gmail.com",
+  "phone": "",
+  "trainingType": 3,
+  "price": "-30.00"
+}
+
+###
+
+### PATCH trainer
+
+PATCH http://localhost/api/trainers/17
+Content-Type: application/json
+
+{
+  "training_type": {
+    "id": 2
+  },
+  "first_name": "Kolya"
+}
+
+###
+
+### DELETE trainer
+
+DELETE http://localhost/api/trainers/15
