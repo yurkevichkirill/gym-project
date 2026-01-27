@@ -1,0 +1,38 @@
+### GET all clients
+GET http://localhost/api/clients
+
+###
+
+### GET concrete client
+GET http://localhost/api/clients/11
+
+###
+
+### POST new client
+POST http://localhost/api/clients
+Content-Type: application/json
+
+{
+  "firstName": "Marko",
+  "lastName": "Reus",
+  "age": 35,
+  "email": "markoreusgmail.com",
+  "phone": "+12312441342424",
+  "passwordHash": "some_hash",
+  "balance": "11213213.00"
+}
+
+###
+
+### PATCH client
+PATCH http://localhost/api/clients/12
+Content-Type: application/json
+
+{
+  "balance": ""
+}
+
+###
+
+### DELETE client
+DELETE http://localhost/api/clients/12
