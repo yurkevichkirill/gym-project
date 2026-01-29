@@ -2,28 +2,23 @@
 
 namespace App\Controller;
 
-use App\Entity\Client;
 use App\Entity\Trainer;
 use App\Entity\TrainingType;
 use Doctrine\ORM\EntityManagerInterface;
-use Doctrine\ORM\Exception\ORMException;
-use Doctrine\ORM\OptimisticLockException;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Serializer\Exception\ExceptionInterface;
 use Symfony\Component\Serializer\Normalizer\AbstractNormalizer;
-use Symfony\Component\Serializer\Normalizer\AbstractObjectNormalizer;
 use Symfony\Component\Serializer\SerializerInterface;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
-use Exception;
 use Throwable;
 
 final class TrainerController extends AbstractController
 {
-    #[Route('api/trainers', methods: ['GET'])]
-    public function index(EntityManagerInterface $em, SerializerInterface $serializer): JsonResponse
+    #[Route('api/trainers', methods: ['GET'], format: 'json')]
+    public function index(EntityManagerInterface $em): JsonResponse
     {
         $trainers = $em->getRepository(Trainer::class)->findAll();
 
@@ -44,7 +39,7 @@ final class TrainerController extends AbstractController
     /**
      * @throws ExceptionInterface
      */
-    #[Route('api/trainers', methods: ['POST'])]
+    #[Route('api/trainers', methods: ['POST'], format: 'json')]
     public function create(
         Request $request,
         EntityManagerInterface $em,
@@ -137,7 +132,7 @@ final class TrainerController extends AbstractController
         ]);
     }
 
-    #[Route('api/trainers/{id}', methods: ['DELETE'])]
+    #[Route('api/trainers/{id}', methods: ['DELETE'], format: 'json')]
     public function remove(Trainer $trainer, EntityManagerInterface $em): JsonResponse
     {
         $em->remove($trainer);

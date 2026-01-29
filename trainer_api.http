@@ -16,16 +16,16 @@ Content-Type: application/json
   "firstName": "Oleg",
   "lastName": "Ivanov",
   "email": "fergerger@gmail.com",
-  "phone": "",
+  "phone": "rgrtnr",
   "trainingType": 3,
-  "price": "-30.00"
+  "price": "30.00"
 }
 
 ###
 
 ### PATCH trainer
 
-PATCH http://localhost/api/trainers/17
+PATCH http://localhost/api/trainers/18
 Content-Type: application/json
 
 {
@@ -39,4 +39,4 @@ Content-Type: application/json
 
 ### DELETE trainer
 
-DELETE http://localhost/api/trainers/15
+DELETE http://localhost/api/trainers/18

@@ -3,14 +3,12 @@
 namespace App\Controller;
 
 use App\Entity\Trainer;
-use App\Entity\TrainerAvailability;
 use App\Entity\Training;
 use App\Enum\DayOfWeekEnum;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Serializer\Normalizer\AbstractNormalizer;
 use Symfony\Component\Serializer\SerializerInterface;
@@ -19,7 +17,7 @@ use Throwable;
 
 final class TrainingController extends AbstractController
 {
-    #[Route('api/trainers/{id}/trainings', methods: ['GET'])]
+    #[Route('api/trainers/{id}/trainings', methods: ['GET'], format: 'json')]
     public function index(EntityManagerInterface $em, int $id): JsonResponse
     {
         $trainer = $em->getRepository(Trainer::class)->find($id);
@@ -40,7 +38,7 @@ final class TrainingController extends AbstractController
         ]);
     }
 
-    #[Route('api/trainers/{id}/trainings/{day_of_week}', methods: ['GET'])]
+    #[Route('api/trainers/{id}/trainings/{day_of_week}', methods: ['GET'], format: 'json')]
     public function show(EntityManagerInterface $em, int $id, DayOfWeekEnum $day_of_week): JsonResponse
     {
         $trainer = $em->getRepository(Trainer::class)->find($id);
@@ -55,7 +53,7 @@ final class TrainingController extends AbstractController
         ]);
 
         if(empty($training)) {
-            return $this->json(['text' => 'Trainer hasn\'t trainings in this day'], 200);
+            return $this->json(['text' => 'Trainer has no trainings in this day'], 200);
         }
 
         return $this->json($training[0], 200, [], [
@@ -64,7 +62,7 @@ final class TrainingController extends AbstractController
         ]);
     }
 
-    #[Route('api/trainers/{id}/trainings', methods: ['POST'])]
+    #[Route('api/trainers/{id}/trainings', methods: ['POST'], format: 'json')]
     public function create(
         int $id,
         EntityManagerInterface $em,
@@ -129,7 +127,7 @@ final class TrainingController extends AbstractController
             'day_of_week' => $day_of_week
         ]);
         if(empty($training)) {
-            return $this->json(['text' => 'Trainer hasn\'t trainings in this day'], 200);
+            return $this->json(['text' => 'Trainer has no trainings in this day'], 200);
         }
 
         try {
@@ -157,7 +155,7 @@ final class TrainingController extends AbstractController
         ]);
     }
 
-    #[Route('api/trainers/{id}/trainings/{day_of_week}')]
+    #[Route('api/trainers/{id}/trainings/{day_of_week}', methods: ['DELETE'], format: 'json')]
     public function delete(int $id, DayOfWeekEnum $day_of_week, EntityManagerInterface $em): JsonResponse
     {
         $trainer = $em->getRepository(Trainer::class)->find($id);
@@ -170,7 +168,7 @@ final class TrainingController extends AbstractController
             'day_of_week' => $day_of_week
         ]);
         if(empty($training)) {
-            return $this->json(['error' => 'Trainer hasn\'t trainings in this day'], 200);
+            return $this->json(['error' => 'Trainer has no trainings in this day'], 200);
         }
 
         $em->remove($training[0]);

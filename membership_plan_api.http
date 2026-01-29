@@ -22,7 +22,7 @@ Content-Type: application/json
 ###
 
 ### PATCH training type
-PATCH http://localhost/api/memberships/3
+PATCH http://localhost/api/memberships/4
 Content-Type: application/json
 
 {

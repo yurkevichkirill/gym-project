@@ -18,42 +18,42 @@ class Client
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['list-view'])]
+    #[Groups(['public-client', 'public-membership', 'public-payment', 'public-booking'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 100)]
     #[Assert\NotBlank]
-    #[Groups(['list-view'])]
+    #[Groups(['public-client'])]
     private ?string $first_name = null;
 
     #[ORM\Column(length: 100)]
-    #[Groups(['list-view'])]
+    #[Groups(['public-client'])]
     #[Assert\NotBlank]
     private ?string $last_name = null;
 
     #[ORM\Column]
     #[Assert\Positive]
-    #[Groups(['list-view'])]
+    #[Groups(['public-client'])]
     private ?int $age = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(['list-view'])]
+    #[Groups(['public-client'])]
     #[Assert\Email]
     private ?string $email = null;
 
     #[ORM\Column(length: 20)]
-    #[Groups(['list-view'])]
+    #[Groups(['public-client'])]
     private ?string $phone = null;
 
     #[ORM\Column(options: ["default" => "CURRENT_TIMESTAMP"])]
-    #[Groups(['concrete-view'])]
+    #[Groups(['public-client'])]
     private ?\DateTimeImmutable $created_at = null;
 
     #[ORM\Column(length: 255)]
     private ?string $password_hash = null;
 
     #[ORM\Column(type: Types::DECIMAL, precision: 10, scale: 2)]
-    #[Groups(['list-view'])]
+    #[Groups(['public-client'])]
     #[Assert\NotBlank]
     #[Assert\Positive]
     private ?string $balance = null;

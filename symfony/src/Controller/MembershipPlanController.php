@@ -3,7 +3,6 @@
 namespace App\Controller;
 
 use App\Entity\MembershipPlan;
-use App\Entity\TrainingType;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -16,7 +15,7 @@ use Throwable;
 
 final class MembershipPlanController extends AbstractController
 {
-    #[Route('/api/memberships', methods: ['GET'])]
+    #[Route('/api/memberships', methods: ['GET'], format: 'json')]
     public function index(EntityManagerInterface $em): JsonResponse
     {
         $memberships = $em->getRepository(MembershipPlan::class)->findAll();
@@ -25,7 +24,7 @@ final class MembershipPlanController extends AbstractController
         ]);
     }
 
-    #[Route('api/memberships/{id}', methods: ['GET'])]
+    #[Route('api/memberships/{id}', methods: ['GET'], format: 'json')]
     public function show(MembershipPlan $membershipPlan): JsonResponse
     {
         return $this->json($membershipPlan, 200, [], [
@@ -33,7 +32,7 @@ final class MembershipPlanController extends AbstractController
         ]);
     }
 
-    #[Route('api/memberships', methods: ['POST'])]
+    #[Route('api/memberships', methods: ['POST'], format: 'json')]
     public function create(
         Request $request,
         EntityManagerInterface $em,
@@ -103,7 +102,7 @@ final class MembershipPlanController extends AbstractController
         ]);
     }
 
-    #[Route('api/memberships/{id}', methods: ['DELETE'])]
+    #[Route('api/memberships/{id}', methods: ['DELETE'], format: 'json')]
     public function delete(EntityManagerInterface $em, MembershipPlan $membershipPlan): JsonResponse
     {
         $em->remove($membershipPlan);

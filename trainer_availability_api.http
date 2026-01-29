@@ -1,10 +1,10 @@
 ### GET trainer availabilities
-GET http://localhost/api/trainers/2/availabilities
+GET http://localhost/api/trainers/1/availabilities
 
 ###
 
 ### GET concrete trainer availability
-GET http://localhost/api/trainers/1/availabilities/sunday
+GET http://localhost/api/trainers/1/availabilities/monday
 
 ###
 
@@ -13,7 +13,7 @@ POST http://localhost/api/trainers/2/availabilities
 Content-Type: application/json
 
 {
-  "day_of_week": "friday",
+  "day_of_week": "saturday",
   "start_time": "14:00",
   "end_time": "20:00",
   "duration_minutes": 60
@@ -22,7 +22,7 @@ Content-Type: application/json
 ###
 
 ### PATCH trainer availability
-PATCH http://localhost/api/trainers/1/availabilities/monday
+PATCH http://localhost/api/trainers/2/availabilities/saturday
 Content-Type: application/json
 
 {
@@ -32,4 +32,4 @@ Content-Type: application/json
 ###
 
 ### DELETE trainer availability
-DELETE http://localhost/api/trainers/2/availabilities/monday
+DELETE http://localhost/api/trainers/2/availabilities/saturday

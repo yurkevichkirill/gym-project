@@ -1,0 +1,36 @@
+### GET bookings
+GET http://localhost/api/clients/11/bookings
+
+###
+
+### GET concrete booking
+GET http://localhost/api/clients/1/bookings/1
+
+###
+
+### POST booking
+POST http://localhost/api/clients/11/bookings
+Content-Type: application/json
+
+{
+  "training": {
+    "id": 1
+  }
+}
+
+###
+
+### PATCH booking
+PATCH http://localhost/api/clients/1/bookings/1
+Content-Type: application/json
+
+{
+  "training": {
+    "id": 7
+  }
+}
+
+###
+
+### DELETE booking
+DELETE http://localhost/api/clients/1/bookings/3

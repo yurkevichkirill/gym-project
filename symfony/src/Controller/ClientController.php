@@ -4,42 +4,36 @@ namespace App\Controller;
 
 use App\Entity\Client;
 use Doctrine\ORM\EntityManagerInterface;
-use Exception;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
-use Symfony\Component\Serializer\Exception\ExceptionInterface;
 use Symfony\Component\Serializer\Normalizer\AbstractNormalizer;
-use Symfony\Component\Serializer\Normalizer\ObjectNormalizer;
 use Symfony\Component\Serializer\SerializerInterface;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 use Throwable;
 
 final class ClientController extends AbstractController
 {
-    #[Route('/api/clients', name: 'app_api_clients', methods: ['GET'])]
+    #[Route('/api/clients', name: 'app_api_clients', methods: ['GET'], format: 'json')]
     public function index(EntityManagerInterface $em): JsonResponse
     {
         $clients = $em->getRepository(Client::class)->findAll();
 
         return $this->json($clients, 200, [], [
-            'groups' => ["list-view"]
+            'groups' => ["public-client"]
         ]);
     }
 
-    #[Route('/api/clients/{id}', name: 'app_api_client', methods: ['GET'], format: 'json')]
+    #[Route('/api/clients/{id}', methods: ['GET'], format: 'json')]
     public function show(Client $client): JsonResponse
     {
         return $this->json($client, 200, [], [
-            'groups' => ["list-view", "concrete-view"]
+            'groups' => ["public-client"]
         ]);
     }
 
-    /**
-     * @throws ExceptionInterface
-     */
-    #[Route('/api/clients')]
+    #[Route('/api/clients', methods: ['POST'], format: 'json')]
     public function create(
         Request $request,
         EntityManagerInterface $em,
@@ -74,14 +68,11 @@ final class ClientController extends AbstractController
         }
 
         return $this->json($client, 201, [], [
-            'groups' => ["list-view", "concrete-view"]
+            'groups' => ["public-client"]
         ]);
     }
 
-    /**
-     * @throws ExceptionInterface
-     */
-    #[Route('api/clients/{id}', methods: ['PUT', 'PATCH'])]
+    #[Route('api/clients/{id}', methods: ['PUT', 'PATCH'], format: 'json')]
     public function update(
         Request $request,
         Client $client,
@@ -112,11 +103,11 @@ final class ClientController extends AbstractController
 
 
         return $this->json($client, 200, [], [
-            'groups' => ["list-view", "concrete-view"]
+            'groups' => ["public-client"]
         ]);
     }
 
-    #[Route('api/clients/{id}', methods: ['DELETE'])]
+    #[Route('api/clients/{id}', methods: ['DELETE'], format: 'json')]
     public function delete(EntityManagerInterface $em, Client $client): JsonResponse
     {
         $em->remove($client);
