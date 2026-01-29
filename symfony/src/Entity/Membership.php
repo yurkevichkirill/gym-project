@@ -4,36 +4,52 @@ namespace App\Entity;
 
 use App\Enum\MembershipStatusEnum;
 use App\Repository\MembershipRepository;
+use DateInterval;
+use DateMalformedIntervalStringException;
+use DateTimeImmutable;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Serializer\Attribute\Groups;
+use Symfony\Component\Validator\Constraints as Assert;
 
+#[ORM\HasLifecycleCallbacks]
 #[ORM\Entity(repositoryClass: MembershipRepository::class)]
 class Membership
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
+    #[Groups('public-membership')]
     private ?int $id = null;
 
     #[ORM\ManyToOne(inversedBy: 'memberships')]
     #[ORM\JoinColumn(nullable: false)]
+    #[Assert\NotBlank]
+    #[Groups('public-membership')]
     private ?Client $client = null;
 
     #[ORM\ManyToOne(inversedBy: 'memberships')]
     #[ORM\JoinColumn(nullable: false)]
+    #[Assert\NotBlank]
+    #[Groups('public-membership')]
     private ?MembershipPlan $plan = null;
 
-    #[ORM\OneToOne(cascade: ['persist', 'remove'])]
-    private ?Payment $payment = null;
-
     #[ORM\Column(type: Types::DATE_IMMUTABLE)]
+    #[Groups('public-membership')]
     private ?\DateTimeImmutable $start_date = null;
 
     #[ORM\Column(type: Types::DATE_IMMUTABLE)]
+    #[Groups('public-membership')]
     private ?\DateTimeImmutable $end_date = null;
 
     #[ORM\Column(type: Types::ENUM, options: ['default' => MembershipStatusEnum::ACTIVE])]
+    #[Groups('public-membership')]
     private ?MembershipStatusEnum $status = null;
+
+    #[ORM\Column(options: ['default' => 0])]
+    #[Groups('public-membership')]
+    #[Assert\GreaterThanOrEqual(0)]
+    private ?int $visits = null;
 
     #[ORM\Column(options: ["default" => "CURRENT_TIMESTAMP"])]
     private ?\DateTimeImmutable $created_at = null;
@@ -41,6 +57,18 @@ class Membership
     public function getId(): ?int
     {
         return $this->id;
+    }
+
+    public function getVisits(): ?int
+    {
+        return $this->visits;
+    }
+
+    public function setVisits(int $visits): static
+    {
+        $this->visits = $visits;
+
+        return $this;
     }
 
     public function getClient(): ?Client
@@ -72,9 +100,24 @@ class Membership
         return $this->start_date;
     }
 
-    public function setStartDate(\DateTimeImmutable $start_date): static
+    public function setStartDate($start_date): static
     {
         $this->start_date = $start_date;
+
+        return $this;
+    }
+
+    /**
+     * @throws DateMalformedIntervalStringException
+     */
+    #[ORM\PrePersist]
+    public function initializeDefaults(): static
+    {
+        $this->created_at = new DateTimeImmutable('');
+        $this->start_date = $this->created_at->add(new DateInterval('P1D'));
+        $this->end_date = $this->start_date->add(new DateInterval("P" . $this->plan->getDurationDays() . "D"));
+        $this->status = MembershipStatusEnum::ACTIVE;
+        $this->visits = 0;
 
         return $this;
     }
@@ -84,7 +127,7 @@ class Membership
         return $this->end_date;
     }
 
-    public function setEndDate(\DateTimeImmutable $end_date): static
+    public function setEndDate($end_date): static
     {
         $this->end_date = $end_date;
 

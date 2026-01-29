@@ -8,26 +8,26 @@ GET http://localhost/api/trainers/1/trainings/monday
 
 ###
 
-POST http://localhost/api/trainers/1/trainings
+POST http://localhost/api/trainers/2/trainings
 Content-Type: application/json
 
 {
-  "day_of_week": "friday",
-  "start_time": "14:00",
-  "duration_minutes": 120
+  "day_of_week": "thursday",
+  "start_time": "15:00",
+  "duration_minutes": 60
 }
 
 ###
 
 ### PATCH training
-PATCH http://localhost/api/trainers/1/trainings/friday
+PATCH http://localhost/api/trainers/2/trainings/thursday
 Content-Type: application/json
 
 {
-  "day_of_week": "thursday"
+  "day_of_week": "sunday"
 }
 
 ###
 
 ### DELETE training
-DELETE http://localhost/api/trainers/1/trainings/thursday
+DELETE http://localhost/api/trainers/2/trainings/sunday

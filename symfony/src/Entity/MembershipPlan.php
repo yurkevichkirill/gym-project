@@ -15,7 +15,7 @@ class MembershipPlan
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups('public-membership-plan')]
+    #[Groups(['public-membership-plan', 'public-membership'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
@@ -23,15 +23,15 @@ class MembershipPlan
     private ?string $name = null;
 
     #[ORM\Column(options: ['check' => "duration_days" > 0])]
-    #[Groups('public-membership-plan')]
+    #[Groups(['public-membership-plan'])]
     private ?int $duration_days = null;
 
     #[ORM\Column(nullable: true)]
-    #[Groups('public-membership-plan')]
+    #[Groups(['public-membership-plan'])]
     private ?int $session_limit = null;
 
     #[ORM\Column(type: Types::DECIMAL, precision: 10, scale: 2)]
-    #[Groups('public-membership-plan')]
+    #[Groups(['public-membership-plan'])]
     private ?string $price = null;
 
     /**

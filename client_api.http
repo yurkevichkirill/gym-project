@@ -4,7 +4,7 @@ GET http://localhost/api/clients
 ###
 
 ### GET concrete client
-GET http://localhost/api/clients/11
+GET http://localhost/api/clients/13
 
 ###
 
@@ -16,7 +16,7 @@ Content-Type: application/json
   "firstName": "Marko",
   "lastName": "Reus",
   "age": 35,
-  "email": "markoreusgmail.com",
+  "email": "markoreus@gmail.com",
   "phone": "+12312441342424",
   "passwordHash": "some_hash",
   "balance": "11213213.00"
@@ -25,11 +25,11 @@ Content-Type: application/json
 ###
 
 ### PATCH client
-PATCH http://localhost/api/clients/12
+PATCH http://localhost/api/clients/13
 Content-Type: application/json
 
 {
-  "balance": ""
+  "balance": "200"
 }
 
 ###

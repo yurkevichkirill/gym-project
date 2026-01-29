@@ -4,20 +4,14 @@ declare(strict_types=1);
 
 namespace App\Service;
 
-use App\Entity\Client;
-use App\Entity\Payment;
 use App\Entity\Trainer;
-use App\Entity\Training;
 use App\Enum\DayOfWeekEnum;
-use App\Enum\PaymentCategoryEnum;
-use App\Enum\PaymentStatusEnum;
-use DateMalformedStringException;
 
-class ClientTrainingService
+class TrainerService implements TrainerServiceInterface
 {
 
     /**
-     * @throws DateMalformedStringException
+     * @throws \DateMalformedStringException
      */
     public function getAvailable(Trainer $trainer, DayOfWeekEnum $dayOfWeek): array
     {
@@ -50,33 +44,8 @@ class ClientTrainingService
         return $available;
     }
 
-    /**
-     * @throws DateMalformedStringException
-     * @throws \DateMalformedIntervalStringException
-     */
-    public function enrollOnTraining(Trainer $trainer, Client $client, DayOfWeekEnum $dayOfWeek, \DateTimeImmutable $startTrainingTime, int $duration): void
+    public function getScheduled(Trainer $trainer, DayOfWeekEnum $dayOfWeek): array
     {
-        $endTrainingTime = $startTrainingTime->add(new \DateInterval('PT' . $duration . 'M')) ;
-        $available = $this->getAvailable($trainer, $dayOfWeek);
-        if($this->isTimeAvailable($available, $startTrainingTime, $endTrainingTime)) {
-            $payment = new Payment();
-            $payment->setClient($client);
-            $payment->setAmount($trainer->getPrice());
-            $payment->setCategory(PaymentCategoryEnum::TRAINER);
-
-        }
-    }
-
-    public function isTimeAvailable(array $available, \DateTimeImmutable $startTrainingTime, \DateTimeImmutable $endTrainingTime): bool
-    {
-        $startTimes = array_keys($available);
-        foreach ($available as $startPeriod => $endPeriod) {
-            if($startTrainingTime >= $startPeriod && $endTrainingTime <= $endPeriod) {
-
-                return true;
-            }
-        }
-
-        return false;
+        // TODO: Implement getScheduled() method.
     }
 }

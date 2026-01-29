@@ -6,9 +6,6 @@ use App\Entity\Trainer;
 use App\Entity\TrainerAvailability;
 use App\Enum\DayOfWeekEnum;
 use Doctrine\ORM\EntityManagerInterface;
-use Doctrine\ORM\Tools\Console\Command\ClearCache\EntityRegionCommand;
-use Exception;
-use PHPUnit\Util\Json;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -21,7 +18,7 @@ use Throwable;
 
 final class TrainerAvailabilitiesController extends AbstractController
 {
-    #[Route('api/trainers/{id}/availabilities', methods: ['GET'])]
+    #[Route('api/trainers/{id}/availabilities', methods: ['GET'], format: 'json')]
     public function index(EntityManagerInterface $em, int $id): JsonResponse
     {
         $trainer = $em->getRepository(Trainer::class)->find($id);
@@ -42,7 +39,7 @@ final class TrainerAvailabilitiesController extends AbstractController
         ]);
     }
 
-    #[Route('api/trainers/{id}/availabilities/{day_of_week}', methods: ['GET'])]
+    #[Route('api/trainers/{id}/availabilities/{day_of_week}', methods: ['GET'], format: 'json')]
     public function show(EntityManagerInterface $em, int $id, DayOfWeekEnum $day_of_week): JsonResponse
     {
         $trainer = $em->getRepository(Trainer::class)->find($id);
@@ -69,7 +66,7 @@ final class TrainerAvailabilitiesController extends AbstractController
     /**
      * @throws ExceptionInterface
      */
-    #[Route('api/trainers/{id}/availabilities', methods: ['POST'])]
+    #[Route('api/trainers/{id}/availabilities', methods: ['POST'], format: 'json')]
     public function create(
         int $id,
         EntityManagerInterface $em,
@@ -162,7 +159,7 @@ final class TrainerAvailabilitiesController extends AbstractController
         ]);
     }
 
-    #[Route('api/trainers/{id}/availabilities/{day_of_week}')]
+    #[Route('api/trainers/{id}/availabilities/{day_of_week}', methods: ['DELETE'], format: 'json')]
     public function delete(int $id, DayOfWeekEnum $day_of_week, EntityManagerInterface $em): JsonResponse
     {
         $trainer = $em->getRepository(Trainer::class)->find($id);
