@@ -5,33 +5,45 @@ namespace App\Entity;
 use App\Enum\PaymentCategoryEnum;
 use App\Enum\PaymentStatusEnum;
 use App\Repository\PaymentRepository;
+use DateTimeImmutable;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Serializer\Attribute\Groups;
+use Symfony\Component\Validator\Constraints as Assert;
 
+#[ORM\HasLifecycleCallbacks]
 #[ORM\Entity(repositoryClass: PaymentRepository::class)]
 class Payment
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
+    #[Groups('public-payment')]
     private ?int $id = null;
 
     #[ORM\ManyToOne(inversedBy: 'payments')]
     #[ORM\JoinColumn(nullable: false)]
+    #[Groups('public-payment')]
+    #[Assert\NotBlank]
     private ?Client $client = null;
 
     #[ORM\Column(type: Types::DECIMAL, precision: 10, scale: 2)]
+    #[Groups('public-payment')]
+    #[Assert\NotBlank]
+    #[Assert\GreaterThanOrEqual(0)]
     private ?string $amount = null;
 
-    #[ORM\Column(
-        type: Types::ENUM
-    )]
+    #[ORM\Column(type: Types::ENUM)]
+    #[Groups('public-payment')]
+    #[Assert\NotBlank]
     private ?PaymentCategoryEnum $category = null;
 
     #[ORM\Column(type: Types::ENUM, options: ['default' => PaymentStatusEnum::PENDING])]
+    #[Groups('public-payment')]
     private ?PaymentStatusEnum $status = null;
 
-    #[ORM\Column(options: ["default" => "CURRENT_TIMESTAMP"])]
+    #[ORM\Column(nullable: true, options: ["default" => "CURRENT_TIMESTAMP"])]
+    #[Groups('public-payment')]
     private ?\DateTimeImmutable $paid_at = null;
 
     public function getId(): ?int
@@ -82,6 +94,9 @@ class Payment
 
     public function setStatus(PaymentStatusEnum $status): static
     {
+        if($this->status === PaymentStatusEnum::PENDING && $status === PaymentStatusEnum::PAID) {
+            $this->paid_at = new DateTimeImmutable();
+        }
         $this->status = $status;
 
         return $this;
@@ -97,5 +112,11 @@ class Payment
         $this->paid_at = $paid_at;
 
         return $this;
+    }
+
+    #[ORM\PrePersist]
+    public function initializeDefaults(): void
+    {
+        $this->status = PaymentStatusEnum::PENDING;
     }
 }

@@ -1,0 +1,41 @@
+### GET all payments
+GET http://localhost/api/payments
+
+###
+
+### GET client's payments
+GET http://localhost/api/clients/13/payments
+
+###
+
+### GET concrete payment
+GET http://localhost/api/payments/1
+
+###
+
+### POST new payment
+POST http://localhost/api/payments
+Content-Type: application/json
+
+{
+  "client": {
+    "id": 13
+  },
+  "amount": "50",
+  "category": "membership"
+}
+
+###
+
+### PATCH payment
+PATCH http://localhost/api/payments/6
+Content-Type: application/json
+
+{
+  "status": "cancelled"
+}
+
+###
+
+### DELETE payment
+DELETE http://localhost/api/payments/6

@@ -20,14 +20,14 @@ Content-Type: application/json
 ###
 
 ### PATCH training type
-PATCH http://localhost/api/gym/100
+PATCH http://localhost/api/gym/17
 Content-Type: application/json
 
 {
-  "name": ""
+  "name": "hello"
 }
 
 ###
 
 ### DELETE training type
-DELETE http://localhost/api/gym/16
+DELETE http://localhost/api/gym/17

@@ -1,0 +1,30 @@
+### GET client's membership
+GET http://localhost/api/clients/1/membership
+
+###
+
+### POST membership
+POST http://localhost/api/clients/11/membership
+Content-Type: application/json
+
+{
+    "membership_plan": {
+      "id": 4
+    }
+}
+
+###
+
+### PATCH membership
+PATCH http://localhost/api/clients/11/membership
+Content-Type: application/json
+
+{
+  "end_date": "2026-03-08",
+  "status": "frozen"
+}
+
+###
+
+### DELETE membership
+DELETE http://localhost/api/clients/11/membership

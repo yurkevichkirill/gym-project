@@ -15,6 +15,7 @@ class Training
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
+    #[Groups(['public-training', 'public-booking'])]
     private ?int $id = null;
 
     #[ORM\ManyToOne(inversedBy: 'trainings')]
