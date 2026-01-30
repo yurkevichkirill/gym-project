@@ -8,7 +8,7 @@
       <jdbc-url>jdbc:postgresql://localhost:5432/gym</jdbc-url>
       <working-dir>$ProjectFileDir$</working-dir>
     </data-source>
-    <data-source source="LOCAL" name="gym_db@localhost" uuid="c5280929-b257-4281-b192-76cfcbfd32fd">
+    <data-source source="LOCAL" name="gym_db@localhost [2]" uuid="3e785850-6295-4d44-8a0a-38e5ac0f5dbc">
       <driver-ref>postgresql</driver-ref>
       <synchronize>true</synchronize>
       <jdbc-driver>org.postgresql.Driver</jdbc-driver>

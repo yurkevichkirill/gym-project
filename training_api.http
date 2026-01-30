@@ -8,12 +8,12 @@ GET http://localhost/api/trainers/1/trainings/monday
 
 ###
 
-POST http://localhost/api/trainers/2/trainings
+POST http://localhost/api/trainers/1/trainings
 Content-Type: application/json
 
 {
-  "day_of_week": "thursday",
-  "start_time": "15:00",
+  "day_of_week": "monday",
+  "start_time": "12:00",
   "duration_minutes": 60
 }
 
