@@ -9,7 +9,7 @@ doctrine:
 #            payment_category_enum: string
 #            payment_status_enum: string
 #        types:
-#            training_status_enum: 'App/Enum/TrainingStatusEnum'
+#            training_status_enum: 'App/Enum/BookingStatusEnum'
 #            day_of_week_enum: 'App/Enum/DayOfWeekEnum'
 #            membership_status_enum: 'App/Enum/MembershipStatusEnum'
 #            payment_category_enum: 'App/Enum/PaymentCategoryEnum'
@@ -27,12 +27,66 @@ doctrine:
             Doctrine\DBAL\Platforms\PostgreSQLPlatform: identity
         auto_mapping: true
         mappings:
-            App:
+#            App:
+#                type: attribute
+#                is_bundle: false
+#                dir: '%kernel.project_dir%/src/Entity'
+#                prefix: 'App\Entity'
+#                alias: App
+            Client:
                 type: attribute
                 is_bundle: false
-                dir: '%kernel.project_dir%/src/Entity'
-                prefix: 'App\Entity'
-                alias: App
+                dir: '%kernel.project_dir%/src/Client/Entity'
+                prefix: 'App\Client\Entity'
+                alias: Client
+            Booking:
+                type: attribute
+                is_bundle: false
+                dir: '%kernel.project_dir%/src/Booking/Entity'
+                prefix: 'App\Booking\Entity'
+                alias: Booking
+            Membership:
+                type: attribute
+                is_bundle: false
+                dir: '%kernel.project_dir%/src/Membership/Entity'
+                prefix: 'App\Membership\Entity'
+                alias: Client
+            Payment:
+                type: attribute
+                is_bundle: false
+                dir: '%kernel.project_dir%/src/Payment/Entity'
+                prefix: 'App\Payment\Entity'
+                alias: Payment
+            TrainingType:
+                type: attribute
+                is_bundle: false
+                dir: '%kernel.project_dir%/src/TrainingType/Entity'
+                prefix: 'App\TrainingType\Entity'
+                alias: TrainingType
+            Trainer:
+                type: attribute
+                is_bundle: false
+                dir: '%kernel.project_dir%/src/Trainer/Entity'
+                prefix: 'App\Trainer\Entity'
+                alias: Trainer
+            TrainerAvailability:
+                type: attribute
+                is_bundle: false
+                dir: '%kernel.project_dir%/src/TrainerAvailability/Entity'
+                prefix: 'App\TrainerAvailability\Entity'
+                alias: TrainerAvailability
+            Training:
+                type: attribute
+                is_bundle: false
+                dir: '%kernel.project_dir%/src/Training/Entity'
+                prefix: 'App\Training\Entity'
+                alias: Training
+            MembershipPlan:
+                type: attribute
+                is_bundle: false
+                dir: '%kernel.project_dir%/src/MembershipPlan/Entity'
+                prefix: 'App\MembershipPlan\Entity'
+                alias: MembershipPlan
         controller_resolver:
             auto_mapping: false
 

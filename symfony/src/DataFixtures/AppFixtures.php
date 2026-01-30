@@ -2,16 +2,9 @@
 
 namespace App\DataFixtures;
 
-use App\Entity\Booking;
-use App\Entity\Client;
-use App\Entity\Membership;
-use App\Entity\MembershipPlan;
-use App\Entity\Payment;
-use App\Entity\Trainer;
-use App\Entity\TrainerAvailability;
-use App\Entity\Training;
-use App\Enum\DayOfWeekEnum;
-use App\Enum\PaymentCategoryEnum;
+use App\Booking\Entity\Booking;
+use App\Client\Entity\Client;
+use App\Training\Entity\Training;
 use Doctrine\Bundle\FixturesBundle\Fixture;
 use Doctrine\Persistence\ObjectManager;
 

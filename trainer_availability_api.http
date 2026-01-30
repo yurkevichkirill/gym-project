@@ -1,10 +1,15 @@
 ### GET trainer availabilities
-GET http://localhost/api/trainers/1/availabilities
+GET http://localhost/api/trainers/2/availabilities
 
 ###
 
 ### GET concrete trainer availability
 GET http://localhost/api/trainers/1/availabilities/monday
+
+###
+
+### GET free slots
+GET http://localhost/api/trainers/1/free-slots/monday
 
 ###
 
