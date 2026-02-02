@@ -2,25 +2,54 @@
 
 namespace App\Trainer\Controller;
 
+use App\Booking\Enum\BookingStatusEnum;
 use App\Trainer\Entity\Trainer;
+use App\Trainer\Repository\TrainerRepository;
+use App\Trainer\Service\TrainerServiceInterface;
 use App\TrainingType\Entity\TrainingType;
-use Doctrine\ORM\EntityManagerInterface;
+use App\TrainingType\Repository\TrainingTypeRepository;
+use Nelmio\ApiDocBundle\Attribute\Model;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Serializer\Exception\ExceptionInterface;
 use Symfony\Component\Serializer\Normalizer\AbstractNormalizer;
+use Symfony\Component\Serializer\Normalizer\DateTimeNormalizer;
 use Symfony\Component\Serializer\SerializerInterface;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 use Throwable;
+use OpenApi\Attributes as OA;
 
 final class TrainerController extends AbstractController
 {
     #[Route('api/trainers', methods: ['GET'], format: 'json')]
-    public function index(EntityManagerInterface $em): JsonResponse
+    #[OA\Parameter(
+        name: 'trainingTypeId',
+        in: 'query'
+    )]
+    #[OA\Parameter(
+        name: 'sort',
+        in: 'query'
+    )]
+    public function getAll(Request $request, TrainerServiceInterface $trainerService): JsonResponse
     {
-        $trainers = $em->getRepository(Trainer::class)->findAll();
+        try {
+            $sortRaw = $request->query->get('sort', 'price:ASC');
+            $sort = [];
+            foreach (explode(',', $sortRaw) as $item) {
+                [$field, $order] = explode(':',  $item);
+                $sort[$field] = strtoupper($order);
+            }
+            $trainingTypeId = $request->query->get('trainingTypeId');
+            $trainers = $trainerService->findBy($sort, $trainingTypeId);
+        } catch (Throwable $e) {
+            return $this->json(['error' => $e->getMessage()], 400);
+        }
+
+        if(empty($trainers)) {
+            return $this->json(['error' => 'No trainers found'], 404);
+        }
 
         return $this->json($trainers, 200, [], [
             AbstractNormalizer::CIRCULAR_REFERENCE_HANDLER => fn (object $obj) => $obj->getId(),
@@ -29,7 +58,7 @@ final class TrainerController extends AbstractController
     }
 
     #[Route('api/trainers/{id}', methods: ['GET'], format: 'json')]
-    public function show(Trainer $trainer): JsonResponse
+    public function get(Trainer $trainer): JsonResponse
     {
         return $this->json($trainer, 200, [], [
             'groups' => ['public-trainer']
@@ -40,15 +69,21 @@ final class TrainerController extends AbstractController
      * @throws ExceptionInterface
      */
     #[Route('api/trainers', methods: ['POST'], format: 'json')]
+    #[OA\RequestBody(content: new Model(type: Trainer::class, groups: ['create-update-trainer']))]
     public function create(
         Request $request,
-        EntityManagerInterface $em,
+        TrainerRepository $trainerRepo,
+        TrainingTypeRepository $trainingTypeRepo,
         SerializerInterface $serializer,
         ValidatorInterface $validator
     ): JsonResponse
     {
         $data = json_decode($request->getContent(), true);
-        $training_type = $em->getRepository(TrainingType::class)->find($data['trainingType']);
+        try {
+            $training_type = $trainingTypeRepo->find($data['trainingType']['id']);
+        } catch (Throwable $e) {
+            return $this->json(['error' => $e->getMessage()], 400);
+        }
         if(is_null($training_type)) {
             return $this->json(['error' => 'Training type not found'], 404);
         }
@@ -70,9 +105,8 @@ final class TrainerController extends AbstractController
             return $this->json(['errors' => $errorMessages], 422);
         }
 
-        $em->persist($trainer);
         try {
-            $em->flush();
+            $trainerRepo->create($trainer);
         } catch(Throwable $e) {
             return $this->json(['error' => $e->getMessage()], 400);
         }
@@ -83,11 +117,13 @@ final class TrainerController extends AbstractController
     }
 
     #[Route('api/trainers/{id}', methods: ['PUT', 'PATCH'], format: 'json')]
+    #[OA\RequestBody(content: new Model(type: Trainer::class, groups: ['create-update-trainer']))]
     public function update(
         Trainer $trainer,
         Request $request,
         ValidatorInterface $validator,
-        EntityManagerInterface $em,
+        TrainerRepository $trainerRepo,
+        TrainingTypeRepository $trainingTypeRepo,
         SerializerInterface $serializer
     ): JsonResponse
     {
@@ -101,8 +137,8 @@ final class TrainerController extends AbstractController
 
         $data = json_decode($request->getContent(), true);
 
-        if (isset($data['training_type']['id'])) {
-            $trainingType = $em->getRepository(TrainingType::class)->find($data['training_type']['id']);
+        if (isset($data['trainingType']['id'])) {
+            $trainingType = $trainingTypeRepo->find($data['trainingType']['id']);
 
             if (is_null($trainingType)) {
                 return $this->json(['error' => 'Training type not found'], 404);
@@ -122,7 +158,7 @@ final class TrainerController extends AbstractController
         }
 
         try {
-            $em->flush();
+            $trainerRepo->save();
         } catch(Throwable $e) {
             return $this->json(['error' => $e->getMessage()], 400);
         }
@@ -133,10 +169,13 @@ final class TrainerController extends AbstractController
     }
 
     #[Route('api/trainers/{id}', methods: ['DELETE'], format: 'json')]
-    public function remove(Trainer $trainer, EntityManagerInterface $em): JsonResponse
+    public function remove(Trainer $trainer, TrainerRepository $repo): JsonResponse
     {
-        $em->remove($trainer);
-        $em->flush();
+        try {
+            $repo->remove($trainer);
+        } catch(Throwable $e) {
+            return $this->json(['error' => $e->getMessage()], 400);
+        }
 
         return $this->json(null, 204);
     }

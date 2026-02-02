@@ -10,6 +10,6 @@ use Doctrine\ORM\EntityManagerInterface;
 
 interface TrainerServiceInterface
 {
-    public function getAvailable(Trainer $trainer, DayOfWeekEnum $dayOfWeek, EntityManagerInterface $em): array;
-    public function getScheduled(Trainer $trainer, DayOfWeekEnum $dayOfWeek): array;
+    public function getAvailable(Trainer $trainer, DayOfWeekEnum $dayOfWeek): array;
+    public function findBy(array $sort, ?int $trainingTypeId): array;
 }

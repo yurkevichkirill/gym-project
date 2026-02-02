@@ -2,8 +2,11 @@
 
 namespace App\Trainer\Repository;
 
+use App\Client\Entity\Client;
 use App\Trainer\Entity\Trainer;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
+use Doctrine\ORM\Exception\ORMException;
+use Doctrine\ORM\OptimisticLockException;
 use Doctrine\Persistence\ManagerRegistry;
 
 /**
@@ -16,6 +19,34 @@ class TrainerRepository extends ServiceEntityRepository
         parent::__construct($registry, Trainer::class);
     }
 
+    /**
+     * @throws OptimisticLockException
+     * @throws ORMException
+     */
+    public function save(): void
+    {
+        $this->getEntityManager()->flush();
+    }
+
+    /**
+     * @throws OptimisticLockException
+     * @throws ORMException
+     */
+    public function create(Trainer $trainer): void
+    {
+        $this->getEntityManager()->persist($trainer);
+        $this->save();
+    }
+
+    /**
+     * @throws OptimisticLockException
+     * @throws ORMException
+     */
+    public function remove(Trainer $trainer): void
+    {
+        $this->getEntityManager()->remove($trainer);
+        $this->save();
+    }
     //    /**
     //     * @return Trainer[] Returns an array of Trainer objects
     //     */

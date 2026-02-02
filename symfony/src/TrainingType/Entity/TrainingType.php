@@ -17,17 +17,17 @@ class TrainingType
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['public-trainer', 'public-training-type'])]
+    #[Groups(['public-trainer', 'public-training-type', 'create-update-trainer'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 100)]
     #[Assert\NotBlank]
-    #[Groups('public-training-type')]
+    #[Groups(['public-training-type', 'create-update-training-type'])]
     private ?string $name = null;
 
     #[ORM\Column(type: Types::TEXT)]
     #[Assert\NotBlank]
-    #[Groups('public-training-type')]
+    #[Groups(['public-training-type', 'create-update-training-type'])]
     private ?string $description = null;
 
     /**

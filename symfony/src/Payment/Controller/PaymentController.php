@@ -3,9 +3,14 @@
 namespace App\Payment\Controller;
 
 use App\Client\Entity\Client;
+use App\Client\Repository\ClientRepository;
 use App\Payment\Entity\Payment;
+use App\Payment\Enum\PaymentCategoryEnum;
+use App\Payment\Enum\PaymentStatusEnum;
+use App\Payment\Repository\PaymentRepository;
 use App\Payment\Service\PaymentServiceInterface;
 use Doctrine\ORM\EntityManagerInterface;
+use Nelmio\ApiDocBundle\Attribute\Model;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -15,13 +20,48 @@ use Symfony\Component\Serializer\Normalizer\DateTimeNormalizer;
 use Symfony\Component\Serializer\SerializerInterface;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 use Throwable;
+use OpenApi\Attributes as OA;
 
 final class PaymentController extends AbstractController
 {
     #[Route('/api/payments', methods: ['GET'], format: 'json')]
-    public function index(EntityManagerInterface $em): JsonResponse
+    #[OA\Parameter(
+        name: 'status',
+        in: 'query'
+    )]
+    #[OA\Parameter(
+        name: 'category',
+        in: 'query'
+    )]
+    #question
+    #[OA\Parameter(
+        name: 'clientId',
+        in: 'query'
+    )]
+    #[OA\Parameter(
+        name: 'sort',
+        in: 'query'
+    )]
+    public function getAll(Request $request, PaymentServiceInterface $paymentService): JsonResponse
     {
-        $payments = $em->getRepository(Payment::class)->findAll();
+        try {
+            $sortRaw = $request->query->get('sort', 'paidAt:ASC');
+            $sort = [];
+            foreach (explode(',', $sortRaw) as $item) {
+                [$field, $order] = explode(':',  $item);
+                $sort[$field] = strtoupper($order);
+            }
+            $status = PaymentStatusEnum::tryFrom($request->query->get('status'));
+            $category = PaymentCategoryEnum::tryFrom($request->query->get('category'));
+            $clientId = $request->query->get('clientId');
+            $payments = $paymentService->findBy($sort, $clientId, $category, $status);
+        } catch (Throwable $e) {
+            return $this->json(['error' => $e->getMessage()], 400);
+        }
+
+        if(empty($payments)) {
+            return $this->json(['error' => 'No payments found'], 404);
+        }
 
         return $this->json($payments, 200, [], [
             'groups' => 'public-payment',
@@ -31,18 +71,37 @@ final class PaymentController extends AbstractController
     }
 
     #[Route('/api/clients/{id}/payments', methods: ['GET'], format: 'json')]
-    public function indexClient(EntityManagerInterface $em, int $id): JsonResponse
+    #[OA\Parameter(
+        name: 'status',
+        in: 'query'
+    )]
+    #[OA\Parameter(
+        name: 'category',
+        in: 'query'
+    )]
+    #[OA\Parameter(
+        name: 'sort',
+        in: 'query'
+    )]
+    public function getForClient(Request $request, PaymentServiceInterface $paymentService, int $id): JsonResponse
     {
-        $client = $em->getRepository(Client::class)->find($id);
-        if(is_null($client)) {
-            return $this->json(['error' => 'Client not found'], 404);
+
+        try {
+            $sortRaw = $request->query->get('sort', 'paidAt:ASC');
+            $sort = [];
+            foreach (explode(',', $sortRaw) as $item) {
+                [$field, $order] = explode(':',  $item);
+                $sort[$field] = strtoupper($order);
+            }
+            $status = PaymentStatusEnum::tryFrom($request->query->get('status'));
+            $category = PaymentCategoryEnum::tryFrom($request->query->get('category'));
+            $payments = $paymentService->findBy($sort, $id, $category, $status);
+        } catch (Throwable $e) {
+            return $this->json(['error' => $e->getMessage()], 400);
         }
 
-        $payments = $em->getRepository(Payment::class)->findBy([
-            "client" => $client
-        ]);
         if(empty($payments)) {
-            return $this->json(['error' => "Client has no payments"], 404);
+            return $this->json(['error' => 'No payments found'], 404);
         }
 
         return $this->json($payments, 200, [], [
@@ -53,9 +112,9 @@ final class PaymentController extends AbstractController
     }
 
     #[Route('/api/payments/{id}', methods: ['GET'], format: 'json')]
-    public function show(int $id, EntityManagerInterface $em): JsonResponse
+    public function get(int $id, PaymentRepository $repo): JsonResponse
     {
-        $payment = $em->getRepository(Payment::class)->find($id);
+        $payment = $repo->find($id);
         if(is_null($payment)) {
             return $this->json(['error' => 'Payment not found'], 404);
         }
@@ -68,16 +127,18 @@ final class PaymentController extends AbstractController
     }
 
     #[Route('/api/payments', methods: ['POST'], format: 'json')]
+    #[OA\RequestBody(content: new Model(type: Payment::class, groups: ['create-payment']))]
     public function create(
         Request $request,
-        EntityManagerInterface $em,
+        PaymentRepository $paymentRepo,
+        ClientRepository $clientRepo,
         SerializerInterface $serializer,
         ValidatorInterface $validator,
         PaymentServiceInterface $paymentService
     ): JsonResponse
     {
         $data = json_decode($request->getContent(), true);
-        $client = $em->getRepository(Client::class)->find($data['client']['id']);
+        $client = $clientRepo->find($data['client']['id']);
         if(is_null($client)) {
             return $this->json(['error' => 'Client not found'], 404);
         }
@@ -102,9 +163,8 @@ final class PaymentController extends AbstractController
             return $this->json(['errors' => $errorMessages], 422);
         }
 
-        $em->persist($payment);
         try {
-            $em->flush();
+            $paymentRepo->create($payment);
         } catch(Throwable $e) {
             return $this->json(['error' => $e->getMessage()], 400);
         }
@@ -117,11 +177,13 @@ final class PaymentController extends AbstractController
     }
 
     #[Route('/api/payments/{id}', methods: ['PUT', 'PATCH'], format: 'json')]
+    #[OA\RequestBody(content: new Model(type: Payment::class, groups: ['update-payment']))]
     public function update(
         Payment $payment,
         Request $request,
         ValidatorInterface $validator,
-        EntityManagerInterface $em,
+        PaymentRepository $paymentRepo,
+        ClientRepository $clientRepo,
         SerializerInterface $serializer
     ):JsonResponse
     {
@@ -135,7 +197,7 @@ final class PaymentController extends AbstractController
 
         $data = json_decode($request->getContent(), true);
         if (isset($data['client']['id'])) {
-            $client = $em->getRepository(Client::class)->find($data['client']['id']);
+            $client = $clientRepo->find($data['client']['id']);
 
             if (is_null($client)) {
                 return $this->json(['error' => 'Client not found'], 404);
@@ -155,7 +217,7 @@ final class PaymentController extends AbstractController
         }
 
         try {
-            $em->flush();
+            $paymentRepo->save();
         } catch(Throwable $e) {
             return $this->json(['error' => $e->getMessage()], 400);
         }
@@ -168,15 +230,18 @@ final class PaymentController extends AbstractController
     }
 
     #[Route('api/payments/{id}', methods: ['DELETE'], format: 'json')]
-    public function remove(int $id, EntityManagerInterface $em): JsonResponse
+    public function remove(int $id, PaymentRepository $repo): JsonResponse
     {
-        $payment = $em->getRepository(Payment::class)->find($id);
+        $payment = $repo->find($id);
         if(is_null($payment)) {
             return $this->json(['error' => 'Payment not found']);
         }
 
-        $em->remove($payment);
-        $em->flush();
+        try {
+            $repo->remove($payment);
+        } catch (Throwable $e) {
+            return $this->json(['error' => $e->getMessage()], 400);
+        }
 
         return $this->json(null, 204);
     }

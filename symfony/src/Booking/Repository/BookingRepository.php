@@ -3,6 +3,7 @@
 namespace App\Booking\Repository;
 
 use App\Booking\Entity\Booking;
+use App\Client\Entity\Client;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
@@ -14,6 +15,23 @@ class BookingRepository extends ServiceEntityRepository
     public function __construct(ManagerRegistry $registry)
     {
         parent::__construct($registry, Booking::class);
+    }
+
+    public function save(): void
+    {
+        $this->getEntityManager()->flush();
+    }
+
+    public function create(Booking $booking): void
+    {
+        $this->getEntityManager()->persist($booking);
+        $this->save();
+    }
+
+    public function remove(Booking $booking): void
+    {
+        $this->getEntityManager()->remove($booking);
+        $this->save();
     }
 
     //    /**

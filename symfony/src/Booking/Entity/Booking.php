@@ -30,13 +30,13 @@ class Booking
 
     #[ORM\OneToOne(cascade: ['persist', 'remove'])]
     #[ORM\JoinColumn(nullable: false)]
-    #[Groups('public-booking')]
+    #[Groups(['public-booking', 'create-booking'])]
     #[Assert\NotBlank]
     private ?Training $training = null;
 
     #[ORM\Column(options: ["default" => "CURRENT_TIMESTAMP"])]
     #[Groups('public-booking')]
-    private ?DateTimeImmutable $booked_at = null;
+    private ?DateTimeImmutable $bookedAt = null;
 
     #[ORM\Column(
         type: Types::ENUM,
@@ -76,12 +76,12 @@ class Booking
 
     public function getBookedAt(): ?DateTimeImmutable
     {
-        return $this->booked_at;
+        return $this->bookedAt;
     }
 
-    public function setBookedAt(DateTimeImmutable $booked_at): static
+    public function setBookedAt(DateTimeImmutable $bookedAt): static
     {
-        $this->booked_at = $booked_at;
+        $this->bookedAt = $bookedAt;
 
         return $this;
     }
@@ -101,7 +101,7 @@ class Booking
     #[ORM\PrePersist]
     public function initializeDefaults(): static
     {
-        $this->booked_at = new DateTimeImmutable();
+        $this->bookedAt = new DateTimeImmutable();
         $this->status = BookingStatusEnum::SCHEDULED;
 
         return $this;

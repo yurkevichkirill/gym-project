@@ -20,42 +20,43 @@ class Client
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['public-client', 'public-membership', 'public-payment', 'public-booking'])]
+    #[Groups(['public-client', 'public-membership', 'public-payment', 'public-booking', 'create-payment'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 100)]
     #[Assert\NotBlank]
-    #[Groups(['public-client'])]
-    private ?string $first_name = null;
+    #[Groups(['public-client', 'create-update-client'])]
+    private ?string $firstName = null;
 
     #[ORM\Column(length: 100)]
-    #[Groups(['public-client'])]
+    #[Groups(['public-client', 'create-update-client'])]
     #[Assert\NotBlank]
-    private ?string $last_name = null;
+    private ?string $lastName = null;
 
     #[ORM\Column]
     #[Assert\Positive]
-    #[Groups(['public-client'])]
+    #[Groups(['public-client', 'create-update-client'])]
     private ?int $age = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(['public-client'])]
+    #[Groups(['public-client', 'create-update-client'])]
     #[Assert\Email]
     private ?string $email = null;
 
     #[ORM\Column(length: 20)]
-    #[Groups(['public-client'])]
+    #[Groups(['public-client', 'create-update-client'])]
     private ?string $phone = null;
 
     #[ORM\Column(options: ["default" => "CURRENT_TIMESTAMP"])]
     #[Groups(['public-client'])]
-    private ?\DateTimeImmutable $created_at = null;
+    private ?\DateTimeImmutable $createdAt = null;
 
     #[ORM\Column(length: 255)]
-    private ?string $password_hash = null;
+    #[Groups('create-update-client')]
+    private ?string $passwordHash = null;
 
     #[ORM\Column(type: Types::DECIMAL, precision: 10, scale: 2)]
-    #[Groups(['public-client'])]
+    #[Groups(['public-client', 'create-update-client'])]
     #[Assert\NotBlank]
     #[Assert\Positive]
     private ?string $balance = null;
@@ -83,7 +84,7 @@ class Client
         $this->bookings = new ArrayCollection();
         $this->memberships = new ArrayCollection();
         $this->payments = new ArrayCollection();
-        $this->created_at = new \DateTimeImmutable();
+        $this->createdAt = new \DateTimeImmutable();
     }
 
     public function getId(): ?int
@@ -93,24 +94,24 @@ class Client
 
     public function getFirstName(): ?string
     {
-        return $this->first_name;
+        return $this->firstName;
     }
 
-    public function setFirstName(string $first_name): static
+    public function setFirstName(string $firstName): static
     {
-        $this->first_name = $first_name;
+        $this->firstName = $firstName;
 
         return $this;
     }
 
     public function getLastName(): ?string
     {
-        return $this->last_name;
+        return $this->lastName;
     }
 
-    public function setLastName(string $last_name): static
+    public function setLastName(string $lastName): static
     {
-        $this->last_name = $last_name;
+        $this->lastName = $lastName;
 
         return $this;
     }
@@ -153,24 +154,24 @@ class Client
 
     public function getCreatedAt(): ?\DateTimeImmutable
     {
-        return $this->created_at;
+        return $this->createdAt;
     }
 
-    public function setCreatedAt(\DateTimeImmutable $created_at): static
+    public function setCreatedAt(\DateTimeImmutable $createdAt): static
     {
-        $this->created_at = $created_at;
+        $this->createdAt = $createdAt;
 
         return $this;
     }
 
     public function getPasswordHash(): ?string
     {
-        return $this->password_hash;
+        return $this->passwordHash;
     }
 
-    public function setPasswordHash(string $password_hash): static
+    public function setPasswordHash(string $passwordHash): static
     {
-        $this->password_hash = $password_hash;
+        $this->passwordHash = $passwordHash;
 
         return $this;
     }

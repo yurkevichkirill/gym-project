@@ -27,34 +27,34 @@ class Membership
     #[ORM\ManyToOne(inversedBy: 'memberships')]
     #[ORM\JoinColumn(nullable: false)]
     #[Assert\NotBlank]
-    #[Groups('public-membership')]
+    #[Groups(['public-membership'])]
     private ?Client $client = null;
 
     #[ORM\ManyToOne(inversedBy: 'memberships')]
     #[ORM\JoinColumn(nullable: false)]
     #[Assert\NotBlank]
-    #[Groups('public-membership')]
+    #[Groups(['public-membership', 'create-membership'])]
     private ?MembershipPlan $plan = null;
 
     #[ORM\Column(type: Types::DATE_IMMUTABLE)]
-    #[Groups('public-membership')]
-    private ?\DateTimeImmutable $start_date = null;
+    #[Groups(['public-membership', 'update-membership'])]
+    private ?\DateTimeImmutable $startDate = null;
 
     #[ORM\Column(type: Types::DATE_IMMUTABLE)]
-    #[Groups('public-membership')]
-    private ?\DateTimeImmutable $end_date = null;
+    #[Groups(['public-membership', 'update-membership'])]
+    private ?\DateTimeImmutable $endDate = null;
 
     #[ORM\Column(type: Types::ENUM, options: ['default' => MembershipStatusEnum::ACTIVE])]
-    #[Groups('public-membership')]
+    #[Groups(['public-membership', 'update-membership'])]
     private ?MembershipStatusEnum $status = null;
 
     #[ORM\Column(options: ['default' => 0])]
-    #[Groups('public-membership')]
+    #[Groups(['public-membership', 'update-membership'])]
     #[Assert\GreaterThanOrEqual(0)]
     private ?int $visits = null;
 
     #[ORM\Column(options: ["default" => "CURRENT_TIMESTAMP"])]
-    private ?\DateTimeImmutable $created_at = null;
+    private ?\DateTimeImmutable $createdAt = null;
 
     public function getId(): ?int
     {
@@ -99,12 +99,12 @@ class Membership
 
     public function getStartDate(): ?\DateTimeImmutable
     {
-        return $this->start_date;
+        return $this->startDate;
     }
 
-    public function setStartDate($start_date): static
+    public function setStartDate($startDate): static
     {
-        $this->start_date = $start_date;
+        $this->startDate = $startDate;
 
         return $this;
     }
@@ -115,9 +115,9 @@ class Membership
     #[ORM\PrePersist]
     public function initializeDefaults(): static
     {
-        $this->created_at = new DateTimeImmutable('');
-        $this->start_date = $this->created_at->add(new DateInterval('P1D'));
-        $this->end_date = $this->start_date->add(new DateInterval("P" . $this->plan->getDurationDays() . "D"));
+        $this->createdAt = new DateTimeImmutable('');
+        $this->startDate = $this->createdAt->add(new DateInterval('P1D'));
+        $this->endDate = $this->startDate->add(new DateInterval("P" . $this->plan->getDurationDays() . "D"));
         $this->status = MembershipStatusEnum::ACTIVE;
         $this->visits = 0;
 
@@ -126,12 +126,12 @@ class Membership
 
     public function getEndDate(): ?\DateTimeImmutable
     {
-        return $this->end_date;
+        return $this->endDate;
     }
 
-    public function setEndDate($end_date): static
+    public function setEndDate($endDate): static
     {
-        $this->end_date = $end_date;
+        $this->endDate = $endDate;
 
         return $this;
     }
@@ -150,12 +150,12 @@ class Membership
 
     public function getCreatedAt(): ?\DateTimeImmutable
     {
-        return $this->created_at;
+        return $this->createdAt;
     }
 
-    public function setCreatedAt(\DateTimeImmutable $created_at): static
+    public function setCreatedAt(\DateTimeImmutable $createdAt): static
     {
-        $this->created_at = $created_at;
+        $this->createdAt = $createdAt;
 
         return $this;
     }

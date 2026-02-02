@@ -2,10 +2,11 @@
 
 namespace App\Membership\Controller;
 
-use App\Client\Entity\Client;
+use App\Client\Repository\ClientRepository;
 use App\Membership\Entity\Membership;
-use App\MembershipPlan\Entity\MembershipPlan;
-use Doctrine\ORM\EntityManagerInterface;
+use App\Membership\Repository\MembershipRepository;
+use App\MembershipPlan\Repository\MembershipPlanRepository;
+use Nelmio\ApiDocBundle\Attribute\Model;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -15,18 +16,19 @@ use Symfony\Component\Serializer\Normalizer\DateTimeNormalizer;
 use Symfony\Component\Serializer\SerializerInterface;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 use Throwable;
+use OpenApi\Attributes as OA;
 
 final class MembershipController extends AbstractController
 {
-    #[Route('/api/clients/{id}/membership/', methods: ['GET'], format: 'json')]
-    public function index(int $id, EntityManagerInterface $em): JsonResponse
+    #[Route('/api/clients/{id}/membership', methods: ['GET'], format: 'json')]
+    public function get(int $id, MembershipRepository $membershipRepo, ClientRepository $clientRepo): JsonResponse
     {
-        $client = $em->getRepository(Client::class)->find($id);
+        $client = $clientRepo->find($id);
         if(is_null($client)) {
             return $this->json(['error' => 'Client not found'], 404);
         }
 
-        $membership = $em->getRepository(Membership::class)->findBy([
+        $membership = $membershipRepo->findBy([
             "client" => $client
         ]);
         if(empty($membership)) {
@@ -41,15 +43,18 @@ final class MembershipController extends AbstractController
     }
 
     #[Route('api/clients/{id}/membership', methods: ['POST'], format: 'json')]
+    #[OA\RequestBody(content: new Model(type: Membership::class, groups: ['create-membership']))]
     public function create(
         int $id,
         Request $request,
-        EntityManagerInterface $em,
+        MembershipRepository $membershipRepo,
+        ClientRepository $clientRepo,
+        MembershipPlanRepository $membershipPlanRepo,
         SerializerInterface $serializer,
         ValidatorInterface $validator
     ): JsonResponse
     {
-        $client = $em->getRepository(Client::class)->find($id);
+        $client = $clientRepo->find($id);
         if(is_null($client)) {
             return $this->json(['error' => 'Client not found'], 404);
         }
@@ -66,10 +71,10 @@ final class MembershipController extends AbstractController
         }
 
         $membership->setClient($client);
-        $membershipPlanId = json_decode($json, true)['membership_plan']['id'];
-        $membershipPlan = $em->getRepository(MembershipPlan::class)->find($membershipPlanId);
+        $membershipPlanId = json_decode($json, true)['plan']['id'];
+        $membershipPlan = $membershipPlanRepo->find($membershipPlanId);
         if(is_null($membershipPlan)) {
-            return $this->json(['error' => 'Membership type not found']);
+            return $this->json(['error' => 'Membership plan not found']);
         }
 
         $membership->setPlan($membershipPlan);
@@ -84,9 +89,8 @@ final class MembershipController extends AbstractController
             return $this->json(['errors' => $errorMessages], 422);
         }
 
-        $em->persist($membership);
         try {
-            $em->flush();
+            $membershipRepo->create($membership);
         } catch (Throwable $e) {
             return $this->json(['error' => $e->getMessage()], 400);
         }
@@ -99,20 +103,22 @@ final class MembershipController extends AbstractController
     }
 
     #[Route('api/clients/{id}/membership', methods: ['PUT', 'PATCH'], format: 'json')]
+    #[OA\RequestBody(content: new Model(type: Membership::class, groups: ['update-membership']))]
     public function update(
         int $id,
-        EntityManagerInterface $em,
+        MembershipRepository $membershipRepo,
+        ClientRepository $clientRepo,
         Request $request,
         SerializerInterface $serializer,
         ValidatorInterface $validator
     ): JsonResponse
     {
-        $client = $em->getRepository(Client::class)->find($id);
+        $client = $clientRepo->find($id);
         if(is_null($client)) {
             return $this->json(['error' => "Client not found"], 404);
         }
 
-        $membership = $em->getRepository(Membership::class)->findBy([
+        $membership = $membershipRepo->findBy([
             'client' => $client
         ]);
         if(empty($membership)) {
@@ -123,7 +129,7 @@ final class MembershipController extends AbstractController
             $serializer->deserialize($request->getContent(), Membership::class, 'json', [
                 AbstractNormalizer::OBJECT_TO_POPULATE => $membership[0]
             ]);
-            $em->flush();
+            $membershipRepo->save();
         } catch(Throwable $e) {
             return $this->json(['error' => $e->getMessage()], 400);
         }
@@ -146,22 +152,25 @@ final class MembershipController extends AbstractController
     }
 
     #[Route('api/clients/{id}/membership', methods: ['DELETE'], format: 'json')]
-    public function delete(int $id, EntityManagerInterface $em): JsonResponse
+    public function delete(int $id, MembershipRepository $membershipRepo, ClientRepository $clientRepo): JsonResponse
     {
-        $client = $em->getRepository(Client::class)->find($id);
+        $client = $clientRepo->find($id);
         if(is_null($client)) {
             return $this->json(['error' => "Client not found"], 404);
         }
 
-        $membership = $em->getRepository(Membership::class)->findBy([
+        $membership = $membershipRepo->findBy([
             'client' => $client
         ]);
         if(empty($membership)) {
             return $this->json(['text' => 'Client has no membership'], 200);
         }
 
-        $em->remove($membership[0]);
-        $em->flush();
+        try {
+            $membershipRepo->remove($membership[0]);
+        } catch(Throwable $e) {
+            return $this->json(['error' => $e->getMessage()], 400);
+        }
 
         return $this->json(null, 204);
     }

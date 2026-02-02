@@ -2,8 +2,8 @@
 
 namespace App\Trainer\Entity;
 
-use App\TrainerAvailability\Entity\TrainerAvailability;
 use App\Trainer\Repository\TrainerRepository;
+use App\TrainerWorkTime\Entity\TrainerWorkTime;
 use App\Training\Entity\Training;
 use App\TrainingType\Entity\TrainingType;
 use Doctrine\Common\Collections\ArrayCollection;
@@ -24,39 +24,39 @@ class Trainer
 
     #[ORM\Column(length: 100)]
     #[Assert\NotBlank]
-    #[Groups(['public-trainer'])]
-    private ?string $first_name = null;
+    #[Groups(['public-trainer', 'create-update-trainer'])]
+    private ?string $firstName = null;
 
     #[ORM\Column(length: 100)]
     #[Assert\NotBlank]
-    #[Groups(['public-trainer'])]
-    private ?string $last_name = null;
+    #[Groups(['public-trainer', 'create-update-trainer'])]
+    private ?string $lastName = null;
 
     #[ORM\Column(length: 255)]
     #[Assert\Email]
-    #[Groups(['public-trainer'])]
+    #[Groups(['public-trainer', 'create-update-trainer'])]
     private ?string $email = null;
 
     #[ORM\Column(length: 20)]
     #[Assert\NotBlank]
-    #[Groups(['public-trainer'])]
+    #[Groups(['public-trainer', 'create-update-trainer'])]
     private ?string $phone = null;
 
     #[ORM\ManyToOne(cascade: ['persist'], inversedBy: 'trainers')]
     #[ORM\JoinColumn(name: 'training_type_id', referencedColumnName: 'id', nullable: false)]
-    #[Groups(['public-trainer'])]
-    private ?TrainingType $training_type = null;
+    #[Groups(['public-trainer', 'create-update-trainer'])]
+    private ?TrainingType $trainingType = null;
 
     #[ORM\Column(type: Types::DECIMAL, precision: 10, scale: 2)]
-    #[Groups(['public-trainer'])]
+    #[Groups(['public-trainer', 'create-update-trainer'])]
     #[Assert\NotBlank]
     #[Assert\Positive]
     private ?string $price = null;
 
     /**
-     * @var Collection<int, TrainerAvailability>
+     * @var Collection<int, TrainerWorkTime>
      */
-    #[ORM\OneToMany(targetEntity: TrainerAvailability::class, mappedBy: 'trainer')]
+    #[ORM\OneToMany(targetEntity: TrainerWorkTime::class, mappedBy: 'trainer')]
     private Collection $trainerAvailabilities;
 
     /**
@@ -78,24 +78,24 @@ class Trainer
 
     public function getFirstName(): ?string
     {
-        return $this->first_name;
+        return $this->firstName;
     }
 
-    public function setFirstName(string $first_name): static
+    public function setFirstName(string $firstName): static
     {
-        $this->first_name = $first_name;
+        $this->firstName = $firstName;
 
         return $this;
     }
 
     public function getLastName(): ?string
     {
-        return $this->last_name;
+        return $this->lastName;
     }
 
-    public function setLastName(string $last_name): static
+    public function setLastName(string $lastName): static
     {
-        $this->last_name = $last_name;
+        $this->lastName = $lastName;
 
         return $this;
     }
@@ -126,12 +126,12 @@ class Trainer
 
     public function getTrainingType(): ?TrainingType
     {
-        return $this->training_type;
+        return $this->trainingType;
     }
 
-    public function setTrainingType(?TrainingType $training_type): static
+    public function setTrainingType(?TrainingType $trainingType): static
     {
-        $this->training_type = $training_type;
+        $this->trainingType = $trainingType;
 
         return $this;
     }
@@ -149,14 +149,14 @@ class Trainer
     }
 
     /**
-     * @return Collection<int, TrainerAvailability>
+     * @return Collection<int, TrainerWorkTime>
      */
     public function getTrainerAvailabilities(): Collection
     {
         return $this->trainerAvailabilities;
     }
 
-    public function addTrainerAvailability(TrainerAvailability $trainerAvailability): static
+    public function addTrainerAvailability(TrainerWorkTime $trainerAvailability): static
     {
         if (!$this->trainerAvailabilities->contains($trainerAvailability)) {
             $this->trainerAvailabilities->add($trainerAvailability);
@@ -166,7 +166,7 @@ class Trainer
         return $this;
     }
 
-    public function removeTrainerAvailability(TrainerAvailability $trainerAvailability): static
+    public function removeTrainerAvailability(TrainerWorkTime $trainerAvailability): static
     {
         if ($this->trainerAvailabilities->removeElement($trainerAvailability)) {
             // set the owning side to null (unless already changed)

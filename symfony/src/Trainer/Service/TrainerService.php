@@ -4,26 +4,37 @@ declare(strict_types=1);
 
 namespace App\Trainer\Service;
 
-use App\Availability\Entity\TrainerAvailability;
 use App\Enum\DayOfWeekEnum;
 use App\Trainer\Entity\Trainer;
+use App\Trainer\Repository\TrainerRepository;
+use App\TrainerAvailability\Entity\TrainerWorkTime;
+use App\TrainerAvailability\Repository\TrainerAvailabilityRepository;
 use App\Training\Entity\Training;
+use App\Training\Repository\TrainingRepository;
+use App\TrainingType\Repository\TrainingTypeRepository;
 use DateInterval;
-use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\EntityManager;
 
-class TrainerService implements TrainerServiceInterface
+readonly class TrainerService implements TrainerServiceInterface
 {
+    public function __construct(
+        private TrainerAvailabilityRepository $trainerAvailabilityRepo,
+        private TrainingRepository $trainingRepo,
+        private TrainerRepository $trainerRepo,
+        private TrainingTypeRepository $trainingTypeRepo
+    )
+    {}
 
     /**
      * @throws \DateMalformedIntervalStringException
      */
-    public function getAvailable(Trainer $trainer, DayOfWeekEnum $dayOfWeek, EntityManagerInterface $em): array
+    public function getAvailable(Trainer $trainer, DayOfWeekEnum $dayOfWeek): array
     {
-        $dayAvailabilities = $em->getRepository(TrainerAvailability::class)->findBy([
+        $dayAvailabilities = $this->trainerAvailabilityRepo->findBy([
             'trainer' => $trainer,
             'day_of_week' => $dayOfWeek
         ])[0];
-        $dayTrainings = $em->getRepository(Training::class)->findBy([
+        $dayTrainings = $this->trainingRepo->findBy([
             'trainer' => $trainer,
             'day_of_week' => $dayOfWeek
         ]);
@@ -49,8 +60,13 @@ class TrainerService implements TrainerServiceInterface
         return $available;
     }
 
-    public function getScheduled(Trainer $trainer, DayOfWeekEnum $dayOfWeek): array
+    public function findBy(array $sort, ?int $trainingTypeId): array
     {
-        // TODO: Implement getScheduled() method.
+        $criteria = [];
+        if($trainingTypeId) {
+            $trainingType = $this->trainingTypeRepo->find($trainingTypeId);
+            $criteria['trainingType'] = $trainingType;
+        }
+        return $this->trainerRepo->findBy($criteria, $sort);
     }
 }

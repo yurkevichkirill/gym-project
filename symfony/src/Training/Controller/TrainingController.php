@@ -3,9 +3,11 @@
 namespace App\Training\Controller;
 
 use App\Enum\DayOfWeekEnum;
-use App\Trainer\Entity\Trainer;
+use App\Trainer\Repository\TrainerRepository;
 use App\Training\Entity\Training;
-use Doctrine\ORM\EntityManagerInterface;
+use App\Training\Repository\TrainingRepository;
+use App\Training\Service\TrainingServiceInterface;
+use Nelmio\ApiDocBundle\Attribute\Model;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -14,19 +16,34 @@ use Symfony\Component\Serializer\Normalizer\AbstractNormalizer;
 use Symfony\Component\Serializer\SerializerInterface;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 use Throwable;
+use OpenApi\Attributes as OA;
 
+//change endpoints
 final class TrainingController extends AbstractController
 {
     #[Route('api/trainers/{id}/trainings', methods: ['GET'], format: 'json')]
-    public function index(EntityManagerInterface $em, int $id): JsonResponse
+    #[OA\Parameter(
+        name: 'dayOfWeek',
+        in: 'query'
+    )]
+    #[OA\Parameter(
+        name: 'sort',
+        in: 'query'
+    )]
+    public function getAll(int $id, Request $request, TrainingServiceInterface $trainingService): JsonResponse
     {
-        $trainer = $em->getRepository(Trainer::class)->find($id);
-
-        if(is_null($trainer)) {
-            return $this->json(['error' => 'Trainer not found'], 404);
+        try {
+            $sortRaw = $request->query->get('sort', 'startTime:ASC');
+            $sort = [];
+            foreach (explode(',', $sortRaw) as $item) {
+                [$field, $order] = explode(':',  $item);
+                $sort[$field] = strtoupper($order);
+            }
+            $dayOfWeek = DayOfWeekEnum::tryFrom($request->query->get('dayOfWeek'));
+            $trainings = $trainingService->findBy($id, $sort, $dayOfWeek);
+        } catch (Throwable $e) {
+            return $this->json(['error' => $e->getMessage()], 400);
         }
-
-        $trainings = $em->getRepository(Training::class)->findBy(['trainer' => $trainer]);
 
         if(empty($trainings)) {
             return $this->json(['error' => 'No trainings found'], 404);
@@ -38,22 +55,15 @@ final class TrainingController extends AbstractController
         ]);
     }
 
-    #[Route('api/trainers/{id}/trainings/{day_of_week}', methods: ['GET'], format: 'json')]
-    public function show(EntityManagerInterface $em, int $id, DayOfWeekEnum $day_of_week): JsonResponse
+    #[Route('api/trainings/{id}', methods: ['GET'], format: 'json')]
+    public function get(
+        TrainingRepository $trainingRepo,
+        int $id
+    ): JsonResponse
     {
-        $trainer = $em->getRepository(Trainer::class)->find($id);
-
-        if(is_null($trainer)) {
-            return $this->json(['error' => 'Trainer not found'], 404);
-        }
-
-        $training = $em->getRepository(Training::class)->findBy([
-            'trainer' => $trainer,
-            'day_of_week' => $day_of_week
-        ]);
-
+        $training = $trainingRepo->find($id);
         if(empty($training)) {
-            return $this->json(['text' => 'Trainer has no trainings in this day'], 200);
+            return $this->json(['error' => 'Training not found'], 404);
         }
 
         return $this->json($training, 200, [], [
@@ -63,9 +73,11 @@ final class TrainingController extends AbstractController
     }
 
     #[Route('api/trainers/{id}/trainings', methods: ['POST'], format: 'json')]
+    #[OA\RequestBody(content: new Model(type: Training::class, groups: ['create-update-training']))]
     public function create(
         int $id,
-        EntityManagerInterface $em,
+        TrainingRepository $trainingRepo,
+        TrainerRepository $trainerRepo,
         Request $request,
         SerializerInterface $serializer,
         ValidatorInterface $validator
@@ -77,7 +89,7 @@ final class TrainingController extends AbstractController
             return $this->json(['error' => $e->getMessage()], 400);
         }
 
-        $trainer = $em->getRepository(Trainer::class)->find($id);
+        $trainer = $trainerRepo->find($id);
         if(is_null($trainer)) {
             return $this->json(['error' => 'Trainer not found'], 404);
         }
@@ -94,9 +106,8 @@ final class TrainingController extends AbstractController
             return $this->json(['errors' => $errorMessages], 422);
         }
 
-        $em->persist($training);
         try {
-            $em->flush();
+            $trainingRepo->create($training);
         } catch (Throwable $e) {
             return $this->json(['error' => $e->getMessage()], 400);
         }
@@ -107,34 +118,26 @@ final class TrainingController extends AbstractController
         ]);
     }
 
-    #[Route('api/trainers/{id}/trainings/{day_of_week}', methods: ['PUT', 'PATCH'], format: 'json')]
+    #[Route('api/trainings/{id}', methods: ['PUT', 'PATCH'], format: 'json')]
+    #[OA\RequestBody(content: new Model(type: Training::class, groups: ['create-update-training']))]
     public function update(
         int $id,
-        DayOfWeekEnum $day_of_week,
-        EntityManagerInterface $em,
+        TrainingRepository $trainingRepo,
         Request $request,
         SerializerInterface $serializer,
         ValidatorInterface $validator
     ): JsonResponse
     {
-        $trainer = $em->getRepository(Trainer::class)->find($id);
-        if(is_null($trainer)) {
-            return $this->json(['error' => "Trainer not found"], 404);
-        }
-
-        $training = $em->getRepository(Training::class)->findBy([
-            'trainer' => $trainer,
-            'day_of_week' => $day_of_week
-        ]);
+        $training = $trainingRepo->find($id);
         if(empty($training)) {
-            return $this->json(['text' => 'Trainer has no trainings in this day'], 200);
+            return $this->json(['error' => 'Training not found'], 404);
         }
 
         try {
             $serializer->deserialize($request->getContent(), Training::class, 'json', [
-                AbstractNormalizer::OBJECT_TO_POPULATE => $training[0]
+                AbstractNormalizer::OBJECT_TO_POPULATE => $training
             ]);
-            $em->flush();
+            $trainingRepo->save();
         } catch(Throwable $e) {
             return $this->json(['error' => $e->getMessage()], 400);
         }
@@ -149,30 +152,29 @@ final class TrainingController extends AbstractController
             return $this->json(['errors' => $errorMessages], 422);
         }
 
-        return $this->json($training[0], 200, [], [
+        return $this->json($training, 200, [], [
             'datetime_format' => 'H:i',
             'groups' => ['public-training']
         ]);
     }
 
-    #[Route('api/trainers/{id}/trainings/{day_of_week}', methods: ['DELETE'], format: 'json')]
-    public function delete(int $id, DayOfWeekEnum $day_of_week, EntityManagerInterface $em): JsonResponse
+    #[Route('api/trainings/{id}', methods: ['DELETE'], format: 'json')]
+    public function delete(
+        int $id,
+        TrainingRepository $trainingRepo,
+    ): JsonResponse
     {
-        $trainer = $em->getRepository(Trainer::class)->find($id);
-        if(is_null($trainer)) {
-            return $this->json(['error' => 'Trainer not found'], 404);
-        }
-
-        $training = $em->getRepository(Training::class)->findBy([
-            'trainer' => $trainer,
-            'day_of_week' => $day_of_week
-        ]);
+        $training = $trainingRepo->find($id);
         if(empty($training)) {
-            return $this->json(['error' => 'Trainer has no trainings in this day'], 200);
+            return $this->json(['error' => 'Training not found'], 404);
         }
 
-        $em->remove($training[0]);
-        $em->flush();
+        try {
+            $trainingRepo->remove($training);
+        } catch(Throwable $e) {
+            return $this->json(['error' => $e->getMessage()], 400);
+        }
+
         return $this->json(null, 204);
     }
 }
