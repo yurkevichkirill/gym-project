@@ -16,30 +16,30 @@ class Training
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['public-training', 'public-booking'])]
+    #[Groups(['public-training', 'public-booking', 'create-booking'])]
     private ?int $id = null;
 
     #[ORM\ManyToOne(inversedBy: 'trainings')]
     #[ORM\JoinColumn(nullable: false)]
-    #[Groups('public-training')]
+    #[Groups(['public-training'])]
     private ?Trainer $trainer = null;
 
     #[ORM\Column(type: Types::TIME_IMMUTABLE)]
-    #[Groups('public-training')]
+    #[Groups(['public-training', 'create-update-training'])]
     #[Assert\NotBlank]
-    private ?\DateTimeImmutable $start_time = null;
+    private ?\DateTimeImmutable $startTime = null;
 
     #[ORM\Column(type: Types::ENUM)]
-    #[Groups('public-training')]
+    #[Groups(['public-training', 'create-update-training'])]
     #[Assert\NotBlank]
-    private ?DayOfWeekEnum $day_of_week = null;
+    private ?DayOfWeekEnum $dayOfWeek = null;
 
     #[ORM\Column(options: ['default' => 60, 'check' => "duration_minutes" > 0])]
-    #[Groups('public-training')]
+    #[Groups(['public-training', 'create-update-training'])]
     #[Assert\NotBlank]
     #[Assert\Positive]
     #[Assert\GreaterThanOrEqual(60)]
-    private ?int $duration_minutes = null;
+    private ?int $durationMinutes = null;
 
     public function getId(): ?int
     {
@@ -60,36 +60,36 @@ class Training
 
     public function getStartTime(): ?\DateTimeImmutable
     {
-        return $this->start_time;
+        return $this->startTime;
     }
 
-    public function setStartTime(\DateTimeImmutable $start_time): static
+    public function setStartTime(\DateTimeImmutable $startTime): static
     {
-        $this->start_time = $start_time;
+        $this->startTime = $startTime;
 
         return $this;
     }
 
     public function getDayOfWeek(): ?DayOfWeekEnum
     {
-        return $this->day_of_week;
+        return $this->dayOfWeek;
     }
 
-    public function setDayOfWeek(DayOfWeekEnum $day_of_week): static
+    public function setDayOfWeek(DayOfWeekEnum $dayOfWeek): static
     {
-        $this->day_of_week = $day_of_week;
+        $this->dayOfWeek = $dayOfWeek;
 
         return $this;
     }
 
     public function getDurationMinutes(): ?int
     {
-        return $this->duration_minutes;
+        return $this->durationMinutes;
     }
 
-    public function setDurationMinutes(int $duration_minutes): static
+    public function setDurationMinutes(int $durationMinutes): static
     {
-        $this->duration_minutes = $duration_minutes;
+        $this->durationMinutes = $durationMinutes;
 
         return $this;
     }

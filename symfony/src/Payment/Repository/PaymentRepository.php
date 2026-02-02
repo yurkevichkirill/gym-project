@@ -2,8 +2,11 @@
 
 namespace App\Payment\Repository;
 
+use App\Client\Entity\Client;
 use App\Payment\Entity\Payment;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
+use Doctrine\ORM\Exception\ORMException;
+use Doctrine\ORM\OptimisticLockException;
 use Doctrine\Persistence\ManagerRegistry;
 
 /**
@@ -14,6 +17,35 @@ class PaymentRepository extends ServiceEntityRepository
     public function __construct(ManagerRegistry $registry)
     {
         parent::__construct($registry, Payment::class);
+    }
+
+    /**
+     * @throws OptimisticLockException
+     * @throws ORMException
+     */
+    public function save(): void
+    {
+        $this->getEntityManager()->flush();
+    }
+
+    /**
+     * @throws OptimisticLockException
+     * @throws ORMException
+     */
+    public function create(Payment $payment): void
+    {
+        $this->getEntityManager()->persist($payment);
+        $this->save();
+    }
+
+    /**
+     * @throws OptimisticLockException
+     * @throws ORMException
+     */
+    public function remove(Payment $payment): void
+    {
+        $this->getEntityManager()->remove($payment);
+        $this->save();
     }
 
     //    /**

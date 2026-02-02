@@ -3,9 +3,16 @@
 namespace App\Booking\Controller;
 
 use App\Booking\Entity\Booking;
+use App\Booking\Enum\BookingStatusEnum;
+use App\Booking\Repository\BookingRepository;
+use App\Booking\Service\BookingServiceInterface;
 use App\Client\Entity\Client;
+use App\Client\Repository\ClientRepository;
+use App\Enum\DayOfWeekEnum;
 use App\Training\Entity\Training;
+use App\Training\Repository\TrainingRepository;
 use Doctrine\ORM\EntityManagerInterface;
+use Nelmio\ApiDocBundle\Attribute\Model;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -15,22 +22,36 @@ use Symfony\Component\Serializer\Normalizer\DateTimeNormalizer;
 use Symfony\Component\Serializer\SerializerInterface;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 use Throwable;
+use OpenApi\Attributes as OA;
 
 final class BookingController extends AbstractController
 {
     #[Route('/api/clients/{id}/bookings', methods: ['GET'], format: 'json')]
-    public function index(int $id, EntityManagerInterface $em): JsonResponse
+    #[OA\Parameter(
+        name: 'status',
+        in: 'query'
+    )]
+    #[OA\Parameter(
+        name: 'sort',
+        in: 'query'
+    )]
+    public function getAll(int $id, BookingServiceInterface $bookingService, Request $request): JsonResponse
     {
-        $client = $em->getRepository(Client::class)->find($id);
-        if(is_null($client)) {
-            return $this->json(['error' => 'Client not found'], 404);
+        try {
+            $sortRaw = $request->query->get('sort', 'bookedAt:ASC');
+            $sort = [];
+            foreach (explode(',', $sortRaw) as $item) {
+                [$field, $order] = explode(':',  $item);
+                $sort[$field] = strtoupper($order);
+            }
+            $status = BookingStatusEnum::tryFrom($request->query->get('status'));
+            $bookings = $bookingService->findBy($id, $sort, $status);
+        } catch (Throwable $e) {
+            return $this->json(['error' => $e->getMessage()], 400);
         }
 
-        $bookings = $em->getRepository(Booking::class)->findBy([
-            "client" => $client
-        ]);
         if(empty($bookings)) {
-            return $this->json(['error' => "Client has no bookings"], 404);
+            return $this->json(['error' => 'No bookings found'], 404);
         }
 
         return $this->json($bookings, 200, [], [
@@ -41,14 +62,14 @@ final class BookingController extends AbstractController
     }
 
     #[Route('api/clients/{clientId}/bookings/{bookingId}', methods: ['GET'], format: 'json')]
-    public function show(int $clientId, int $bookingId, EntityManagerInterface $em): JsonResponse
+    public function get(int $clientId, int $bookingId, BookingRepository $bookingRepo, ClientRepository $clientRepo): JsonResponse
     {
-        $client = $em->getRepository(Client::class)->find($clientId);
+        $client = $clientRepo->find($clientId);
         if(is_null($client)) {
             return $this->json(['error' => 'Client not found'], 404);
         }
 
-        $bookings = $em->getRepository(Booking::class)->findBy([
+        $bookings = $bookingRepo->findBy([
             "client" => $client,
             "id" => $bookingId
         ]);
@@ -64,21 +85,24 @@ final class BookingController extends AbstractController
     }
 
     #[Route('api/clients/{id}/bookings', methods: ['POST'], format: 'json')]
+    #[OA\RequestBody(content: new Model(type: Booking::class, groups: ['create-booking']))]
     public function create(
         int $id,
         Request $request,
-        EntityManagerInterface $em,
+        BookingRepository $bookingRepo,
+        ClientRepository $clientRepo,
+        TrainingRepository $trainingRepo,
         SerializerInterface $serializer,
         ValidatorInterface $validator
     ): JsonResponse
     {
         $data = json_decode($request->getContent(), true);
-        $training = $em->getRepository(Training::class)->find($data['training']['id']);
+        $training = $trainingRepo->find($data['training']['id']);
         if(is_null($training)) {
             return $this->json(['error' => 'Training not found'], 404);
         }
 
-        $client = $em->getRepository(Client::class)->find($id);
+        $client = $clientRepo->find($id);
         if(is_null($client)) {
             return $this->json(['error' => 'Client not found'], 404);
         }
@@ -101,9 +125,8 @@ final class BookingController extends AbstractController
             return $this->json(['errors' => $errorMessages], 422);
         }
 
-        $em->persist($booking);
         try {
-            $em->flush();
+            $bookingRepo->create($booking);
         } catch(Throwable $e) {
             return $this->json(['error' => $e->getMessage()], 400);
         }
@@ -121,11 +144,13 @@ final class BookingController extends AbstractController
         Booking $booking,
         Request $request,
         ValidatorInterface $validator,
-        EntityManagerInterface $em,
+        BookingRepository $bookingRepo,
+        TrainingRepository $trainingRepo,
+        ClientRepository $clientRepo,
         SerializerInterface $serializer
     ): JsonResponse
     {
-        $client = $em->getRepository(Client::class)->find($clientId);
+        $client = $clientRepo->find($clientId);
         if(is_null($client)) {
             return $this->json(['error' => 'Client not found'], 404);
         }
@@ -141,7 +166,7 @@ final class BookingController extends AbstractController
         $data = json_decode($request->getContent(), true);
 
         if (isset($data['training']['id'])) {
-            $training = $em->getRepository(Training::class)->find($data['training']['id']);
+            $training = $trainingRepo->find($data['training']['id']);
 
             if (is_null($training)) {
                 return $this->json(['error' => 'Client not found'], 404);
@@ -161,7 +186,7 @@ final class BookingController extends AbstractController
         }
 
         try {
-            $em->flush();
+            $bookingRepo->save();
         } catch(Throwable $e) {
             return $this->json(['error' => $e->getMessage()], 400);
         }
@@ -174,15 +199,23 @@ final class BookingController extends AbstractController
     }
 
     #[Route('api/clients/{clientId}/bookings/{id}', methods: ['DELETE'], format: 'json')]
-    public function remove(int $clientId, Booking $booking, EntityManagerInterface $em): JsonResponse
+    public function remove(
+        int $clientId,
+        Booking $booking,
+        BookingRepository $bookingRepo,
+        ClientRepository $clientRepo
+    ): JsonResponse
     {
-        $client = $em->getRepository(Client::class)->find($clientId);
+        $client = $clientRepo->find($clientId);
         if(is_null($client)) {
             return $this->json(['error' => 'Client not found'], 404);
         }
 
-        $em->remove($booking);
-        $em->flush();
+        try {
+            $bookingRepo->remove($booking);
+        } catch(Throwable $e) {
+            return $this->json(['error' => $e->getMessage()], 400);
+        }
 
         return $this->json(null, 204);
     }

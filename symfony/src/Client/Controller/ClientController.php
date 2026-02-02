@@ -2,23 +2,49 @@
 
 namespace App\Client\Controller;
 
+use App\Booking\Entity\Booking;
 use App\Client\Entity\Client;
-use Doctrine\ORM\EntityManagerInterface;
+use App\Client\Repository\ClientRepository;
+use App\Client\Service\ClientServiceInterface;
+use Doctrine\ORM\Exception\ORMException;
+use Doctrine\ORM\OptimisticLockException;
+use Nelmio\ApiDocBundle\Attribute\Model;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Serializer\Normalizer\AbstractNormalizer;
+use Symfony\Component\Serializer\Normalizer\DateTimeNormalizer;
 use Symfony\Component\Serializer\SerializerInterface;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 use Throwable;
+use OpenApi\Attributes as OA;
 
 final class ClientController extends AbstractController
 {
     #[Route('/api/clients', name: 'app_api_clients', methods: ['GET'], format: 'json')]
-    public function index(EntityManagerInterface $em): JsonResponse
+    #[OA\Parameter(
+        name: 'sort',
+        in: 'query'
+    )]
+    public function getAll(ClientServiceInterface $clientService, Request $request): JsonResponse
     {
-        $clients = $em->getRepository(Client::class)->findAll();
+
+        try {
+            $sortRaw = $request->query->get('sort', 'createdAt:ASC');
+            $sort = [];
+            foreach (explode(',', $sortRaw) as $item) {
+                [$field, $order] = explode(':',  $item);
+                $sort[$field] = strtoupper($order);
+            }
+            $clients = $clientService->findBy($sort);
+        } catch (Throwable $e) {
+            return $this->json(['error' => $e->getMessage()], 400);
+        }
+
+        if(empty($clients)) {
+            return $this->json(['error' => 'No clients found'], 404);
+        }
 
         return $this->json($clients, 200, [], [
             'groups' => ["public-client"]
@@ -26,7 +52,7 @@ final class ClientController extends AbstractController
     }
 
     #[Route('/api/clients/{id}', methods: ['GET'], format: 'json')]
-    public function show(Client $client): JsonResponse
+    public function get(Client $client): JsonResponse
     {
         return $this->json($client, 200, [], [
             'groups' => ["public-client"]
@@ -34,9 +60,10 @@ final class ClientController extends AbstractController
     }
 
     #[Route('/api/clients', methods: ['POST'], format: 'json')]
+    #[OA\RequestBody(content: new Model(type: Client::class, groups: ['create-update-client']))]
     public function create(
         Request $request,
-        EntityManagerInterface $em,
+        ClientRepository $repo,
         SerializerInterface $serializer,
         ValidatorInterface $validator
     ): JsonResponse
@@ -60,9 +87,8 @@ final class ClientController extends AbstractController
             return $this->json(['errors' => $errorMessages], 422);
         }
 
-        $em->persist($client);
         try {
-            $em->flush();
+            $repo->create($client);
         } catch (Throwable $e) {
             return $this->json(['error' => $e->getMessage()], 400);
         }
@@ -73,11 +99,12 @@ final class ClientController extends AbstractController
     }
 
     #[Route('api/clients/{id}', methods: ['PUT', 'PATCH'], format: 'json')]
+    #[OA\RequestBody(content: new Model(type: Client::class, groups: ['create-update-client']))]
     public function update(
         Request $request,
         Client $client,
         SerializerInterface $serializer,
-        EntityManagerInterface $em,
+        ClientRepository $repo,
         ValidatorInterface $validator
     ): JsonResponse
     {
@@ -96,7 +123,7 @@ final class ClientController extends AbstractController
                 return $this->json(['errors' => $errorMessages], 422);
             }
 
-            $em->flush();
+            $repo->save();
         } catch(Throwable $e) {
             return $this->json(['error' => $e->getMessage()], 400);
         }
@@ -108,11 +135,13 @@ final class ClientController extends AbstractController
     }
 
     #[Route('api/clients/{id}', methods: ['DELETE'], format: 'json')]
-    public function delete(EntityManagerInterface $em, Client $client): JsonResponse
+    public function delete(ClientRepository $repo, Client $client): JsonResponse
     {
-        $em->remove($client);
-
-        $em->flush();
+        try {
+            $repo->remove($client);
+        } catch(Throwable $e) {
+            return $this->json(['error' => $e->getMessage()], 400);
+        }
 
         return $this->json(null, 204);
     }

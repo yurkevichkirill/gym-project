@@ -3,7 +3,8 @@
 namespace App\TrainingType\Controller;
 
 use App\TrainingType\Entity\TrainingType;
-use Doctrine\ORM\EntityManagerInterface;
+use App\TrainingType\Repository\TrainingTypeRepository;
+use Nelmio\ApiDocBundle\Attribute\Model;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -12,31 +13,33 @@ use Symfony\Component\Serializer\Normalizer\AbstractNormalizer;
 use Symfony\Component\Serializer\SerializerInterface;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 use Throwable;
+use OpenApi\Attributes as OA;
 
 final class TrainingTypeController extends AbstractController
 {
-    #[Route('api/gym', methods: ['GET'], format: 'json')]
-    public function index(EntityManagerInterface $em): JsonResponse
+    #[Route('api/training-types', methods: ['GET'], format: 'json')]
+    public function getAll(TrainingTypeRepository $repo): JsonResponse
     {
-        $training_types = $em->getRepository(TrainingType::class)->findAll();
+        $training_types = $repo->findAll();
 
         return $this->json($training_types, 200, [], [
             'groups' => ['public-training-type']
         ]);
     }
 
-    #[Route('api/gym/{id}', methods: ['GET'], format: 'json')]
-    public function show(TrainingType $trainingType): JsonResponse
+    #[Route('api/trainings-types/{id}', methods: ['GET'], format: 'json')]
+    public function get(TrainingType $trainingType): JsonResponse
     {
         return $this->json($trainingType, 200, [], [
             'groups' => ['public-training-type']
         ]);
     }
 
-    #[Route('api/gym', methods: ['POST'], format: 'json')]
+    #[Route('api/training-types', methods: ['POST'], format: 'json')]
+    #[OA\RequestBody(content: new Model(type: TrainingType::class, groups: ['create-update-training-type']))]
     public function create(
         Request $request,
-        EntityManagerInterface $em,
+        TrainingTypeRepository $repo,
         SerializerInterface $serializer,
         ValidatorInterface $validator
     ): JsonResponse
@@ -58,9 +61,8 @@ final class TrainingTypeController extends AbstractController
             return $this->json(['errors' => $errorMessages], 422);
         }
 
-        $em->persist($trainingType);
         try {
-            $em->flush();
+            $repo->create($trainingType);
         } catch (Throwable $e) {
             return $this->json(['error' => $e->getMessage()], 400);
         }
@@ -70,12 +72,13 @@ final class TrainingTypeController extends AbstractController
         ]);
     }
 
-    #[Route('api/gym/{id}', methods: ['PATCH', 'PUT'], format: 'json')]
+    #[Route('api/training-types/{id}', methods: ['PATCH', 'PUT'], format: 'json')]
+    #[OA\RequestBody(content: new Model(type: TrainingType::class, groups: ['create-update-training-type']))]
     public function update(
         TrainingType $trainingType,
         Request $request,
         SerializerInterface $serializer,
-        EntityManagerInterface $em,
+        TrainingTypeRepository $repo,
         ValidatorInterface $validator
     ): JsonResponse
     {
@@ -83,7 +86,7 @@ final class TrainingTypeController extends AbstractController
             $serializer->deserialize($request->getContent(), TrainingType::class, 'json', [
                 AbstractNormalizer::OBJECT_TO_POPULATE => $trainingType
             ]);
-            $em->flush();
+            $repo->save();
         } catch (Throwable $e) {
             return $this->json(['error' => $e->getMessage()], 400);
         }
@@ -103,11 +106,14 @@ final class TrainingTypeController extends AbstractController
         ]);
     }
 
-    #[Route('api/gym/{id}', methods: ['DELETE'], format: 'json')]
-    public function delete(EntityManagerInterface $em, TrainingType $trainingType): JsonResponse
+    #[Route('api/training-types/{id}', methods: ['DELETE'], format: 'json')]
+    public function delete(TrainingTypeRepository $repo, TrainingType $trainingType): JsonResponse
     {
-        $em->remove($trainingType);
-        $em->flush();
+        try {
+            $repo->remove($trainingType);
+        } catch (Throwable $e) {
+            return $this->json(['error' => $e->getMessage()], 400);
+        }
 
         return $this->json(null, 204);
     }

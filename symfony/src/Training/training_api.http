@@ -1,5 +1,5 @@
 ### GET trainings
-GET http://localhost/api/trainers/1/trainings
+GET http://localhost/api/trainers/2/trainings
 
 ###
 
@@ -8,7 +8,7 @@ GET http://localhost/api/trainers/1/trainings/monday
 
 ###
 
-POST http://localhost/api/trainers/1/trainings
+POST http://localhost/api/trainers/2/trainings
 Content-Type: application/json
 
 {

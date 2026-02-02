@@ -24,28 +24,28 @@ class Payment
 
     #[ORM\ManyToOne(inversedBy: 'payments')]
     #[ORM\JoinColumn(nullable: false)]
-    #[Groups('public-payment')]
+    #[Groups(['public-payment', 'create-payment'])]
     #[Assert\NotBlank]
     private ?Client $client = null;
 
     #[ORM\Column(type: Types::DECIMAL, precision: 10, scale: 2)]
-    #[Groups('public-payment')]
+    #[Groups(['public-payment', 'create-payment', 'update-payment'])]
     #[Assert\NotBlank]
     #[Assert\GreaterThanOrEqual(0)]
     private ?string $amount = null;
 
     #[ORM\Column(type: Types::ENUM)]
-    #[Groups('public-payment')]
+    #[Groups(['public-payment', 'create-payment'])]
     #[Assert\NotBlank]
     private ?PaymentCategoryEnum $category = null;
 
     #[ORM\Column(type: Types::ENUM, options: ['default' => PaymentStatusEnum::PENDING])]
-    #[Groups('public-payment')]
+    #[Groups(['public-payment', 'update-payment'])]
     private ?PaymentStatusEnum $status = null;
 
     #[ORM\Column(nullable: true, options: ["default" => "CURRENT_TIMESTAMP"])]
     #[Groups('public-payment')]
-    private ?\DateTimeImmutable $paid_at = null;
+    private ?\DateTimeImmutable $paidAt = null;
 
     public function getId(): ?int
     {
@@ -96,7 +96,7 @@ class Payment
     public function setStatus(PaymentStatusEnum $status): static
     {
         if($this->status === PaymentStatusEnum::PENDING && $status === PaymentStatusEnum::PAID) {
-            $this->paid_at = new DateTimeImmutable();
+            $this->paidAt = new DateTimeImmutable();
         }
         $this->status = $status;
 
@@ -105,12 +105,12 @@ class Payment
 
     public function getPaidAt(): ?\DateTimeImmutable
     {
-        return $this->paid_at;
+        return $this->paidAt;
     }
 
-    public function setPaidAt(\DateTimeImmutable $paid_at): static
+    public function setPaidAt(\DateTimeImmutable $paidAt): static
     {
-        $this->paid_at = $paid_at;
+        $this->paidAt = $paidAt;
 
         return $this;
     }

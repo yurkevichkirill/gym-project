@@ -16,23 +16,23 @@ class MembershipPlan
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['public-membership-plan', 'public-membership'])]
+    #[Groups(['public-membership-plan', 'public-membership', 'create-membership'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups('public-membership-plan')]
+    #[Groups(['public-membership-plan', 'create-update-membership-plan'])]
     private ?string $name = null;
 
     #[ORM\Column(options: ['check' => "duration_days" > 0])]
-    #[Groups(['public-membership-plan'])]
-    private ?int $duration_days = null;
+    #[Groups(['public-membership-plan', 'create-update-membership-plan'])]
+    private ?int $durationDays = null;
 
     #[ORM\Column(nullable: true)]
-    #[Groups(['public-membership-plan'])]
-    private ?int $session_limit = null;
+    #[Groups(['public-membership-plan', 'create-update-membership-plan'])]
+    private ?int $sessionLimit = null;
 
     #[ORM\Column(type: Types::DECIMAL, precision: 10, scale: 2)]
-    #[Groups(['public-membership-plan'])]
+    #[Groups(['public-membership-plan', 'create-update-membership-plan'])]
     private ?string $price = null;
 
     /**
@@ -65,24 +65,24 @@ class MembershipPlan
 
     public function getDurationDays(): ?int
     {
-        return $this->duration_days;
+        return $this->durationDays;
     }
 
-    public function setDurationDays(int $duration_days): static
+    public function setDurationDays(int $durationDays): static
     {
-        $this->duration_days = $duration_days;
+        $this->durationDays = $durationDays;
 
         return $this;
     }
 
     public function getSessionLimit(): ?int
     {
-        return $this->session_limit;
+        return $this->sessionLimit;
     }
 
-    public function setSessionLimit(?int $session_limit): static
+    public function setSessionLimit(?int $sessionLimit): static
     {
-        $this->session_limit = $session_limit;
+        $this->sessionLimit = $sessionLimit;
 
         return $this;
     }

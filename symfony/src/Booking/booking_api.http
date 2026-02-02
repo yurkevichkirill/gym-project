@@ -1,5 +1,5 @@
 ### GET bookings
-GET http://localhost/api/clients/11/bookings
+GET http://localhost/api/clients/1
 
 ###
 

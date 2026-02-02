@@ -69,12 +69,12 @@ doctrine:
                 dir: '%kernel.project_dir%/src/Trainer/Entity'
                 prefix: 'App\Trainer\Entity'
                 alias: Trainer
-            TrainerAvailability:
+            TrainerWorkTime:
                 type: attribute
                 is_bundle: false
-                dir: '%kernel.project_dir%/src/TrainerAvailability/Entity'
-                prefix: 'App\TrainerAvailability\Entity'
-                alias: TrainerAvailability
+                dir: '%kernel.project_dir%/src/TrainerWorkTime/Entity'
+                prefix: 'App\TrainerWorkTime\Entity'
+                alias: TrainerWorkTime
             Training:
                 type: attribute
                 is_bundle: false

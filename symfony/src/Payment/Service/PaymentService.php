@@ -5,11 +5,20 @@ declare(strict_types=1);
 namespace App\Payment\Service;
 
 use App\Client\Entity\Client;
+use App\Client\Repository\ClientRepository;
 use App\Payment\Entity\Payment;
+use App\Payment\Enum\PaymentCategoryEnum;
 use App\Payment\Enum\PaymentStatusEnum;
+use App\Payment\Repository\PaymentRepository;
 
 class PaymentService implements PaymentServiceInterface
 {
+    public function __construct(
+        private ClientRepository $clientRepo,
+        private PaymentRepository $paymentRepo
+    )
+    {}
+
     public function pay(Client $client, Payment $payment): void
     {
         if($payment->getStatus() === PaymentStatusEnum::PAID) {
@@ -23,6 +32,23 @@ class PaymentService implements PaymentServiceInterface
     public function cancel(Payment $payment): void
     {
         $payment->setStatus(PaymentStatusEnum::CANCELLED);
+    }
+
+    public function findBy(array $sort, ?int $clientId = null, ?PaymentCategoryEnum $category = null, ?PaymentStatusEnum $status = null): array
+    {
+        $criteria = [];
+        if($clientId) {
+            $client = $this->clientRepo->find($clientId);
+            $criteria['client'] = $client;
+        }
+        if($category) {
+            $criteria['category'] = $category;
+        }
+        if($status) {
+            $criteria['status'] = $status;
+        }
+
+        return $this->paymentRepo->findBy($criteria, $sort);
     }
 }
 //    public function enrollOnTraining(Trainer $trainer, Client $client, DayOfWeekEnum $dayOfWeek, \DateTimeImmutable $startTrainingTime, int $duration): void
