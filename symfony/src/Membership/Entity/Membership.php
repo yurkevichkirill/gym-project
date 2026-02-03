@@ -31,7 +31,7 @@ class Membership
     private ?Client $client = null;
 
     #[ORM\ManyToOne(inversedBy: 'memberships')]
-    #[ORM\JoinColumn(nullable: false)]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
     #[Assert\NotBlank]
     #[Groups(['public-membership', 'create-membership'])]
     private ?MembershipPlan $plan = null;

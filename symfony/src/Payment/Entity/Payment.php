@@ -23,7 +23,7 @@ class Payment
     private ?int $id = null;
 
     #[ORM\ManyToOne(inversedBy: 'payments')]
-    #[ORM\JoinColumn(nullable: false)]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
     #[Groups(['public-payment', 'create-payment'])]
     #[Assert\NotBlank]
     private ?Client $client = null;
