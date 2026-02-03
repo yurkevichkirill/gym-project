@@ -4,6 +4,8 @@ namespace App\DataFixtures;
 
 use App\Booking\Entity\Booking;
 use App\Client\Entity\Client;
+use App\Trainer\Entity\Trainer;
+use App\TrainerWorkTime\Entity\TrainerWorkTime;
 use App\Training\Entity\Training;
 use Doctrine\Bundle\FixturesBundle\Fixture;
 use Doctrine\Persistence\ObjectManager;
@@ -12,10 +14,11 @@ class AppFixtures extends Fixture
 {
     public function load(ObjectManager $manager): void
     {
-        $booking2 = new Booking();
-        $booking2->setClient($manager->getRepository(Client::class)->find(2));
-        $booking2->setTraining($manager->getRepository(Training::class)->find(2));
-        $manager->persist($booking2);
+        $training3 = new Training();
+        $training3->setTrainerWorkTime($manager->getRepository(TrainerWorkTime::class)->find(4));
+        $training3->setStartTime(new \DateTimeImmutable("16:00"));
+        $training3->setDurationMinutes(120);
+        $manager->persist($training3);
 
         $manager->flush();
     }

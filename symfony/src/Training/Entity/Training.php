@@ -2,8 +2,7 @@
 
 namespace App\Training\Entity;
 
-use App\Enum\DayOfWeekEnum;
-use App\Trainer\Entity\Trainer;
+use App\TrainerWorkTime\Entity\TrainerWorkTime;
 use App\Training\Repository\TrainingRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
@@ -22,17 +21,12 @@ class Training
     #[ORM\ManyToOne(inversedBy: 'trainings')]
     #[ORM\JoinColumn(nullable: false)]
     #[Groups(['public-training'])]
-    private ?Trainer $trainer = null;
+    private ?TrainerWorkTime $trainerWorkTime = null;
 
     #[ORM\Column(type: Types::TIME_IMMUTABLE)]
     #[Groups(['public-training', 'create-update-training'])]
     #[Assert\NotBlank]
     private ?\DateTimeImmutable $startTime = null;
-
-    #[ORM\Column(type: Types::ENUM)]
-    #[Groups(['public-training', 'create-update-training'])]
-    #[Assert\NotBlank]
-    private ?DayOfWeekEnum $dayOfWeek = null;
 
     #[ORM\Column(options: ['default' => 60, 'check' => "duration_minutes" > 0])]
     #[Groups(['public-training', 'create-update-training'])]
@@ -46,14 +40,14 @@ class Training
         return $this->id;
     }
 
-    public function getTrainer(): ?Trainer
+    public function getTrainerWorkTime(): TrainerWorkTime
     {
-        return $this->trainer;
+        return $this->trainerWorkTime;
     }
 
-    public function setTrainer(?Trainer $trainer): static
+    public function setTrainerWorkTime(?TrainerWorkTime $trainerWorkTime): static
     {
-        $this->trainer = $trainer;
+        $this->trainerWorkTime = $trainerWorkTime;
 
         return $this;
     }
@@ -66,18 +60,6 @@ class Training
     public function setStartTime(\DateTimeImmutable $startTime): static
     {
         $this->startTime = $startTime;
-
-        return $this;
-    }
-
-    public function getDayOfWeek(): ?DayOfWeekEnum
-    {
-        return $this->dayOfWeek;
-    }
-
-    public function setDayOfWeek(DayOfWeekEnum $dayOfWeek): static
-    {
-        $this->dayOfWeek = $dayOfWeek;
 
         return $this;
     }

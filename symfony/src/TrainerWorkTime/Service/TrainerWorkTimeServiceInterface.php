@@ -6,4 +6,5 @@ namespace App\TrainerWorkTime\Service;
 
 interface TrainerWorkTimeServiceInterface
 {
+    public function findBy(int $id, array $sort, ?\DateTimeImmutable $date): array;
 }

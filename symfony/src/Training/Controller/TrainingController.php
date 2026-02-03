@@ -7,6 +7,7 @@ use App\Trainer\Repository\TrainerRepository;
 use App\Training\Entity\Training;
 use App\Training\Repository\TrainingRepository;
 use App\Training\Service\TrainingServiceInterface;
+use DateTimeImmutable;
 use Nelmio\ApiDocBundle\Attribute\Model;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -23,7 +24,7 @@ final class TrainingController extends AbstractController
 {
     #[Route('api/trainers/{id}/trainings', methods: ['GET'], format: 'json')]
     #[OA\Parameter(
-        name: 'dayOfWeek',
+        name: 'date',
         in: 'query'
     )]
     #[OA\Parameter(
@@ -39,8 +40,8 @@ final class TrainingController extends AbstractController
                 [$field, $order] = explode(':',  $item);
                 $sort[$field] = strtoupper($order);
             }
-            $dayOfWeek = DayOfWeekEnum::tryFrom($request->query->get('dayOfWeek'));
-            $trainings = $trainingService->findBy($id, $sort, $dayOfWeek);
+            $date = $request->query->get('date') ? new DateTimeImmutable($request->query->get('date')) : null;
+            $trainings = $trainingService->findBy($id, $sort, $date);
         } catch (Throwable $e) {
             return $this->json(['error' => $e->getMessage()], 400);
         }

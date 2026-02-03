@@ -7,18 +7,15 @@ namespace App\Trainer\Service;
 use App\Enum\DayOfWeekEnum;
 use App\Trainer\Entity\Trainer;
 use App\Trainer\Repository\TrainerRepository;
-use App\TrainerAvailability\Entity\TrainerWorkTime;
-use App\TrainerAvailability\Repository\TrainerAvailabilityRepository;
-use App\Training\Entity\Training;
+use App\TrainerWorkTime\Repository\TrainerWorkTimeRepository;
 use App\Training\Repository\TrainingRepository;
 use App\TrainingType\Repository\TrainingTypeRepository;
 use DateInterval;
-use Doctrine\ORM\EntityManager;
 
 readonly class TrainerService implements TrainerServiceInterface
 {
     public function __construct(
-        private TrainerAvailabilityRepository $trainerAvailabilityRepo,
+        private TrainerWorkTimeRepository $trainerAvailabilityRepo,
         private TrainingRepository $trainingRepo,
         private TrainerRepository $trainerRepo,
         private TrainingTypeRepository $trainingTypeRepo
