@@ -4,7 +4,6 @@ namespace App\Trainer\Entity;
 
 use App\Trainer\Repository\TrainerRepository;
 use App\TrainerWorkTime\Entity\TrainerWorkTime;
-use App\Training\Entity\Training;
 use App\TrainingType\Entity\TrainingType;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
@@ -19,7 +18,7 @@ class Trainer
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['public-trainer', 'public-trainer-availability', 'public-training'])]
+    #[Groups(['public-trainer', 'public-trainer-worktime', 'public-trainer-free-slots', 'public-training'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 100)]
@@ -59,16 +58,10 @@ class Trainer
     #[ORM\OneToMany(targetEntity: TrainerWorkTime::class, mappedBy: 'trainer')]
     private Collection $trainerAvailabilities;
 
-    /**
-     * @var Collection<int, Training>
-     */
-    #[ORM\OneToMany(targetEntity: Training::class, mappedBy: 'trainer')]
-    private Collection $trainings;
 
     public function __construct()
     {
         $this->trainerAvailabilities = new ArrayCollection();
-        $this->trainings = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -172,36 +165,6 @@ class Trainer
             // set the owning side to null (unless already changed)
             if ($trainerAvailability->getTrainer() === $this) {
                 $trainerAvailability->setTrainer(null);
-            }
-        }
-
-        return $this;
-    }
-
-    /**
-     * @return Collection<int, Training>
-     */
-    public function getTrainings(): Collection
-    {
-        return $this->trainings;
-    }
-
-    public function addTraining(Training $training): static
-    {
-        if (!$this->trainings->contains($training)) {
-            $this->trainings->add($training);
-            $training->setTrainer($this);
-        }
-
-        return $this;
-    }
-
-    public function removeTraining(Training $training): static
-    {
-        if ($this->trainings->removeElement($training)) {
-            // set the owning side to null (unless already changed)
-            if ($training->getTrainer() === $this) {
-                $training->setTrainer(null);
             }
         }
 

@@ -5,13 +5,22 @@ namespace App\TrainerWorkTime\Entity;
 use App\TrainerWorkTime\Repository\TrainerWorkTimeRepository;
 use App\Enum\DayOfWeekEnum;
 use App\Trainer\Entity\Trainer;
+use App\Training\Entity\Training;
+use DateInterval;
+use DateMalformedIntervalStringException;
+use DateTimeImmutable;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Serializer\Attribute\Context;
 use Symfony\Component\Serializer\Attribute\Groups;
+use Symfony\Component\Serializer\Attribute\SerializedName;
+use Symfony\Component\Serializer\Normalizer\DateTimeNormalizer;
 use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: TrainerWorkTimeRepository::class)]
-#[ORM\UniqueConstraint(name: 'unique_trainer_day', columns: ['trainer_id', 'day_of_week'])]
+#[ORM\UniqueConstraint(name: 'unique_trainer_day', columns: ['trainer_id', 'date'])]
 class TrainerWorkTime
 {
     #[ORM\Id]
@@ -19,26 +28,37 @@ class TrainerWorkTime
     #[ORM\Column]
     private ?int $id = null;
 
-    #[ORM\ManyToOne(inversedBy: 'trainerAvailabilities')]
+    #[ORM\ManyToOne(inversedBy: 'trainerWorkTime')]
     #[ORM\JoinColumn(nullable: false)]
-    #[Groups(['public-trainer-availability'])]
+    #[Groups(['public-trainer-worktime', 'public-trainer-free-slots'])]
     private ?Trainer $trainer = null;
 
-    #[ORM\Column(type: Types::ENUM)]
-    #[Groups(['public-trainer-availability', 'create-update-trainer-availability'])]
+    #[ORM\Column(type: Types::DATE_IMMUTABLE)]
+    #[Groups(['public-trainer-worktime', 'public-trainer-free-slots', 'create-update-trainer-worktime', 'public-training'])]
     #[Assert\NotBlank]
-    private ?DayOfWeekEnum $dayOfWeek = null;
+    #[Context([DateTimeNormalizer::FORMAT_KEY => "Y-m-d"])]
+    private ?DateTimeImmutable $date = null;
 
     #[ORM\Column(type: Types::TIME_IMMUTABLE)]
-    #[Groups(['public-trainer-availability', 'create-update-trainer-availability'])]
+    #[Groups(['public-trainer-worktime', 'create-update-trainer-worktime'])]
     #[Assert\NotBlank]
+    #[Context([DateTimeNormalizer::FORMAT_KEY => "H:i"])]
     #questions
-    private ?\DateTimeImmutable $startTime = null;
+    private ?DateTimeImmutable $startTime = null;
 
     #[ORM\Column(type: Types::TIME_IMMUTABLE)]
-    #[Groups(['public-trainer-availability', 'create-update-trainer-availability'])]
+    #[Groups(['public-trainer-worktime', 'create-update-trainer-worktime'])]
     #[Assert\NotBlank]
-    private ?\DateTimeImmutable $endTime = null;
+    #[Context([DateTimeNormalizer::FORMAT_KEY => "H:i"])]
+    private ?DateTimeImmutable $endTime = null;
+
+    #[ORM\OneToMany(targetEntity: Training::class, mappedBy: 'trainerWorkTime')]
+    private Collection $trainings;
+
+    public function __construct()
+    {
+        $this->trainings = new ArrayCollection();
+    }
 
     public function getId(): ?int
     {
@@ -57,39 +77,99 @@ class TrainerWorkTime
         return $this;
     }
 
-    public function getDayOfWeek(): ?DayOfWeekEnum
+    public function getDate(): ?DateTimeImmutable
     {
-        return $this->dayOfWeek;
+        return $this->date;
     }
 
-    public function setDayOfWeek(DayOfWeekEnum $dayOfWeek): static
+    public function setDate(DateTimeImmutable $date): static
     {
-        $this->dayOfWeek = $dayOfWeek;
+        $this->date = $date;
 
         return $this;
     }
 
-    public function getStartTime(): ?\DateTimeImmutable
+    public function getStartTime(): ?DateTimeImmutable
     {
         return $this->startTime;
     }
 
-    public function setStartTime(\DateTimeImmutable $startTime): static
+    public function setStartTime(DateTimeImmutable $startTime): static
     {
         $this->startTime = $startTime;
 
         return $this;
     }
 
-    public function getEndTime(): ?\DateTimeImmutable
+    public function getEndTime(): ?DateTimeImmutable
     {
         return $this->endTime;
     }
 
-    public function setEndTime(\DateTimeImmutable $endTime): static
+    public function setEndTime(DateTimeImmutable $endTime): static
     {
         $this->endTime = $endTime;
 
         return $this;
+    }
+
+    /**
+     * @return Collection<int, Training>
+     */
+    public function getTrainings(): Collection
+    {
+        return $this->trainings;
+    }
+
+    public function addTraining(Training $training): static
+    {
+        if (!$this->trainings->contains($training)) {
+            $this->trainings->add($training);
+            $training->setTrainerWorkTime($this);
+        }
+
+        return $this;
+    }
+
+    public function removeTraining(Training $training): static
+    {
+        if ($this->trainings->removeElement($training)) {
+            // set the owning side to null (unless already changed)
+            if ($training->getTrainerWorkTime() === $this) {
+                $training->setTrainerWorkTime(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @throws DateMalformedIntervalStringException
+     */
+    #[Groups(['public-trainer-worktime', 'public-trainer-free-slots'])]
+    #[SerializedName('freeSlots')]
+    #[Context([DateTimeNormalizer::FORMAT_KEY => "H:i"])]
+    public function getFreeSlots(): array
+    {
+        $trainingsArray = $this->trainings->getValues();
+        $startTrainerTime = $this->startTime;
+        $endTrainerTime = $this->endTime;
+        usort($trainingsArray, fn ($training1, $training2) => $training1->getStartTime() <=> $training2->getStartTime());
+
+        $available = [];
+        $startPeriod = $startTrainerTime;
+        foreach ($this->trainings as $dayTraining) {
+            $available[] = [
+                "start" => $startPeriod,
+                "end" => $dayTraining->getStartTime()
+            ];
+            $startPeriod = $dayTraining->getStartTime()->add(new DateInterval("PT" . $dayTraining->getDurationMinutes() . "M"));
+        }
+        $available[] = [
+            "start" => $startPeriod,
+            "end" => $endTrainerTime
+        ];
+
+        return $available;
     }
 }

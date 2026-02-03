@@ -6,14 +6,18 @@ namespace App\Training\Service;
 
 use App\Enum\DayOfWeekEnum;
 use App\Trainer\Repository\TrainerRepository;
+use App\TrainerWorkTime\Entity\TrainerWorkTime;
+use App\TrainerWorkTime\Repository\TrainerWorkTimeRepository;
 use App\Training\Repository\TrainingRepository;
 use App\Training\Service\TrainingServiceInterface;
+use DateTimeImmutable;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 readonly class TrainingService implements TrainingServiceInterface
 {
     public function __construct(
         private TrainerRepository  $trainerRepo,
+        private TrainerWorkTimeRepository $trainerWorkTimeRepo,
         private TrainingRepository $trainingRepo
     )
     {}
@@ -21,7 +25,7 @@ readonly class TrainingService implements TrainingServiceInterface
     public function findBy(
         int $trainerId,
         array $sort,
-        ?DayOfWeekEnum $dayOfWeek = null
+        ?DateTimeImmutable $date = null
     ): array
     {
         $trainer = $this->trainerRepo->find($trainerId);
@@ -29,10 +33,18 @@ readonly class TrainingService implements TrainingServiceInterface
             throw new NotFoundHttpException('Trainer not found');
         }
         $criteria = ['trainer' => $trainer];
-        if($dayOfWeek) {
-            $criteria['dayOfWeek'] = $dayOfWeek;
+        if($date) {
+            $criteria['date'] = $date;
         }
 
-        return $this->trainingRepo->findBy($criteria, $sort);
+        $trainerWorkTimes = $this->trainerWorkTimeRepo->findBy($criteria);
+
+        $trainings = [];
+        foreach ($trainerWorkTimes as $worktime) {
+            $dayTrainings = $this->trainingRepo->findBy(['trainerWorkTime' => $worktime], $sort);
+            $trainings = array_merge($trainings, $dayTrainings);
+        }
+
+        return $trainings;
     }
 }
