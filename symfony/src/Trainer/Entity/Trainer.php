@@ -42,7 +42,7 @@ class Trainer
     private ?string $phone = null;
 
     #[ORM\ManyToOne(cascade: ['persist'], inversedBy: 'trainers')]
-    #[ORM\JoinColumn(name: 'training_type_id', referencedColumnName: 'id', nullable: false)]
+    #[ORM\JoinColumn(name: 'training_type_id', referencedColumnName: 'id', nullable: true, onDelete: 'SET NULL')]
     #[Groups(['public-trainer', 'create-update-trainer'])]
     private ?TrainingType $trainingType = null;
 
