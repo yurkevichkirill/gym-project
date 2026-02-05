@@ -25,6 +25,7 @@ use OpenApi\Attributes as OA;
 final class PaymentController extends AbstractController
 {
     #[Route('/api/payments', methods: ['GET'], format: 'json')]
+    #[Route('/api/clients/{clientId}/payments', methods: ['GET'], format: 'json')]
     #[OA\Parameter(
         name: 'status',
         in: 'query'
@@ -42,7 +43,7 @@ final class PaymentController extends AbstractController
         name: 'sort',
         in: 'query'
     )]
-    public function getAll(Request $request, PaymentServiceInterface $paymentService): JsonResponse
+    public function getAll(Request $request, PaymentServiceInterface $paymentService, ?int $clientId = null): JsonResponse
     {
         try {
             $sortRaw = $request->query->get('sort', 'paidAt:ASC');
@@ -53,49 +54,8 @@ final class PaymentController extends AbstractController
             }
             $status = PaymentStatusEnum::tryFrom($request->query->get('status'));
             $category = PaymentCategoryEnum::tryFrom($request->query->get('category'));
-            $clientId = $request->query->get('clientId');
+            $clientId = $clientId ?? $request->query->getInt('clientId');
             $payments = $paymentService->findBy($sort, $clientId, $category, $status);
-        } catch (Throwable $e) {
-            return $this->json(['error' => $e->getMessage()], 400);
-        }
-
-        if(empty($payments)) {
-            return $this->json(['error' => 'No payments found'], 404);
-        }
-
-        return $this->json($payments, 200, [], [
-            'groups' => 'public-payment',
-            DateTimeNormalizer::TIMEZONE_KEY => 'Europe/Minsk',
-            'datetime_format' => 'Y-m-d H:i:s'
-        ]);
-    }
-
-    #[Route('/api/clients/{id}/payments', methods: ['GET'], format: 'json')]
-    #[OA\Parameter(
-        name: 'status',
-        in: 'query'
-    )]
-    #[OA\Parameter(
-        name: 'category',
-        in: 'query'
-    )]
-    #[OA\Parameter(
-        name: 'sort',
-        in: 'query'
-    )]
-    public function getForClient(Request $request, PaymentServiceInterface $paymentService, int $id): JsonResponse
-    {
-
-        try {
-            $sortRaw = $request->query->get('sort', 'paidAt:ASC');
-            $sort = [];
-            foreach (explode(',', $sortRaw) as $item) {
-                [$field, $order] = explode(':',  $item);
-                $sort[$field] = strtoupper($order);
-            }
-            $status = PaymentStatusEnum::tryFrom($request->query->get('status'));
-            $category = PaymentCategoryEnum::tryFrom($request->query->get('category'));
-            $payments = $paymentService->findBy($sort, $id, $category, $status);
         } catch (Throwable $e) {
             return $this->json(['error' => $e->getMessage()], 400);
         }

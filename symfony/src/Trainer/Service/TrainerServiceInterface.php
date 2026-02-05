@@ -12,4 +12,5 @@ interface TrainerServiceInterface
 {
     public function getAvailable(Trainer $trainer, DayOfWeekEnum $dayOfWeek): array;
     public function findBy(array $sort, ?int $trainingTypeId): array;
+    public function generateCacheKey(array $sort, ?int $trainingTypeId): string;
 }

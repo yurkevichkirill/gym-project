@@ -9,4 +9,5 @@ use App\Booking\Enum\BookingStatusEnum;
 interface BookingServiceInterface
 {
     public function findBy(int $clientId, array $sort, ?BookingStatusEnum $status): array;
+    public function generateCacheKey(int $clientId, array $sort, ?BookingStatusEnum $status): string;
 }

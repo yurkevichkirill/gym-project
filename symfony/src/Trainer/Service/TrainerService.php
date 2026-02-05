@@ -11,6 +11,9 @@ use App\TrainerWorkTime\Repository\TrainerWorkTimeRepository;
 use App\Training\Repository\TrainingRepository;
 use App\TrainingType\Repository\TrainingTypeRepository;
 use DateInterval;
+use Psr\Cache\InvalidArgumentException;
+use Symfony\Component\Cache\CacheItem;
+use Symfony\Contracts\Cache\TagAwareCacheInterface;
 
 readonly class TrainerService implements TrainerServiceInterface
 {
@@ -18,7 +21,8 @@ readonly class TrainerService implements TrainerServiceInterface
         private TrainerWorkTimeRepository $trainerAvailabilityRepo,
         private TrainingRepository $trainingRepo,
         private TrainerRepository $trainerRepo,
-        private TrainingTypeRepository $trainingTypeRepo
+        private TrainingTypeRepository $trainingTypeRepo,
+        private TagAwareCacheInterface $gymCache
     )
     {}
 
@@ -57,13 +61,34 @@ readonly class TrainerService implements TrainerServiceInterface
         return $available;
     }
 
+    /**
+     * @throws InvalidArgumentException
+     */
     public function findBy(array $sort, ?int $trainingTypeId): array
     {
-        $criteria = [];
-        if($trainingTypeId) {
-            $trainingType = $this->trainingTypeRepo->find($trainingTypeId);
-            $criteria['trainingType'] = $trainingType;
-        }
-        return $this->trainerRepo->findBy($criteria, $sort);
+        $cacheKey = $this->generateCacheKey($sort, $trainingTypeId);
+
+        return $this->gymCache->get($cacheKey, function (CacheItem $item) use($sort, $trainingTypeId): array
+        {
+            $item->tag('trainers_list');
+
+            $criteria = [];
+            if($trainingTypeId) {
+                $trainingType = $this->trainingTypeRepo->find($trainingTypeId);
+                $criteria['trainingType'] = $trainingType;
+            }
+
+            return $this->trainerRepo->findBy($criteria, $sort);
+        });
+    }
+
+    public function generateCacheKey(array $sort, ?int $trainingTypeId): string
+    {
+        $params = [
+            'sort' => $sort,
+            'trainingTypeId' => $trainingTypeId
+        ];
+
+        return 'trainers_' . md5(serialize($params));
     }
 }

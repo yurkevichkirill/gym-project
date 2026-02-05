@@ -7,4 +7,5 @@ namespace App\MembershipPlan\Service;
 interface MembershipPlanServiceInterface
 {
     public function findBy(array $sort, ?int $sessionLimit): array;
+    public function generateCacheKey(array $sort, int $sessionLimit): string;
 }
