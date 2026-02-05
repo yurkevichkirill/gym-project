@@ -4,6 +4,7 @@ namespace App\TrainingType\Controller;
 
 use App\TrainingType\Entity\TrainingType;
 use App\TrainingType\Repository\TrainingTypeRepository;
+use App\TrainingType\TrainingTypeServiceInterface;
 use Nelmio\ApiDocBundle\Attribute\Model;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -17,12 +18,30 @@ use OpenApi\Attributes as OA;
 
 final class TrainingTypeController extends AbstractController
 {
+    #[OA\Parameter(
+        name: 'sort',
+        in: 'query'
+    )]
     #[Route('api/training-types', methods: ['GET'], format: 'json')]
-    public function getAll(TrainingTypeRepository $repo): JsonResponse
+    public function getAll(TrainingTypeServiceInterface $trainingTypeService, Request $request): JsonResponse
     {
-        $training_types = $repo->findAll();
+        try {
+            $sortRaw = $request->query->get('sort', 'name:ASC');
+            $sort = [];
+            foreach (explode(',', $sortRaw) as $item) {
+                [$field, $order] = explode(':',  $item);
+                $sort[$field] = strtoupper($order);
+            }
+            $trainingTypes = $trainingTypeService->findBy($sort);
+        } catch (Throwable $e) {
+            return $this->json(['error' => $e->getMessage()], 400);
+        }
 
-        return $this->json($training_types, 200, [], [
+        if(empty($trainingTypes)) {
+            return $this->json(['error' => 'No training types found'], 404);
+        }
+
+        return $this->json($trainingTypes, 200, [], [
             'groups' => ['public-training-type']
         ]);
     }

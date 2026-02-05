@@ -7,4 +7,5 @@ namespace App\Client\Service;
 interface ClientServiceInterface
 {
     public function findBy(array $sort): array;
+    public function generateCacheKey(array $sort): string;
 }

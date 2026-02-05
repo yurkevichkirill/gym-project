@@ -97,12 +97,12 @@ final class TrainerWorkTimeController extends AbstractController
     #[Route('api/trainers/{id}/work-time', methods: ['POST'], format: 'json')]
     #[OA\RequestBody(content: new Model(type: TrainerWorkTime::class, groups: ['create-update-trainer-worktime']))]
     public function create(
-        int $id,
-        TrainerWorkTimeRepository $availabilityRepo,
-        TrainerRepository $trainerRepo,
-        Request $request,
-        SerializerInterface $serializer,
-        ValidatorInterface $validator
+        int                       $id,
+        TrainerWorkTimeRepository $worktimeRepo,
+        TrainerRepository         $trainerRepo,
+        Request                   $request,
+        SerializerInterface       $serializer,
+        ValidatorInterface        $validator
     ): JsonResponse
     {
         try {
@@ -129,7 +129,7 @@ final class TrainerWorkTimeController extends AbstractController
         }
 
         try {
-            $availabilityRepo->create($trainerAvailability);
+            $worktimeRepo->create($trainerAvailability);
         } catch (Throwable $e) {
             return $this->json(['error' => $e->getMessage()], 400);
         }
@@ -145,37 +145,27 @@ final class TrainerWorkTimeController extends AbstractController
     #[OA\RequestBody(content: new Model(type: TrainerWorkTime::class, groups: ['create-update-trainer-worktime']))]
     public function update(
         int $id,
-        DayOfWeekEnum $dayOfWeek,
-        TrainerWorkTimeRepository $availabilityRepo,
-        TrainerRepository $trainerRepo,
+        TrainerWorkTimeRepository $worktimeRepo,
         Request $request,
         SerializerInterface $serializer,
         ValidatorInterface $validator
     ): JsonResponse
     {
-        $trainer = $trainerRepo->find($id);
-        if(is_null($trainer)) {
-            return $this->json(['error' => "Trainer not found"], 404);
-        }
-
-        $trainerAvailability = $availabilityRepo->findBy([
-            'trainer' => $trainer,
-            'dayOfWeek' => $dayOfWeek
-            ]);
-        if(empty($trainerAvailability)) {
-            return $this->json(['text' => 'Trainer don\'t work in this day'], 200);
+        $worktime = $worktimeRepo->find($id);
+        if(is_null($worktime)) {
+            return $this->json(['error' => 'Trainer work time not found'], 404);
         }
 
         try {
             $serializer->deserialize($request->getContent(), TrainerWorkTime::class, 'json', [
-                AbstractNormalizer::OBJECT_TO_POPULATE => $trainerAvailability[0]
+                AbstractNormalizer::OBJECT_TO_POPULATE => $worktime
             ]);
-            $availabilityRepo->save();
+            $worktimeRepo->save();
         } catch(Throwable $e) {
             return $this->json(['error' => $e->getMessage()], 400);
         }
 
-        $errors = $validator->validate($trainerAvailability[0]);
+        $errors = $validator->validate($worktime);
         if (count($errors) > 0) {
             $errorMessages = [];
             foreach ($errors as $error) {
@@ -185,7 +175,7 @@ final class TrainerWorkTimeController extends AbstractController
             return $this->json(['errors' => $errorMessages], 422);
         }
 
-        return $this->json($trainerAvailability[0], 200, [], [
+        return $this->json($worktime, 200, [], [
             'datetime_format' => 'H:i',
             'groups' => ['public-trainer-worktime']
         ]);
@@ -195,26 +185,16 @@ final class TrainerWorkTimeController extends AbstractController
     #[Route('api/work-time/{id}', methods: ['DELETE'], format: 'json')]
     public function delete(
         int $id,
-        DayOfWeekEnum $day_of_week,
-        TrainerWorkTimeRepository $availabilityRepo,
-        TrainerRepository $trainerRepo
+        TrainerWorkTimeRepository $worktimeRepo
     ): JsonResponse
     {
-        $trainer = $trainerRepo->find($id);
-        if(is_null($trainer)) {
-            return $this->json(['error' => 'Trainer not found'], 404);
-        }
-
-        $trainerAvailability = $availabilityRepo->findBy([
-            'trainer' => $trainer,
-            'day_of_week' => $day_of_week
-        ]);
-        if(empty($trainerAvailability)) {
-            return $this->json(['error' => 'Trainer don\'t work in this day'], 200);
+        $worktime = $worktimeRepo->find($id);
+        if(is_null($worktime)) {
+            return $this->json(['error' => 'Trainer work time not found'], 404);
         }
 
         try {
-            $availabilityRepo->remove($trainerAvailability[0]);
+            $worktimeRepo->remove($worktime);
         } catch(Throwable $e) {
             return $this->json(['error' => $e->getMessage()], 400);
         }

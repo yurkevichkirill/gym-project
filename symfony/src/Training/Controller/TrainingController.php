@@ -143,7 +143,7 @@ final class TrainingController extends AbstractController
             return $this->json(['error' => $e->getMessage()], 400);
         }
 
-        $errors = $validator->validate($training[0]);
+        $errors = $validator->validate($training);
         if (count($errors) > 0) {
             $errorMessages = [];
             foreach ($errors as $error) {

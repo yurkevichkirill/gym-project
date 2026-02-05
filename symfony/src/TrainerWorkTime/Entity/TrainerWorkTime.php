@@ -26,6 +26,7 @@ class TrainerWorkTime
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
+    #[Groups(['public-trainer-worktime'])]
     private ?int $id = null;
 
     #[ORM\ManyToOne(inversedBy: 'trainerWorkTime')]
