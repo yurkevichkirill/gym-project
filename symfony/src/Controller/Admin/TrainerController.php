@@ -1,75 +1,28 @@
 <?php
 
-namespace App\Trainer\Controller;
+namespace App\Controller\Admin;
 
-use App\Booking\Enum\BookingStatusEnum;
 use App\Trainer\Entity\Trainer;
 use App\Trainer\Repository\TrainerRepository;
 use App\Trainer\Service\TrainerServiceInterface;
-use App\TrainingType\Entity\TrainingType;
 use App\TrainingType\Repository\TrainingTypeRepository;
 use Nelmio\ApiDocBundle\Attribute\Model;
+use OpenApi\Attributes as OA;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
-use Symfony\Component\Serializer\Exception\ExceptionInterface;
+use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Component\Serializer\Normalizer\AbstractNormalizer;
-use Symfony\Component\Serializer\Normalizer\DateTimeNormalizer;
 use Symfony\Component\Serializer\SerializerInterface;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 use Throwable;
-use OpenApi\Attributes as OA;
 
 final class TrainerController extends AbstractController
 {
-    #[Route('api/trainers', methods: ['GET'], format: 'json')]
-    #[OA\Parameter(
-        name: 'trainingTypeId',
-        in: 'query'
-    )]
-    #[OA\Parameter(
-        name: 'sort',
-        in: 'query'
-    )]
-    public function getAll(Request $request, TrainerServiceInterface $trainerService): JsonResponse
-    {
-        try {
-            $sortRaw = $request->query->get('sort', 'price:ASC');
-            $sort = [];
-            foreach (explode(',', $sortRaw) as $item) {
-                [$field, $order] = explode(':',  $item);
-                $sort[$field] = strtoupper($order);
-            }
-            $trainingTypeId = $request->query->get('trainingTypeId');
-            $trainers = $trainerService->findBy($sort, $trainingTypeId);
-        } catch (Throwable $e) {
-            return $this->json(['error' => $e->getMessage()], 400);
-        }
-
-        if(empty($trainers)) {
-            return $this->json(['error' => 'No trainers found'], 404);
-        }
-
-        return $this->json($trainers, 200, [], [
-            AbstractNormalizer::CIRCULAR_REFERENCE_HANDLER => fn (object $obj) => $obj->getId(),
-            'groups' => ['public-trainer']
-        ]);
-    }
-
-    #[Route('api/trainers/{id}', methods: ['GET'], format: 'json')]
-    public function get(Trainer $trainer): JsonResponse
-    {
-        return $this->json($trainer, 200, [], [
-            'groups' => ['public-trainer']
-        ]);
-    }
-
-    /**
-     * @throws ExceptionInterface
-     */
     #[Route('api/trainers', methods: ['POST'], format: 'json')]
     #[OA\RequestBody(content: new Model(type: Trainer::class, groups: ['create-update-trainer']))]
+    #[IsGranted('ROLE_ADMIN')]
     public function create(
         Request $request,
         TrainerRepository $trainerRepo,
@@ -118,6 +71,7 @@ final class TrainerController extends AbstractController
 
     #[Route('api/trainers/{id}', methods: ['PUT', 'PATCH'], format: 'json')]
     #[OA\RequestBody(content: new Model(type: Trainer::class, groups: ['create-update-trainer']))]
+    #[IsGranted('ROLE_ADMIN')]
     public function update(
         Trainer $trainer,
         Request $request,
@@ -169,6 +123,7 @@ final class TrainerController extends AbstractController
     }
 
     #[Route('api/trainers/{id}', methods: ['DELETE'], format: 'json')]
+    #[IsGranted('ROLE_ADMIN')]
     public function remove(Trainer $trainer, TrainerRepository $repo): JsonResponse
     {
         try {

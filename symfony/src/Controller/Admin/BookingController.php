@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Booking\Controller;
+namespace App\Controller\Admin;
 
 use App\Booking\Entity\Booking;
 use App\Booking\Enum\BookingStatusEnum;
@@ -8,22 +8,20 @@ use App\Booking\Repository\BookingRepository;
 use App\Booking\Service\BookingServiceInterface;
 use App\Client\Entity\Client;
 use App\Client\Repository\ClientRepository;
-use App\Enum\DayOfWeekEnum;
-use App\Training\Entity\Training;
 use App\Training\Repository\TrainingRepository;
-use Doctrine\ORM\EntityManagerInterface;
 use Nelmio\ApiDocBundle\Attribute\Model;
+use OpenApi\Attributes as OA;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Security\Http\Attribute\CurrentUser;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Component\Serializer\Normalizer\AbstractNormalizer;
 use Symfony\Component\Serializer\Normalizer\DateTimeNormalizer;
 use Symfony\Component\Serializer\SerializerInterface;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 use Throwable;
-use OpenApi\Attributes as OA;
 
 final class BookingController extends AbstractController
 {
@@ -36,7 +34,7 @@ final class BookingController extends AbstractController
         name: 'sort',
         in: 'query'
     )]
-    #[IsGranted('ROLE_CLIENT')]
+    #[IsGranted('ROLE_ADMIN')]
     public function getAll(int $id, BookingServiceInterface $bookingService, Request $request): JsonResponse
     {
         try {
@@ -64,7 +62,7 @@ final class BookingController extends AbstractController
     }
 
     #[Route('api/clients/{clientId}/bookings/{bookingId}', methods: ['GET'], format: 'json')]
-    #[IsGranted('ROLE_CLIENT')]
+    #[IsGranted('ROLE_ADMIN')]
     public function get(int $clientId, int $bookingId, BookingRepository $bookingRepo, ClientRepository $clientRepo): JsonResponse
     {
         $client = $clientRepo->find($clientId);
@@ -88,7 +86,8 @@ final class BookingController extends AbstractController
     }
 
     #[Route('api/clients/{id}/bookings', methods: ['POST'], format: 'json')]
-    #[OA\RequestBody(content: new Model(type: Booking::class, groups: ['create-booking']))]
+    #[OA\RequestBody(content: new Model(type: Booking::class, groups: ['create-update-booking']))]
+    #[IsGranted('ROLE_ADMIN')]
     public function create(
         int $id,
         Request $request,
@@ -142,6 +141,8 @@ final class BookingController extends AbstractController
     }
 
     #[Route('api/clients/{clientId}/bookings/{id}', methods: ['PUT', 'PATCH'], format: 'json')]
+    #[OA\RequestBody(content: new Model(type: Booking::class, groups: ['create-update-booking']))]
+    #[IsGranted('ROLE_ADMIN')]
     public function update(
         int $clientId,
         Booking $booking,
@@ -202,6 +203,7 @@ final class BookingController extends AbstractController
     }
 
     #[Route('api/clients/{clientId}/bookings/{id}', methods: ['DELETE'], format: 'json')]
+    #[IsGranted('ROLE_ADMIN')]
     public function remove(
         int $clientId,
         Booking $booking,

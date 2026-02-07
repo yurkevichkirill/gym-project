@@ -19,7 +19,7 @@ class PaymentService implements PaymentServiceInterface
     public function __construct(
         private ClientRepository $clientRepo,
         private PaymentRepository $paymentRepo,
-        private TagAwareCacheInterface $cacheGym
+        private TagAwareCacheInterface $gymCache
     )
     {}
 
@@ -45,7 +45,7 @@ class PaymentService implements PaymentServiceInterface
     {
         $cacheKey = $this->generateCacheKey($sort, $clientId, $category, $status);
 
-        return $this->cacheGym->get($cacheKey, function (CacheItem $item) use ($sort, $clientId, $category, $status): array
+        return $this->gymCache->get($cacheKey, function (CacheItem $item) use ($sort, $clientId, $category, $status): array
         {
             $item->tag(['payments_list']);
 

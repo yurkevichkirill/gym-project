@@ -1,101 +1,29 @@
 <?php
 
-namespace App\TrainerWorkTime\Controller;
+namespace App\Controller\Admin;
 
-use App\Booking\Enum\BookingStatusEnum;
-use App\Client\Entity\Client;
 use App\Trainer\Repository\TrainerRepository;
-use App\Enum\DayOfWeekEnum;
-use App\Trainer\Entity\Trainer;
-use App\Trainer\Service\TrainerServiceInterface;
-use App\TrainerWorkTime\Repository\TrainerWorkTimeRepository;
 use App\TrainerWorkTime\Entity\TrainerWorkTime;
+use App\TrainerWorkTime\Repository\TrainerWorkTimeRepository;
 use App\TrainerWorkTime\Service\TrainerWorkTimeServiceInterface;
 use DateTimeImmutable;
-use Doctrine\ORM\EntityManagerInterface;
 use Nelmio\ApiDocBundle\Attribute\Model;
+use OpenApi\Attributes as OA;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
-use Symfony\Component\Serializer\Exception\ExceptionInterface;
+use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Component\Serializer\Normalizer\AbstractNormalizer;
-use Symfony\Component\Serializer\Normalizer\DateTimeNormalizer;
 use Symfony\Component\Serializer\SerializerInterface;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 use Throwable;
-use OpenApi\Attributes as OA;
 
 final class TrainerWorkTimeController extends AbstractController
 {
-    #[Route('api/trainers/{id}/work-time', methods: ['GET'], format: 'json')]
-    #[OA\Parameter(
-        name: 'date',
-        in: 'query'
-    )]
-    #[OA\Parameter(
-        name: 'sort',
-        in: 'query'
-    )]
-    public function get(Request $request, TrainerWorkTimeServiceInterface $trainerWorkTimeService, int $id): JsonResponse
-    {
-        try {
-            $sortRaw = $request->query->get('sort', 'date:ASC');
-            $sort = [];
-            foreach (explode(',', $sortRaw) as $item) {
-                [$field, $order] = explode(':',  $item);
-                $sort[$field] = strtoupper($order);
-            }
-            $date = $request->query->get('date') ? new DateTimeImmutable($request->query->get('date')) : null;
-            $trainerWorkTimes = $trainerWorkTimeService->findBy($id, $sort, $date);
-        } catch (Throwable $e) {
-            return $this->json(['error' => $e->getMessage()], 400);
-        }
-
-        if(empty($trainerWorkTimes)) {
-            return $this->json(['error' => 'Trainer work time not found'], 404);
-        }
-
-        return $this->json($trainerWorkTimes, 200, [], [
-            'groups' => ['public-trainer-worktime']
-        ]);
-    }
-
-    #[Route('api/trainers/{id}/free-slots', methods: ['GET'], format: 'json')]
-    #[OA\Parameter(
-        name: 'date',
-        in: 'query'
-    )]
-    #[OA\Parameter(
-        name: 'sort',
-        in: 'query'
-    )]
-    public function getFreeSlots(Request $request, TrainerWorkTimeServiceInterface $trainerWorkTimeService, int $id): JsonResponse
-    {
-        try {
-            $sortRaw = $request->query->get('sort', 'date:ASC');
-            $sort = [];
-            foreach (explode(',', $sortRaw) as $item) {
-                [$field, $order] = explode(':',  $item);
-                $sort[$field] = strtoupper($order);
-            }
-            $date = $request->query->get('date') ? new DateTimeImmutable($request->query->get('date')) : null;
-            $trainerWorkTimes = $trainerWorkTimeService->findBy($id, $sort, $date);
-        } catch (Throwable $e) {
-            return $this->json(['error' => $e->getMessage()], 400);
-        }
-
-        if(empty($trainerWorkTimes)) {
-            return $this->json(['error' => 'Trainer work time not found'], 404);
-        }
-
-        return $this->json($trainerWorkTimes, 200, [], [
-            'groups' => ['public-trainer-free-slots']
-        ]);
-    }
-
     #[Route('api/trainers/{id}/work-time', methods: ['POST'], format: 'json')]
     #[OA\RequestBody(content: new Model(type: TrainerWorkTime::class, groups: ['create-update-trainer-worktime']))]
+    #[IsGranted('ROLE_ADMIN')]
     public function create(
         int                       $id,
         TrainerWorkTimeRepository $worktimeRepo,
@@ -143,6 +71,7 @@ final class TrainerWorkTimeController extends AbstractController
     #change route
     #[Route('api/work-time/{id}', methods: ['PUT', 'PATCH'], format: 'json')]
     #[OA\RequestBody(content: new Model(type: TrainerWorkTime::class, groups: ['create-update-trainer-worktime']))]
+    #[IsGranted('ROLE_ADMIN')]
     public function update(
         int $id,
         TrainerWorkTimeRepository $worktimeRepo,
@@ -183,6 +112,7 @@ final class TrainerWorkTimeController extends AbstractController
 
     #change route
     #[Route('api/work-time/{id}', methods: ['DELETE'], format: 'json')]
+    #[IsGranted('ROLE_ADMIN')]
     public function delete(
         int $id,
         TrainerWorkTimeRepository $worktimeRepo
