@@ -1,26 +1,30 @@
 <?php
 
-namespace App\Membership\Controller;
+namespace App\Controller\Admin;
 
+use App\Client\Entity\Client;
 use App\Client\Repository\ClientRepository;
 use App\Membership\Entity\Membership;
 use App\Membership\Repository\MembershipRepository;
 use App\MembershipPlan\Repository\MembershipPlanRepository;
 use Nelmio\ApiDocBundle\Attribute\Model;
+use OpenApi\Attributes as OA;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Security\Http\Attribute\CurrentUser;
+use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Component\Serializer\Normalizer\AbstractNormalizer;
 use Symfony\Component\Serializer\Normalizer\DateTimeNormalizer;
 use Symfony\Component\Serializer\SerializerInterface;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 use Throwable;
-use OpenApi\Attributes as OA;
 
 final class MembershipController extends AbstractController
 {
     #[Route('/api/clients/{id}/membership', methods: ['GET'], format: 'json')]
+    #[IsGranted('ROLE_ADMIN')]
     public function get(int $id, MembershipRepository $membershipRepo, ClientRepository $clientRepo): JsonResponse
     {
         $client = $clientRepo->find($id);
@@ -44,6 +48,7 @@ final class MembershipController extends AbstractController
 
     #[Route('api/clients/{id}/membership', methods: ['POST'], format: 'json')]
     #[OA\RequestBody(content: new Model(type: Membership::class, groups: ['create-membership']))]
+    #[IsGranted('ROLE_ADMIN')]
     public function create(
         int $id,
         Request $request,
@@ -104,6 +109,7 @@ final class MembershipController extends AbstractController
 
     #[Route('api/clients/{id}/membership', methods: ['PUT', 'PATCH'], format: 'json')]
     #[OA\RequestBody(content: new Model(type: Membership::class, groups: ['update-membership']))]
+    #[IsGranted('ROLE_ADMIN')]
     public function update(
         int $id,
         MembershipRepository $membershipRepo,
@@ -152,6 +158,7 @@ final class MembershipController extends AbstractController
     }
 
     #[Route('api/clients/{id}/membership', methods: ['DELETE'], format: 'json')]
+    #[IsGranted('ROLE_ADMIN')]
     public function delete(int $id, MembershipRepository $membershipRepo, ClientRepository $clientRepo): JsonResponse
     {
         $client = $clientRepo->find($id);

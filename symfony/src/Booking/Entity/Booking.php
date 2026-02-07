@@ -30,7 +30,7 @@ class Booking
 
     #[ORM\OneToOne(cascade: ['persist', 'remove'])]
     #[ORM\JoinColumn(nullable: false)]
-    #[Groups(['public-booking', 'create-booking'])]
+    #[Groups(['public-booking', 'create-update-booking'])]
     #[Assert\NotBlank]
     private ?Training $training = null;
 

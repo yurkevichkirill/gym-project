@@ -1,24 +1,22 @@
 <?php
 
-namespace App\Client\Controller;
+namespace App\Controller\Admin;
 
-use App\Booking\Entity\Booking;
 use App\Client\Entity\Client;
 use App\Client\Repository\ClientRepository;
 use App\Client\Service\ClientServiceInterface;
-use Doctrine\ORM\Exception\ORMException;
-use Doctrine\ORM\OptimisticLockException;
 use Nelmio\ApiDocBundle\Attribute\Model;
+use OpenApi\Attributes as OA;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Security\Http\Attribute\CurrentUser;
+use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Component\Serializer\Normalizer\AbstractNormalizer;
-use Symfony\Component\Serializer\Normalizer\DateTimeNormalizer;
 use Symfony\Component\Serializer\SerializerInterface;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 use Throwable;
-use OpenApi\Attributes as OA;
 
 final class ClientController extends AbstractController
 {
@@ -27,9 +25,9 @@ final class ClientController extends AbstractController
         name: 'sort',
         in: 'query'
     )]
+    #[IsGranted('ROLE_ADMIN')]
     public function getAll(ClientServiceInterface $clientService, Request $request): JsonResponse
     {
-
         try {
             $sortRaw = $request->query->get('sort', 'createdAt:ASC');
             $sort = [];
@@ -52,6 +50,7 @@ final class ClientController extends AbstractController
     }
 
     #[Route('/api/clients/{id}', methods: ['GET'], format: 'json')]
+    #[IsGranted('ROLE_ADMIN')]
     public function get(Client $client): JsonResponse
     {
         return $this->json($client, 200, [], [
@@ -61,6 +60,7 @@ final class ClientController extends AbstractController
 
     #[Route('/api/clients', methods: ['POST'], format: 'json')]
     #[OA\RequestBody(content: new Model(type: Client::class, groups: ['create-update-client']))]
+    #[IsGranted('ROLE_ADMIN')]
     public function create(
         Request $request,
         ClientRepository $repo,
@@ -100,6 +100,7 @@ final class ClientController extends AbstractController
 
     #[Route('api/clients/{id}', methods: ['PUT', 'PATCH'], format: 'json')]
     #[OA\RequestBody(content: new Model(type: Client::class, groups: ['create-update-client']))]
+    #[IsGranted('ROLE_ADMIN')]
     public function update(
         Request $request,
         Client $client,
@@ -135,6 +136,7 @@ final class ClientController extends AbstractController
     }
 
     #[Route('api/clients/{id}', methods: ['DELETE'], format: 'json')]
+    #[IsGranted('ROLE_ADMIN')]
     public function delete(ClientRepository $repo, Client $client): JsonResponse
     {
         try {

@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Payment\Controller;
+namespace App\Controller\Admin;
 
 use App\Client\Entity\Client;
 use App\Client\Repository\ClientRepository;
@@ -9,18 +9,19 @@ use App\Payment\Enum\PaymentCategoryEnum;
 use App\Payment\Enum\PaymentStatusEnum;
 use App\Payment\Repository\PaymentRepository;
 use App\Payment\Service\PaymentServiceInterface;
-use Doctrine\ORM\EntityManagerInterface;
 use Nelmio\ApiDocBundle\Attribute\Model;
+use OpenApi\Attributes as OA;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Security\Http\Attribute\CurrentUser;
+use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Component\Serializer\Normalizer\AbstractNormalizer;
 use Symfony\Component\Serializer\Normalizer\DateTimeNormalizer;
 use Symfony\Component\Serializer\SerializerInterface;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 use Throwable;
-use OpenApi\Attributes as OA;
 
 final class PaymentController extends AbstractController
 {
@@ -43,6 +44,7 @@ final class PaymentController extends AbstractController
         name: 'sort',
         in: 'query'
     )]
+    #[IsGranted('ROLE_ADMIN')]
     public function getAll(Request $request, PaymentServiceInterface $paymentService, ?int $clientId = null): JsonResponse
     {
         try {
@@ -72,6 +74,7 @@ final class PaymentController extends AbstractController
     }
 
     #[Route('/api/payments/{id}', methods: ['GET'], format: 'json')]
+    #[IsGranted('ROLE_ADMIN')]
     public function get(int $id, PaymentRepository $repo): JsonResponse
     {
         $payment = $repo->find($id);
@@ -88,6 +91,7 @@ final class PaymentController extends AbstractController
 
     #[Route('/api/payments', methods: ['POST'], format: 'json')]
     #[OA\RequestBody(content: new Model(type: Payment::class, groups: ['create-payment']))]
+    #[IsGranted('ROLE_ADMIN')]
     public function create(
         Request $request,
         PaymentRepository $paymentRepo,
@@ -138,6 +142,7 @@ final class PaymentController extends AbstractController
 
     #[Route('/api/payments/{id}', methods: ['PUT', 'PATCH'], format: 'json')]
     #[OA\RequestBody(content: new Model(type: Payment::class, groups: ['update-payment']))]
+    #[IsGranted('ROLE_ADMIN')]
     public function update(
         Payment $payment,
         Request $request,
@@ -190,6 +195,7 @@ final class PaymentController extends AbstractController
     }
 
     #[Route('api/payments/{id}', methods: ['DELETE'], format: 'json')]
+    #[IsGranted('ROLE_ADMIN')]
     public function remove(int $id, PaymentRepository $repo): JsonResponse
     {
         $payment = $repo->find($id);

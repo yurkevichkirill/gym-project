@@ -1,14 +1,14 @@
 <?php
 
-namespace App\Training\Controller;
+namespace App\Controller\Admin;
 
-use App\Enum\DayOfWeekEnum;
 use App\Trainer\Repository\TrainerRepository;
 use App\Training\Entity\Training;
 use App\Training\Repository\TrainingRepository;
 use App\Training\Service\TrainingServiceInterface;
 use DateTimeImmutable;
 use Nelmio\ApiDocBundle\Attribute\Model;
+use OpenApi\Attributes as OA;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -18,7 +18,6 @@ use Symfony\Component\Serializer\Normalizer\AbstractNormalizer;
 use Symfony\Component\Serializer\SerializerInterface;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 use Throwable;
-use OpenApi\Attributes as OA;
 
 //change endpoints
 final class TrainingController extends AbstractController
@@ -32,7 +31,7 @@ final class TrainingController extends AbstractController
         name: 'sort',
         in: 'query'
     )]
-    #[IsGranted('ROLE_CLIENT')]
+    #[IsGranted('ROLE_ADMIN')]
     public function getAll(int $id, Request $request, TrainingServiceInterface $trainingService): JsonResponse
     {
         try {
@@ -59,7 +58,7 @@ final class TrainingController extends AbstractController
     }
 
     #[Route('api/trainings/{id}', methods: ['GET'], format: 'json')]
-    #[IsGranted('ROLE_CLIENT')]
+    #[IsGranted('ROLE_ADMIN')]
     public function get(
         TrainingRepository $trainingRepo,
         int $id
@@ -78,7 +77,7 @@ final class TrainingController extends AbstractController
 
     #[Route('api/trainers/{id}/trainings', methods: ['POST'], format: 'json')]
     #[OA\RequestBody(content: new Model(type: Training::class, groups: ['create-update-training']))]
-    #[IsGranted('ROLE_CLIENT')]
+    #[IsGranted('ROLE_ADMIN')]
     public function create(
         int $id,
         TrainingRepository $trainingRepo,
@@ -125,6 +124,7 @@ final class TrainingController extends AbstractController
 
     #[Route('api/trainings/{id}', methods: ['PUT', 'PATCH'], format: 'json')]
     #[OA\RequestBody(content: new Model(type: Training::class, groups: ['create-update-training']))]
+    #[IsGranted('ROLE_ADMIN')]
     public function update(
         int $id,
         TrainingRepository $trainingRepo,
@@ -164,6 +164,7 @@ final class TrainingController extends AbstractController
     }
 
     #[Route('api/trainings/{id}', methods: ['DELETE'], format: 'json')]
+    #[IsGranted('ROLE_ADMIN')]
     public function delete(
         int $id,
         TrainingRepository $trainingRepo,
