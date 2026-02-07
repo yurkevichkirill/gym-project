@@ -10,6 +10,7 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Component\Serializer\Normalizer\AbstractNormalizer;
 use Symfony\Component\Serializer\SerializerInterface;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
@@ -23,6 +24,7 @@ final class TrainingTypeController extends AbstractController
         in: 'query'
     )]
     #[Route('api/training-types', methods: ['GET'], format: 'json')]
+    #[IsGranted('ROLE_CLIENT')]
     public function getAll(TrainingTypeServiceInterface $trainingTypeService, Request $request): JsonResponse
     {
         try {
@@ -56,6 +58,7 @@ final class TrainingTypeController extends AbstractController
 
     #[Route('api/training-types', methods: ['POST'], format: 'json')]
     #[OA\RequestBody(content: new Model(type: TrainingType::class, groups: ['create-update-training-type']))]
+    #[IsGranted('ROLE_ADMIN')]
     public function create(
         Request $request,
         TrainingTypeRepository $repo,
@@ -93,6 +96,7 @@ final class TrainingTypeController extends AbstractController
 
     #[Route('api/training-types/{id}', methods: ['PATCH', 'PUT'], format: 'json')]
     #[OA\RequestBody(content: new Model(type: TrainingType::class, groups: ['create-update-training-type']))]
+    #[IsGranted('ROLE_ADMIN')]
     public function update(
         TrainingType $trainingType,
         Request $request,
@@ -126,6 +130,7 @@ final class TrainingTypeController extends AbstractController
     }
 
     #[Route('api/training-types/{id}', methods: ['DELETE'], format: 'json')]
+    #[IsGranted('ROLE_ADMIN')]
     public function delete(TrainingTypeRepository $repo, TrainingType $trainingType): JsonResponse
     {
         try {

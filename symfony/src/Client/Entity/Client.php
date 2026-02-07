@@ -10,12 +10,14 @@ use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
+use Symfony\Component\Security\Core\User\UserInterface;
 use Symfony\Component\Serializer\Attribute\Groups;
 use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: ClientRepository::class)]
 #[ORM\Table(name: '`client`')]
-class Client
+class Client implements UserInterface, PasswordAuthenticatedUserInterface
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]
@@ -38,7 +40,7 @@ class Client
     #[Groups(['public-client', 'create-update-client'])]
     private ?int $age = null;
 
-    #[ORM\Column(length: 255)]
+    #[ORM\Column(type: 'string', length: 255, unique: true)]
     #[Groups(['public-client', 'create-update-client'])]
     #[Assert\Email]
     private ?string $email = null;
@@ -53,13 +55,16 @@ class Client
 
     #[ORM\Column(length: 255)]
     #[Groups('create-update-client')]
-    private ?string $passwordHash = null;
+    private ?string $password = null;
 
     #[ORM\Column(type: Types::DECIMAL, precision: 10, scale: 2)]
     #[Groups(['public-client', 'create-update-client'])]
     #[Assert\NotBlank]
     #[Assert\Positive]
     private ?string $balance = null;
+
+    #[ORM\Column(type: 'json')]
+    private array $roles = [];
 
     /**
      * @var Collection<int, Booking>
@@ -85,6 +90,26 @@ class Client
         $this->memberships = new ArrayCollection();
         $this->payments = new ArrayCollection();
         $this->createdAt = new \DateTimeImmutable();
+    }
+
+    public function getRoles(): array
+    {
+        $roles = $this->roles;
+        $roles[] = 'ROLE_CLIENT';
+
+        return array_unique($roles);
+    }
+
+    public function setRoles(array $roles): self
+    {
+        $this->roles = $roles;
+
+        return $this;
+    }
+
+    public function getUserIdentifier(): string
+    {
+        return $this->email;
     }
 
     public function getId(): ?int
@@ -164,16 +189,16 @@ class Client
         return $this;
     }
 
-    public function getPasswordHash(): ?string
+    public function setPassword(string $password): static
     {
-        return $this->passwordHash;
-    }
-
-    public function setPasswordHash(string $passwordHash): static
-    {
-        $this->passwordHash = $passwordHash;
+        $this->password = $password;
 
         return $this;
+    }
+
+    public function getPassword(): ?string
+    {
+        return $this->password;
     }
 
     public function getBalance(): ?string

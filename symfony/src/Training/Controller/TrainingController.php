@@ -13,6 +13,7 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Component\Serializer\Normalizer\AbstractNormalizer;
 use Symfony\Component\Serializer\SerializerInterface;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
@@ -31,6 +32,7 @@ final class TrainingController extends AbstractController
         name: 'sort',
         in: 'query'
     )]
+    #[IsGranted('ROLE_CLIENT')]
     public function getAll(int $id, Request $request, TrainingServiceInterface $trainingService): JsonResponse
     {
         try {
@@ -57,6 +59,7 @@ final class TrainingController extends AbstractController
     }
 
     #[Route('api/trainings/{id}', methods: ['GET'], format: 'json')]
+    #[IsGranted('ROLE_CLIENT')]
     public function get(
         TrainingRepository $trainingRepo,
         int $id
@@ -75,6 +78,7 @@ final class TrainingController extends AbstractController
 
     #[Route('api/trainers/{id}/trainings', methods: ['POST'], format: 'json')]
     #[OA\RequestBody(content: new Model(type: Training::class, groups: ['create-update-training']))]
+    #[IsGranted('ROLE_CLIENT')]
     public function create(
         int $id,
         TrainingRepository $trainingRepo,
