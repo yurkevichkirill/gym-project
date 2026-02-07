@@ -145,6 +145,8 @@
       <path value="$PROJECT_DIR$/symfony/vendor/phpdocumentor/reflection-common" />
       <path value="$PROJECT_DIR$/symfony/vendor/predis/predis" />
       <path value="$PROJECT_DIR$/symfony/vendor/psr/http-message" />
+      <path value="$PROJECT_DIR$/symfony/vendor/lcobucci/jwt" />
+      <path value="$PROJECT_DIR$/symfony/vendor/lexik/jwt-authentication-bundle" />
     </include_path>
   </component>
   <component name="PhpProjectSharedConfiguration" php_language_level="8.5">

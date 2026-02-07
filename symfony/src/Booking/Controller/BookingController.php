@@ -17,6 +17,7 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Component\Serializer\Normalizer\AbstractNormalizer;
 use Symfony\Component\Serializer\Normalizer\DateTimeNormalizer;
 use Symfony\Component\Serializer\SerializerInterface;
@@ -35,6 +36,7 @@ final class BookingController extends AbstractController
         name: 'sort',
         in: 'query'
     )]
+    #[IsGranted('ROLE_CLIENT')]
     public function getAll(int $id, BookingServiceInterface $bookingService, Request $request): JsonResponse
     {
         try {
@@ -62,6 +64,7 @@ final class BookingController extends AbstractController
     }
 
     #[Route('api/clients/{clientId}/bookings/{bookingId}', methods: ['GET'], format: 'json')]
+    #[IsGranted('ROLE_CLIENT')]
     public function get(int $clientId, int $bookingId, BookingRepository $bookingRepo, ClientRepository $clientRepo): JsonResponse
     {
         $client = $clientRepo->find($clientId);
