@@ -129,7 +129,6 @@ final class ClientController extends AbstractController
             return $this->json(['error' => $e->getMessage()], 400);
         }
 
-
         return $this->json($client, 200, [], [
             'groups' => ["public-client"]
         ]);
