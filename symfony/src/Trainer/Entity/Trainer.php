@@ -41,7 +41,7 @@ class Trainer
     #[Groups(['public-trainer', 'create-update-trainer'])]
     private ?string $phone = null;
 
-    #[ORM\ManyToOne(cascade: ['persist'], inversedBy: 'trainers')]
+    #[ORM\ManyToOne(targetEntity: TrainingType::class, inversedBy: 'trainers')]
     #[ORM\JoinColumn(name: 'training_type_id', referencedColumnName: 'id', nullable: true, onDelete: 'SET NULL')]
     #[Groups(['public-trainer', 'create-update-trainer'])]
     private ?TrainingType $trainingType = null;
@@ -56,12 +56,12 @@ class Trainer
      * @var Collection<int, TrainerWorkTime>
      */
     #[ORM\OneToMany(targetEntity: TrainerWorkTime::class, mappedBy: 'trainer')]
-    private Collection $trainerAvailabilities;
+    private Collection $trainerWorkTime;
 
 
     public function __construct()
     {
-        $this->trainerAvailabilities = new ArrayCollection();
+        $this->trainerWorkTime = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -144,15 +144,15 @@ class Trainer
     /**
      * @return Collection<int, TrainerWorkTime>
      */
-    public function getTrainerAvailabilities(): Collection
+    public function getTrainerWorkTime(): Collection
     {
-        return $this->trainerAvailabilities;
+        return $this->trainerWorkTime;
     }
 
     public function addTrainerAvailability(TrainerWorkTime $trainerAvailability): static
     {
-        if (!$this->trainerAvailabilities->contains($trainerAvailability)) {
-            $this->trainerAvailabilities->add($trainerAvailability);
+        if (!$this->trainerWorkTime->contains($trainerAvailability)) {
+            $this->trainerWorkTime->add($trainerAvailability);
             $trainerAvailability->setTrainer($this);
         }
 
@@ -161,7 +161,7 @@ class Trainer
 
     public function removeTrainerAvailability(TrainerWorkTime $trainerAvailability): static
     {
-        if ($this->trainerAvailabilities->removeElement($trainerAvailability)) {
+        if ($this->trainerWorkTime->removeElement($trainerAvailability)) {
             // set the owning side to null (unless already changed)
             if ($trainerAvailability->getTrainer() === $this) {
                 $trainerAvailability->setTrainer(null);

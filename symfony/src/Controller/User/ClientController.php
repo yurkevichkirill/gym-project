@@ -22,7 +22,7 @@ final class ClientController extends AbstractController
 {
     #[Route('/api/me', methods: ['GET'], format: 'json')]
     #[IsGranted('ROLE_CLIENT')]
-    public function getMy(#[CurrentUser] ?Client $client): JsonResponse
+    public function get(#[CurrentUser] ?Client $client): JsonResponse
     {
         return $this->json($client, 200, [], [
             'groups' => ["public-client"]
@@ -31,7 +31,7 @@ final class ClientController extends AbstractController
 
     #[Route('api/me', methods: ['DELETE'], format: 'json')]
     #[IsGranted('ROLE_CLIENT')]
-    public function deleteMy(ClientRepository $repo, #[CurrentUser] ?Client $client): JsonResponse
+    public function delete(ClientRepository $repo, #[CurrentUser] ?Client $client): JsonResponse
     {
         try {
             $repo->remove($client);

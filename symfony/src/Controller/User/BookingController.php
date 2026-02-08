@@ -35,7 +35,7 @@ final class BookingController extends AbstractController
         in: 'query'
     )]
     #[IsGranted('ROLE_CLIENT')]
-    public function getAllMy(#[CurrentUser] ?Client $client, BookingServiceInterface $bookingService, Request $request): JsonResponse
+    public function getAll(#[CurrentUser] ?Client $client, BookingServiceInterface $bookingService, Request $request): JsonResponse
     {
         $id = $client->getId();
 
@@ -65,7 +65,7 @@ final class BookingController extends AbstractController
 
     #[Route('api/me/bookings/{id}', methods: ['GET'], format: 'json')]
     #[IsGranted('ROLE_CLIENT')]
-    public function getMy(#[CurrentUser] ?Client $client, int $id, BookingRepository $bookingRepo, ClientRepository $clientRepo): JsonResponse
+    public function get(#[CurrentUser] ?Client $client, int $id, BookingRepository $bookingRepo, ClientRepository $clientRepo): JsonResponse
     {
         $booking = $bookingRepo->findOneBy([
             "client" => $client,
@@ -85,7 +85,7 @@ final class BookingController extends AbstractController
     #[Route('api/me/bookings', methods: ['POST'], format: 'json')]
     #[OA\RequestBody(content: new Model(type: Booking::class, groups: ['create-update-booking']))]
     #[IsGranted('ROLE_CLIENT')]
-    public function createMy(
+    public function create(
         #[CurrentUser] ?Client $client,
         Request $request,
         BookingRepository $bookingRepo,
@@ -134,7 +134,7 @@ final class BookingController extends AbstractController
     #[Route('api/me/bookings/{id}', methods: ['PUT', 'PATCH'], format: 'json')]
     #[OA\RequestBody(content: new Model(type: Booking::class, groups: ['create-update-booking']))]
     #[IsGranted('ROLE_CLIENT')]
-    public function updateMy(
+    public function update(
         #[CurrentUser] ?Client $client,
         int $id,
         Request $request,
@@ -197,7 +197,7 @@ final class BookingController extends AbstractController
 
     #[Route('api/me/bookings/{id}', methods: ['DELETE'], format: 'json')]
     #[IsGranted('ROLE_CLIENT')]
-    public function removeMy(
+    public function remove(
         #[CurrentUser] ?Client $client,
         int $id,
         BookingRepository $bookingRepo
