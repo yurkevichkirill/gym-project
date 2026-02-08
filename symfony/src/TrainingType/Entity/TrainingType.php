@@ -33,7 +33,7 @@ class TrainingType
     /**
      * @var Collection<int, Trainer>
      */
-    #[ORM\OneToMany(targetEntity: Trainer::class, mappedBy: 'training_type')]
+    #[ORM\OneToMany(targetEntity: Trainer::class, mappedBy: 'trainingType')]
     private Collection $trainers;
 
     public function __construct()

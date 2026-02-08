@@ -4,6 +4,7 @@ namespace App\DataFixtures;
 
 use App\Booking\Entity\Booking;
 use App\Client\Entity\Client;
+use App\Membership\Entity\Membership;
 use App\MembershipPlan\Entity\MembershipPlan;
 use App\Payment\Entity\Payment;
 use App\Payment\Enum\PaymentCategoryEnum;
@@ -87,10 +88,15 @@ class AppFixtures extends Fixture
 //        $manager->persist($membership_plan2);
 
         $payment = new Payment();
-        $payment->setClient($manager->getRepository(Client::class)->find(2));
+        $payment->setClient($manager->getRepository(Client::class)->find(5));
         $payment->setCategory(PaymentCategoryEnum::MEMBERSHIP);
         $payment->setAmount("100");
         $manager->persist($payment);
+
+        $membership = new Membership();
+        $membership->setClient($manager->getRepository(Client::class)->find(5));
+        $membership->setPlan($manager->getRepository(MembershipPlan::class)->find(3));
+        $manager->persist($membership);
 
         $manager->flush();
     }

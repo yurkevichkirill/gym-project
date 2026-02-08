@@ -39,7 +39,7 @@ final class PaymentController extends AbstractController
         in: 'query'
     )]
     #[IsGranted('ROLE_CLIENT')]
-    public function getAllMy(Request $request, PaymentServiceInterface $paymentService, #[CurrentUser] ?Client $client): JsonResponse
+    public function getAll(Request $request, PaymentServiceInterface $paymentService, #[CurrentUser] ?Client $client): JsonResponse
     {
         try {
             $sortRaw = $request->query->get('sort', 'paidAt:ASC');
@@ -69,7 +69,7 @@ final class PaymentController extends AbstractController
 
     #[Route('/api/me/payments/{id}', methods: ['GET'], format: 'json')]
     #[IsGranted('ROLE_CLIENT')]
-    public function getMy(int $id, PaymentRepository $repo, #[CurrentUser] ?Client $client): JsonResponse
+    public function get(int $id, PaymentRepository $repo, #[CurrentUser] ?Client $client): JsonResponse
     {
         $payment = $repo->findOneBy([
             'id' => $id,

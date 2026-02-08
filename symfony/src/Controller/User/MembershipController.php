@@ -25,7 +25,7 @@ final class MembershipController extends AbstractController
 {
     #[Route('/api/me/membership', methods: ['GET'], format: 'json')]
     #[IsGranted('ROLE_CLIENT')]
-    public function getMy(#[CurrentUser] ?Client $client, MembershipRepository $membershipRepo): JsonResponse
+    public function get(#[CurrentUser] ?Client $client, MembershipRepository $membershipRepo): JsonResponse
     {
         $membership = $membershipRepo->findBy([
             "client" => $client
@@ -44,7 +44,7 @@ final class MembershipController extends AbstractController
     #[Route('api/me/membership', methods: ['POST'], format: 'json')]
     #[OA\RequestBody(content: new Model(type: Membership::class, groups: ['create-membership']))]
     #[IsGranted('ROLE_CLIENT')]
-    public function createMy(
+    public function create(
         #[CurrentUser] ?Client $client,
         Request $request,
         MembershipRepository $membershipRepo,
@@ -99,7 +99,7 @@ final class MembershipController extends AbstractController
     #[Route('api/me/membership', methods: ['PUT', 'PATCH'], format: 'json')]
     #[OA\RequestBody(content: new Model(type: Membership::class, groups: ['update-membership']))]
     #[IsGranted('ROLE_CLIENT')]
-    public function updateMy(
+    public function update(
         #[CurrentUser] ?Client $client,
         MembershipRepository $membershipRepo,
         ClientRepository $clientRepo,
@@ -143,7 +143,7 @@ final class MembershipController extends AbstractController
 
     #[Route('api/me/membership', methods: ['DELETE'], format: 'json')]
     #[IsGranted('ROLE_CLIENT')]
-    public function deleteMy(
+    public function delete(
         #[CurrentUser] ?Client $client,
         MembershipRepository $membershipRepo,
         ClientRepository $clientRepo

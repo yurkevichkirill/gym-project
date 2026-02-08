@@ -69,13 +69,13 @@ class Client implements UserInterface, PasswordAuthenticatedUserInterface
     /**
      * @var Collection<int, Booking>
      */
-    #[ORM\OneToMany(targetEntity: Booking::class, mappedBy: 'client')]
+    #[ORM\OneToMany(targetEntity: Booking::class, mappedBy: 'client', cascade: ['remove'])]
     private Collection $bookings;
 
     /**
      * @var Collection<int, Membership>
      */
-    #[ORM\OneToMany(targetEntity: Membership::class, mappedBy: 'client')]
+    #[ORM\OneToMany(targetEntity: Membership::class, mappedBy: 'client', cascade: ['remove'])]
     private Collection $memberships;
 
     /**
