@@ -7,7 +7,6 @@ use App\Booking\Enum\BookingStatusEnum;
 use App\Booking\Repository\BookingRepository;
 use App\Booking\Service\BookingServiceInterface;
 use App\Client\Entity\Client;
-use App\Client\Repository\ClientRepository;
 use App\Training\Repository\TrainingRepository;
 use Nelmio\ApiDocBundle\Attribute\Model;
 use OpenApi\Attributes as OA;
@@ -65,7 +64,7 @@ final class BookingController extends AbstractController
 
     #[Route('api/me/bookings/{id}', methods: ['GET'], format: 'json')]
     #[IsGranted('ROLE_CLIENT')]
-    public function get(#[CurrentUser] ?Client $client, int $id, BookingRepository $bookingRepo, ClientRepository $clientRepo): JsonResponse
+    public function get(#[CurrentUser] ?Client $client, int $id, BookingRepository $bookingRepo): JsonResponse
     {
         $booking = $bookingRepo->findOneBy([
             "client" => $client,

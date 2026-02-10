@@ -6,7 +6,6 @@ use App\Booking\Entity\Booking;
 use App\Booking\Enum\BookingStatusEnum;
 use App\Booking\Repository\BookingRepository;
 use App\Booking\Service\BookingServiceInterface;
-use App\Client\Entity\Client;
 use App\Client\Repository\ClientRepository;
 use App\Training\Repository\TrainingRepository;
 use Nelmio\ApiDocBundle\Attribute\Model;
@@ -15,7 +14,6 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
-use Symfony\Component\Security\Http\Attribute\CurrentUser;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Component\Serializer\Normalizer\AbstractNormalizer;
 use Symfony\Component\Serializer\Normalizer\DateTimeNormalizer;
@@ -61,21 +59,13 @@ final class BookingController extends AbstractController
         ]);
     }
 
-    #[Route('api/clients/{clientId}/bookings/{bookingId}', methods: ['GET'], format: 'json')]
+    #[Route('api/bookings/{bookingId}', methods: ['GET'], format: 'json')]
     #[IsGranted('ROLE_ADMIN')]
-    public function get(int $clientId, int $bookingId, BookingRepository $bookingRepo, ClientRepository $clientRepo): JsonResponse
+    public function get(int $bookingId, BookingRepository $bookingRepo): JsonResponse
     {
-        $client = $clientRepo->find($clientId);
-        if(is_null($client)) {
-            return $this->json(['error' => 'Client not found'], 404);
-        }
-
-        $bookings = $bookingRepo->findBy([
-            "client" => $client,
-            "id" => $bookingId
-        ]);
+        $bookings = $bookingRepo->find($bookingId);
         if(empty($bookings)) {
-            return $this->json(['error' => "Client has no bookings"], 404);
+            return $this->json(['error' => "Booking not found"], 404);
         }
 
         return $this->json($bookings[0], 200, [], [
@@ -140,25 +130,18 @@ final class BookingController extends AbstractController
         ]);
     }
 
-    #[Route('api/clients/{clientId}/bookings/{id}', methods: ['PUT', 'PATCH'], format: 'json')]
+    #[Route('api/bookings/{id}', methods: ['PUT', 'PATCH'], format: 'json')]
     #[OA\RequestBody(content: new Model(type: Booking::class, groups: ['create-update-booking']))]
     #[IsGranted('ROLE_ADMIN')]
     public function update(
-        int $clientId,
         Booking $booking,
         Request $request,
         ValidatorInterface $validator,
         BookingRepository $bookingRepo,
         TrainingRepository $trainingRepo,
-        ClientRepository $clientRepo,
         SerializerInterface $serializer
     ): JsonResponse
     {
-        $client = $clientRepo->find($clientId);
-        if(is_null($client)) {
-            return $this->json(['error' => 'Client not found'], 404);
-        }
-
         try {
             $serializer->deserialize($request->getContent(), Booking::class, 'json', [
                 AbstractNormalizer::OBJECT_TO_POPULATE => $booking
@@ -202,20 +185,13 @@ final class BookingController extends AbstractController
         ]);
     }
 
-    #[Route('api/clients/{clientId}/bookings/{id}', methods: ['DELETE'], format: 'json')]
+    #[Route('api/bookings/{id}', methods: ['DELETE'], format: 'json')]
     #[IsGranted('ROLE_ADMIN')]
     public function remove(
-        int $clientId,
         Booking $booking,
-        BookingRepository $bookingRepo,
-        ClientRepository $clientRepo
+        BookingRepository $bookingRepo
     ): JsonResponse
     {
-        $client = $clientRepo->find($clientId);
-        if(is_null($client)) {
-            return $this->json(['error' => 'Client not found'], 404);
-        }
-
         try {
             $bookingRepo->remove($booking);
         } catch(Throwable $e) {

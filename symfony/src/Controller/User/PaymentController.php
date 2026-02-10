@@ -3,13 +3,10 @@
 namespace App\Controller\User;
 
 use App\Client\Entity\Client;
-use App\Client\Repository\ClientRepository;
-use App\Payment\Entity\Payment;
 use App\Payment\Enum\PaymentCategoryEnum;
 use App\Payment\Enum\PaymentStatusEnum;
 use App\Payment\Repository\PaymentRepository;
 use App\Payment\Service\PaymentServiceInterface;
-use Nelmio\ApiDocBundle\Attribute\Model;
 use OpenApi\Attributes as OA;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -17,10 +14,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
-use Symfony\Component\Serializer\Normalizer\AbstractNormalizer;
 use Symfony\Component\Serializer\Normalizer\DateTimeNormalizer;
-use Symfony\Component\Serializer\SerializerInterface;
-use Symfony\Component\Validator\Validator\ValidatorInterface;
 use Throwable;
 
 final class PaymentController extends AbstractController

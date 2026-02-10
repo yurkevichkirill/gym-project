@@ -29,6 +29,27 @@ class AppFixtures extends Fixture
 //        $client->setAge(25);
 //        $client->setPassword('$2y$13$xn19jDhOYkY6AXH96H37KOO6KILDHrnu47IaRErPT2XZSlauYZXVS');
 //        $manager->persist($client);
+//
+//        $client = new Client();
+//        $client->setFirstName("Kirill");
+//        $client->setLastName("Yurkevich");
+//        $client->setEmail("kirillyurkevich@gmail.com");
+//        $client->setPhone("+34142342354235");
+//        $client->setBalance("100");
+//        $client->setAge(25);
+//        $client->setPassword('$2y$13$Mp9L.CtbTiu7ga.NTfjtVOO6vhCLPDxyYenodaTLzZIpRx7OrMVBi');
+//        $manager->persist($client);
+
+        $client = new Client();
+        $client->setFirstName("Kilian");
+        $client->setLastName("Mbappe");
+        $client->setEmail("mbappe@gmail.com");
+        $client->setPhone("+34142342354235");
+        $client->setBalance("100");
+        $client->setAge(25);
+        $client->setRoles(['ROLE_ADMIN']);
+        $client->setPassword('$2y$13$Mp9L.CtbTiu7ga.NTfjtVOO6vhCLPDxyYenodaTLzZIpRx7OrMVBi');
+        $manager->persist($client);
 
 //        $trainerWorkTime = new TrainerWorkTime();
 //        $trainerWorkTime->setTrainer($manager->getRepository(Trainer::class)->find(1));
@@ -87,16 +108,16 @@ class AppFixtures extends Fixture
 //        $membership_plan2->setSessionLimit(8);
 //        $manager->persist($membership_plan2);
 
-        $payment = new Payment();
-        $payment->setClient($manager->getRepository(Client::class)->find(5));
-        $payment->setCategory(PaymentCategoryEnum::MEMBERSHIP);
-        $payment->setAmount("100");
-        $manager->persist($payment);
-
-        $membership = new Membership();
-        $membership->setClient($manager->getRepository(Client::class)->find(5));
-        $membership->setPlan($manager->getRepository(MembershipPlan::class)->find(3));
-        $manager->persist($membership);
+//        $payment = new Payment();
+//        $payment->setClient($manager->getRepository(Client::class)->find(5));
+//        $payment->setCategory(PaymentCategoryEnum::MEMBERSHIP);
+//        $payment->setAmount("100");
+//        $manager->persist($payment);
+//
+//        $membership = new Membership();
+//        $membership->setClient($manager->getRepository(Client::class)->find(5));
+//        $membership->setPlan($manager->getRepository(MembershipPlan::class)->find(3));
+//        $manager->persist($membership);
 
         $manager->flush();
     }
