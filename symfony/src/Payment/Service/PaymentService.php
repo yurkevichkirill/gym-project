@@ -14,7 +14,7 @@ use Psr\Cache\InvalidArgumentException;
 use Symfony\Component\Cache\CacheItem;
 use Symfony\Contracts\Cache\TagAwareCacheInterface;
 
-class PaymentService implements PaymentServiceInterface
+readonly class PaymentService implements PaymentServiceInterface
 {
     public function __construct(
         private ClientRepository $clientRepo,
@@ -45,7 +45,7 @@ class PaymentService implements PaymentServiceInterface
     {
         $cacheKey = $this->generateCacheKey($sort, $clientId, $category, $status);
 
-        return $this->gymCache->get($cacheKey, function (CacheItem $item) use ($sort, $clientId, $category, $status): array
+        return $this->gymCache->get($cacheKey, static function (CacheItem $item) use ($sort, $clientId, $category, $status): array
         {
             $item->tag(['payments_list']);
 
@@ -76,48 +76,3 @@ class PaymentService implements PaymentServiceInterface
         return 'payments_' . md5(serialize($params));
     }
 }
-//    public function enrollOnTraining(Trainer $trainer, Client $client, DayOfWeekEnum $dayOfWeek, \DateTimeImmutable $startTrainingTime, int $duration): void
-//    {
-//        $endTrainingTime = $startTrainingTime->add(new \DateInterval('PT' . $duration . 'M')) ;
-//        $available = $this->getAvailable($trainer, $dayOfWeek);
-//        if($this->isTimeAvailable($available, $startTrainingTime, $endTrainingTime)) {
-//            $payment = new Payment();
-//            $payment->setClient($client);
-//            $payment->setAmount($trainer->getPrice());
-//            $payment->setCategory(PaymentCategoryEnum::TRAINER);
-//
-//        }
-//    }
-//
-//    public function isTimeAvailable(array $available, \DateTimeImmutable $startTrainingTime, \DateTimeImmutable $endTrainingTime): bool
-//    {
-//        $startTimes = array_keys($available);
-//        foreach ($available as $startPeriod => $endPeriod) {
-//            if($startTrainingTime >= $startPeriod && $endTrainingTime <= $endPeriod) {
-//
-//                return true;
-//            }
-//        }
-//
-//        return false;
-//    }
-//}
-//
-////            $payment->setCategory(PaymentCategoryEnum::TRAINER);
-////
-////        }
-////    }
-////
-////    public function isTimeAvailable(array $available, \DateTimeImmutable $startTrainingTime, \DateTimeImmutable $endTrainingTime): bool
-////    {
-////        $startTimes = array_keys($available);
-////        foreach ($available as $startPeriod => $endPeriod) {
-////            if($startTrainingTime >= $startPeriod && $endTrainingTime <= $endPeriod) {
-////
-////                return true;
-////            }
-////        }
-////
-////        return false;
-////    }
-////}

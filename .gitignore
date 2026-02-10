@@ -54,3 +54,9 @@
 /volumes
 
 */redis
+
+.env
+
+.idea
+
+docker/db/data
