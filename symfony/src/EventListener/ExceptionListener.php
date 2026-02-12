@@ -2,19 +2,30 @@
 
 namespace App\EventListener;
 
+use InvalidArgumentException;
 use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpKernel\Event\ExceptionEvent;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Symfony\Component\HttpKernel\KernelEvents;
 
 final class ExceptionListener
 {
-    #[AsEventListener]
-    public function onExceptionEvent(ExceptionEvent $event): void
+    #[AsEventListener(event: KernelEvents::EXCEPTION)]
+    public function __invoke(ExceptionEvent $event): void
     {
-//        $exception = $event->getThrowable();
-//
-//        $response = new JsonResponse(['error' => $exception->getMessage()]);
-//
-//        $event->setResponse($response);
+        $exception = $event->getThrowable();
+
+        $statusCode = match (true) {
+            $exception instanceof NotFoundHttpException => 404,
+            $exception instanceof BadRequestHttpException => 400,
+            $exception instanceof InvalidArgumentException => 422,
+            default => 500
+        };
+
+        $response = new JsonResponse(['error' => $exception->getMessage()], $statusCode);
+
+        $event->setResponse($response);
     }
 }

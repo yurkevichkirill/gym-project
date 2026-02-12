@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Listener;
+namespace App\EventListener;
 
 use App\Booking\Entity\Booking;
 use App\Client\Entity\Client;
@@ -12,21 +12,19 @@ use App\Trainer\Entity\Trainer;
 use App\TrainerWorkTime\Entity\TrainerWorkTime;
 use App\Training\Entity\Training;
 use App\TrainingType\Entity\TrainingType;
-use App\TrainingType\Repository\TrainingTypeRepository;
 use Doctrine\ORM\Event\OnFlushEventArgs;
 use Psr\Cache\InvalidArgumentException;
+use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
 use Symfony\Contracts\Cache\TagAwareCacheInterface;
+use Doctrine\ORM\Events;
 
-readonly class CacheInvalidator
+#[AsEventListener(event: Events::onFlush, method: 'onFlush', priority: 10)]
+readonly class CacheInvalidatorListener
 {
     public function __construct(
         private TagAwareCacheInterface $gymCache
     )
     {}
-
-    /**
-     * @throws InvalidArgumentException
-     */
 
     public function onFlush(OnFlushEventArgs $eventArgs): void
     {
