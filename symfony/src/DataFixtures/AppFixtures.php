@@ -2,6 +2,7 @@
 
 namespace App\DataFixtures;
 
+use App\Admin\Entity\Admin;
 use App\Booking\Entity\Booking;
 use App\Client\Entity\Client;
 use App\Membership\Entity\Membership;
@@ -13,6 +14,7 @@ use App\Trainer\Entity\Trainer;
 use App\TrainerWorkTime\Entity\TrainerWorkTime;
 use App\Training\Entity\Training;
 use App\TrainingType\Entity\TrainingType;
+use App\User\Entity\User;
 use Doctrine\Bundle\FixturesBundle\Fixture;
 use Doctrine\Persistence\ObjectManager;
 
@@ -40,36 +42,46 @@ class AppFixtures extends Fixture
 //        $client->setPassword('$2y$13$Mp9L.CtbTiu7ga.NTfjtVOO6vhCLPDxyYenodaTLzZIpRx7OrMVBi');
 //        $manager->persist($client);
 
-        $client = new Client();
-        $client->setFirstName("Kilian");
-        $client->setLastName("Mbappe");
-        $client->setEmail("mbappe@gmail.com");
-        $client->setPhone("+34142342354235");
-        $client->setBalance("100");
-        $client->setAge(25);
-        $client->setRoles(['ROLE_ADMIN']);
-        $client->setPassword('$2y$13$Mp9L.CtbTiu7ga.NTfjtVOO6vhCLPDxyYenodaTLzZIpRx7OrMVBi');
-        $manager->persist($client);
+//        $admin = new Admin();
+//        $admin->setFirstName("Kirill");
+//        $admin->setLastName("Yurkevich");
+//        $admin->setEmail("yurkevichkirill@gmail.com");
+//        $admin->setPhone("+34142342354235");
+//        $admin->setPassword('123456789');
+//        $manager->persist($admin);
+
+//        $trainingType = new TrainingType();
+//        $trainingType->setName("Bodybuilding");
+//        $trainingType->setDescription("rlkgnlrewnlgrewknewrg");
+//        $manager->persist($trainingType);
+//
+//        $trainingType = new TrainingType();
+//        $trainingType->setName("Powerlifting");
+//        $trainingType->setDescription("gergerghehherhe");
+//        $manager->persist($trainingType);
+
+//        $trainer = new Trainer();
+//        $trainer->setPassword('$2y$13$BpR/ll3sS5xa0kaMF80obud8SwLL/B28cGcOwCczzzlxuDO.OB48m');
+//        $trainer->setTrainingType($manager->getRepository(TrainingType::class)->find(1));
+//        $trainer->setPrice('50');
+//        $trainer->setFirstName("Anti");
+//        $trainer->setLastName('Trainer');
+//        $trainer->setPhone('+3442525424252');
+//        $trainer->setEmail("antitrainer@gmail.com");
+//        $manager->persist($trainer);
 
 //        $trainerWorkTime = new TrainerWorkTime();
-//        $trainerWorkTime->setTrainer($manager->getRepository(Trainer::class)->find(1));
+//        $trainerWorkTime->setTrainer($manager->getRepository(Trainer::class)->find(5));
 //        $trainerWorkTime->setStartTime(new \DateTimeImmutable("10:00"));
 //        $trainerWorkTime->setEndTime(new \DateTimeImmutable("18:00"));
-//        $trainerWorkTime->setDate(new \DateTimeImmutable("10-02-2026"));
+//        $trainerWorkTime->setDate(new \DateTimeImmutable("20-02-2026"));
 //        $manager->persist($trainerWorkTime);
-//
-//        $trainerWorkTime2 = new TrainerWorkTime();
-//        $trainerWorkTime2->setTrainer($manager->getRepository(Trainer::class)->find(2));
-//        $trainerWorkTime2->setStartTime(new \DateTimeImmutable("8:00"));
-//        $trainerWorkTime2->setEndTime(new \DateTimeImmutable("20:00"));
-//        $trainerWorkTime2->setDate(new \DateTimeImmutable("11-02-2026"));
-//        $manager->persist($trainerWorkTime2);
 
-//        $training = new Training();
-//        $training->setTrainerWorkTime($manager->getRepository(TrainerWorkTime::class)->find(2));
-//        $training->setStartTime(new \DateTimeImmutable("11:00"));
-//        $training->setDurationMinutes(60);
-//        $manager->persist($training);
+        $training = new Training();
+        $training->setTrainerWorkTime($manager->getRepository(TrainerWorkTime::class)->find(2));
+        $training->setStartTime(new \DateTimeImmutable("17:00"));
+        $training->setDurationMinutes(60);
+        $manager->persist($training);
 //
 //        $training1 = new Training();
 //        $training1->setTrainerWorkTime($manager->getRepository(TrainerWorkTime::class)->find(2));

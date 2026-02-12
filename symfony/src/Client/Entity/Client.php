@@ -6,6 +6,7 @@ use App\Booking\Entity\Booking;
 use App\Client\Repository\ClientRepository;
 use App\Membership\Entity\Membership;
 use App\Payment\Entity\Payment;
+use App\User\Entity\User;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
@@ -16,55 +17,16 @@ use Symfony\Component\Serializer\Attribute\Groups;
 use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: ClientRepository::class)]
-#[ORM\Table(name: '`client`')]
-class Client implements UserInterface, PasswordAuthenticatedUserInterface
+class Client extends User
 {
-    #[ORM\Id]
-    #[ORM\GeneratedValue]
-    #[ORM\Column]
-    #[Groups(['public-client', 'public-membership', 'public-payment', 'public-booking', 'create-payment'])]
-    private ?int $id = null;
-
-    #[ORM\Column(length: 100)]
-    #[Assert\NotBlank]
-    #[Groups(['public-client', 'create-update-client'])]
-    private ?string $firstName = null;
-
-    #[ORM\Column(length: 100)]
-    #[Groups(['public-client', 'create-update-client'])]
-    #[Assert\NotBlank]
-    private ?string $lastName = null;
-
     #[ORM\Column]
     #[Assert\Positive]
     #[Groups(['public-client', 'create-update-client'])]
     private ?int $age = null;
 
-    #[ORM\Column(type: 'string', length: 255, unique: true)]
-    #[Groups(['public-client', 'create-update-client'])]
-    #[Assert\Email]
-    private ?string $email = null;
-
-    #[ORM\Column(length: 20)]
-    #[Groups(['public-client', 'create-update-client'])]
-    private ?string $phone = null;
-
-    #[ORM\Column(options: ["default" => "CURRENT_TIMESTAMP"])]
-    #[Groups(['public-client'])]
-    private ?\DateTimeImmutable $createdAt = null;
-
-    #[ORM\Column(length: 255)]
-    #[Groups('create-update-client')]
-    private ?string $password = null;
-
     #[ORM\Column(type: Types::DECIMAL, precision: 10, scale: 2)]
     #[Groups(['public-client', 'create-update-client'])]
-    #[Assert\NotBlank]
-    #[Assert\Positive]
     private ?string $balance = null;
-
-    #[ORM\Column(type: 'json')]
-    private array $roles = [];
 
     /**
      * @var Collection<int, Booking>
@@ -86,59 +48,20 @@ class Client implements UserInterface, PasswordAuthenticatedUserInterface
 
     public function __construct()
     {
+        parent::__construct();
         $this->bookings = new ArrayCollection();
         $this->memberships = new ArrayCollection();
         $this->payments = new ArrayCollection();
-        $this->createdAt = new \DateTimeImmutable();
+        $this->setRoles(['ROLE_CLIENT']);
     }
 
     public function getRoles(): array
     {
-        $roles = $this->roles;
-        $roles[] = 'ROLE_CLIENT';
-
+        $roles = parent::getRoles();
+        if (!in_array('ROLE_CLIENT', $roles, true)) {
+            $roles[] = 'ROLE_CLIENT';
+        }
         return array_unique($roles);
-    }
-
-    public function setRoles(array $roles): self
-    {
-        $this->roles = $roles;
-
-        return $this;
-    }
-
-    public function getUserIdentifier(): string
-    {
-        return $this->email;
-    }
-
-    public function getId(): ?int
-    {
-        return $this->id;
-    }
-
-    public function getFirstName(): ?string
-    {
-        return $this->firstName;
-    }
-
-    public function setFirstName(string $firstName): static
-    {
-        $this->firstName = $firstName;
-
-        return $this;
-    }
-
-    public function getLastName(): ?string
-    {
-        return $this->lastName;
-    }
-
-    public function setLastName(string $lastName): static
-    {
-        $this->lastName = $lastName;
-
-        return $this;
     }
 
     public function getAge(): ?int
@@ -151,54 +74,6 @@ class Client implements UserInterface, PasswordAuthenticatedUserInterface
         $this->age = $age;
 
         return $this;
-    }
-
-    public function getEmail(): ?string
-    {
-        return $this->email;
-    }
-
-    public function setEmail(string $email): static
-    {
-        $this->email = $email;
-
-        return $this;
-    }
-
-    public function getPhone(): ?string
-    {
-        return $this->phone;
-    }
-
-    public function setPhone(string $phone): static
-    {
-        $this->phone = $phone;
-
-        return $this;
-    }
-
-    public function getCreatedAt(): ?\DateTimeImmutable
-    {
-        return $this->createdAt;
-    }
-
-    public function setCreatedAt(\DateTimeImmutable $createdAt): static
-    {
-        $this->createdAt = $createdAt;
-
-        return $this;
-    }
-
-    public function setPassword(string $password): static
-    {
-        $this->password = $password;
-
-        return $this;
-    }
-
-    public function getPassword(): ?string
-    {
-        return $this->password;
     }
 
     public function getBalance(): ?string
