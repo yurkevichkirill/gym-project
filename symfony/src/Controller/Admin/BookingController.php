@@ -47,6 +47,7 @@ final class BookingController extends AbstractController
         Request $request,
         BookingMapperInterface $mapper,
         ClientBookingsQuery $handler,
+        BookingRepository $repo,
     ): OkResponse
     {
         $sortRaw = $request->query->get('sort', 'bookedAt:ASC');
@@ -62,7 +63,7 @@ final class BookingController extends AbstractController
             array_map(fn($booking) => $mapper->map($booking), $bookings),
             $queryDto->page,
             $queryDto->limit,
-            $queryDto->filter,
+            $repo->count(['client' => $bookings[0]->getClient()]),
             $queryDto->sort,
             200
         );

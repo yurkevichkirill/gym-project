@@ -10,7 +10,7 @@ final readonly class OkResponse
         public mixed $data,
         public int $page = 1,
         public int $limit = 1,
-        public array $filter = [],
+        public int $total = 0,
         public array $sort = [],
         public int $status = 200
     )
