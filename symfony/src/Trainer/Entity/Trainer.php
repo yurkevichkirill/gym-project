@@ -38,6 +38,7 @@ class Trainer extends User
     {
         parent::__construct();
         $this->trainerWorkTime = new ArrayCollection();
+        $this->setRoles(['ROLE_TRAINER']);
     }
 
     public function getTrainingType(): ?TrainingType

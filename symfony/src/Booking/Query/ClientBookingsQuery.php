@@ -9,11 +9,14 @@ use App\Booking\Repository\BookingRepository;
 use App\Client\Repository\ClientRepository;
 use Psr\Cache\InvalidArgumentException;
 use Symfony\Component\Cache\CacheItem;
-use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 use Symfony\Contracts\Cache\TagAwareCacheInterface;
 
 final readonly class ClientBookingsQuery
 {
+    private const array SORT_MAP = [
+        'trainingId' => 't.id'
+    ];
+
     public function __construct(
         private BookingRepository      $bookingRepo,
         private ClientRepository       $clientRepo,
@@ -28,9 +31,7 @@ final readonly class ClientBookingsQuery
     {
         $cacheKey = $this->generateCacheKey($dto);
 
-        $sort = $this->parseSort($dto->sort);
-
-        return $this->gymCache->get($cacheKey, function (CacheItem $item) use ($dto, $sort): array
+        return $this->gymCache->get($cacheKey, function (CacheItem $item) use ($dto): array
         {
             $client = $this->clientRepo->find($dto->clientId);
             if(is_null($client)) {
@@ -38,25 +39,27 @@ final readonly class ClientBookingsQuery
             }
 
             $qb = $this->bookingRepo->createQueryBuilder('b')
+                ->leftJoin('b.training', 't')
                 ->andWhere('b.client = :client')
                 ->setParameter('client', $client);
 
-            if($dto->status) {
+            if($dto->filter['status']) {
                 $qb->andWhere('b.status = :status')
-                    ->setParameter('status', $dto->status);
+                    ->setParameter('status', $dto->filter['status']);
             }
 
             $offset = ($dto->page - 1) * $dto->limit;
 
-            foreach ($sort as $field => $order) {
-                $qb->addOrderBy("b.$field, $order");
+            foreach ($dto->sort as $alias => $order) {
+                $field = self::SORT_MAP[$alias] ?? "b.$alias";
+                $qb->addOrderBy("$field", $order);
             }
             $qb->setFirstResult($offset)
                 ->setMaxResults($dto->limit);
 
             $item->tag(['booking_list']);
 
-            return $qb->getQuery()->getArrayResult();
+            return $qb->getQuery()->getResult();
         });
     }
 
@@ -65,31 +68,11 @@ final readonly class ClientBookingsQuery
         $params = [
             'clientId' => $query->clientId,
             'sort' => $query->sort,
-            'status' => $query->status,
+            'status' => $query->filter['status'],
             'page' => $query->page,
             'limit' => $query->limit,
         ];
 
         return 'bookings_' . md5(serialize($params));
     }
-
-    private function parseSort(string $sortRaw): array
-    {
-        $sort = [];
-        $allowedOrders = ['ASC', 'DESC'];
-
-        foreach (explode(',', $sortRaw) as $item) {
-            [$field, $rawOrder] = explode(':', $item);
-            $order = strtoupper(trim($rawOrder));
-
-            if (!in_array($order, $allowedOrders)) {
-                continue;
-            }
-
-            $sort[$field] = $order;
-        }
-
-        return $sort ?: ['bookedAt' => 'ASC'];
-    }
-
 }

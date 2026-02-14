@@ -3,7 +3,6 @@
 namespace App\Booking\Repository;
 
 use App\Booking\Entity\Booking;
-use App\Client\Entity\Client;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 

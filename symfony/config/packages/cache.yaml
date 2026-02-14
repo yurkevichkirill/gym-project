@@ -3,5 +3,5 @@ framework:
         pools:
             gym.cache:
                 adapter: cache.adapter.redis_tag_aware
-                provider: 'redis://redis:6379/0'
+                provider: 'redis://redis:6379'
                 default_lifetime: 3600
