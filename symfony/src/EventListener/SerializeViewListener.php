@@ -27,8 +27,9 @@ final class SerializeViewListener
                         'pagination' => [
                             'page' => $result->page,
                             'limit' => $result->limit,
+                            'total' => $result->total,
+                            'pages' => (int) ceil($result->total / $result->limit),
                         ],
-                        'filter' => $result->filter,
                         'sort' => $result->sort,
                     ]
                 ]));

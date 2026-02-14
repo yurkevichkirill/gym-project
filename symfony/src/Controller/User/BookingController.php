@@ -39,7 +39,8 @@ final class BookingController extends AbstractController
         BookingMapperInterface $mapper,
         #[CurrentUser] Client $client,
         ClientBookingsQuery $handler,
-        Request $request
+        Request $request,
+        BookingRepository $repo,
     ): OkResponse
     {
         $id = $client->getId();
@@ -56,7 +57,7 @@ final class BookingController extends AbstractController
             array_map(fn($booking) => $mapper->map($booking), $bookings),
             $queryDto->page,
             $queryDto->limit,
-            $queryDto->filter,
+            $repo->count(['client' => $bookings[0]->getClient()]),
             $queryDto->sort,
             200
         );
