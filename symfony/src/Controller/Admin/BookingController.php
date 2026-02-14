@@ -2,18 +2,27 @@
 
 namespace App\Controller\Admin;
 
+use App\Booking\DTO\BookingRequest;
+use App\Booking\DTO\GetClientBookings;
 use App\Booking\Entity\Booking;
 use App\Booking\Enum\BookingStatusEnum;
+use App\Booking\Mapper\BookingMapperInterface;
+use App\Booking\Query\ClientBookingsQuery;
 use App\Booking\Repository\BookingRepository;
-use App\Booking\Service\BookingServiceInterface;
+use App\Booking\Service\BookingManager;
+use App\Client\Entity\Client;
 use App\Client\Repository\ClientRepository;
+use App\Response\OkResponse;
 use App\Training\Repository\TrainingRepository;
 use Nelmio\ApiDocBundle\Attribute\Model;
 use OpenApi\Attributes as OA;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Security\Http\Attribute\CurrentUser;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Component\Serializer\Normalizer\AbstractNormalizer;
 use Symfony\Component\Serializer\Normalizer\DateTimeNormalizer;
@@ -33,156 +42,64 @@ final class BookingController extends AbstractController
         in: 'query'
     )]
     #[IsGranted('ROLE_ADMIN')]
-    public function getAll(int $id, BookingServiceInterface $bookingService, Request $request): JsonResponse
+    public function getAll(
+        int $id,
+        Request $request,
+        BookingMapperInterface $mapper,
+        ClientBookingsQuery $handler,
+    ): OkResponse
     {
-        try {
-            $sortRaw = $request->query->get('sort', 'bookedAt:ASC');
-            $sort = [];
-            foreach (explode(',', $sortRaw) as $item) {
-                [$field, $order] = explode(':',  $item);
-                $sort[$field] = strtoupper($order);
-            }
-            $status = BookingStatusEnum::tryFrom($request->query->get('status'));
-            $bookings = $bookingService->findBy($id, $sort, $status);
-        } catch (Throwable $e) {
-            return $this->json(['error' => $e->getMessage()], 400);
-        }
+        $sortRaw = $request->query->get('sort', 'bookedAt:ASC');
+        $status = BookingStatusEnum::tryFrom($request->query->get('status'));
+        $page = (int) $request->query->get('page', 1);
+        $limit = (int) $request->query->get('limit', 20);
 
-        if(empty($bookings)) {
-            return $this->json(['error' => 'No bookings found'], 404);
-        }
+        $queryDto = new GetClientBookings($id, $sortRaw, $status, $page, $limit);
 
-        return $this->json($bookings, 200, [], [
-            'groups' => 'public-booking',
-            DateTimeNormalizer::TIMEZONE_KEY => 'Europe/Minsk',
-            'datetime_format' => 'Y-m-d H:i:s'
-        ]);
+        $bookings =  $handler->handle($queryDto);
+
+        return new OkResponse(
+            array_map(fn($booking) => $mapper->map($booking), $bookings),
+            $queryDto->page,
+            $queryDto->limit,
+            $queryDto->filter,
+            $queryDto->sort,
+            200
+        );
     }
 
     #[Route('api/bookings/{bookingId}', methods: ['GET'], format: 'json')]
     #[IsGranted('ROLE_ADMIN')]
-    public function get(int $bookingId, BookingRepository $bookingRepo): JsonResponse
+    public function get(int $bookingId, BookingRepository $bookingRepo, BookingMapperInterface $mapper): OkResponse
     {
-        $bookings = $bookingRepo->find($bookingId);
-        if(empty($bookings)) {
-            return $this->json(['error' => "Booking not found"], 404);
-        }
+        $booking = $bookingRepo->findOneBy(['id' => $bookingId]);
 
-        return $this->json($bookings[0], 200, [], [
-            'groups' => 'public-booking',
-            DateTimeNormalizer::TIMEZONE_KEY => 'Europe/Minsk',
-            'datetime_format' => 'Y-m-d H:i:s'
-        ]);
+        return new OkResponse(
+            data: $mapper->map($booking),
+            status: 200,
+        );
     }
 
     #[Route('api/clients/{id}/bookings', methods: ['POST'], format: 'json')]
-    #[OA\RequestBody(content: new Model(type: Booking::class, groups: ['create-update-booking']))]
+    #[OA\RequestBody(content: new Model(type: BookingRequest::class))]
     #[IsGranted('ROLE_ADMIN')]
     public function create(
         int $id,
-        Request $request,
-        BookingRepository $bookingRepo,
+        BookingMapperInterface $mapper,
         ClientRepository $clientRepo,
-        TrainingRepository $trainingRepo,
-        SerializerInterface $serializer,
-        ValidatorInterface $validator
-    ): JsonResponse
+        #[MapRequestPayload] BookingRequest $dto,
+        BookingManager $manager
+    ): OkResponse
     {
-        $data = json_decode($request->getContent(), true);
-        $training = $trainingRepo->find($data['training']['id']);
-        if(is_null($training)) {
-            return $this->json(['error' => 'Training not found'], 404);
-        }
-
         $client = $clientRepo->find($id);
-        if(is_null($client)) {
-            return $this->json(['error' => 'Client not found'], 404);
-        }
 
-        try {
-            $booking = $serializer->deserialize($request->getContent(), Booking::class, 'json');
-        } catch (Throwable $e) {
-            return $this->json(['error' => $e->getMessage()], 400);
-        }
-        $booking->setClient($client);
-        $booking->setTraining($training);
+        $dto = $mapper->map($manager->create($client, $dto));
 
-        $errors = $validator->validate($booking);
-        if(count($errors) > 0) {
-            $errorMessages = [];
-            foreach ($errors as $error) {
-                $errorMessages[$error->getPropertyPath()][] = $error->getMessage();
-            }
+        return new OkResponse(
+            data: $dto,
+            status: 201,
+        );
 
-            return $this->json(['errors' => $errorMessages], 422);
-        }
-
-        try {
-            $bookingRepo->create($booking);
-        } catch(Throwable $e) {
-            return $this->json(['error' => $e->getMessage()], 400);
-        }
-
-        return $this->json($booking, 201, [], [
-            'groups' => 'public-booking',
-            DateTimeNormalizer::TIMEZONE_KEY => 'Europe/Minsk',
-            'datetime_format' => 'Y-m-d H:i:s'
-        ]);
-    }
-
-    #[Route('api/bookings/{id}', methods: ['PUT', 'PATCH'], format: 'json')]
-    #[OA\RequestBody(content: new Model(type: Booking::class, groups: ['create-update-booking']))]
-    #[IsGranted('ROLE_ADMIN')]
-    public function update(
-        Booking $booking,
-        Request $request,
-        ValidatorInterface $validator,
-        BookingRepository $bookingRepo,
-        TrainingRepository $trainingRepo,
-        SerializerInterface $serializer
-    ): JsonResponse
-    {
-        try {
-            $serializer->deserialize($request->getContent(), Booking::class, 'json', [
-                AbstractNormalizer::OBJECT_TO_POPULATE => $booking
-            ]);
-        } catch(Throwable $e) {
-            return $this->json(['error' => $e->getMessage()], 400);
-        }
-
-        $data = json_decode($request->getContent(), true);
-
-        if (isset($data['training']['id'])) {
-            $training = $trainingRepo->find($data['training']['id']);
-
-            if (is_null($training)) {
-                return $this->json(['error' => 'Client not found'], 404);
-            }
-
-            $booking->setTraining($training);
-        }
-
-        $errors = $validator->validate($booking);
-        if (count($errors) > 0) {
-            $errorMessages = [];
-            foreach ($errors as $error) {
-                $errorMessages[$error->getPropertyPath()][] = $error->getMessage();
-            }
-
-            return $this->json(['errors' => $errorMessages], 422);
-        }
-
-        try {
-            $bookingRepo->save();
-        } catch(Throwable $e) {
-            return $this->json(['error' => $e->getMessage()], 400);
-        }
-
-        return $this->json($booking, 200, [], [
-            'groups' => 'public-booking',
-            DateTimeNormalizer::TIMEZONE_KEY => 'Europe/Minsk',
-            'datetime_format' => 'Y-m-d H:i:s'
-        ]);
     }
 
     #[Route('api/bookings/{id}', methods: ['DELETE'], format: 'json')]
@@ -190,14 +107,10 @@ final class BookingController extends AbstractController
     public function remove(
         Booking $booking,
         BookingRepository $bookingRepo
-    ): JsonResponse
+    ): Response
     {
-        try {
-            $bookingRepo->remove($booking);
-        } catch(Throwable $e) {
-            return $this->json(['error' => $e->getMessage()], 400);
-        }
+        $bookingRepo->remove($booking);
 
-        return $this->json(null, 204);
+        return new Response(status: 204);
     }
 }

@@ -72,16 +72,17 @@ class AppFixtures extends Fixture
 
 //        $trainerWorkTime = new TrainerWorkTime();
 //        $trainerWorkTime->setTrainer($manager->getRepository(Trainer::class)->find(5));
-//        $trainerWorkTime->setStartTime(new \DateTimeImmutable("10:00"));
-//        $trainerWorkTime->setEndTime(new \DateTimeImmutable("18:00"));
-//        $trainerWorkTime->setDate(new \DateTimeImmutable("20-02-2026"));
+//        $trainerWorkTime->setStartTime(new \DateTimeImmutable("00:00"));
+//        $trainerWorkTime->setEndTime(new \DateTimeImmutable("23:00"));
+//        $trainerWorkTime->setDate(new \DateTimeImmutable("21-02-2026"));
 //        $manager->persist($trainerWorkTime);
 
-        $training = new Training();
-        $training->setTrainerWorkTime($manager->getRepository(TrainerWorkTime::class)->find(2));
-        $training->setStartTime(new \DateTimeImmutable("17:00"));
-        $training->setDurationMinutes(60);
-        $manager->persist($training);
+        for($i = 0; $i < 23; $i++) {
+            $booking = new Booking();
+            $booking->setClient($manager->getRepository(Client::class)->find(3));
+            $booking->setTraining($manager->getRepository(Training::class)->find($i + 6));
+            $manager->persist($booking);
+        }
 //
 //        $training1 = new Training();
 //        $training1->setTrainerWorkTime($manager->getRepository(TrainerWorkTime::class)->find(2));

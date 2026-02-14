@@ -6,6 +6,7 @@ namespace App\EventListener;
 
 use App\Booking\DTO\BookingResponse;
 use App\Booking\Entity\Booking;
+use App\Response\OkResponse;
 use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpKernel\Event\ViewEvent;
@@ -18,13 +19,25 @@ final class SerializeViewListener
     {
         $result = $event->getControllerResult();
 
-        if (!$result instanceof Booking) {
-            return;
+        if ($result instanceof OkResponse) {
+            if(is_array($result->data)) {
+                $event->setResponse(new JsonResponse([
+                    'data' => $result->data,
+                    'meta' => [
+                        'pagination' => [
+                            'page' => $result->page,
+                            'limit' => $result->limit,
+                        ],
+                        'filter' => $result->filter,
+                        'sort' => $result->sort,
+                    ]
+                ]));
+            } else {
+                $event->setResponse(new JsonResponse([
+                    'data' => $result->data
+                ]));
+            }
+
         }
-
-        $dto = BookingResponse::fromEntity($result);
-
-        $response = new JsonResponse($dto, 201);
-        $event->setResponse($response);
     }
 }

@@ -11,7 +11,7 @@ use App\Client\Entity\Client;
 use App\Training\Repository\TrainingRepository;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
-class BookingManager
+final readonly class BookingManager
 {
     public function __construct(
         private BookingRepository $bookingRepo,
@@ -23,7 +23,7 @@ class BookingManager
     {
         $training = $this->trainingRepo->find($dto->trainingId);
         if(is_null($training)) {
-            throw new NotFoundHttpException("Trainer not found");
+            throw new NotFoundHttpException("Training not found");
         }
         $booking = new Booking();
         $booking->setClient($client);
