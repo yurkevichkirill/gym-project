@@ -6,7 +6,7 @@ use App\Booking\DTO\BookingRequest;
 use App\Booking\DTO\GetClientBookings;
 use App\Booking\Entity\Booking;
 use App\Booking\Enum\BookingStatusEnum;
-use App\Booking\Mapper\BookingMapperInterface;
+use App\Booking\Mapper\ClientMapperInterface;
 use App\Booking\Query\ClientBookingsQuery;
 use App\Booking\Repository\BookingRepository;
 use App\Booking\Service\BookingManager;
@@ -43,11 +43,11 @@ final class BookingController extends AbstractController
     )]
     #[IsGranted('ROLE_ADMIN')]
     public function getAll(
-        int $id,
-        Request $request,
-        BookingMapperInterface $mapper,
-        ClientBookingsQuery $handler,
-        BookingRepository $repo,
+        int                   $id,
+        Request               $request,
+        ClientMapperInterface $mapper,
+        ClientBookingsQuery   $handler,
+        BookingRepository     $repo,
     ): OkResponse
     {
         $sortRaw = $request->query->get('sort', 'bookedAt:ASC');
@@ -71,7 +71,7 @@ final class BookingController extends AbstractController
 
     #[Route('api/bookings/{bookingId}', methods: ['GET'], format: 'json')]
     #[IsGranted('ROLE_ADMIN')]
-    public function get(int $bookingId, BookingRepository $bookingRepo, BookingMapperInterface $mapper): OkResponse
+    public function get(int $bookingId, BookingRepository $bookingRepo, ClientMapperInterface $mapper): OkResponse
     {
         $booking = $bookingRepo->findOneBy(['id' => $bookingId]);
 
@@ -85,16 +85,16 @@ final class BookingController extends AbstractController
     #[OA\RequestBody(content: new Model(type: BookingRequest::class))]
     #[IsGranted('ROLE_ADMIN')]
     public function create(
-        int $id,
-        BookingMapperInterface $mapper,
-        ClientRepository $clientRepo,
+        int                                 $id,
+        ClientMapperInterface               $mapper,
+        ClientRepository                    $clientRepo,
         #[MapRequestPayload] BookingRequest $dto,
-        BookingManager $manager
+        BookingManager                      $manager
     ): OkResponse
     {
         $client = $clientRepo->find($id);
 
-        $dto = $mapper->map($manager->create($client, $dto));
+        $dto = $mapper->map($manager->book($client, $dto));
 
         return new OkResponse(
             data: $dto,

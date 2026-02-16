@@ -56,33 +56,34 @@ class AppFixtures extends Fixture
 //        $manager->persist($trainingType);
 //
 //        $trainingType = new TrainingType();
-//        $trainingType->setName("Powerlifting");
-//        $trainingType->setDescription("gergerghehherhe");
+//        $trainingType->setName("Armwrestling");
+//        $trainingType->setDescription("goooooood");
 //        $manager->persist($trainingType);
 
 //        $trainer = new Trainer();
-//        $trainer->setPassword('$2y$13$BpR/ll3sS5xa0kaMF80obud8SwLL/B28cGcOwCczzzlxuDO.OB48m');
-//        $trainer->setTrainingType($manager->getRepository(TrainingType::class)->find(1));
-//        $trainer->setPrice('50');
-//        $trainer->setFirstName("Anti");
-//        $trainer->setLastName('Trainer');
-//        $trainer->setPhone('+3442525424252');
+//        $trainer->setPassword('$2y$13$97ZqKWjFNChi3qFHeNhnJOnjNNFT4NK23pU50bPNn8ybtLEEUonGy');
+//        $trainer->setTrainingType($manager->getRepository(TrainingType::class)->find(3));
+//        $trainer->setPrice('100');
+//        $trainer->setFirstName("Maksim");
+//        $trainer->setLastName('Donchenko');
+//        $trainer->setPhone('+56457369932');
 //        $trainer->setEmail("antitrainer@gmail.com");
 //        $manager->persist($trainer);
 
 //        $trainerWorkTime = new TrainerWorkTime();
-//        $trainerWorkTime->setTrainer($manager->getRepository(Trainer::class)->find(5));
-//        $trainerWorkTime->setStartTime(new \DateTimeImmutable("00:00"));
-//        $trainerWorkTime->setEndTime(new \DateTimeImmutable("23:00"));
-//        $trainerWorkTime->setDate(new \DateTimeImmutable("21-02-2026"));
+//        $trainerWorkTime->setTrainer($manager->getRepository(Trainer::class)->find(6));
+//        $trainerWorkTime->setStartTime(new \DateTimeImmutable("10:00"));
+//        $trainerWorkTime->setEndTime(new \DateTimeImmutable("22:00"));
+//        $trainerWorkTime->setDate(new \DateTimeImmutable("10-03-2026"));
 //        $manager->persist($trainerWorkTime);
 
-        for($i = 0; $i < 23; $i++) {
-            $booking = new Booking();
-            $booking->setClient($manager->getRepository(Client::class)->find(3));
-            $booking->setTraining($manager->getRepository(Training::class)->find($i + 6));
-            $manager->persist($booking);
-        }
+//
+//        for($i = 0; $i < 23; $i++) {
+//            $booking = new Booking();
+//            $booking->setClient($manager->getRepository(Client::class)->find(3));
+//            $booking->setTraining($manager->getRepository(Training::class)->find($i + 6));
+//            $manager->persist($booking);
+//        }
 //
 //        $training1 = new Training();
 //        $training1->setTrainerWorkTime($manager->getRepository(TrainerWorkTime::class)->find(2));
@@ -131,6 +132,9 @@ class AppFixtures extends Fixture
 //        $membership->setClient($manager->getRepository(Client::class)->find(5));
 //        $membership->setPlan($manager->getRepository(MembershipPlan::class)->find(3));
 //        $manager->persist($membership);
+
+        $booking = $manager->getRepository(Booking::class)->find(50);
+        $manager->remove($booking);
 
         $manager->flush();
     }

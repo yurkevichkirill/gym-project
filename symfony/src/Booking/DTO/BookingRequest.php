@@ -11,7 +11,12 @@ readonly class BookingRequest
     public function __construct(
         #[Assert\NotBlank]
         #[Assert\Positive]
-        public int $trainingId,
+        public int $durationMinutes,
+        #[Assert\Time]
+        public string $startTime,
+        #[Assert\NotBlank]
+        #[Assert\Positive]
+        public int $worktimeId,
     )
     {}
 }

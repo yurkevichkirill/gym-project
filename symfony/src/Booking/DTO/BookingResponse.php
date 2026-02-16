@@ -11,9 +11,12 @@ readonly class BookingResponse
 {
     public function __construct(
         public int $id,
-        public int $trainingId,
+        public int $trainerId,
         public string $bookedAt,
-        public BookingStatusEnum $status
+        public string $date,
+        public int $durationMinutes,
+        public string $startTime,
+        public ?BookingStatusEnum $status = null,
     )
     {}
 
@@ -21,8 +24,11 @@ readonly class BookingResponse
     {
         return new self(
             id: $b->getId(),
-            trainingId: $b->getTraining()->getId(),
+            trainerId: $b->getTraining()->getTrainerWorkTime()->getTrainer()->getId(),
             bookedAt: $b->getBookedAt()?->format(DATE_ATOM) ??'',
+            date: $b->getTraining()->getTrainerWorkTime()->getDate()->format("Y-m-d"),
+            durationMinutes: $b->getTraining()->getDurationMinutes(),
+            startTime: $b->getTraining()->getStartTime()->format("H:i:s"),
             status: $b->getStatus(),
         );
     }

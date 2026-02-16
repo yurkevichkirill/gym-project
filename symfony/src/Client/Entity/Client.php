@@ -26,7 +26,7 @@ class Client extends User
 
     #[ORM\Column(type: Types::DECIMAL, precision: 10, scale: 2)]
     #[Groups(['public-client', 'create-update-client'])]
-    private ?string $balance = null;
+    private ?string $balance = "0.00";
 
     /**
      * @var Collection<int, Booking>

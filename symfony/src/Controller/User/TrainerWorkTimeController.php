@@ -2,90 +2,72 @@
 
 namespace App\Controller\User;
 
+use App\Response\OkResponse;
+use App\Trainer\Entity\Trainer;
 use App\Trainer\Repository\TrainerRepository;
+use App\TrainerWorkTime\DTO\GetTrainerWorkTime;
 use App\TrainerWorkTime\Entity\TrainerWorkTime;
+use App\TrainerWorkTime\Mapper\WorkTimeMapperInterface;
+use App\TrainerWorkTime\Query\WorkTimeQuery;
 use App\TrainerWorkTime\Repository\TrainerWorkTimeRepository;
-use App\TrainerWorkTime\Service\TrainerWorkTimeServiceInterface;
 use DateTimeImmutable;
-use Nelmio\ApiDocBundle\Attribute\Model;
 use OpenApi\Attributes as OA;
+use Psr\Cache\InvalidArgumentException;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
-use Symfony\Component\Security\Http\Attribute\IsGranted;
-use Symfony\Component\Serializer\Normalizer\AbstractNormalizer;
-use Symfony\Component\Serializer\SerializerInterface;
-use Symfony\Component\Validator\Validator\ValidatorInterface;
-use Throwable;
 
 final class TrainerWorkTimeController extends AbstractController
 {
-    #[Route('api/trainers/{id}/work-time', methods: ['GET'], format: 'json')]
-    #[OA\Parameter(
-        name: 'date',
-        in: 'query'
-    )]
-    #[OA\Parameter(
-        name: 'sort',
-        in: 'query'
-    )]
-    #[IsGranted('ROLE_CLIENT')]
-    public function get(Request $request, TrainerWorkTimeServiceInterface $trainerWorkTimeService, int $id): JsonResponse
+    /**
+     * @throws \DateMalformedStringException
+     * @throws InvalidArgumentException
+     */
+    #[Route('api/trainers/{id}/worktime', methods: ['GET'], format: 'json')]
+    #[OA\Parameter(name: 'date', in: 'query', example: '10-03-2026')]
+    #[OA\Parameter(name: 'sort', in: 'query', example: 'date:ASC')]
+    #[OA\Parameter(name: 'page', in: 'query', example: 1)]
+    #[OA\Parameter(name: 'limit', in: 'query', example: 20)]
+    #[OA\Tag(name: "WorkTime")]
+    public function getAll(
+        Request $request,
+        WorkTimeMapperInterface $mapper,
+        WorkTimeQuery $handler,
+        Trainer $trainer,
+        TrainerWorkTimeRepository $worktimeRepo,
+        TrainerRepository $trainerRepo,
+    ): OkResponse
     {
-        try {
-            $sortRaw = $request->query->get('sort', 'date:ASC');
-            $sort = [];
-            foreach (explode(',', $sortRaw) as $item) {
-                [$field, $order] = explode(':',  $item);
-                $sort[$field] = strtoupper($order);
-            }
-            $date = $request->query->get('date') ? new DateTimeImmutable($request->query->get('date')) : null;
-            $trainerWorkTimes = $trainerWorkTimeService->findBy($id, $sort, $date);
-        } catch (Throwable $e) {
-            return $this->json(['error' => $e->getMessage()], 400);
-        }
+        $id = $trainer->getId();
+        $sortRaw = $request->query->get('sort', 'date:ASC');
+        $date = $request->query->get('date') ? new DateTimeImmutable($request->query->get('date')) : null;
+        $page = (int) $request->query->get('page', 1);
+        $limit = (int) $request->query->get('limit', 20);
 
-        if(empty($trainerWorkTimes)) {
-            return $this->json(['error' => 'Trainer work time not found'], 404);
-        }
+        $queryDto = new GetTrainerWorkTime($id, $date, $sortRaw, $page, $limit);
 
-        return $this->json($trainerWorkTimes, 200, [], [
-            'groups' => ['public-trainer-worktime']
-        ]);
+        $worktimes = $handler->handle($queryDto);
+
+        return new OkResponse(
+            array_map(fn ($worktime) => $mapper->map($worktime), $worktimes),
+            $page,
+            $limit,
+            $worktimeRepo->count(['trainer' => $trainerRepo->find($id)]),
+            $queryDto->sort,
+            200,
+        );
     }
 
-    #[Route('api/trainers/{id}/free-slots', methods: ['GET'], format: 'json')]
-    #[OA\Parameter(
-        name: 'date',
-        in: 'query'
-    )]
-    #[OA\Parameter(
-        name: 'sort',
-        in: 'query'
-    )]
-    #[IsGranted('ROLE_CLIENT')]
-    public function getFreeSlots(Request $request, TrainerWorkTimeServiceInterface $trainerWorkTimeService, int $id): JsonResponse
+    #[Route('api/worktime/{id}', methods: ['GET'], format: 'json')]
+    #[OA\Tag(name: "WorkTime")]
+    public function get(
+        TrainerWorkTime $worktime,
+        WorkTimeMapperInterface $mapper,
+    ): OkResponse
     {
-        try {
-            $sortRaw = $request->query->get('sort', 'date:ASC');
-            $sort = [];
-            foreach (explode(',', $sortRaw) as $item) {
-                [$field, $order] = explode(':',  $item);
-                $sort[$field] = strtoupper($order);
-            }
-            $date = $request->query->get('date') ? new DateTimeImmutable($request->query->get('date')) : null;
-            $trainerWorkTimes = $trainerWorkTimeService->findBy($id, $sort, $date);
-        } catch (Throwable $e) {
-            return $this->json(['error' => $e->getMessage()], 400);
-        }
-
-        if(empty($trainerWorkTimes)) {
-            return $this->json(['error' => 'Trainer work time not found'], 404);
-        }
-
-        return $this->json($trainerWorkTimes, 200, [], [
-            'groups' => ['public-trainer-free-slots']
-        ]);
+        return new OkResponse(
+            $mapper->map($worktime),
+            200,
+        );
     }
 }

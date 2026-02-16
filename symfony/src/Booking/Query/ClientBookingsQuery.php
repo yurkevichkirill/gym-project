@@ -14,7 +14,11 @@ use Symfony\Contracts\Cache\TagAwareCacheInterface;
 final readonly class ClientBookingsQuery
 {
     private const array SORT_MAP = [
-        'trainingId' => 't.id'
+        'trainingId' => 't.id',
+        'date' => 'w.date',
+        'startTime' => 't.startTime',
+        'durationMinutes' => 't.durationMinutes',
+        'trainerId' => 'trainer.id',
     ];
 
     public function __construct(
@@ -33,19 +37,39 @@ final readonly class ClientBookingsQuery
 
         return $this->gymCache->get($cacheKey, function (CacheItem $item) use ($dto): array
         {
-            $client = $this->clientRepo->find($dto->clientId);
-            if(is_null($client)) {
-                return [];
-            }
+            $client = $this->clientRepo->find($dto->filter['clientId']);
 
             $qb = $this->bookingRepo->createQueryBuilder('b')
+                ->addSelect('t', 'w', 'trainer')
                 ->leftJoin('b.training', 't')
+                ->leftJoin('t.trainerWorkTime', 'w')
+                ->leftJoin('w.trainer', 'trainer')
                 ->andWhere('b.client = :client')
                 ->setParameter('client', $client);
 
-            if($dto->filter['status']) {
+            if(isset($dto->filter['trainerId'])) {
+                $qb->andWhere('trainer.id = :trainerId')
+                    ->setParameter('trainerId', $dto->filter['trainerId']);
+            }
+
+            if(isset($dto->filter['status'])) {
                 $qb->andWhere('b.status = :status')
                     ->setParameter('status', $dto->filter['status']);
+            }
+
+            if(isset($dto->filter['date'])) {
+                $qb->andWhere('w.date = :date')
+                    ->setParameter('date', $dto->filter['date']);
+            }
+
+            if(isset($dto->filter['startTime'])) {
+                $qb->andWhere('t.startTime = :startTime')
+                    ->setParameter('startTime', $dto->filter['startTime']);
+            }
+
+            if(isset($dto->filter['durationMinutes'])) {
+                $qb->andWhere('t.durationMinutes = :durationMinutes')
+                    ->setParameter('durationMinutes', $dto->filter['durationMinutes']);
             }
 
             $offset = ($dto->page - 1) * $dto->limit;
@@ -57,7 +81,7 @@ final readonly class ClientBookingsQuery
             $qb->setFirstResult($offset)
                 ->setMaxResults($dto->limit);
 
-            $item->tag(['booking_list']);
+            $item->tag(['bookings_list']);
 
             return $qb->getQuery()->getResult();
         });
@@ -66,12 +90,27 @@ final readonly class ClientBookingsQuery
     private function generateCacheKey(GetClientBookings $query): string
     {
         $params = [
-            'clientId' => $query->clientId,
+            'clientId' => $query->filter['clientId'],
             'sort' => $query->sort,
-            'status' => $query->filter['status'],
             'page' => $query->page,
             'limit' => $query->limit,
         ];
+
+        if(isset($query->filter['status'])) {
+            $params['status'] = $query->filter['status'];
+        }
+        if(isset($query->filter['trainerId'])) {
+            $params['trainerId'] = $query->filter['trainerId'];
+        }
+        if(isset($query->filter['date'])) {
+            $params['date'] = $query->filter['date'];
+        }
+        if(isset($query->filter['startTime'])) {
+            $params['startTime'] = $query->filter['startTime'];
+        }
+        if(isset($query->filter['durationMinutes'])) {
+            $params['durationMinutes'] = $query->filter['durationMinutes'];
+        }
 
         return 'bookings_' . md5(serialize($params));
     }

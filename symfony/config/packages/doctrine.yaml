@@ -1,24 +1,6 @@
 doctrine:
     dbal:
         url: '%env(resolve:DATABASE_URL)%'
-
-#        mapping_types:
-#            training_status_enum: string
-#            day_of_week_enum: string
-#            membership_status_enum: string
-#            payment_category_enum: string
-#            payment_status_enum: string
-#        types:
-#            training_status_enum: 'App/Enum/BookingStatusEnum'
-#            day_of_week_enum: 'App/Enum/DayOfWeekEnum'
-#            membership_status_enum: 'App/Enum/MembershipStatusEnum'
-#            payment_category_enum: 'App/Enum/PaymentCategoryEnum'
-#            payment_status_enum: 'App/Enum/PaymentStatusEnum'
-
-        # IMPORTANT: You MUST configure your server version,
-        # either here or in the DATABASE_URL env var (see .env file)
-        #server_version: '16'
-
         profiling_collect_backtrace: '%kernel.debug%'
     orm:
         validate_xml_mapping: true
@@ -68,7 +50,7 @@ doctrine:
                 is_bundle: false
                 dir: '%kernel.project_dir%/src/Membership/Entity'
                 prefix: 'App\Membership\Entity'
-                alias: Client
+                alias: Membership
             Payment:
                 type: attribute
                 is_bundle: false
