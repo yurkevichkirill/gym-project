@@ -2,7 +2,7 @@
 
 namespace App\Controller;
 
-use App\Client\Entity\Client;
+use App\User\Entity\User;
 use Lexik\Bundle\JWTAuthenticationBundle\Services\JWTTokenManagerInterface;
 use Nelmio\ApiDocBundle\Attribute\Model;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -16,19 +16,19 @@ final class ApiLoginController extends AbstractController
 {
     #[Route('/api/login', name: 'app_api_login', methods: ['POST'])]
     #[OA\Tag(name: "Login")]
-    #[OA\RequestBody(content: new Model(type: Client::class, groups: ['login']))]
-    public function login(#[CurrentUser] ?Client $client, JWTTokenManagerInterface $jwtManager): JsonResponse
+    #[OA\RequestBody(content: new Model(type: User::class, groups: ['login']))]
+    public function login(#[CurrentUser] ?User $user, JWTTokenManagerInterface $jwtManager): JsonResponse
     {
-        if(null === $client) {
+        if(null === $user) {
             return $this->json([
                 'message' => 'missing credentials',
             ], Response::HTTP_UNAUTHORIZED);
         }
 
-        $token = $jwtManager->create($client);
+        $token = $jwtManager->create($user);
 
         return $this->json([
-            'user' => $client->getUserIdentifier(),
+            'user' => $user->getUserIdentifier(),
             'token' => $token,
         ]);
     }

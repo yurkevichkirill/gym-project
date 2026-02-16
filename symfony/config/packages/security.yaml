@@ -5,14 +5,10 @@ security:
 
     # https://symfony.com/doc/current/security.html#loading-the-user-the-user-provider
     providers:
-        client_provider:
-            entity:
-                class: App\Client\Entity\Client
-                property: email
         # used to reload user from session & other features (e.g. switch_user)
         app_user_provider:
             entity:
-                class: App\Entity\User
+                class: App\User\Entity\User
                 property: email
 
     firewalls:
@@ -22,7 +18,7 @@ security:
             security: false
         main:
             lazy: true
-            provider: client_provider
+            provider: app_user_provider
             json_login:
                 check_path: /api/login
                 username_path: email

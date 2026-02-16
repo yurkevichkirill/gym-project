@@ -60,15 +60,15 @@ class AppFixtures extends Fixture
 //        $trainingType->setDescription("goooooood");
 //        $manager->persist($trainingType);
 
-//        $trainer = new Trainer();
-//        $trainer->setPassword('$2y$13$97ZqKWjFNChi3qFHeNhnJOnjNNFT4NK23pU50bPNn8ybtLEEUonGy');
-//        $trainer->setTrainingType($manager->getRepository(TrainingType::class)->find(3));
-//        $trainer->setPrice('100');
-//        $trainer->setFirstName("Maksim");
-//        $trainer->setLastName('Donchenko');
-//        $trainer->setPhone('+56457369932');
-//        $trainer->setEmail("antitrainer@gmail.com");
-//        $manager->persist($trainer);
+        $trainer = new Trainer();
+        $trainer->setPassword('$2y$13$5ugBzeOUeK8d5Fv/PhkBcerPq7HPIpbdEN8hZyq5ufn9ozQ4wAG0u');
+        $trainer->setTrainingType($manager->getRepository(TrainingType::class)->find(3));
+        $trainer->setPrice('10');
+        $trainer->setFirstName("Tima");
+        $trainer->setLastName('Coleda');
+        $trainer->setPhone('+0934796737');
+        $trainer->setEmail("timakoleda@gmail.com");
+        $manager->persist($trainer);
 
 //        $trainerWorkTime = new TrainerWorkTime();
 //        $trainerWorkTime->setTrainer($manager->getRepository(Trainer::class)->find(6));
@@ -132,9 +132,6 @@ class AppFixtures extends Fixture
 //        $membership->setClient($manager->getRepository(Client::class)->find(5));
 //        $membership->setPlan($manager->getRepository(MembershipPlan::class)->find(3));
 //        $manager->persist($membership);
-
-        $booking = $manager->getRepository(Booking::class)->find(50);
-        $manager->remove($booking);
 
         $manager->flush();
     }
