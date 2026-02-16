@@ -2,12 +2,18 @@
 
 namespace App\Controller\User;
 
+use App\Booking\Enum\BookingStatusEnum;
+use App\Response\OkResponse;
+use App\Trainer\DTO\GetTypesTrainers;
 use App\Trainer\Entity\Trainer;
+use App\Trainer\Mapper\TrainerMapperInterface;
+use App\Trainer\Query\TrainersQuery;
 use App\Trainer\Repository\TrainerRepository;
 use App\Trainer\Service\TrainerServiceInterface;
 use App\TrainingType\Repository\TrainingTypeRepository;
 use Nelmio\ApiDocBundle\Attribute\Model;
 use OpenApi\Attributes as OA;
+use Psr\Cache\InvalidArgumentException;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -20,47 +26,48 @@ use Throwable;
 
 final class TrainerController extends AbstractController
 {
+    /**
+     * @throws InvalidArgumentException
+     */
     #[Route('api/trainers', methods: ['GET'], format: 'json')]
-    #[OA\Parameter(
-        name: 'trainingTypeId',
-        in: 'query'
-    )]
-    #[OA\Parameter(
-        name: 'sort',
-        in: 'query'
-    )]
-    #[IsGranted('ROLE_CLIENT')]
-    public function getAll(Request $request, TrainerServiceInterface $trainerService): JsonResponse
+    #[OA\Parameter(name: 'trainingTypeId', in: 'query', example: 1)]
+    #[OA\Parameter(name: 'sort', in: 'query', example: 'createdAt:ASC')]
+    #[OA\Parameter(name: 'page', in: 'query', example: 1)]
+    #[OA\Parameter(name: 'limit', in: 'query', example: 20)]
+    #[OA\Tag(name: "Trainers")]
+    public function getAll(
+        Request $request,
+        TrainerMapperInterface $mapper,
+        TrainersQuery $handler,
+        TrainerRepository $trainerRepo,
+    ): OkResponse
     {
-        try {
-            $sortRaw = $request->query->get('sort', 'price:ASC');
-            $sort = [];
-            foreach (explode(',', $sortRaw) as $item) {
-                [$field, $order] = explode(':',  $item);
-                $sort[$field] = strtoupper($order);
-            }
-            $trainingTypeId = $request->query->get('trainingTypeId');
-            $trainers = $trainerService->findBy($sort, $trainingTypeId);
-        } catch (Throwable $e) {
-            return $this->json(['error' => $e->getMessage()], 400);
-        }
+        $sortRaw = $request->query->get('sort', 'createdAt:ASC');
+        $trainingTypeId = $request->query->get('trainingTypeId') ? (int) $request->query->get('trainingTypeId') : null;
+        $page = (int) $request->query->get('page', 1);
+        $limit = (int) $request->query->get('limit', 20);
 
-        if(empty($trainers)) {
-            return $this->json(['error' => 'No trainers found'], 404);
-        }
+        $queryDto = new GetTypesTrainers($trainingTypeId, $sortRaw, $page, $limit);
 
-        return $this->json($trainers, 200, [], [
-            AbstractNormalizer::CIRCULAR_REFERENCE_HANDLER => fn (object $obj) => $obj->getId(),
-            'groups' => ['public-trainer']
-        ]);
+        $trainers = $handler->handle($queryDto);
+
+        return new OkResponse(
+            array_map(fn ($trainer) => $mapper->map($trainer), $trainers),
+            $queryDto->page,
+            $queryDto->limit,
+            $trainerRepo->count(),
+            $queryDto->sort,
+            200,
+        );
     }
 
     #[Route('api/trainers/{id}', methods: ['GET'], format: 'json')]
-    #[IsGranted('ROLE_CLIENT')]
-    public function get(Trainer $trainer): JsonResponse
+    #[OA\Tag(name: "Trainers")]
+    public function get(Trainer $trainer, TrainerMapperInterface $mapper): OkResponse
     {
-        return $this->json($trainer, 200, [], [
-            'groups' => ['public-trainer']
-        ]);
+        return new OkResponse(
+            data: $mapper->map($trainer),
+            status: 200,
+        );
     }
 }

@@ -40,7 +40,7 @@ class Training
         return $this->id;
     }
 
-    public function getTrainerWorkTime(): TrainerWorkTime
+    public function getTrainerWorkTime(): ?TrainerWorkTime
     {
         return $this->trainerWorkTime;
     }

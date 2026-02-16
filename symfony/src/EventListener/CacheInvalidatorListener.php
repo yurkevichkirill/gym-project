@@ -13,12 +13,8 @@ use App\TrainerWorkTime\Entity\TrainerWorkTime;
 use App\Training\Entity\Training;
 use App\TrainingType\Entity\TrainingType;
 use Doctrine\ORM\Event\OnFlushEventArgs;
-use Psr\Cache\InvalidArgumentException;
-use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
 use Symfony\Contracts\Cache\TagAwareCacheInterface;
-use Doctrine\ORM\Events;
 
-#[AsEventListener(event: Events::onFlush, method: 'onFlush', priority: 10)]
 readonly class CacheInvalidatorListener
 {
     public function __construct(
@@ -38,12 +34,12 @@ readonly class CacheInvalidatorListener
         ) as $entity) {
             match(true) {
                 $entity instanceof Client => $this->gymCache->invalidateTags(['clients_list']),
-                $entity instanceof Booking => $this->gymCache->invalidateTags(['booking_list']),
+                $entity instanceof Booking => $this->gymCache->invalidateTags(['bookings_list']),
                 $entity instanceof MembershipPlan => $this->gymCache->invalidateTags(['membership_plans_list']),
                 $entity instanceof Payment => $this->gymCache->invalidateTags(['payments_list']),
                 $entity instanceof Trainer => $this->gymCache->invalidateTags(['trainers_list']),
                 $entity instanceof TrainerWorkTime => $this->gymCache->invalidateTags(['trainer_worktimes_list']),
-                $entity instanceof Training => $this->gymCache->invalidateTags(['trainings_list']),
+                $entity instanceof Training => $this->gymCache->invalidateTags(['trainings_list', 'trainer_worktimes_list']),
                 $entity instanceof TrainingType => $this->gymCache->invalidateTags(['training_types_list']),
 
                 default => null

@@ -161,15 +161,20 @@ class TrainerWorkTime
         $startPeriod = $startTrainerTime;
         foreach ($this->trainings as $dayTraining) {
             $available[] = [
-                "start" => $startPeriod,
-                "end" => $dayTraining->getStartTime()
+                "start" => $startPeriod->format("H:i:s"),
+                "end" => $dayTraining->getStartTime()->format("H:i:s"),
             ];
             $startPeriod = $dayTraining->getStartTime()->add(new DateInterval("PT" . $dayTraining->getDurationMinutes() . "M"));
         }
-        $available[] = [
-            "start" => $startPeriod,
-            "end" => $endTrainerTime
-        ];
+        if(isset($available[0]) && $available[0]['start'] === $available[0]['end']) {
+            array_shift($available);
+        }
+        if ($startPeriod !== $endTrainerTime) {
+            $available[] = [
+                "start" => $startPeriod->format("H:i:s"),
+                "end" => $endTrainerTime->format("H:i:s"),
+            ];
+        }
 
         return $available;
     }

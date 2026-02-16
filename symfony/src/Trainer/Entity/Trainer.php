@@ -30,7 +30,7 @@ class Trainer extends User
     /**
      * @var Collection<int, TrainerWorkTime>
      */
-    #[ORM\OneToMany(targetEntity: TrainerWorkTime::class, mappedBy: 'trainer')]
+    #[ORM\OneToMany(targetEntity: TrainerWorkTime::class, mappedBy: 'trainer', cascade: ['remove'])]
     private Collection $trainerWorkTime;
 
 
@@ -73,22 +73,22 @@ class Trainer extends User
         return $this->trainerWorkTime;
     }
 
-    public function addTrainerAvailability(TrainerWorkTime $trainerAvailability): static
+    public function addTrainerWorkTime(TrainerWorkTime $trainerWorkTime): static
     {
-        if (!$this->trainerWorkTime->contains($trainerAvailability)) {
-            $this->trainerWorkTime->add($trainerAvailability);
-            $trainerAvailability->setTrainer($this);
+        if (!$this->trainerWorkTime->contains($trainerWorkTime)) {
+            $this->trainerWorkTime->add($trainerWorkTime);
+            $trainerWorkTime->setTrainer($this);
         }
 
         return $this;
     }
 
-    public function removeTrainerAvailability(TrainerWorkTime $trainerAvailability): static
+    public function removeTrainerWorkTime(TrainerWorkTime $trainerWorkTime): static
     {
-        if ($this->trainerWorkTime->removeElement($trainerAvailability)) {
+        if ($this->trainerWorkTime->removeElement($trainerWorkTime)) {
             // set the owning side to null (unless already changed)
-            if ($trainerAvailability->getTrainer() === $this) {
-                $trainerAvailability->setTrainer(null);
+            if ($trainerWorkTime->getTrainer() === $this) {
+                $trainerWorkTime->setTrainer(null);
             }
         }
 

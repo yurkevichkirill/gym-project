@@ -11,7 +11,12 @@ use App\Booking\Query\ClientBookingsQuery;
 use App\Booking\Repository\BookingRepository;
 use App\Booking\Service\BookingManager;
 use App\Client\Entity\Client;
+use App\Client\Repository\ClientRepository;
 use App\Response\OkResponse;
+use DateMalformedStringException;
+use DateTimeImmutable;
+use Doctrine\ORM\Exception\ORMException;
+use Doctrine\ORM\OptimisticLockException;
 use Nelmio\ApiDocBundle\Attribute\Model;
 use OpenApi\Attributes as OA;
 use Psr\Cache\InvalidArgumentException;
@@ -27,9 +32,14 @@ final class BookingController extends AbstractController
 {
     /**
      * @throws InvalidArgumentException
+     * @throws DateMalformedStringException
      */
     #[Route('/api/me/bookings', methods: ['GET'], format: 'json')]
+    #[OA\Parameter(name: 'trainerId', in: 'query', example: 6)]
     #[OA\Parameter(name: 'status', in: 'query', example: 'scheduled')]
+    #[OA\Parameter(name: 'date', in: 'query', example: '10-03-2026')]
+    #[OA\Parameter(name: 'startTime', in: 'query', example: '15:00:00')]
+    #[OA\Parameter(name: 'durationMinutes', in: 'query', example: 90)]
     #[OA\Parameter(name: 'sort', in: 'query', example: 'bookedAt:ASC')]
     #[OA\Parameter(name: 'page', in: 'query', example: 1)]
     #[OA\Parameter(name: 'limit', in: 'query', example: 20)]
@@ -38,18 +48,23 @@ final class BookingController extends AbstractController
     public function getAll(
         BookingMapperInterface $mapper,
         #[CurrentUser] Client $client,
-        ClientBookingsQuery $handler,
-        Request $request,
-        BookingRepository $repo,
+        ClientBookingsQuery   $handler,
+        Request               $request,
+        BookingRepository     $bookingRepo,
+        ClientRepository      $clientRepo,
     ): OkResponse
     {
         $id = $client->getId();
         $sortRaw = $request->query->get('sort', 'bookedAt:ASC');
-        $status = BookingStatusEnum::tryFrom($request->query->get('status'));
+        $trainerId = $request->query->get('trainerId') ? (int) $request->query->get('trainerId') : null;
+        $status = $request->query->get('status');
+        $date = $request->query->get('date');
+        $durationMinutes = $request->query->get('durationMinutes') ? (int) $request->query->get('durationMinutes') : null;
+        $startTime = $request->query->get('startTime');
         $page = (int) $request->query->get('page', 1);
         $limit = (int) $request->query->get('limit', 20);
 
-        $queryDto = new GetClientBookings($id, $sortRaw, $status, $page, $limit);
+        $queryDto = new GetClientBookings($id, $sortRaw, $trainerId, $date, $durationMinutes, $startTime, $status, $page, $limit);
 
         $bookings =  $handler->handle($queryDto);
 
@@ -57,7 +72,7 @@ final class BookingController extends AbstractController
             array_map(fn($booking) => $mapper->map($booking), $bookings),
             $queryDto->page,
             $queryDto->limit,
-            $repo->count(['client' => $bookings[0]->getClient()]),
+            $bookingRepo->count(['client' => $clientRepo->find($id)]),
             $queryDto->sort,
             200
         );
@@ -75,21 +90,26 @@ final class BookingController extends AbstractController
         );
     }
 
+    /**
+     * @throws OptimisticLockException
+     * @throws DateMalformedStringException
+     * @throws ORMException
+     */
     #[Route('api/me/bookings', methods: ['POST'], format: 'json')]
     #[OA\RequestBody(content: new Model(type: BookingRequest::class))]
     #[OA\Tag(name: "Bookings")]
     #[IsGranted('ROLE_CLIENT')]
     public function create(
-        BookingMapperInterface $mapper,
-        #[CurrentUser] Client $client,
-        #[MapRequestPayload] BookingRequest $dto,
-        BookingManager $manager
+        BookingMapperInterface              $mapper,
+        #[CurrentUser] Client               $client,
+        #[MapRequestPayload] BookingRequest $requestDto,
+        BookingManager                      $manager
     ): OkResponse
     {
-        $dto = $mapper->map($manager->create($client, $dto));
+        $responseDto = $mapper->map($manager->book($client, $requestDto));
 
         return new OkResponse(
-            data: $dto,
+            data: $responseDto,
             status: 201,
         );
     }
