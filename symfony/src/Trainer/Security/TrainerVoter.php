@@ -2,28 +2,24 @@
 
 declare(strict_types=1);
 
-namespace App\Training\Security;
+namespace App\Trainer\Security;
 
-use App\Booking\Entity\Booking;
-use App\Client\Entity\Client;
 use App\Trainer\Entity\Trainer;
 use App\Training\Entity\Training;
 use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
 use Symfony\Component\Security\Core\Authorization\Voter\Vote;
-use Symfony\Component\Security\Core\Authorization\Voter\Voter;
 
-class TrainingVoter extends Voter
+class TrainerVoter
 {
-    const string VIEW = "TRAINING_VIEW";
-    const string REMOVE = "TRAINING_REMOVE";
-    const string EDIT = "TRAINING_EDIT";
+    const string REMOVE = "TRAINER_REMOVE";
+    const string EDIT = "TRAINER_EDIT";
     protected function supports(string $attribute, mixed $subject): bool
     {
-        if (!in_array($attribute, [self::VIEW, self::REMOVE, self::EDIT])) {
+        if (!in_array($attribute, [self::REMOVE, self::EDIT])) {
             return false;
         }
 
-        if (!$subject instanceof Training) {
+        if (!$subject instanceof Trainer) {
             return false;
         }
 
@@ -35,9 +31,9 @@ class TrainingVoter extends Voter
         $user = $token->getUser();
         if(!$user instanceof Trainer) return false;
 
-        /** @var Training $training **/
-        $training = $subject;
+        /** @var Trainer $trainer **/
+        $trainer = $subject;
 
-        return $training->getTrainerWorkTime()->getTrainer()->getId() === $user->getId();
+        return $trainer->getId() === $user->getId();
     }
 }
