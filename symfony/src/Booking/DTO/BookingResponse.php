@@ -16,7 +16,7 @@ readonly class BookingResponse
         public string $date,
         public int $durationMinutes,
         public string $startTime,
-        public ?BookingStatusEnum $status = null,
+        public BookingStatusEnum $status,
     )
     {}
 
@@ -25,7 +25,7 @@ readonly class BookingResponse
         return new self(
             id: $b->getId(),
             trainerId: $b->getTraining()->getTrainerWorkTime()->getTrainer()->getId(),
-            bookedAt: $b->getBookedAt()?->format(DATE_ATOM) ??'',
+            bookedAt: $b->getBookedAt()?->format(DATE_ATOM) ?? '',
             date: $b->getTraining()->getTrainerWorkTime()->getDate()->format("Y-m-d"),
             durationMinutes: $b->getTraining()->getDurationMinutes(),
             startTime: $b->getTraining()->getStartTime()->format("H:i:s"),

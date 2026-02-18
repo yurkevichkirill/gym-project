@@ -28,7 +28,11 @@ class Booking
     #[Assert\NotBlank]
     private ?Client $client = null;
 
-    #[ORM\OneToOne(cascade: ['persist', 'remove'])]
+    #[ORM\OneToOne(
+        targetEntity: Training::class,
+        inversedBy: 'booking',
+        cascade: ['persist', 'remove']
+    )]
     #[ORM\JoinColumn(nullable: false)]
     #[Groups(['public-booking', 'create-update-booking'])]
     #[Assert\NotBlank]
@@ -67,9 +71,17 @@ class Booking
         return $this->training;
     }
 
-    public function setTraining(Training $training): static
+    public function setTraining(?Training $training): static
     {
+        if ($this->training !== null && $this->training !== $training) {
+            $this->training->setBooking(null);
+        }
+
         $this->training = $training;
+
+        if ($training !== null && $this !== $training->getBooking()) {
+            $training->setBooking($this);
+        }
 
         return $this;
     }

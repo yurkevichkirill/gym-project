@@ -3,6 +3,7 @@
 namespace App\Training\Repository;
 
 use App\Client\Entity\Client;
+use App\Trainer\Entity\Trainer;
 use App\Training\Entity\Training;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\ORM\Exception\ORMException;
@@ -46,6 +47,17 @@ class TrainingRepository extends ServiceEntityRepository
     {
         $this->getEntityManager()->remove($training);
         $this->save();
+    }
+
+    public function countByTrainer(Trainer $trainer): int
+    {
+        return $this->createQueryBuilder('t')
+            ->select('COUNT(t.id)')
+            ->innerJoin('t.trainerWorkTime', 'wt')
+            ->where('wt.trainer = :trainer')
+            ->setParameter('trainer', $trainer)
+            ->getQuery()
+            ->getSingleScalarResult();
     }
 
     //    /**

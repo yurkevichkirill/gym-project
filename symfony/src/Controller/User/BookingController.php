@@ -43,7 +43,7 @@ final class BookingController extends AbstractController
     #[OA\Parameter(name: 'sort', in: 'query', example: 'bookedAt:ASC')]
     #[OA\Parameter(name: 'page', in: 'query', example: 1)]
     #[OA\Parameter(name: 'limit', in: 'query', example: 20)]
-    #[OA\Tag(name: "Bookings")]
+    #[OA\Tag(name: "Client: Bookings")]
     #[IsGranted('ROLE_CLIENT')]
     public function getAll(
         BookingMapperInterface $mapper,
@@ -79,7 +79,7 @@ final class BookingController extends AbstractController
     }
 
     #[Route('api/me/bookings/{id}', methods: ['GET'], format: 'json')]
-    #[OA\Tag(name: "Bookings")]
+    #[OA\Tag(name: "Client: Bookings")]
     public function get(BookingMapperInterface $mapper, Booking $booking): OkResponse
     {
         $this->denyAccessUnlessGranted('BOOKING_VIEW', $booking);
@@ -97,7 +97,7 @@ final class BookingController extends AbstractController
      */
     #[Route('api/me/bookings', methods: ['POST'], format: 'json')]
     #[OA\RequestBody(content: new Model(type: BookingRequest::class))]
-    #[OA\Tag(name: "Bookings")]
+    #[OA\Tag(name: "Client: Bookings")]
     #[IsGranted('ROLE_CLIENT')]
     public function create(
         BookingMapperInterface              $mapper,
@@ -115,7 +115,7 @@ final class BookingController extends AbstractController
     }
 
     #[Route('api/me/bookings/{id}', methods: ['DELETE'], format: 'json')]
-    #[OA\Tag(name: "Bookings")]
+    #[OA\Tag(name: "Client: Bookings")]
     public function remove(
         Booking $booking,
         BookingRepository $bookingRepo

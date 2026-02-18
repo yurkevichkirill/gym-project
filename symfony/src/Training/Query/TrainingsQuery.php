@@ -2,28 +2,27 @@
 
 declare(strict_types=1);
 
-namespace App\Booking\Query;
+namespace App\Training\Query;
 
-use App\Booking\DTO\GetClientBookings;
-use App\Booking\Repository\BookingRepository;
-use App\Client\Repository\ClientRepository;
+use App\Trainer\Repository\TrainerRepository;
+use App\Training\DTO\GetTrainings;
+use App\Training\Repository\TrainingRepository;
 use Psr\Cache\InvalidArgumentException;
 use Symfony\Component\Cache\CacheItem;
 use Symfony\Contracts\Cache\TagAwareCacheInterface;
 
-final readonly class ClientBookingsQuery
+class TrainingsQuery
 {
     private const array SORT_MAP = [
-        'trainingId' => 't.id',
+        'clientId' => 'c.id',
         'date' => 'w.date',
-        'startTime' => 't.startTime',
-        'durationMinutes' => 't.durationMinutes',
-        'trainerId' => 'trainer.id',
+        'status' => 'b.status',
+        'bookedAt' => 'b.bookedAt',
     ];
 
     public function __construct(
-        private BookingRepository      $bookingRepo,
-        private ClientRepository       $clientRepo,
+        private TrainingRepository     $trainingRepo,
+        private TrainerRepository      $trainerRepo,
         private TagAwareCacheInterface $gymCache
     )
     {}
@@ -31,25 +30,25 @@ final readonly class ClientBookingsQuery
     /**
      * @throws InvalidArgumentException
      */
-    public function handle(GetClientBookings $dto): array
+    public function handle(GetTrainings $dto): array
     {
         $cacheKey = $this->generateCacheKey($dto);
 
         return $this->gymCache->get($cacheKey, function (CacheItem $item) use ($dto): array
         {
-            $client = $this->clientRepo->find($dto->filter['clientId']);
+            $trainer = $this->trainerRepo->find($dto->filter['trainerId']);
 
-            $qb = $this->bookingRepo->createQueryBuilder('b')
-                ->addSelect('t', 'w', 'trainer')
-                ->innerJoin('b.training', 't')
+            $qb = $this->trainingRepo->createQueryBuilder('t')
+                ->addSelect('b', 'w', 'c')
+                ->innerJoin('t.booking', 'b')
                 ->innerJoin('t.trainerWorkTime', 'w')
-                ->innerJoin('w.trainer', 'trainer')
-                ->andWhere('b.client = :client')
-                ->setParameter('client', $client);
+                ->innerJoin('b.client', 'c')
+                ->andWhere('w.trainer = :trainer')
+                ->setParameter('trainer', $trainer);
 
-            if(isset($dto->filter['trainerId'])) {
-                $qb->andWhere('trainer.id = :trainerId')
-                    ->setParameter('trainerId', $dto->filter['trainerId']);
+            if(isset($dto->filter['clientId'])) {
+                $qb->andWhere('c.id = :clientId')
+                    ->setParameter('clientId', $dto->filter['clientId']);
             }
 
             if(isset($dto->filter['status'])) {
@@ -75,22 +74,22 @@ final readonly class ClientBookingsQuery
             $offset = ($dto->page - 1) * $dto->limit;
 
             foreach ($dto->sort as $alias => $order) {
-                $field = self::SORT_MAP[$alias] ?? "b.$alias";
+                $field = self::SORT_MAP[$alias] ?? "t.$alias";
                 $qb->addOrderBy("$field", $order);
             }
             $qb->setFirstResult($offset)
                 ->setMaxResults($dto->limit);
 
-            $item->tag(['bookings_list']);
+            $item->tag(['trainings_list']);
 
             return $qb->getQuery()->getResult();
         });
     }
 
-    private function generateCacheKey(GetClientBookings $query): string
+    private function generateCacheKey(GetTrainings $query): string
     {
         $params = [
-            'clientId' => $query->filter['clientId'],
+            'trainerId' => $query->filter['trainerId'],
             'sort' => $query->sort,
             'page' => $query->page,
             'limit' => $query->limit,
@@ -99,8 +98,8 @@ final readonly class ClientBookingsQuery
         if(isset($query->filter['status'])) {
             $params['status'] = $query->filter['status'];
         }
-        if(isset($query->filter['trainerId'])) {
-            $params['trainerId'] = $query->filter['trainerId'];
+        if(isset($query->filter['clientId'])) {
+            $params['clientId'] = $query->filter['clientId'];
         }
         if(isset($query->filter['date'])) {
             $params['date'] = $query->filter['date'];
@@ -112,6 +111,6 @@ final readonly class ClientBookingsQuery
             $params['durationMinutes'] = $query->filter['durationMinutes'];
         }
 
-        return 'bookings_' . md5(serialize($params));
+        return 'trainings_' . md5(serialize($params));
     }
 }

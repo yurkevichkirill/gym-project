@@ -3,7 +3,6 @@
 namespace App\TrainerWorkTime\Entity;
 
 use App\TrainerWorkTime\Repository\TrainerWorkTimeRepository;
-use App\Enum\DayOfWeekEnum;
 use App\Trainer\Entity\Trainer;
 use App\Training\Entity\Training;
 use DateInterval;
@@ -44,7 +43,6 @@ class TrainerWorkTime
     #[Groups(['public-trainer-worktime', 'create-update-trainer-worktime'])]
     #[Assert\NotBlank]
     #[Context([DateTimeNormalizer::FORMAT_KEY => "H:i"])]
-    #questions
     private ?DateTimeImmutable $startTime = null;
 
     #[ORM\Column(type: Types::TIME_IMMUTABLE)]
@@ -155,11 +153,11 @@ class TrainerWorkTime
         $trainingsArray = $this->trainings->getValues();
         $startTrainerTime = $this->startTime;
         $endTrainerTime = $this->endTime;
-        usort($trainingsArray, fn ($training1, $training2) => $training1->getStartTime() <=> $training2->getStartTime());
+        usort($trainingsArray, fn ($training1, $training2) => $training1->getStartTime()->format("H:i:s") <=> $training2->getStartTime()->format("H:i:s"));
 
         $available = [];
         $startPeriod = $startTrainerTime;
-        foreach ($this->trainings as $dayTraining) {
+        foreach ($trainingsArray as $dayTraining) {
             $available[] = [
                 "start" => $startPeriod->format("H:i:s"),
                 "end" => $dayTraining->getStartTime()->format("H:i:s"),
@@ -169,7 +167,7 @@ class TrainerWorkTime
         if(isset($available[0]) && $available[0]['start'] === $available[0]['end']) {
             array_shift($available);
         }
-        if ($startPeriod !== $endTrainerTime) {
+        if ($startPeriod->format('H:i:s') !== $endTrainerTime->format("H:i:s")) {
             $available[] = [
                 "start" => $startPeriod->format("H:i:s"),
                 "end" => $endTrainerTime->format("H:i:s"),

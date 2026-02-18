@@ -2,7 +2,8 @@
 
 namespace App\EventListener;
 
-use App\Exception\TimeAlreadyTakenException;
+use App\Exception\DateRescheduledException;
+use App\Exception\DateTimeAlreadyTakenException;
 use InvalidArgumentException;
 use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -21,8 +22,10 @@ final class ExceptionListener
         $statusCode = match (true) {
             $exception instanceof NotFoundHttpException => 404,
             $exception instanceof BadRequestHttpException => 400,
-            $exception instanceof InvalidArgumentException => 422,
-            $exception instanceof TimeAlreadyTakenException => 409,
+            $exception instanceof InvalidArgumentException ||
+            $exception instanceof DateRescheduledException => 422,
+            $exception instanceof DateTimeAlreadyTakenException => 409,
+
             default => 500
         };
 
