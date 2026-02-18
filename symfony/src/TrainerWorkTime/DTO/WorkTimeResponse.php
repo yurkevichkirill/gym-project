@@ -8,7 +8,7 @@ use App\Trainer\Entity\Trainer;
 use App\TrainerWorkTime\Entity\TrainerWorkTime;
 use DateTimeImmutable;
 
-class WorkTimeResponse
+final readonly class WorkTimeResponse
 {
     public function __construct(
         public int $id,

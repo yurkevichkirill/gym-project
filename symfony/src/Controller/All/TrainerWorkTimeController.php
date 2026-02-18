@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Controller\User;
+namespace App\Controller\All;
 
 use App\Response\OkResponse;
 use App\Trainer\Entity\Trainer;
@@ -10,6 +10,7 @@ use App\TrainerWorkTime\Entity\TrainerWorkTime;
 use App\TrainerWorkTime\Mapper\WorkTimeMapperInterface;
 use App\TrainerWorkTime\Query\WorkTimeQuery;
 use App\TrainerWorkTime\Repository\TrainerWorkTimeRepository;
+use DateMalformedStringException;
 use DateTimeImmutable;
 use OpenApi\Attributes as OA;
 use Psr\Cache\InvalidArgumentException;
@@ -20,7 +21,7 @@ use Symfony\Component\Routing\Attribute\Route;
 final class TrainerWorkTimeController extends AbstractController
 {
     /**
-     * @throws \DateMalformedStringException
+     * @throws DateMalformedStringException
      * @throws InvalidArgumentException
      */
     #[Route('api/trainers/{id}/worktime', methods: ['GET'], format: 'json')]
@@ -28,7 +29,7 @@ final class TrainerWorkTimeController extends AbstractController
     #[OA\Parameter(name: 'sort', in: 'query', example: 'date:ASC')]
     #[OA\Parameter(name: 'page', in: 'query', example: 1)]
     #[OA\Parameter(name: 'limit', in: 'query', example: 20)]
-    #[OA\Tag(name: "WorkTime")]
+    #[OA\Tag(name: "All: WorkTime")]
     public function getAll(
         Request $request,
         WorkTimeMapperInterface $mapper,
@@ -59,7 +60,7 @@ final class TrainerWorkTimeController extends AbstractController
     }
 
     #[Route('api/worktime/{id}', methods: ['GET'], format: 'json')]
-    #[OA\Tag(name: "WorkTime")]
+    #[OA\Tag(name: "All: WorkTime")]
     public function get(
         TrainerWorkTime $worktime,
         WorkTimeMapperInterface $mapper,

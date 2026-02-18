@@ -57,23 +57,23 @@ final class TrainingController extends AbstractController
         ]);
     }
 
-    #[Route('api/trainings/{id}', methods: ['GET'], format: 'json')]
-    #[IsGranted('ROLE_ADMIN')]
-    public function get(
-        TrainingRepository $trainingRepo,
-        int $id
-    ): JsonResponse
-    {
-        $training = $trainingRepo->find($id);
-        if(empty($training)) {
-            return $this->json(['error' => 'Training not found'], 404);
-        }
-
-        return $this->json($training, 200, [], [
-            'datetime_format' => 'H:i',
-            'groups' => ['public-training']
-        ]);
-    }
+//    #[Route('api/trainings/{id}', methods: ['GET'], format: 'json')]
+//    #[IsGranted('ROLE_ADMIN')]
+//    public function get(
+//        TrainingRepository $trainingRepo,
+//        int $id
+//    ): JsonResponse
+//    {
+//        $training = $trainingRepo->find($id);
+//        if(empty($training)) {
+//            return $this->json(['error' => 'Training not found'], 404);
+//        }
+//
+//        return $this->json($training, 200, [], [
+//            'datetime_format' => 'H:i',
+//            'groups' => ['public-training']
+//        ]);
+//    }
 
     #[Route('api/trainers/{id}/trainings', methods: ['POST'], format: 'json')]
     #[OA\RequestBody(content: new Model(type: Training::class, groups: ['create-update-training']))]
@@ -122,65 +122,65 @@ final class TrainingController extends AbstractController
         ]);
     }
 
-    #[Route('api/trainings/{id}', methods: ['PUT', 'PATCH'], format: 'json')]
-    #[OA\RequestBody(content: new Model(type: Training::class, groups: ['create-update-training']))]
-    #[IsGranted('ROLE_ADMIN')]
-    public function update(
-        int $id,
-        TrainingRepository $trainingRepo,
-        Request $request,
-        SerializerInterface $serializer,
-        ValidatorInterface $validator
-    ): JsonResponse
-    {
-        $training = $trainingRepo->find($id);
-        if(empty($training)) {
-            return $this->json(['error' => 'Training not found'], 404);
-        }
+//    #[Route('api/trainings/{id}', methods: ['PUT', 'PATCH'], format: 'json')]
+//    #[OA\RequestBody(content: new Model(type: Training::class, groups: ['create-update-training']))]
+//    #[IsGranted('ROLE_ADMIN')]
+//    public function update(
+//        int $id,
+//        TrainingRepository $trainingRepo,
+//        Request $request,
+//        SerializerInterface $serializer,
+//        ValidatorInterface $validator
+//    ): JsonResponse
+//    {
+//        $training = $trainingRepo->find($id);
+//        if(empty($training)) {
+//            return $this->json(['error' => 'Training not found'], 404);
+//        }
+//
+//        try {
+//            $serializer->deserialize($request->getContent(), Training::class, 'json', [
+//                AbstractNormalizer::OBJECT_TO_POPULATE => $training
+//            ]);
+//            $trainingRepo->save();
+//        } catch(Throwable $e) {
+//            return $this->json(['error' => $e->getMessage()], 400);
+//        }
+//
+//        $errors = $validator->validate($training);
+//        if (count($errors) > 0) {
+//            $errorMessages = [];
+//            foreach ($errors as $error) {
+//                $errorMessages[$error->getPropertyPath()][] = $error->getMessage();
+//            }
+//
+//            return $this->json(['errors' => $errorMessages], 422);
+//        }
+//
+//        return $this->json($training, 200, [], [
+//            'datetime_format' => 'H:i',
+//            'groups' => ['public-training']
+//        ]);
+//    }
 
-        try {
-            $serializer->deserialize($request->getContent(), Training::class, 'json', [
-                AbstractNormalizer::OBJECT_TO_POPULATE => $training
-            ]);
-            $trainingRepo->save();
-        } catch(Throwable $e) {
-            return $this->json(['error' => $e->getMessage()], 400);
-        }
-
-        $errors = $validator->validate($training);
-        if (count($errors) > 0) {
-            $errorMessages = [];
-            foreach ($errors as $error) {
-                $errorMessages[$error->getPropertyPath()][] = $error->getMessage();
-            }
-
-            return $this->json(['errors' => $errorMessages], 422);
-        }
-
-        return $this->json($training, 200, [], [
-            'datetime_format' => 'H:i',
-            'groups' => ['public-training']
-        ]);
-    }
-
-    #[Route('api/trainings/{id}', methods: ['DELETE'], format: 'json')]
-    #[IsGranted('ROLE_ADMIN')]
-    public function delete(
-        int $id,
-        TrainingRepository $trainingRepo,
-    ): JsonResponse
-    {
-        $training = $trainingRepo->find($id);
-        if(empty($training)) {
-            return $this->json(['error' => 'Training not found'], 404);
-        }
-
-        try {
-            $trainingRepo->remove($training);
-        } catch(Throwable $e) {
-            return $this->json(['error' => $e->getMessage()], 400);
-        }
-
-        return $this->json(null, 204);
-    }
+//    #[Route('api/trainings/{id}', methods: ['DELETE'], format: 'json')]
+//    #[IsGranted('ROLE_ADMIN')]
+//    public function delete(
+//        int $id,
+//        TrainingRepository $trainingRepo,
+//    ): JsonResponse
+//    {
+//        $training = $trainingRepo->find($id);
+//        if(empty($training)) {
+//            return $this->json(['error' => 'Training not found'], 404);
+//        }
+//
+//        try {
+//            $trainingRepo->remove($training);
+//        } catch(Throwable $e) {
+//            return $this->json(['error' => $e->getMessage()], 400);
+//        }
+//
+//        return $this->json(null, 204);
+//    }
 }

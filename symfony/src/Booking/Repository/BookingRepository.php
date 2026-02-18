@@ -3,6 +3,8 @@
 namespace App\Booking\Repository;
 
 use App\Booking\Entity\Booking;
+use App\Client\Entity\Client;
+use DateTimeImmutable;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
@@ -33,6 +35,16 @@ class BookingRepository extends ServiceEntityRepository
         $this->save();
     }
 
+    public function getClientBookingsByDate(Client $client, DateTimeImmutable $date): array
+    {
+        return  $this->createQueryBuilder('b')
+            ->innerJoin("b.training", "t")
+            ->innerJoin("t.trainerWorkTime", "wt")
+            ->where("wt.date = :date")
+            ->setParameter("date", $date)
+            ->getQuery()
+            ->getResult();
+    }
 
     //    /**
     //     * @return Booking[] Returns an array of Booking objects

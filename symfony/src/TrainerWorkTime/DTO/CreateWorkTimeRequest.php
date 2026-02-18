@@ -2,21 +2,22 @@
 
 declare(strict_types=1);
 
-namespace App\Booking\DTO;
+namespace App\TrainerWorkTime\DTO;
 
 use Symfony\Component\Validator\Constraints as Assert;
 
-final readonly class BookingRequest
+final readonly class CreateWorkTimeRequest
 {
     public function __construct(
         #[Assert\NotBlank]
-        #[Assert\Positive]
-        public int $durationMinutes,
         #[Assert\Time]
         public string $startTime,
         #[Assert\NotBlank]
-        #[Assert\Positive]
-        public int $worktimeId,
+        #[Assert\Time]
+        public string $endTime,
+        #[Assert\NotBlank]
+        #[Assert\Date]
+        public string $date,
     )
     {}
 }

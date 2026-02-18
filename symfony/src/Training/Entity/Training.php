@@ -2,6 +2,7 @@
 
 namespace App\Training\Entity;
 
+use App\Booking\Entity\Booking;
 use App\TrainerWorkTime\Entity\TrainerWorkTime;
 use App\Training\Repository\TrainingRepository;
 use Doctrine\DBAL\Types\Types;
@@ -34,6 +35,29 @@ class Training
     #[Assert\Positive]
     #[Assert\GreaterThanOrEqual(60)]
     private ?int $durationMinutes = null;
+
+    #[ORM\OneToOne(targetEntity: Booking::class, mappedBy: 'training', cascade: ['persist', 'remove'])]
+    private ?Booking $booking = null;
+
+    public function getBooking(): ?Booking
+    {
+        return $this->booking;
+    }
+
+    public function setBooking(?Booking $booking): static
+    {
+        if ($this->booking !== null && $this->booking !== $booking) {
+            $this->booking->setTraining(null);
+        }
+
+        $this->booking = $booking;
+
+        if($booking !== null && $this !== $booking->getTraining()) {
+            $booking->setTraining($this);
+        }
+
+        return $this;
+    }
 
     public function getId(): ?int
     {
