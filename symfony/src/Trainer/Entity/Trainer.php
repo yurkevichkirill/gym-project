@@ -2,6 +2,7 @@
 
 namespace App\Trainer\Entity;
 
+use App\Payment\Entity\Payment;
 use App\Trainer\Repository\TrainerRepository;
 use App\TrainerWorkTime\Entity\TrainerWorkTime;
 use App\TrainingType\Entity\TrainingType;
@@ -10,34 +11,31 @@ use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
-use Symfony\Component\Serializer\Attribute\Groups;
-use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: TrainerRepository::class)]
 class Trainer extends User
 {
     #[ORM\ManyToOne(targetEntity: TrainingType::class, inversedBy: 'trainers')]
     #[ORM\JoinColumn(name: 'training_type_id', referencedColumnName: 'id', nullable: true, onDelete: 'SET NULL')]
-    #[Groups(['public-trainer', 'create-update-trainer'])]
     private ?TrainingType $trainingType = null;
 
     #[ORM\Column(type: Types::DECIMAL, precision: 10, scale: 2)]
-    #[Groups(['public-trainer', 'create-update-trainer'])]
-    #[Assert\NotBlank]
-    #[Assert\Positive]
     private ?string $price = null;
 
     /**
      * @var Collection<int, TrainerWorkTime>
      */
-    #[ORM\OneToMany(targetEntity: TrainerWorkTime::class, mappedBy: 'trainer', cascade: ['remove'])]
+    #[ORM\OneToMany(targetEntity: TrainerWorkTime::class, mappedBy: 'trainer', orphanRemoval: true)]
     private Collection $trainerWorkTime;
+
+    #[ORM\OneToMany(targetEntity: Payment::class, mappedBy: 'trainer')]
+    private Collection $payments;
 
 
     public function __construct()
     {
-        parent::__construct();
         $this->trainerWorkTime = new ArrayCollection();
+        $this->payments = new ArrayCollection();
         $this->setRoles(['ROLE_TRAINER']);
     }
 
@@ -86,9 +84,34 @@ class Trainer extends User
     public function removeTrainerWorkTime(TrainerWorkTime $trainerWorkTime): static
     {
         if ($this->trainerWorkTime->removeElement($trainerWorkTime)) {
-            // set the owning side to null (unless already changed)
             if ($trainerWorkTime->getTrainer() === $this) {
                 $trainerWorkTime->setTrainer(null);
+            }
+        }
+
+        return $this;
+    }
+
+    public function getPayments(): Collection
+    {
+        return $this->payments;
+    }
+
+    public function addPayment(Payment $payment): self
+    {
+        if (!$this->payments->contains($payment)) {
+            $this->payments->add($payment);
+            $payment->setTrainer($this);
+        }
+
+        return $this;
+    }
+
+    public function removePayment(Payment $payment): self
+    {
+        if ($this->payments->removeElement($payment)) {
+            if ($payment->getTrainer() === $this) {
+                $payment->setTrainer(null);
             }
         }
 

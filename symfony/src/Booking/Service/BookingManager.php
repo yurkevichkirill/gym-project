@@ -40,6 +40,7 @@ final readonly class BookingManager
         $worktime = $this->worktimeRepo->find($dto->worktimeId);
 
         if ($this->worktimeManager->isTimeAvailable($worktime, $dto->startTime, $dto->durationMinutes)) {
+
             $training = new Training();
             $training->setDurationMinutes($dto->durationMinutes);
             $training->setStartTime(new DateTimeImmutable($dto->startTime));

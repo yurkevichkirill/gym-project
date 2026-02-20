@@ -17,8 +17,19 @@ services:
     # this creates a service per class whose id is the fully-qualified class name
     App\:
         resource: '../src/'
+
     App\EventListener\CacheInvalidatorListener:
         tags:
             -
                 name: 'doctrine.event_listener'
                 event: 'onFlush'
+
+    Gedmo\Mapping\Driver\AttributeReader: ~
+
+    Gedmo\SoftDeleteable\SoftDeleteableListener:
+        class: Gedmo\SoftDeleteable\SoftDeleteableListener
+        tags:
+            - { name: doctrine.event_listener, event: 'onFlush' }
+            - { name: doctrine.event_listener, event: 'loadClassMetadata' }
+        calls:
+            - [ setAnnotationReader, ['@Gedmo\Mapping\Driver\AttributeReader'] ]

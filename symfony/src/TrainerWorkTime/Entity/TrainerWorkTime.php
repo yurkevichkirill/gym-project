@@ -51,7 +51,7 @@ class TrainerWorkTime
     #[Context([DateTimeNormalizer::FORMAT_KEY => "H:i"])]
     private ?DateTimeImmutable $endTime = null;
 
-    #[ORM\OneToMany(targetEntity: Training::class, mappedBy: 'trainerWorkTime')]
+    #[ORM\OneToMany(targetEntity: Training::class, mappedBy: 'trainerWorkTime', cascade: ['persist', 'remove'])]
     private Collection $trainings;
 
     public function __construct()

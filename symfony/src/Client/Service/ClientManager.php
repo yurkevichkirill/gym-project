@@ -6,12 +6,16 @@ namespace App\Client\Service;
 
 use App\Booking\Repository\BookingRepository;
 use App\Client\DTO\CreateClientRequest;
+use App\Client\DTO\UpdateClientRequest;
 use App\Client\Entity\Client;
 use App\Client\Repository\ClientRepository;
+use App\Membership\Repository\MembershipRepository;
 use DateInterval;
 use DateMalformedIntervalStringException;
 use DateMalformedStringException;
 use DateTimeImmutable;
+use Doctrine\ORM\Exception\ORMException;
+use Doctrine\ORM\OptimisticLockException;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
 final readonly class ClientManager
@@ -19,6 +23,7 @@ final readonly class ClientManager
     public function __construct(
         private ClientRepository $clientRepo,
         private BookingRepository $bookingRepo,
+        private MembershipRepository $membershipRepo,
     )
     {}
 
@@ -41,6 +46,32 @@ final readonly class ClientManager
         $this->clientRepo->create($client);
 
         return $client;
+    }
+
+    public function update(Client $client, UpdateClientRequest $requestDto): Client
+    {
+        if ($requestDto->phone) {
+            $client->setPhone($requestDto->phone);
+        }
+
+        $this->clientRepo->save();
+
+        return $client;
+    }
+
+    /**
+     * @throws OptimisticLockException
+     * @throws ORMException
+     */
+    public function softDelete(Client $client): void {
+        foreach ($client->getMemberships() as $membership) {
+            $this->membershipRepo->remove($membership);
+        }
+        foreach ($client->getBookings() as $booking) {
+            $this->bookingRepo->remove($booking);
+        }
+
+        $this->clientRepo->remove($client);
     }
 
     /**

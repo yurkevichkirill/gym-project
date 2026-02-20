@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Controller\User;
+namespace App\Controller\Client;
 
 use App\Client\Entity\Client;
 use App\Client\Repository\ClientRepository;
@@ -23,7 +23,7 @@ use Throwable;
 
 final class MembershipController extends AbstractController
 {
-    #[Route('/api/me/membership', methods: ['GET'], format: 'json')]
+    #[Route('/api/me/memberships', methods: ['GET'], format: 'json')]
     #[IsGranted('ROLE_CLIENT')]
     public function get(#[CurrentUser] ?Client $client, MembershipRepository $membershipRepo): JsonResponse
     {

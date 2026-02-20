@@ -6,16 +6,17 @@ use App\Response\OkResponse;
 use App\Trainer\DTO\UpdateTrainerRequest;
 use App\Trainer\Entity\Trainer;
 use App\Trainer\Mapper\TrainerMapperInterface;
-use App\Trainer\Repository\TrainerRepository;
 use App\Trainer\Service\TrainerManager;
 use Nelmio\ApiDocBundle\Attribute\Model;
 use OpenApi\Attributes as OA;
+use Psr\Container\ContainerExceptionInterface;
+use Psr\Container\NotFoundExceptionInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
-use Throwable;
+use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 final class TrainerController extends AbstractController
 {
@@ -52,16 +53,21 @@ final class TrainerController extends AbstractController
         );
     }
 
-//    #[Route('api/trainer/me}', methods: ['DELETE'], format: 'json')]
-//    #[OA\Tag(name: "Trainer: Trainer")]
-//    public function remove(Trainer $trainer, TrainerRepository $repo): JsonResponse
-//    {
-//        try {
-//            $repo->remove($trainer);
-//        } catch(Throwable $e) {
-//            return $this->json(['error' => $e->getMessage()], 400);
-//        }
-//
-//        return $this->json(null, 204);
-//    }
+    /**
+     * @throws ContainerExceptionInterface
+     * @throws NotFoundExceptionInterface
+     */
+    #[Route('api/trainer/me', methods: ['DELETE'], format: 'json')]
+    #[IsGranted('ROLE_TRAINER')]
+    #[OA\Tag(name: "Trainer: Trainer")]
+    public function remove(
+        #[CurrentUser] Trainer $trainer,
+        TrainerManager $manager,
+    ): Response
+    {
+        $manager->softDelete($trainer);
+        $this->container->get('security.token_storage')->setToken(null);
+
+        return new Response(status: Response::HTTP_NO_CONTENT);
+    }
 }

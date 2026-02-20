@@ -84,15 +84,17 @@ class WorkTimeManager
      * @throws DateMalformedIntervalStringException
      * @throws DateMalformedStringException
      */
-    public function isTimeAvailable(TrainerWorkTime $worktime, string $startTime, int $durationMinutes, string $oldStartTime, int $oldDurationMinutes): bool
+    public function isTimeAvailable(TrainerWorkTime $worktime, string $startTime, int $durationMinutes, ?string $oldStartTime = null, ?int $oldDurationMinutes = null): bool
     {
         $endTime = new DateTimeImmutable($startTime)
             ->add(new DateInterval('PT' . $durationMinutes . 'M'))
             ->format('H:i:s');
         $freeSlots = $worktime->getFreeSlots();
-        $freeSlotsExceptCurrent = $this->getFreeSlotsExcept($freeSlots, $oldStartTime, $oldDurationMinutes);
+        if ($oldDurationMinutes && $oldStartTime) {
+            $freeSlots = $this->getFreeSlotsExcept($freeSlots, $oldStartTime, $oldDurationMinutes);
+        }
 
-        return array_any($freeSlotsExceptCurrent, fn($slot) => $startTime >= $slot['start'] && $endTime <= $slot['end']);
+        return array_any($freeSlots, fn($slot) => $startTime >= $slot['start'] && $endTime <= $slot['end']);
     }
 
     /**

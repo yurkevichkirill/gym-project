@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Controller\User;
+namespace App\Controller\Client;
 
 use App\Booking\DTO\BookingRequest;
 use App\Booking\DTO\GetClientBookings;
@@ -64,9 +64,19 @@ final class BookingController extends AbstractController
         $page = (int) $request->query->get('page', 1);
         $limit = (int) $request->query->get('limit', 20);
 
-        $queryDto = new GetClientBookings($id, $sortRaw, $trainerId, $date, $durationMinutes, $startTime, $status, $page, $limit);
+        $queryDto = new GetClientBookings(
+            $id,
+            $sortRaw,
+            $trainerId,
+            $date,
+            $durationMinutes,
+            $startTime,
+            $status,
+            $page,
+            $limit
+        );
 
-        $bookings =  $handler->handle($queryDto);
+        $bookings = $handler->handle($queryDto);
 
         return new OkResponse(
             array_map(fn($booking) => $mapper->map($booking), $bookings),
