@@ -11,12 +11,12 @@ use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
-use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
-use Symfony\Component\Security\Core\User\UserInterface;
 use Symfony\Component\Serializer\Attribute\Groups;
 use Symfony\Component\Validator\Constraints as Assert;
+use Gedmo\Mapping\Annotation as Gedmo;
 
 #[ORM\Entity(repositoryClass: ClientRepository::class)]
+#[Gedmo\SoftDeleteable]
 class Client extends User
 {
     #[ORM\Column]
@@ -31,13 +31,13 @@ class Client extends User
     /**
      * @var Collection<int, Booking>
      */
-    #[ORM\OneToMany(targetEntity: Booking::class, mappedBy: 'client', cascade: ['remove'])]
+    #[ORM\OneToMany(targetEntity: Booking::class, mappedBy: 'client', orphanRemoval: true)]
     private Collection $bookings;
 
     /**
      * @var Collection<int, Membership>
      */
-    #[ORM\OneToMany(targetEntity: Membership::class, mappedBy: 'client', cascade: ['remove'])]
+    #[ORM\OneToMany(targetEntity: Membership::class, mappedBy: 'client', orphanRemoval: true)]
     private Collection $memberships;
 
     /**
@@ -48,7 +48,6 @@ class Client extends User
 
     public function __construct()
     {
-        parent::__construct();
         $this->bookings = new ArrayCollection();
         $this->memberships = new ArrayCollection();
         $this->payments = new ArrayCollection();

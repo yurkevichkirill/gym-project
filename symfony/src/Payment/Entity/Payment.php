@@ -6,6 +6,7 @@ use App\Client\Entity\Client;
 use App\Payment\Enum\PaymentCategoryEnum;
 use App\Payment\Enum\PaymentStatusEnum;
 use App\Payment\Repository\PaymentRepository;
+use App\Trainer\Entity\Trainer;
 use DateTimeImmutable;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
@@ -19,32 +20,38 @@ class Payment
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups('public-payment')]
     private ?int $id = null;
 
     #[ORM\ManyToOne(inversedBy: 'payments')]
     #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
-    #[Groups(['public-payment', 'create-payment'])]
-    #[Assert\NotBlank]
     private ?Client $client = null;
 
+    #[ORM\Column(length: 200)]
+    private ?string $clientFullName = null;
+
+    #[ORM\Column(length: 180)]
+    private ?string $clientEmail = null;
+
+    #[ORM\Column(length: 20)]
+    private ?string $clientPhone = null;
+
+    #[ORM\ManyToOne(inversedBy: 'payments')]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
+    private ?Trainer $trainer = null;
+
+    #[ORM\Column(length: 200, nullable: true)]
+    private ?string $trainerFullName = null;
+
     #[ORM\Column(type: Types::DECIMAL, precision: 10, scale: 2)]
-    #[Groups(['public-payment', 'create-payment', 'update-payment'])]
-    #[Assert\NotBlank]
-    #[Assert\GreaterThanOrEqual(0)]
     private ?string $amount = null;
 
     #[ORM\Column(type: Types::ENUM)]
-    #[Groups(['public-payment', 'create-payment'])]
-    #[Assert\NotBlank]
     private ?PaymentCategoryEnum $category = null;
 
     #[ORM\Column(type: Types::ENUM, options: ['default' => PaymentStatusEnum::PENDING])]
-    #[Groups(['public-payment', 'update-payment'])]
     private ?PaymentStatusEnum $status = null;
 
     #[ORM\Column(nullable: true, options: ["default" => "CURRENT_TIMESTAMP"])]
-    #[Groups('public-payment')]
     private ?\DateTimeImmutable $paidAt = null;
 
     public function getId(): ?int
@@ -60,6 +67,21 @@ class Payment
     public function setClient(?Client $client): static
     {
         $this->client = $client;
+        if (!$client) {
+            $this->clientEmail = $client->getEmail();
+            $this->clientPhone = $client->getPhone();
+            $this->clientFullName = $client->getFirstName() . " " . $client->getLastName();
+        }
+
+        return $this;
+    }
+
+    public function setTrainer(?Trainer $trainer): static
+    {
+        $this->trainer = $trainer;
+        if (!$trainer) {
+            $this->trainerFullName = $trainer->getFirstName() . " " . $trainer->getLastName();
+        }
 
         return $this;
     }
@@ -119,5 +141,30 @@ class Payment
     public function initializeDefaults(): void
     {
         $this->status = PaymentStatusEnum::PENDING;
+    }
+
+    public function getClientFullName(): ?string
+    {
+        return $this->clientFullName;
+    }
+
+    public function getClientEmail(): ?string
+    {
+        return $this->clientEmail;
+    }
+
+    public function getClientPhone(): ?string
+    {
+        return $this->clientPhone;
+    }
+
+    public function getTrainer(): ?Trainer
+    {
+        return $this->trainer;
+    }
+
+    public function getTrainerFullName(): ?string
+    {
+        return $this->trainerFullName;
     }
 }

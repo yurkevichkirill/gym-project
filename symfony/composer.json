@@ -10,11 +10,13 @@
         "doctrine/doctrine-bundle": "^3.2.2",
         "doctrine/doctrine-migrations-bundle": "^4.0",
         "doctrine/orm": "^3.6.2",
+        "gedmo/doctrine-extensions": "^3.22",
         "lexik/jwt-authentication-bundle": "^3.2",
         "nelmio/api-doc-bundle": "^5.9.2",
         "phpdocumentor/reflection-docblock": "^5.6.6",
         "phpstan/phpdoc-parser": "^2.3.1",
         "predis/predis": "^3.3",
+        "stof/doctrine-extensions-bundle": "^1.15",
         "symfony/asset": "8.0.*",
         "symfony/asset-mapper": "8.0.*",
         "symfony/cache": "8.0.*",
@@ -98,7 +100,7 @@
     },
     "extra": {
         "symfony": {
-            "allow-contrib": false,
+            "allow-contrib": true,
             "require": "8.0.*",
             "docker": true
         }

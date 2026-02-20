@@ -19,6 +19,8 @@ use App\TrainerWorkTime\Repository\TrainerWorkTimeRepository;
 use App\TrainerWorkTime\Service\WorkTimeManager;
 use DateMalformedStringException;
 use DateTimeImmutable;
+use Doctrine\ORM\Exception\ORMException;
+use Doctrine\ORM\OptimisticLockException;
 use Nelmio\ApiDocBundle\Attribute\Model;
 use Psr\Cache\InvalidArgumentException;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -124,15 +126,20 @@ final class TrainerWorkTimeController extends AbstractController
         );
     }
 
+    /**
+     * @throws OptimisticLockException
+     * @throws ORMException
+     */
     #[Route('api/worktime/{id}', methods: ['DELETE'], format: 'json')]
+    #[OA\Tag(name: "Trainer: WorkTime")]
     public function remove(
         TrainerWorkTime $worktime,
         TrainerWorkTimeRepository $worktimeRepo
     ): Response
     {
-//        $this->denyAccessUnlessGranted("WORKTIME_REMOVE", $worktime);
-//        $worktimeRepo->remove($worktime);
+        $this->denyAccessUnlessGranted("WORKTIME_REMOVE", $worktime);
+        $worktimeRepo->remove($worktime);
 
-        return new Response(status: 204);
+        return new Response(status: Response::HTTP_NO_CONTENT);
     }
 }
