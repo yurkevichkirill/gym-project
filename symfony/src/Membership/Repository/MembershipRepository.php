@@ -4,6 +4,8 @@ namespace App\Membership\Repository;
 
 use App\Client\Entity\Client;
 use App\Membership\Entity\Membership;
+use App\Membership\Enum\MembershipStatusEnum;
+use DateTimeImmutable;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\ORM\Exception\ORMException;
 use Doctrine\ORM\OptimisticLockException;
@@ -46,6 +48,17 @@ class MembershipRepository extends ServiceEntityRepository
     {
         $this->getEntityManager()->remove($membership);
         $this->save();
+    }
+
+    public function findExpired(DateTimeImmutable $curDate): array
+    {
+        return $this->createQueryBuilder('m')
+            ->where("m.status = :active")
+            ->andWhere("m.endDate <= :curDate")
+            ->setParameter("active", MembershipStatusEnum::ACTIVE)
+            ->setParameter("curDate", $curDate)
+            ->getQuery()
+            ->getResult();
     }
 
     //    /**
