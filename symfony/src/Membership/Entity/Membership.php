@@ -21,40 +21,34 @@ class Membership
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups('public-membership')]
     private ?int $id = null;
 
     #[ORM\ManyToOne(inversedBy: 'memberships')]
     #[ORM\JoinColumn(nullable: false)]
-    #[Assert\NotBlank]
-    #[Groups(['public-membership'])]
     private ?Client $client = null;
 
     #[ORM\ManyToOne(inversedBy: 'memberships')]
     #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
-    #[Assert\NotBlank]
-    #[Groups(['public-membership', 'create-membership'])]
     private ?MembershipPlan $plan = null;
 
     #[ORM\Column(type: Types::DATE_IMMUTABLE)]
-    #[Groups(['public-membership', 'update-membership'])]
-    private ?\DateTimeImmutable $startDate = null;
+    private ?DateTimeImmutable $startDate = null;
 
     #[ORM\Column(type: Types::DATE_IMMUTABLE)]
-    #[Groups(['public-membership', 'update-membership'])]
-    private ?\DateTimeImmutable $endDate = null;
+    private ?DateTimeImmutable $endDate = null;
 
     #[ORM\Column(type: Types::ENUM, options: ['default' => MembershipStatusEnum::ACTIVE])]
-    #[Groups(['public-membership', 'update-membership'])]
     private ?MembershipStatusEnum $status = null;
 
     #[ORM\Column(options: ['default' => 0])]
-    #[Groups(['public-membership', 'update-membership'])]
     #[Assert\GreaterThanOrEqual(0)]
     private ?int $visits = null;
 
     #[ORM\Column(options: ["default" => "CURRENT_TIMESTAMP"])]
-    private ?\DateTimeImmutable $createdAt = null;
+    private ?DateTimeImmutable $createdAt = null;
+
+    #[ORM\Column(nullable: true)]
+    private ?DateTimeImmutable $frozenAt = null;
 
     public function getId(): ?int
     {
@@ -97,7 +91,7 @@ class Membership
         return $this;
     }
 
-    public function getStartDate(): ?\DateTimeImmutable
+    public function getStartDate(): ?DateTimeImmutable
     {
         return $this->startDate;
     }
@@ -105,6 +99,18 @@ class Membership
     public function setStartDate($startDate): static
     {
         $this->startDate = $startDate;
+
+        return $this;
+    }
+
+    public function getFrozenAt(): ?DateTimeImmutable
+    {
+        return $this->frozenAt;
+    }
+
+    public function setFrozenAt(?DateTimeImmutable $frozenAt): static
+    {
+        $this->frozenAt = $frozenAt;
 
         return $this;
     }
@@ -124,7 +130,7 @@ class Membership
         return $this;
     }
 
-    public function getEndDate(): ?\DateTimeImmutable
+    public function getEndDate(): ?DateTimeImmutable
     {
         return $this->endDate;
     }
@@ -148,12 +154,12 @@ class Membership
         return $this;
     }
 
-    public function getCreatedAt(): ?\DateTimeImmutable
+    public function getCreatedAt(): ?DateTimeImmutable
     {
         return $this->createdAt;
     }
 
-    public function setCreatedAt(\DateTimeImmutable $createdAt): static
+    public function setCreatedAt(DateTimeImmutable $createdAt): static
     {
         $this->createdAt = $createdAt;
 

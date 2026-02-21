@@ -12,6 +12,8 @@ class GetMembershipPlans
     public int $limit;
 
     public function __construct(
+        ?int $minPrice = null,
+        ?int $maxPrice = null,
         ?int $durationDays = null,
         ?int $sessionLimit = null,
         string $sortRaw = 'durationDays:ASC',
@@ -20,17 +22,25 @@ class GetMembershipPlans
     )
     {
         $this->sort = $this->parseSort($sortRaw);
-        $this->filter = $this->putFilter($durationDays, $sessionLimit);
+        $this->filter = $this->putFilter($minPrice, $maxPrice, $durationDays, $sessionLimit);
         $this->page = $page;
         $this->limit = $limit;
     }
 
     private function putFilter (
+        ?int $minPrice,
+        ?int $maxPrice,
         ?int $durationDays,
         ?int $sessionLimit,
     ): array
     {
         $filter = [];
+        if($minPrice) {
+            $filter['minPrice'] = $minPrice;
+        }
+        if($maxPrice) {
+            $filter['maxPrice'] = $maxPrice;
+        }
         if($durationDays) {
             $filter['durationDays'] = $durationDays;
         }

@@ -28,7 +28,7 @@ final readonly class TrainerResponsePrivate
             phone: $trainer->getPhone(),
             email: $trainer->getEmail(),
             trainingTypeId:  $trainer->getTrainingType()->getId(),
-            price: $trainer->getPrice(),
+            price: $trainer->getPricePerHour(),
         );
     }
 }

@@ -13,6 +13,7 @@ use App\Booking\Service\BookingManager;
 use App\Client\Entity\Client;
 use App\Client\Repository\ClientRepository;
 use App\Response\OkResponse;
+use DateMalformedIntervalStringException;
 use DateMalformedStringException;
 use DateTimeImmutable;
 use Doctrine\ORM\Exception\ORMException;
@@ -103,7 +104,7 @@ final class BookingController extends AbstractController
     /**
      * @throws OptimisticLockException
      * @throws DateMalformedStringException
-     * @throws ORMException
+     * @throws ORMException|DateMalformedIntervalStringException
      */
     #[Route('api/me/bookings', methods: ['POST'], format: 'json')]
     #[OA\RequestBody(content: new Model(type: BookingRequest::class))]

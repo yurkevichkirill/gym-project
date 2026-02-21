@@ -4,13 +4,12 @@ declare(strict_types=1);
 
 namespace App\Exception;
 
-use Exception;
-use Throwable;
+use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 
-class DateTimeAlreadyTakenException extends Exception
+class DateTimeAlreadyTakenException extends ConflictHttpException
 {
-    public function __construct(string $message = "This time is already taken", int $code = 0, ?Throwable $previous = null)
+    public function __construct(string $message = 'This time is already taken"', ?\Throwable $previous = null, int $code = 0, array $headers = [])
     {
-        parent::__construct($message, $code, $previous);
+        parent::__construct($message, $previous, $code, $headers);
     }
 }

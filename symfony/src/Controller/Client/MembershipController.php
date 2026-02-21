@@ -3,165 +3,140 @@
 namespace App\Controller\Client;
 
 use App\Client\Entity\Client;
-use App\Client\Repository\ClientRepository;
+use App\Membership\DTO\CreateMembershipRequest;
+use App\Membership\DTO\GetMemberships;
+use App\Membership\DTO\UpdateMembershipRequest;
 use App\Membership\Entity\Membership;
+use App\Membership\Mapper\MembershipMapperInterface;
+use App\Membership\Query\MembershipQuery;
 use App\Membership\Repository\MembershipRepository;
-use App\MembershipPlan\Repository\MembershipPlanRepository;
+use App\Membership\Service\MembershipManager;
+use App\Response\OkResponse;
+use Doctrine\ORM\Exception\ORMException;
+use Doctrine\ORM\OptimisticLockException;
 use Nelmio\ApiDocBundle\Attribute\Model;
 use OpenApi\Attributes as OA;
+use Psr\Cache\InvalidArgumentException;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
-use Symfony\Component\Serializer\Normalizer\AbstractNormalizer;
-use Symfony\Component\Serializer\Normalizer\DateTimeNormalizer;
-use Symfony\Component\Serializer\SerializerInterface;
-use Symfony\Component\Validator\Validator\ValidatorInterface;
-use Throwable;
 
 final class MembershipController extends AbstractController
 {
+    /**
+     * @throws InvalidArgumentException
+     */
     #[Route('/api/me/memberships', methods: ['GET'], format: 'json')]
-    #[IsGranted('ROLE_CLIENT')]
-    public function get(#[CurrentUser] ?Client $client, MembershipRepository $membershipRepo): JsonResponse
+    #[OA\Parameter(name: 'membershipPlanId', in: 'query', example: 6)]
+    #[OA\Parameter(name: 'status', in: 'query', example: 'active')]
+    #[OA\Parameter(name: 'minVisits', in: 'query', example: 10)]
+    #[OA\Parameter(name: 'maxVisits', in: 'query', example: 100)]
+    #[OA\Parameter(name: 'sort', in: 'query', example: 'createdAt:ASC')]
+    #[OA\Parameter(name: 'page', in: 'query', example: 1)]
+    #[OA\Parameter(name: 'limit', in: 'query', example: 20)]
+    #[OA\Tag(name: "Client: Membership")]
+    public function getAll(
+        #[CurrentUser] ?Client $client,
+        Request $request,
+        MembershipMapperInterface $mapper,
+        MembershipQuery $handler,
+        MembershipRepository $membershipRepo,
+    ): OkResponse
     {
-        $membership = $membershipRepo->findBy([
-            "client" => $client
-        ]);
-        if(empty($membership)) {
-            return $this->json(['error' => "Membership not found"], 404);
-        }
+        $clientId = $client->getId();
+        $sortRaw = $request->query->get('sort', 'createdAt:ASC');
+        $status = $request->query->get('status');
+        $membershipPlanId = $request->query->get('membershipPlanId') ? (int) $request->query->get('membershipPlanId') : null;
+        $minVisits = $request->query->get('minVisits') ? (int) $request->query->get('minVisits') : null;
+        $maxVisits = $request->query->get('maxVisits') ? (int) $request->query->get('maxVisits') : null;
+        $page = (int) $request->query->get('page', 1);
+        $limit = (int) $request->query->get('limit', 20);
 
-        return $this->json($membership[0], 200, [], [
-            'groups' => 'public-membership',
-            DateTimeNormalizer::TIMEZONE_KEY => 'Europe/Minsk',
-            'datetime_format' => 'Y-m-d'
-        ]);
+        $queryDto = new GetMemberships(
+            $clientId,
+            $sortRaw,
+            $membershipPlanId,
+            $status,
+            $minVisits,
+            $maxVisits,
+            $page,
+            $limit,
+        );
+
+        $memberships = $handler->handle($queryDto);
+
+        return new OkResponse(
+            array_map(fn ($membership) => $mapper->map($membership), $memberships),
+            $page,
+            $limit,
+            $membershipRepo->count(['client' => $client]),
+            $queryDto->sort,
+            Response::HTTP_OK,
+        );
     }
 
+    #[Route('/api/memberships/{id}', methods: ['GET'], format: 'json')]
+    #[OA\Tag(name: "Client: Membership")]
+    public function get(
+        Membership $membership,
+        MembershipMapperInterface $mapper
+    ): OkResponse
+    {
+        $this->denyAccessUnlessGranted("MEMBERSHIP_VIEW", $membership);
+
+        return new OkResponse(
+            data: $mapper->map($membership),
+            status: Response::HTTP_OK,
+        );
+    }
+
+    /**
+     * @throws OptimisticLockException
+     * @throws ORMException
+     */
     #[Route('api/me/membership', methods: ['POST'], format: 'json')]
-    #[OA\RequestBody(content: new Model(type: Membership::class, groups: ['create-membership']))]
-    #[IsGranted('ROLE_CLIENT')]
+    #[OA\RequestBody(content: new Model(type: CreateMembershipRequest::class))]
+    #[OA\Tag(name: "Client: Membership")]
     public function create(
         #[CurrentUser] ?Client $client,
-        Request $request,
-        MembershipRepository $membershipRepo,
-        MembershipPlanRepository $membershipPlanRepo,
-        SerializerInterface $serializer,
-        ValidatorInterface $validator
-    ): JsonResponse
+        #[MapRequestPayload] CreateMembershipRequest $requestDto,
+        MembershipMapperInterface $mapper,
+        MembershipManager $manager,
+    ): OkResponse
     {
-        if(count($client->getMemberships()) > 0) {
-            return $this->json(['error' => 'You already have membership'], 409);
-        }
+        $responseDto = $mapper->map($manager->create($client, $requestDto->membershipTypeId));
 
-        $json = $request->getContent();
-        try {
-            $membership = $serializer->deserialize($json, Membership::class, 'json');
-        } catch (Throwable $e) {
-            return $this->json(['error' => $e->getMessage()], 400);
-        }
-
-        $membership->setClient($client);
-        $membershipPlanId = json_decode($json, true)['plan']['id'];
-        $membershipPlan = $membershipPlanRepo->find($membershipPlanId);
-        if(is_null($membershipPlan)) {
-            return $this->json(['error' => 'Membership plan not found']);
-        }
-
-        $membership->setPlan($membershipPlan);
-
-        $errors = $validator->validate($membership);
-        if (count($errors) > 0) {
-            $errorMessages = [];
-            foreach ($errors as $error) {
-                $errorMessages[$error->getPropertyPath()][] = $error->getMessage();
-            }
-
-            return $this->json(['errors' => $errorMessages], 422);
-        }
-
-        try {
-            $membershipRepo->create($membership);
-        } catch (Throwable $e) {
-            return $this->json(['error' => $e->getMessage()], 400);
-        }
-
-        return $this->json($membership, 201, [], [
-            'groups' => 'public-membership',
-            DateTimeNormalizer::TIMEZONE_KEY => 'Europe/Minsk',
-            'datetime_format' => 'Y-m-d'
-        ]);
+        return new OkResponse(
+            data: $responseDto,
+            status: Response::HTTP_CREATED,
+        );
     }
 
-    #[Route('api/me/membership', methods: ['PUT', 'PATCH'], format: 'json')]
-    #[OA\RequestBody(content: new Model(type: Membership::class, groups: ['update-membership']))]
-    #[IsGranted('ROLE_CLIENT')]
+    /**
+     * @throws OptimisticLockException
+     * @throws ORMException
+     */
+    #[Route('api/memberships/{id}', methods: ['PUT', 'PATCH'], format: 'json')]
+    #[OA\RequestBody(content: new Model(type: UpdateMembershipRequest::class))]
+    #[OA\Tag(name: "Client: Membership")]
     public function update(
-        #[CurrentUser] ?Client $client,
-        MembershipRepository $membershipRepo,
-        ClientRepository $clientRepo,
-        Request $request,
-        SerializerInterface $serializer,
-        ValidatorInterface $validator
-    ): JsonResponse
+        Membership $membership,
+        #[MapRequestPayload] UpdateMembershipRequest $requestDto,
+        MembershipMapperInterface $mapper,
+        MembershipManager $manager,
+    ): OkResponse
     {
-        $membership = $membershipRepo->findBy([
-            'client' => $client
-        ]);
-        if(empty($membership)) {
-            return $this->json(['text' => 'You have no membership'], 200);
-        }
+        $this->denyAccessUnlessGranted("MEMBERSHIP_EDIT", $membership);
 
-        try {
-            $serializer->deserialize($request->getContent(), Membership::class, 'json', [
-                AbstractNormalizer::OBJECT_TO_POPULATE => $membership[0]
-            ]);
-            $membershipRepo->save();
-        } catch(Throwable $e) {
-            return $this->json(['error' => $e->getMessage()], 400);
-        }
+        $responseDto = $mapper->map($manager->update($membership, $requestDto));
 
-        $errors = $validator->validate($membership[0]);
-        if (count($errors) > 0) {
-            $errorMessages = [];
-            foreach ($errors as $error) {
-                $errorMessages[$error->getPropertyPath()][] = $error->getMessage();
-            }
-
-            return $this->json(['errors' => $errorMessages], 422);
-        }
-
-        return $this->json($membership[0], 200, [], [
-            'groups' => 'public-membership',
-            DateTimeNormalizer::TIMEZONE_KEY => 'Europe/Minsk',
-            'datetime_format' => 'Y-m-d'
-        ]);
-    }
-
-    #[Route('api/me/membership', methods: ['DELETE'], format: 'json')]
-    #[IsGranted('ROLE_CLIENT')]
-    public function delete(
-        #[CurrentUser] ?Client $client,
-        MembershipRepository $membershipRepo,
-        ClientRepository $clientRepo
-    ): JsonResponse
-    {
-        $membership = $membershipRepo->findBy([
-            'client' => $client
-        ]);
-        if(empty($membership)) {
-            return $this->json(['text' => 'You have no membership'], 200);
-        }
-
-        try {
-            $membershipRepo->remove($membership[0]);
-        } catch(Throwable $e) {
-            return $this->json(['error' => $e->getMessage()], 400);
-        }
-
-        return $this->json(null, 204);
+        return new OkResponse(
+            data: $responseDto,
+            status: Response::HTTP_OK,
+        );
     }
 }

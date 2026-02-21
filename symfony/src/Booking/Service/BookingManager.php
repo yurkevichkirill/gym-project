@@ -8,7 +8,13 @@ use App\Booking\DTO\BookingRequest;
 use App\Booking\Entity\Booking;
 use App\Booking\Repository\BookingRepository;
 use App\Client\Entity\Client;
+use App\Client\Service\ClientManager;
 use App\Exception\DateTimeAlreadyTakenException;
+use App\Exception\NoActiveMembershipException;
+use App\Membership\Enum\MembershipStatusEnum;
+use App\Membership\Repository\MembershipRepository;
+use App\Trainer\Service\TrainerManager;
+use App\TrainerWorkTime\Entity\TrainerWorkTime;
 use App\TrainerWorkTime\Repository\TrainerWorkTimeRepository;
 use App\TrainerWorkTime\Service\WorkTimeManager;
 use App\Training\Entity\Training;
@@ -25,7 +31,10 @@ final readonly class BookingManager
         private BookingRepository         $bookingRepo,
         private TrainingRepository        $trainingRepo,
         private TrainerWorkTimeRepository $worktimeRepo,
-        private WorkTimeManager $worktimeManager,
+        private MembershipRepository $membershipRepo,
+        private TrainerManager            $trainerManager,
+        private ClientManager             $clientManager,
+        private WorkTimeManager           $worktimeManager,
     )
     {}
 
@@ -39,22 +48,48 @@ final readonly class BookingManager
     {
         $worktime = $this->worktimeRepo->find($dto->worktimeId);
 
-        if ($this->worktimeManager->isTimeAvailable($worktime, $dto->startTime, $dto->durationMinutes)) {
+        $this->validateTrainingTimeAvailable($worktime, $dto->startTime, $dto->durationMinutes);
 
-            $training = new Training();
-            $training->setDurationMinutes($dto->durationMinutes);
-            $training->setStartTime(new DateTimeImmutable($dto->startTime));
-            $training->setTrainerWorkTime($worktime);
-            $this->trainingRepo->create($training);
+        $this->validateActiveMembership($client);
 
-            $booking = new Booking();
-            $booking->setClient($client);
-            $booking->setTraining($training);
-            $this->bookingRepo->create($booking);
+        $price = $this->trainerManager->countPrice($worktime->getTrainer(), $dto->durationMinutes);
+        $this->clientManager->pay($client, $price, $worktime->getTrainer());
 
-            return $booking;
-        } else {
+        $training = new Training();
+        $training->setDurationMinutes($dto->durationMinutes);
+        $training->setStartTime(new DateTimeImmutable($dto->startTime));
+        $training->setTrainerWorkTime($worktime);
+        $this->trainingRepo->create($training);
+
+        $booking = new Booking();
+        $booking->setClient($client);
+        $booking->setTraining($training);
+        $this->bookingRepo->create($booking);
+
+        return $booking;
+    }
+
+    private function validateActiveMembership(Client $client): void
+    {
+        $activeMembership = $this->membershipRepo->findOneBy([
+            'client' => $client,
+            'status' => MembershipStatusEnum::ACTIVE
+        ]);
+
+        if (!$activeMembership) {
+            throw new NoActiveMembershipException();
+        }
+    }
+
+    /**
+     * @throws DateMalformedStringException
+     * @throws DateMalformedIntervalStringException
+     */
+    private function validateTrainingTimeAvailable(TrainerWorkTime $worktime, string $startTime, int $durationMinutes): void
+    {
+        if (!$this->worktimeManager->isTimeAvailable($worktime, $startTime, $durationMinutes)) {
             throw new DateTimeAlreadyTakenException();
         }
     }
+
 }

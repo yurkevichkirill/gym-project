@@ -6,6 +6,7 @@ namespace App\EventListener;
 
 use App\Booking\Entity\Booking;
 use App\Client\Entity\Client;
+use App\Membership\Entity\Membership;
 use App\MembershipPlan\Entity\MembershipPlan;
 use App\Payment\Entity\Payment;
 use App\Trainer\Entity\Trainer;
@@ -36,6 +37,7 @@ readonly class CacheInvalidatorListener
                 $entity instanceof Client => $this->gymCache->invalidateTags(['clients_list']),
                 $entity instanceof Booking => $this->gymCache->invalidateTags(['bookings_list']),
                 $entity instanceof MembershipPlan => $this->gymCache->invalidateTags(['membership_plans_list']),
+                $entity instanceof Membership => $this->gymCache->invalidateTags(['memberships_list']),
                 $entity instanceof Payment => $this->gymCache->invalidateTags(['payments_list']),
                 $entity instanceof Trainer => $this->gymCache->invalidateTags(['trainers_list']),
                 $entity instanceof TrainerWorkTime => $this->gymCache->invalidateTags(['trainer_worktimes_list']),

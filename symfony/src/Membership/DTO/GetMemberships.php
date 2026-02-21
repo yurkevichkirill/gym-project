@@ -2,11 +2,9 @@
 
 declare(strict_types=1);
 
-namespace App\Trainer\DTO;
+namespace App\Membership\DTO;
 
-use App\Booking\Enum\BookingStatusEnum;
-
-class GetTypesTrainers
+class GetMemberships
 {
     public array $sort;
     public array $filter;
@@ -14,35 +12,42 @@ class GetTypesTrainers
     public int $limit;
 
     public function __construct(
-        ?int $minPrice = null,
-        ?int $maxPrice = null,
-        ?int $trainingTypeId = null,
-        string $sortRaw = 'createdAt:ASC',
+        int $clientId,
+        string $sortRaw = 'bookedAt:ASC',
+        ?int $membershipPlanId = null,
+        ?string $status = null,
+        ?int $minVisits = null,
+        ?int $maxVisits = null,
         int $page = 1,
         int $limit = 20
     )
     {
         $this->sort = $this->parseSort($sortRaw);
-        $this->filter = $this->putFilter($minPrice, $maxPrice, $trainingTypeId);
+        $this->filter = $this->putFilter($clientId, $membershipPlanId, $status, $minVisits, $maxVisits);
         $this->page = $page;
         $this->limit = $limit;
     }
 
     private function putFilter (
-        ?int $minPrice = null,
-        ?int $maxPrice = null,
-        ?int $trainingTypeId = null,
+        int $clientId,
+        ?int $membershipPlanId = null,
+        ?string $status = null,
+        ?int $minVisits = null,
+        ?int $maxVisits = null,
     ): array
     {
-        $filter = [];
-        if($minPrice) {
-            $filter['minPrice'] = $minPrice;
+        $filter = ['clientId' => $clientId];
+        if($membershipPlanId) {
+            $filter['membershipPlanId'] = $membershipPlanId;
         }
-        if($maxPrice) {
-            $filter['maxPrice'] = $maxPrice;
+        if($status) {
+            $filter['status'] = $status;
         }
-        if($trainingTypeId) {
-            $filter['trainingTypeId'] = $trainingTypeId;
+        if($minVisits) {
+            $filter['minVisits'] = $minVisits;
+        }
+        if($maxVisits) {
+            $filter['maxVisits'] = $maxVisits;
         }
 
         return $filter;

@@ -36,6 +36,14 @@ class TrainersQuery
             $qb = $this->trainerRepo->createQueryBuilder('t')
                 ->leftJoin('t.trainingType', 'type');
 
+            if(isset($dto->filter['minPrice'])) {
+                $qb->andWhere('t.pricePerHour >= :minPrice')
+                    ->setParameter('minPrice', $dto->filter['minPrice']);
+            }
+            if(isset($dto->filter['maxPrice'])) {
+                $qb->andWhere('t.pricePerHour <= :maxPrice')
+                    ->setParameter('maxPrice', $dto->filter['maxPrice']);
+            }
             if(isset($dto->filter['trainingTypeId'])) {
                 $qb->andWhere('t.trainingType = :trainingType')
                     ->setParameter('trainingType', $this->trainingTypeRepo->find($dto->filter['trainingTypeId']));
@@ -63,6 +71,12 @@ class TrainersQuery
             'page' => $query->page,
             'limit' => $query->limit,
         ];
+        if(isset($query->filter['minPrice'])) {
+            $params['minPrice'] = $query->filter['minPrice'];
+        }
+        if(isset($query->filter['maxPrice'])) {
+            $params['maxPrice'] = $query->filter['maxPrice'];
+        }
         if(isset($query->filter['trainingTypeId'])) {
             $params['trainingTypeId'] = $query->filter['trainingTypeId'];
         }

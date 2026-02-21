@@ -25,7 +25,7 @@ final readonly class TrainerResponse
             firstName: $trainer->getFirstName(),
             lastName: $trainer->getLastName(),
             trainingTypeId:  $trainer->getTrainingType()->getId(),
-            price: $trainer->getPrice(),
+            price: $trainer->getPricePerHour(),
         );
     }
 }

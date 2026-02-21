@@ -18,13 +18,12 @@ final readonly class GetPayments
         ?string $minAmount = null,
         ?string $maxAmount = null,
         ?string $category = null,
-        ?string $status = null,
         int $page = 1,
         int $limit = 20
     )
     {
         $this->sort = $this->parseSort($sortRaw);
-        $this->filter = $this->putFilter($trainerId, $clientId, $minAmount, $maxAmount, $category, $status);
+        $this->filter = $this->putFilter($trainerId, $clientId, $minAmount, $maxAmount, $category);
         $this->page = $page;
         $this->limit = $limit;
     }
@@ -35,7 +34,6 @@ final readonly class GetPayments
         ?string $minAmount = null,
         ?string $maxAmount = null,
         ?string $category = null,
-        ?string $status = null,
     ): array
     {
         $filter = [];
@@ -53,9 +51,6 @@ final readonly class GetPayments
         }
         if($category) {
             $filter['category'] = $category;
-        }
-        if($status) {
-            $filter['status'] = $status;
         }
 
         return $filter;
