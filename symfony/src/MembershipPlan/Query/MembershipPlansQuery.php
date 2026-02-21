@@ -29,6 +29,16 @@ class MembershipPlansQuery
         {
             $qb = $this->membershipPlanRepo->createQueryBuilder('m');
 
+            if(isset($dto->filter['minPrice'])) {
+                $qb->andWhere('m.price >= :minPrice')
+                    ->setParameter('minPrice', $dto->filter['minPrice']);
+            }
+
+            if(isset($dto->filter['maxPrice'])) {
+                $qb->andWhere('m.price <= :maxPrice')
+                    ->setParameter('maxPrice', $dto->filter['maxPrice']);
+            }
+
             if(isset($dto->filter['durationDays'])) {
                 $qb->andWhere('m.durationDays = :durationDays')
                     ->setParameter('durationDays', $dto->filter['durationDays']);
@@ -60,7 +70,13 @@ class MembershipPlansQuery
             'page' => $query->page,
             'limit' => $query->limit,
         ];
-
+        
+        if(isset($query->filter['minPrice'])) {
+            $params['minPrice'] = $query->filter['minPrice'];
+        }
+        if(isset($query->filter['maxPrice'])) {
+            $params['maxPrice'] = $query->filter['maxPrice'];
+        }
         if(isset($query->filter['durationDays'])) {
             $params['durationDays'] = $query->filter['durationDays'];
         }

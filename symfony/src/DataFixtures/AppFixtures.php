@@ -63,7 +63,7 @@ class AppFixtures extends Fixture
 //        $trainer = new Trainer();
 //        $trainer->setPassword('$2y$13$AZRdOuh3hPh36DLKTzT/ouye24yo0Ks1V6NjSkBbFkFzopReD9aLG');
 //        $trainer->setTrainingType($manager->getRepository(TrainingType::class)->find(1));
-//        $trainer->setPrice('50');
+//        $trainer->setPricePerHour('50');
 //        $trainer->setFirstName("Ronny");
 //        $trainer->setLastName('Coleman');
 //        $trainer->setPhone('+356547374376');
@@ -73,40 +73,70 @@ class AppFixtures extends Fixture
 //        $trainer = new Trainer();
 //        $trainer->setPassword('$2y$13$7bWAa/e271z1Q30ebuFPHuQW5r4.WzurA45q7CqKDOb9UMs8It8QC');
 //        $trainer->setTrainingType($manager->getRepository(TrainingType::class)->find(2));
-//        $trainer->setPrice('10');
+//        $trainer->setPricePerHour('10');
 //        $trainer->setFirstName("Ivan");
 //        $trainer->setLastName('Rylkow');
 //        $trainer->setPhone('+375292281488');
 //        $trainer->setEmail("sylentjooo@gmail.com");
 //        $manager->persist($trainer);
 
+//        $manager->getRepository(Trainer::class)->find(3)->setTrainingType($manager->getRepository(TrainingType::class)->find(3));
+//
+//        $manager->getRepository(Trainer::class)->find(4)->setTrainingType($manager->getRepository(TrainingType::class)->find(4));
+
 //        $trainerWorkTime = new TrainerWorkTime();
-//        $trainerWorkTime->setTrainer($manager->getRepository(Trainer::class)->find(1));
+//        $trainerWorkTime->setTrainer($manager->getRepository(Trainer::class)->find(3));
 //        $trainerWorkTime->setStartTime(new \DateTimeImmutable("10:00"));
 //        $trainerWorkTime->setEndTime(new \DateTimeImmutable("22:00"));
 //        $trainerWorkTime->setDate(new \DateTimeImmutable("10-03-2026"));
 //        $manager->persist($trainerWorkTime);
 //
 //        $trainerWorkTime = new TrainerWorkTime();
-//        $trainerWorkTime->setTrainer($manager->getRepository(Trainer::class)->find(1));
+//        $trainerWorkTime->setTrainer($manager->getRepository(Trainer::class)->find(3));
 //        $trainerWorkTime->setStartTime(new \DateTimeImmutable("10:00"));
 //        $trainerWorkTime->setEndTime(new \DateTimeImmutable("22:00"));
 //        $trainerWorkTime->setDate(new \DateTimeImmutable("11-03-2026"));
 //        $manager->persist($trainerWorkTime);
 //
 //        $trainerWorkTime = new TrainerWorkTime();
-//        $trainerWorkTime->setTrainer($manager->getRepository(Trainer::class)->find(2));
+//        $trainerWorkTime->setTrainer($manager->getRepository(Trainer::class)->find(4));
 //        $trainerWorkTime->setStartTime(new \DateTimeImmutable("12:00"));
 //        $trainerWorkTime->setEndTime(new \DateTimeImmutable("19:00"));
 //        $trainerWorkTime->setDate(new \DateTimeImmutable("11-03-2026"));
 //        $manager->persist($trainerWorkTime);
 //
 //        $trainerWorkTime = new TrainerWorkTime();
-//        $trainerWorkTime->setTrainer($manager->getRepository(Trainer::class)->find(2));
+//        $trainerWorkTime->setTrainer($manager->getRepository(Trainer::class)->find(4));
 //        $trainerWorkTime->setStartTime(new \DateTimeImmutable("12:00"));
 //        $trainerWorkTime->setEndTime(new \DateTimeImmutable("20:00"));
 //        $trainerWorkTime->setDate(new \DateTimeImmutable("12-03-2026"));
 //        $manager->persist($trainerWorkTime);
+//
+//        $membership_plan = new MembershipPlan();
+//        $membership_plan->setName("Month Unlimit");
+//        $membership_plan->setPrice("100");
+//        $membership_plan->setDurationDays(31);
+//        $manager->persist($membership_plan);
+//
+//        $membership_plan3 = new MembershipPlan();
+//        $membership_plan3->setName("Year Unlimit");
+//        $membership_plan3->setPrice("653");
+//        $membership_plan3->setDurationDays(366);
+//        $manager->persist($membership_plan3);
+//
+//        $membership_plan1 = new MembershipPlan();
+//        $membership_plan1->setName("6 visits");
+//        $membership_plan1->setPrice("60");
+//        $membership_plan1->setDurationDays(31);
+//        $membership_plan1->setSessionLimit(6);
+//        $manager->persist($membership_plan1);
+//
+//        $membership_plan2 = new MembershipPlan();
+//        $membership_plan2->setName("8 visits");
+//        $membership_plan2->setPrice("80");
+//        $membership_plan2->setDurationDays(31);
+//        $membership_plan2->setSessionLimit(8);
+//        $manager->persist($membership_plan2);
 //
 //        for($i = 0; $i < 23; $i++) {
 //            $booking = new Booking();
@@ -132,31 +162,7 @@ class AppFixtures extends Fixture
 //        $booking->setTraining($manager->getRepository(Training::class)->find(2));
 //        $manager->persist($booking);
 
-        $membership_plan = new MembershipPlan();
-        $membership_plan->setName("Month Unlimit");
-        $membership_plan->setPrice("100");
-        $membership_plan->setDurationDays(31);
-        $manager->persist($membership_plan);
 
-        $membership_plan3 = new MembershipPlan();
-        $membership_plan3->setName("Year Unlimit");
-        $membership_plan3->setPrice("653");
-        $membership_plan3->setDurationDays(366);
-        $manager->persist($membership_plan3);
-
-        $membership_plan1 = new MembershipPlan();
-        $membership_plan1->setName("6 visits");
-        $membership_plan1->setPrice("60");
-        $membership_plan1->setDurationDays(31);
-        $membership_plan1->setSessionLimit(6);
-        $manager->persist($membership_plan1);
-
-        $membership_plan2 = new MembershipPlan();
-        $membership_plan2->setName("8 visits");
-        $membership_plan2->setPrice("80");
-        $membership_plan2->setDurationDays(31);
-        $membership_plan2->setSessionLimit(8);
-        $manager->persist($membership_plan2);
 
 //        $payment = new Payment();
 //        $payment->setClient($manager->getRepository(Client::class)->find(5));
@@ -169,6 +175,7 @@ class AppFixtures extends Fixture
 //        $membership->setPlan($manager->getRepository(MembershipPlan::class)->find(3));
 //        $manager->persist($membership);
 
+        $manager->getRepository(Client::class)->find(5)->setBalance("1000");
         $manager->flush();
     }
 }

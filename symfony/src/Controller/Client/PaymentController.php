@@ -12,12 +12,10 @@ use App\Response\OkResponse;
 use OpenApi\Attributes as OA;
 use Psr\Cache\InvalidArgumentException;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
-use Symfony\Component\Serializer\Normalizer\DateTimeNormalizer;
 
 final class PaymentController extends AbstractController
 {
@@ -29,9 +27,10 @@ final class PaymentController extends AbstractController
     #[OA\Parameter(name: 'minAmount', in: 'query', example: 20)]
     #[OA\Parameter(name: 'maxAmount', in: 'query', example: 100)]
     #[OA\Parameter(name: 'category', in: 'query', example: 'membership')]
-    #[OA\Parameter(name: 'status', in: 'query', example: 'paid')]
-    #[OA\Parameter(name: 'sort', in: 'query', example: 'bookedAt:ASC')]
+    #[OA\Parameter(name: 'sort', in: 'query', example: 'paidAt:ASC')]
     #[OA\Parameter(name: 'page', in: 'query', example: 1)]
+    #[OA\Parameter(name: 'limit', in: 'query', example: 20)]
+    #[OA\Tag(name: "Client: Payments")]
     public function getAll(
         #[CurrentUser] ?Client $client,
         PaymentRepository $paymentRepo,
@@ -41,9 +40,8 @@ final class PaymentController extends AbstractController
     ): OkResponse
     {
         $clientId = $client->getId();
-        $sortRaw = $request->query->get('sort', 'bookedAt:ASC');
+        $sortRaw = $request->query->get('sort', 'paidAt:ASC');
         $trainerId = $request->query->get('trainerId') ? (int) $request->query->get('trainerId') : null;
-        $status = $request->query->get('status');
         $category = $request->query->get('category');
         $minAmount = $request->query->get('minAmount');
         $maxAmount = $request->query->get('maxAmount');
@@ -57,7 +55,6 @@ final class PaymentController extends AbstractController
             $minAmount,
             $maxAmount,
             $category,
-            $status,
             $page,
             $limit
         );
@@ -75,6 +72,7 @@ final class PaymentController extends AbstractController
     }
 
     #[Route('/api/me/payments/{id}', methods: ['GET'], format: 'json')]
+    #[OA\Tag(name: "Client: Payments")]
     public function get(
         Payment $payment,
         PaymentMapperInterface $mapper,

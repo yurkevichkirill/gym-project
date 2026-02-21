@@ -20,6 +20,8 @@ final class TrainerController extends AbstractController
      * @throws InvalidArgumentException
      */
     #[Route('api/trainers', methods: ['GET'], format: 'json')]
+    #[OA\Parameter(name: 'minPrice', in: 'query', example: 30)]
+    #[OA\Parameter(name: 'maxPrice', in: 'query', example: 50)]
     #[OA\Parameter(name: 'trainingTypeId', in: 'query', example: 1)]
     #[OA\Parameter(name: 'sort', in: 'query', example: 'createdAt:ASC')]
     #[OA\Parameter(name: 'page', in: 'query', example: 1)]
@@ -33,11 +35,13 @@ final class TrainerController extends AbstractController
     ): OkResponse
     {
         $sortRaw = $request->query->get('sort', 'createdAt:ASC');
+        $minPrice = $request->query->get('minPrice');
+        $maxPrice = $request->query->get('maxPrice');
         $trainingTypeId = $request->query->get('trainingTypeId') ? (int) $request->query->get('trainingTypeId') : null;
         $page = (int) $request->query->get('page', 1);
         $limit = (int) $request->query->get('limit', 20);
 
-        $queryDto = new GetTypesTrainers($trainingTypeId, $sortRaw, $page, $limit);
+        $queryDto = new GetTypesTrainers($minPrice, $maxPrice, $trainingTypeId, $sortRaw, $page, $limit);
 
         $trainers = $handler->handle($queryDto);
 

@@ -20,7 +20,7 @@ class Trainer extends User
     private ?TrainingType $trainingType = null;
 
     #[ORM\Column(type: Types::DECIMAL, precision: 10, scale: 2)]
-    private ?string $price = null;
+    private ?string $pricePerHour = null;
 
     /**
      * @var Collection<int, TrainerWorkTime>
@@ -51,14 +51,14 @@ class Trainer extends User
         return $this;
     }
 
-    public function getPrice(): ?string
+    public function getPricePerHour(): ?string
     {
-        return $this->price;
+        return $this->pricePerHour;
     }
 
-    public function setPrice(string $price): static
+    public function setPricePerHour(string $pricePerHour): static
     {
-        $this->price = $price;
+        $this->pricePerHour = $pricePerHour;
 
         return $this;
     }

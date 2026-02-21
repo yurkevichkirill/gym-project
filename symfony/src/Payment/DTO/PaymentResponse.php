@@ -12,10 +12,9 @@ final readonly class PaymentResponse
 {
     public function __construct(
         public int $id,
-        public int $trainerId,
+        public ?int $trainerId = null,
         public string $amount,
-        public PaymentCategoryEnum $category,
-        public PaymentStatusEnum $status,
+        public PaymentCategoryEnum $category
     )
     {}
 
@@ -23,10 +22,9 @@ final readonly class PaymentResponse
     {
         return new self(
             id: $payment->getId(),
-            trainerId: $payment->getTrainer()->getId(),
+            trainerId: $payment->getTrainer()?->getId(),
             amount: $payment->getAmount(),
-            category: $payment->getCategory(),
-            status: $payment->getStatus(),
+            category: $payment->getCategory()
         );
     }
 }

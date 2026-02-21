@@ -48,9 +48,6 @@ class Payment
     #[ORM\Column(type: Types::ENUM)]
     private ?PaymentCategoryEnum $category = null;
 
-    #[ORM\Column(type: Types::ENUM, options: ['default' => PaymentStatusEnum::PENDING])]
-    private ?PaymentStatusEnum $status = null;
-
     #[ORM\Column(nullable: true, options: ["default" => "CURRENT_TIMESTAMP"])]
     private ?\DateTimeImmutable $paidAt = null;
 
@@ -67,7 +64,7 @@ class Payment
     public function setClient(?Client $client): static
     {
         $this->client = $client;
-        if (!$client) {
+        if ($client) {
             $this->clientEmail = $client->getEmail();
             $this->clientPhone = $client->getPhone();
             $this->clientFullName = $client->getFirstName() . " " . $client->getLastName();

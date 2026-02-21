@@ -15,15 +15,8 @@ use Psr\Cache\InvalidArgumentException;
 use Symfony\Component\Cache\CacheItem;
 use Symfony\Contracts\Cache\TagAwareCacheInterface;
 
-class PaymentsQuery
+final readonly class PaymentsQuery
 {
-    private const array SORT_MAP = [
-        'clientId' => 'c.id',
-        'date' => 'w.date',
-        'status' => 'b.status',
-        'bookedAt' => 'b.bookedAt',
-    ];
-
     public function __construct(
         private PaymentRepository $paymentRepo,
         private TrainerRepository $trainerRepo,
@@ -45,8 +38,8 @@ class PaymentsQuery
             $qb = $this->paymentRepo->createQueryBuilder('p');
 
             if(isset($dto->filter['clientId'])) {
-                $qb->andWhere('p.id = :clientId')
-                    ->setParameter('clientId', $this->clientRepo->find($dto->filter['clientId']));
+                $qb->andWhere('p.client = :client')
+                    ->setParameter('client', $this->clientRepo->find($dto->filter['clientId']));
             }
 
             if(isset($dto->filter['trainerId'])) {
@@ -54,19 +47,19 @@ class PaymentsQuery
                     ->setParameter('trainerId', $this->trainerRepo->find($dto->filter['trainerId']));
             }
 
-            if(isset($dto->filter['amount'])) {
-                $qb->andWhere('p.amount = :amount')
-                    ->setParameter('amount', $dto->filter['amount']);
+            if(isset($dto->filter['minAmount'])) {
+                $qb->andWhere('p.amount >= :minAmount')
+                    ->setParameter('minAmount', $dto->filter['minAmount']);
+            }
+
+            if(isset($dto->filter['maxAmount'])) {
+                $qb->andWhere('p.amount <= :maxAmount')
+                    ->setParameter('maxAmount', $dto->filter['maxAmount']);
             }
 
             if(isset($dto->filter['category'])) {
                 $qb->andWhere('p.category = :category')
                     ->setParameter('category', $dto->filter['category']);
-            }
-
-            if(isset($dto->filter['status'])) {
-                $qb->andWhere('p.status = :status')
-                    ->setParameter('status', $dto->filter['status']);
             }
 
             $offset = ($dto->page - 1) * $dto->limit;
@@ -97,14 +90,14 @@ class PaymentsQuery
         if(isset($query->filter['trainerId'])) {
             $params['trainerId'] = $query->filter['trainerId'];
         }
-        if(isset($query->filter['amount'])) {
-            $params['amount'] = $query->filter['amount'];
+        if(isset($query->filter['minAmount'])) {
+            $params['minAmount'] = $query->filter['minAmount'];
+        }
+        if(isset($query->filter['maxAmount'])) {
+            $params['maxAmount'] = $query->filter['maxAmount'];
         }
         if(isset($query->filter['category'])) {
             $params['category'] = $query->filter['category'];
-        }
-        if(isset($query->filter['status'])) {
-            $params['status'] = $query->filter['status'];
         }
 
         return 'payments_' . md5(serialize($params));

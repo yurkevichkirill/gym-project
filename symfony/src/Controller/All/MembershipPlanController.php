@@ -25,6 +25,8 @@ final class MembershipPlanController extends AbstractController
      * @throws InvalidArgumentException
      */
     #[Route('/api/membership/plans', methods: ['GET'], format: 'json')]
+    #[OA\Parameter(name: 'minPrice', in: 'query', example: 50)]
+    #[OA\Parameter(name: 'maxPrice', in: 'query', example: 100)]
     #[OA\Parameter(name: 'durationDays', in: 'query', example: 30)]
     #[OA\Parameter(name: 'sessionLimit', in: 'query', example: 8)]
     #[OA\Parameter(name: 'sort', in: 'query', example: 'durationDays:ASC')]
@@ -40,11 +42,13 @@ final class MembershipPlanController extends AbstractController
     {
         $sortRaw = $request->query->get('sort', 'durationDays:ASC');
         $durationDays = $request->query->get('durationDays') ? (int) $request->query->get('durationDays') : null;
+        $minPrice = $request->query->get('minPrice');
+        $maxPrice = $request->query->get('maxPrice');
         $sessionLimit = $request->query->get('sessionLimit') ? (int) $request->query->get('sessionLimit') : null;
         $page = (int) $request->query->get('page', 1);
         $limit = (int) $request->query->get('limit', 20);
 
-        $queryDto = new GetMembershipPlans($durationDays, $sessionLimit, $sortRaw, $page, $limit);
+        $queryDto = new GetMembershipPlans($minPrice, $maxPrice, $durationDays, $sessionLimit, $sortRaw, $page, $limit);
 
         $plans = $handler->handle($queryDto);
 

@@ -9,7 +9,12 @@ use App\Client\DTO\CreateClientRequest;
 use App\Client\DTO\UpdateClientRequest;
 use App\Client\Entity\Client;
 use App\Client\Repository\ClientRepository;
+use App\Exception\InsufficientFundsException;
 use App\Membership\Repository\MembershipRepository;
+use App\Payment\Entity\Payment;
+use App\Payment\Enum\PaymentCategoryEnum;
+use App\Payment\Repository\PaymentRepository;
+use App\Trainer\Entity\Trainer;
 use DateInterval;
 use DateMalformedIntervalStringException;
 use DateMalformedStringException;
@@ -23,6 +28,7 @@ final readonly class ClientManager
     public function __construct(
         private ClientRepository $clientRepo,
         private BookingRepository $bookingRepo,
+        private PaymentRepository $paymentRepo,
         private MembershipRepository $membershipRepo,
     )
     {}
@@ -112,5 +118,35 @@ final readonly class ClientManager
         }
 
         return $clientBusy;
+    }
+
+    /**
+     * @throws OptimisticLockException
+     * @throws ORMException
+     */
+    public function pay(Client $client, float $price, ?Trainer $trainer = null): void
+    {
+        $balance = (float) $client->getBalance();
+        if (!$this->hasClientEnoughMoney($balance, $price)) {
+            throw new InsufficientFundsException();
+        }
+
+        $payment = new Payment();
+        $payment->setClient($client);
+        $payment->setAmount((string) $price);
+        if ($trainer) {
+            $payment->setTrainer($trainer);
+            $payment->setCategory(PaymentCategoryEnum::TRAINER);
+        } else {
+            $payment->setCategory(PaymentCategoryEnum::MEMBERSHIP);
+        }
+        $this->paymentRepo->create($payment);
+
+        $client->setBalance((string) ($balance - $price));
+    }
+
+    private function hasClientEnoughMoney(float $balance, float $price): bool
+    {
+        return $balance >= $price;
     }
 }
