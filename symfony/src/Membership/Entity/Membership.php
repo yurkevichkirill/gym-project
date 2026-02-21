@@ -96,7 +96,7 @@ class Membership
         return $this->startDate;
     }
 
-    public function setStartDate($startDate): static
+    public function setStartDate(DateTimeImmutable $startDate): static
     {
         $this->startDate = $startDate;
 
@@ -135,7 +135,7 @@ class Membership
         return $this->endDate;
     }
 
-    public function setEndDate($endDate): static
+    public function setEndDate(DateTimeImmutable $endDate): static
     {
         $this->endDate = $endDate;
 

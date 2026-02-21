@@ -172,10 +172,13 @@ class AppFixtures extends Fixture
 //
 //        $membership = new Membership();
 //        $membership->setClient($manager->getRepository(Client::class)->find(5));
-//        $membership->setPlan($manager->getRepository(MembershipPlan::class)->find(3));
+//        $membership->setPlan($manager->getRepository(MembershipPlan::class)->find(1));
+//        $membership->setStartDate(new \DateTimeImmutable('2026-01-18'));
+//        $membership->setEndDate(new \DateTimeImmutable('2026-02-20'));
 //        $manager->persist($membership);
 
-        $manager->getRepository(Client::class)->find(5)->setBalance("1000");
+        $manager->remove($manager->getRepository(Membership::class)->find(2));
+//        $manager->getRepository(Client::class)->find(5)->setBalance("1000");
         $manager->flush();
     }
 }
