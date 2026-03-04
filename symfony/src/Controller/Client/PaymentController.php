@@ -7,8 +7,8 @@ use App\Payment\DTO\GetPayments;
 use App\Payment\Entity\Payment;
 use App\Payment\Mapper\PaymentMapperInterface;
 use App\Payment\Query\PaymentsQuery;
-use App\Payment\Repository\PaymentRepository;
 use App\Response\OkResponse;
+use App\Trainer\Repository\TrainerRepository;
 use OpenApi\Attributes as OA;
 use Psr\Cache\InvalidArgumentException;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -33,15 +33,14 @@ final class PaymentController extends AbstractController
     #[OA\Tag(name: "Client: Payments")]
     public function getAll(
         #[CurrentUser] ?Client $client,
-        PaymentRepository $paymentRepo,
         Request $request,
         PaymentMapperInterface $mapper,
         PaymentsQuery $handler,
+        TrainerRepository $trainerRepo,
     ): OkResponse
     {
-        $clientId = $client->getId();
         $sortRaw = $request->query->get('sort', 'paidAt:ASC');
-        $trainerId = $request->query->get('trainerId') ? (int) $request->query->get('trainerId') : null;
+        $trainer = $trainerRepo->find((int) $request->query->get('trainerId'));
         $category = $request->query->get('category');
         $minAmount = $request->query->get('minAmount');
         $maxAmount = $request->query->get('maxAmount');
@@ -50,8 +49,8 @@ final class PaymentController extends AbstractController
 
         $queryDto = new GetPayments(
             $sortRaw,
-            $trainerId,
-            $clientId,
+            $trainer,
+            $client,
             $minAmount,
             $maxAmount,
             $category,
@@ -65,7 +64,7 @@ final class PaymentController extends AbstractController
             array_map(fn ($payment) => $mapper->map($payment), $payments),
             $page,
             $limit,
-            $paymentRepo->count(['client' => $client]),
+            $handler->getTotal($queryDto->filter),
             $queryDto->sort,
             Response::HTTP_OK,
         );

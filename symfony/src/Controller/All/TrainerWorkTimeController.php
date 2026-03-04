@@ -39,13 +39,13 @@ final class TrainerWorkTimeController extends AbstractController
         TrainerRepository $trainerRepo,
     ): OkResponse
     {
-        $id = $trainer->getId();
+        $trainer = $trainerRepo->find((int) $trainer->getId());
         $sortRaw = $request->query->get('sort', 'date:ASC');
-        $date = $request->query->get('date') ? new DateTimeImmutable($request->query->get('date')) : null;
+        $date = $request->query->get('date');
         $page = (int) $request->query->get('page', 1);
         $limit = (int) $request->query->get('limit', 20);
 
-        $queryDto = new GetTrainerWorkTime($id, $date, $sortRaw, $page, $limit);
+        $queryDto = new GetTrainerWorkTime($trainer, $date, $sortRaw, $page, $limit);
 
         $worktimes = $handler->handle($queryDto);
 
@@ -53,7 +53,7 @@ final class TrainerWorkTimeController extends AbstractController
             array_map(fn ($worktime) => $mapper->map($worktime), $worktimes),
             $page,
             $limit,
-            $worktimeRepo->count(['trainer' => $trainerRepo->find($id)]),
+            $handler->getTotal($queryDto->filter),
             $queryDto->sort,
             200,
         );

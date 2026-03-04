@@ -6,18 +6,13 @@ use App\MembershipPlan\DTO\GetMembershipPlans;
 use App\MembershipPlan\Entity\MembershipPlan;
 use App\MembershipPlan\Mapper\MembershipPlanMapperInterface;
 use App\MembershipPlan\Query\MembershipPlansQuery;
-use App\MembershipPlan\Repository\MembershipPlanRepository;
-use App\MembershipPlan\Service\MembershipPlanServiceInterface;
 use App\Response\OkResponse;
 use OpenApi\Attributes as OA;
 use Psr\Cache\InvalidArgumentException;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
-use Symfony\Component\Security\Http\Attribute\IsGranted;
-use Throwable;
 
 final class MembershipPlanController extends AbstractController
 {
@@ -37,7 +32,6 @@ final class MembershipPlanController extends AbstractController
         Request $request,
         MembershipPlanMapperInterface $mapper,
         MembershipPlansQuery $handler,
-        MembershipPlanRepository $membershipPlanRepo,
     ): OkResponse
     {
         $sortRaw = $request->query->get('sort', 'durationDays:ASC');
@@ -56,7 +50,7 @@ final class MembershipPlanController extends AbstractController
             array_map(fn ($plan) => $mapper->map($plan), $plans),
             $page,
             $limit,
-            $membershipPlanRepo->count(),
+            $handler->getTotal($queryDto->filter),
             $queryDto->sort,
             Response::HTTP_OK,
         );

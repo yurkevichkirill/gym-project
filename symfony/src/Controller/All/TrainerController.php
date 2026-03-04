@@ -8,6 +8,7 @@ use App\Trainer\Entity\Trainer;
 use App\Trainer\Mapper\TrainerMapperInterface;
 use App\Trainer\Query\TrainersQuery;
 use App\Trainer\Repository\TrainerRepository;
+use App\TrainingType\Repository\TrainingTypeRepository;
 use OpenApi\Attributes as OA;
 use Psr\Cache\InvalidArgumentException;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -31,17 +32,17 @@ final class TrainerController extends AbstractController
         Request $request,
         TrainerMapperInterface $mapper,
         TrainersQuery $handler,
-        TrainerRepository $trainerRepo,
+        TrainingTypeRepository $trainingTypeRepo,
     ): OkResponse
     {
         $sortRaw = $request->query->get('sort', 'createdAt:ASC');
         $minPrice = $request->query->get('minPrice');
         $maxPrice = $request->query->get('maxPrice');
-        $trainingTypeId = $request->query->get('trainingTypeId') ? (int) $request->query->get('trainingTypeId') : null;
+        $trainingType = $trainingTypeRepo->find((int) $request->query->get('trainingTypeId'));
         $page = (int) $request->query->get('page', 1);
         $limit = (int) $request->query->get('limit', 20);
 
-        $queryDto = new GetTypesTrainers($minPrice, $maxPrice, $trainingTypeId, $sortRaw, $page, $limit);
+        $queryDto = new GetTypesTrainers($minPrice, $maxPrice, $trainingType, $sortRaw, $page, $limit);
 
         $trainers = $handler->handle($queryDto);
 
@@ -49,7 +50,7 @@ final class TrainerController extends AbstractController
             array_map(fn ($trainer) => $mapper->map($trainer), $trainers),
             $queryDto->page,
             $queryDto->limit,
-            $trainerRepo->count(),
+            $handler->getTotal($queryDto->filter),
             $queryDto->sort,
             200,
         );
