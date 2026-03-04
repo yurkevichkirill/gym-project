@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace App\Training\DTO;
 
+use App\Client\Entity\Client;
+use App\Trainer\Entity\Trainer;
+
 final readonly class GetTrainings
 {
     public array $sort;
@@ -12,9 +15,9 @@ final readonly class GetTrainings
     public int $limit;
 
     public function __construct(
-        int $trainerId,
+        Trainer $trainer,
         string $sortRaw = 'bookedAt:ASC',
-        ?int $clientId = null,
+        ?Client $client = null,
         ?string $date = null,
         ?string $durationMinutes = null,
         ?string $startTime = null,
@@ -24,23 +27,23 @@ final readonly class GetTrainings
     )
     {
         $this->sort = $this->parseSort($sortRaw);
-        $this->filter = $this->putFilter($trainerId, $clientId, $date, (int) $durationMinutes, $startTime, $status);
+        $this->filter = $this->putFilter($trainer, $client, $date, (int) $durationMinutes, $startTime, $status);
         $this->page = $page;
         $this->limit = $limit;
     }
 
     private function putFilter (
-        int $trainerId,
-        ?int $clientId,
+        Trainer $trainer,
+        ?Client $client,
         ?string $date = null,
         ?int $durationMinutes = null,
         ?string $startTime = null,
         ?string $status = null,
     ): array
     {
-        $filter = ['trainerId' => $trainerId];
-        if($clientId) {
-            $filter['clientId'] = $clientId;
+        $filter = ['trainer' => $trainer];
+        if($client) {
+            $filter['client'] = $client;
         }
         if($date) {
             $filter['date'] = $date;

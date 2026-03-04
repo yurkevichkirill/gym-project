@@ -2,6 +2,7 @@
 
 namespace App\Controller\Trainer;
 
+use App\Client\Repository\ClientRepository;
 use App\Exception\DateRescheduledException;
 use App\Response\OkResponse;
 use App\Trainer\Entity\Trainer;
@@ -46,12 +47,11 @@ final class TrainingController extends AbstractController
         #[CurrentUser] Trainer $trainer,
         TrainingsQuery   $handler,
         Request               $request,
-        TrainingRepository $trainingRepo,
+        ClientRepository $clientRepo,
     ): OkResponse
     {
-        $trainerId = $trainer->getId();
         $sortRaw = $request->query->get('sort', 'bookedAt:ASC');
-        $clientId = $request->query->get('clientId') ? (int) $request->query->get('clientId') : null;
+        $client = $clientRepo->find((int) $request->query->get('clientId'));
         $date = $request->query->get('date');
         $durationMinutes = $request->query->get('durationMinutes') ? (int) $request->query->get('durationMinutes') : null;
         $startTime = $request->query->get('startTime');
@@ -59,14 +59,14 @@ final class TrainingController extends AbstractController
         $page = (int) $request->query->get('page', 1);
         $limit = (int) $request->query->get('limit', 20);
 
-        $queryDto = new GetTrainings($trainerId, $sortRaw, $clientId, $date, $durationMinutes, $startTime, $status, $page, $limit);
+        $queryDto = new GetTrainings($trainer, $sortRaw, $client, $date, $durationMinutes, $startTime, $status, $page, $limit);
         $trainings = $handler->handle($queryDto);
 
         return new OkResponse(
             array_map(fn ($training) => $mapper->map($training), $trainings),
             $queryDto->page,
             $queryDto->limit,
-            $trainingRepo->countByTrainer($trainer),
+            $handler->getTotal($queryDto->filter),
             $queryDto->sort,
             200,
         );

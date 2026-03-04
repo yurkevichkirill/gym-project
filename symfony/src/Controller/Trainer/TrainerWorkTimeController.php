@@ -4,11 +4,9 @@ declare(strict_types=1);
 
 namespace App\Controller\Trainer;
 
-use App\Booking\DTO\BookingRequest;
 use App\Exception\DateTimeAlreadyTakenException;
 use App\Response\OkResponse;
 use App\Trainer\Entity\Trainer;
-use App\Trainer\Repository\TrainerRepository;
 use App\TrainerWorkTime\DTO\GetTrainerWorkTime;
 use App\TrainerWorkTime\DTO\CreateWorkTimeRequest;
 use App\TrainerWorkTime\DTO\UpdateWorkTimeRequest;
@@ -18,24 +16,17 @@ use App\TrainerWorkTime\Query\WorkTimeQuery;
 use App\TrainerWorkTime\Repository\TrainerWorkTimeRepository;
 use App\TrainerWorkTime\Service\WorkTimeManager;
 use DateMalformedStringException;
-use DateTimeImmutable;
 use Doctrine\ORM\Exception\ORMException;
 use Doctrine\ORM\OptimisticLockException;
 use Nelmio\ApiDocBundle\Attribute\Model;
 use Psr\Cache\InvalidArgumentException;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
 use Symfony\Component\Routing\Attribute\Route;
 use OpenApi\Attributes as OA;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
-use Symfony\Component\Security\Http\Attribute\IsGranted;
-use Symfony\Component\Serializer\Normalizer\AbstractNormalizer;
-use Symfony\Component\Serializer\SerializerInterface;
-use Symfony\Component\Validator\Validator\ValidatorInterface;
-use Throwable;
 
 final class TrainerWorkTimeController extends AbstractController
 {
@@ -55,17 +46,14 @@ final class TrainerWorkTimeController extends AbstractController
         Request $request,
         WorkTimeMapperInterface $mapper,
         WorkTimeQuery $handler,
-        TrainerWorkTimeRepository $worktimeRepo,
-        TrainerRepository $trainerRepo,
     ): OkResponse
     {
-        $id = $trainer->getId();
         $sortRaw = $request->query->get('sort', 'date:ASC');
-        $date = $request->query->get('date') ? new DateTimeImmutable($request->query->get('date')) : null;
+        $date = $request->query->get('date');
         $page = (int) $request->query->get('page', 1);
         $limit = (int) $request->query->get('limit', 20);
 
-        $queryDto = new GetTrainerWorkTime($id, $date, $sortRaw, $page, $limit);
+        $queryDto = new GetTrainerWorkTime($trainer, $date, $sortRaw, $page, $limit);
 
         $worktimes = $handler->handle($queryDto);
 
@@ -73,7 +61,7 @@ final class TrainerWorkTimeController extends AbstractController
             array_map(fn ($worktime) => $mapper->map($worktime), $worktimes),
             $page,
             $limit,
-            $worktimeRepo->count(['trainer' => $trainerRepo->find($id)]),
+            $handler->getTotal($queryDto->filter),
             $queryDto->sort,
             200,
         );

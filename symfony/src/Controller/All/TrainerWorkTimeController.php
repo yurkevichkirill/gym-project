@@ -35,7 +35,6 @@ final class TrainerWorkTimeController extends AbstractController
         WorkTimeMapperInterface $mapper,
         WorkTimeQuery $handler,
         Trainer $trainer,
-        TrainerWorkTimeRepository $worktimeRepo,
         TrainerRepository $trainerRepo,
     ): OkResponse
     {

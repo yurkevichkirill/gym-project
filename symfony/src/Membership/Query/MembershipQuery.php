@@ -44,7 +44,7 @@ class MembershipQuery
             $qb->setFirstResult($offset)
                 ->setMaxResults($dto->limit);
 
-            $item->tag(['memberships_list']);
+            $item->tag(["memberships_list_" . $dto->filter['client']->getId()]);
 
             return $qb->getQuery()->getResult();
         });
@@ -52,10 +52,10 @@ class MembershipQuery
 
     public function getTotal(array $filter): int
     {
-        return $this->createQuery($filter, true)->select("COUNT(m.id)")->getQuery()->getSingleScalarResult();
+        return $this->createQuery($filter)->select("COUNT(m.id)")->getQuery()->getSingleScalarResult();
     }
 
-    private function createQuery(array $filter, bool $isCount = false): QueryBuilder
+    private function createQuery(array $filter): QueryBuilder
     {
         $qb = $this->membershipRepo->createQueryBuilder('m');
 

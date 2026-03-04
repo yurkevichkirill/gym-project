@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\TrainerWorkTime\Query;
 
-use App\Trainer\Repository\TrainerRepository;
 use App\TrainerWorkTime\DTO\GetTrainerWorkTime;
 use App\TrainerWorkTime\Repository\TrainerWorkTimeRepository;
 use Doctrine\ORM\QueryBuilder;
@@ -16,7 +15,6 @@ final readonly class WorkTimeQuery
 {
     public function __construct(
         private TrainerWorkTimeRepository $worktimeRepo,
-        private TrainerRepository $trainerRepo,
         private TagAwareCacheInterface $gymCache
     )
     {}
@@ -40,7 +38,7 @@ final readonly class WorkTimeQuery
             $qb->setFirstResult($offset)
                 ->setMaxResults($dto->limit);
 
-            $item->tag(['trainer_worktimes_list']);
+            $item->tag(['trainer_worktimes_list_' . $dto->filter['trainer']->getId()]);
 
             return $qb->getQuery()->getResult();
         });
@@ -69,6 +67,7 @@ final readonly class WorkTimeQuery
     private function generateCacheKey(GetTrainerWorkTime $query): string
     {
         $params = [
+            'trainer' => $query->filter['trainer'],
             'sort' => $query->sort,
             'page' => $query->page,
             'limit' => $query->limit,

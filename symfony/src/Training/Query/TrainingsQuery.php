@@ -7,6 +7,7 @@ namespace App\Training\Query;
 use App\Trainer\Repository\TrainerRepository;
 use App\Training\DTO\GetTrainings;
 use App\Training\Repository\TrainingRepository;
+use Doctrine\ORM\QueryBuilder;
 use Psr\Cache\InvalidArgumentException;
 use Symfony\Component\Cache\CacheItem;
 use Symfony\Contracts\Cache\TagAwareCacheInterface;
@@ -22,7 +23,6 @@ class TrainingsQuery
 
     public function __construct(
         private TrainingRepository     $trainingRepo,
-        private TrainerRepository      $trainerRepo,
         private TagAwareCacheInterface $gymCache
     )
     {}
@@ -36,40 +36,7 @@ class TrainingsQuery
 
         return $this->gymCache->get($cacheKey, function (CacheItem $item) use ($dto): array
         {
-            $trainer = $this->trainerRepo->find($dto->filter['trainerId']);
-
-            $qb = $this->trainingRepo->createQueryBuilder('t')
-                ->addSelect('b', 'w', 'c')
-                ->innerJoin('t.booking', 'b')
-                ->innerJoin('t.trainerWorkTime', 'w')
-                ->innerJoin('b.client', 'c')
-                ->andWhere('w.trainer = :trainer')
-                ->setParameter('trainer', $trainer);
-
-            if(isset($dto->filter['clientId'])) {
-                $qb->andWhere('c.id = :clientId')
-                    ->setParameter('clientId', $dto->filter['clientId']);
-            }
-
-            if(isset($dto->filter['status'])) {
-                $qb->andWhere('b.status = :status')
-                    ->setParameter('status', $dto->filter['status']);
-            }
-
-            if(isset($dto->filter['date'])) {
-                $qb->andWhere('w.date = :date')
-                    ->setParameter('date', $dto->filter['date']);
-            }
-
-            if(isset($dto->filter['startTime'])) {
-                $qb->andWhere('t.startTime = :startTime')
-                    ->setParameter('startTime', $dto->filter['startTime']);
-            }
-
-            if(isset($dto->filter['durationMinutes'])) {
-                $qb->andWhere('t.durationMinutes = :durationMinutes')
-                    ->setParameter('durationMinutes', $dto->filter['durationMinutes']);
-            }
+            $qb = $this->createQuery($dto->filter);
 
             $offset = ($dto->page - 1) * $dto->limit;
 
@@ -80,16 +47,62 @@ class TrainingsQuery
             $qb->setFirstResult($offset)
                 ->setMaxResults($dto->limit);
 
-            $item->tag(['trainings_list']);
+            $item->tag(['trainings_list_' . $dto->filter['trainer']->getId()]);
 
             return $qb->getQuery()->getResult();
         });
     }
 
+    public function getTotal(array $filter): int
+    {
+        return $this->createQuery($filter, true)->select("COUNT(t.id)")->getQuery()->getSingleScalarResult();
+    }
+
+    private function createQuery(array $filter, bool $isCount = false): QueryBuilder
+    {
+        $qb = $this->trainingRepo->createQueryBuilder('t');
+
+        if(!$isCount) {
+            $qb->addSelect('b', 'w');
+        }
+
+        $qb->innerJoin('t.booking', 'b')
+            ->innerJoin('t.trainerWorkTime', 'w')
+            ->andWhere('w.trainer = :trainer')
+            ->setParameter('trainer', $filter['trainer']);
+
+        if(isset($filter['client'])) {
+            $qb->andWhere('b.client = :client')
+                ->setParameter('client', $filter['client']);
+        }
+
+        if(isset($filter['status'])) {
+            $qb->andWhere('b.status = :status')
+                ->setParameter('status', $filter['status']);
+        }
+
+        if(isset($filter['date'])) {
+            $qb->andWhere('w.date = :date')
+                ->setParameter('date', $filter['date']);
+        }
+
+        if(isset($filter['startTime'])) {
+            $qb->andWhere('t.startTime = :startTime')
+                ->setParameter('startTime', $filter['startTime']);
+        }
+
+        if(isset($filter['durationMinutes'])) {
+            $qb->andWhere('t.durationMinutes = :durationMinutes')
+                ->setParameter('durationMinutes', $filter['durationMinutes']);
+        }
+
+        return $qb;
+    }
+
     private function generateCacheKey(GetTrainings $query): string
     {
         $params = [
-            'trainerId' => $query->filter['trainerId'],
+            'trainer' => $query->filter['trainer'],
             'sort' => $query->sort,
             'page' => $query->page,
             'limit' => $query->limit,
@@ -98,8 +111,8 @@ class TrainingsQuery
         if(isset($query->filter['status'])) {
             $params['status'] = $query->filter['status'];
         }
-        if(isset($query->filter['clientId'])) {
-            $params['clientId'] = $query->filter['clientId'];
+        if(isset($query->filter['client'])) {
+            $params['client'] = $query->filter['client'];
         }
         if(isset($query->filter['date'])) {
             $params['date'] = $query->filter['date'];

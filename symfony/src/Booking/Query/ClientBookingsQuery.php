@@ -6,7 +6,6 @@ namespace App\Booking\Query;
 
 use App\Booking\DTO\GetClientBookings;
 use App\Booking\Repository\BookingRepository;
-use Doctrine\ORM\Query;
 use Doctrine\ORM\QueryBuilder;
 use Psr\Cache\InvalidArgumentException;
 use Symfony\Component\Cache\CacheItem;
@@ -47,7 +46,7 @@ final readonly class ClientBookingsQuery
             $qb->setFirstResult($offset)
                 ->setMaxResults($dto->limit);
 
-            $item->tag(['bookings_list']);
+            $item->tag(["bookings_list_" . $dto->filter['client']->getId()]);
 
             return $qb->getQuery()->getResult();
         });
