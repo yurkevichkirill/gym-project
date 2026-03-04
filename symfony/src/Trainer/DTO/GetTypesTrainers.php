@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Trainer\DTO;
 
 use App\Booking\Enum\BookingStatusEnum;
+use App\TrainingType\Entity\TrainingType;
 
 class GetTypesTrainers
 {
@@ -16,14 +17,14 @@ class GetTypesTrainers
     public function __construct(
         ?int $minPrice = null,
         ?int $maxPrice = null,
-        ?int $trainingTypeId = null,
+        ?TrainingType $trainingType = null,
         string $sortRaw = 'createdAt:ASC',
         int $page = 1,
         int $limit = 20
     )
     {
         $this->sort = $this->parseSort($sortRaw);
-        $this->filter = $this->putFilter($minPrice, $maxPrice, $trainingTypeId);
+        $this->filter = $this->putFilter($minPrice, $maxPrice, $trainingType);
         $this->page = $page;
         $this->limit = $limit;
     }
@@ -31,7 +32,7 @@ class GetTypesTrainers
     private function putFilter (
         ?int $minPrice = null,
         ?int $maxPrice = null,
-        ?int $trainingTypeId = null,
+        ?TrainingType $trainingType = null,
     ): array
     {
         $filter = [];
@@ -41,8 +42,8 @@ class GetTypesTrainers
         if($maxPrice) {
             $filter['maxPrice'] = $maxPrice;
         }
-        if($trainingTypeId) {
-            $filter['trainingTypeId'] = $trainingTypeId;
+        if($trainingType) {
+            $filter['trainingType'] = $trainingType;
         }
 
         return $filter;

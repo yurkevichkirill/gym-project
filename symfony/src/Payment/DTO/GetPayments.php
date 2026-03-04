@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace App\Payment\DTO;
 
+use App\Client\Entity\Client;
+use App\Trainer\Entity\Trainer;
+
 final readonly class GetPayments
 {
     public array $sort;
@@ -13,8 +16,8 @@ final readonly class GetPayments
 
     public function __construct(
         string $sortRaw = 'paidAt:ASC',
-        ?int $trainerId = null,
-        ?int $clientId = null,
+        ?Trainer $trainer = null,
+        ?Client $client = null,
         ?string $minAmount = null,
         ?string $maxAmount = null,
         ?string $category = null,
@@ -23,25 +26,25 @@ final readonly class GetPayments
     )
     {
         $this->sort = $this->parseSort($sortRaw);
-        $this->filter = $this->putFilter($trainerId, $clientId, $minAmount, $maxAmount, $category);
+        $this->filter = $this->putFilter($trainer, $client, $minAmount, $maxAmount, $category);
         $this->page = $page;
         $this->limit = $limit;
     }
 
     private function putFilter (
-        ?int $trainerId = null,
-        ?int $clientId = null,
+        ?Trainer $trainer = null,
+        ?Client $client = null,
         ?string $minAmount = null,
         ?string $maxAmount = null,
         ?string $category = null,
     ): array
     {
         $filter = [];
-        if($clientId) {
-            $filter['clientId'] = $clientId;
+        if($client) {
+            $filter['client'] = $client;
         }
-        if($trainerId) {
-            $filter['trainerId'] = $trainerId;
+        if($trainer) {
+            $filter['trainer'] = $trainer;
         }
         if($minAmount) {
             $filter['minAmount'] = $minAmount;

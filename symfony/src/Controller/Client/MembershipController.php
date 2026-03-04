@@ -9,8 +9,8 @@ use App\Membership\DTO\UpdateMembershipRequest;
 use App\Membership\Entity\Membership;
 use App\Membership\Mapper\MembershipMapperInterface;
 use App\Membership\Query\MembershipQuery;
-use App\Membership\Repository\MembershipRepository;
 use App\Membership\Service\MembershipManager;
+use App\MembershipPlan\Repository\MembershipPlanRepository;
 use App\Response\OkResponse;
 use Doctrine\ORM\Exception\ORMException;
 use Doctrine\ORM\OptimisticLockException;
@@ -23,7 +23,6 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
-use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 final class MembershipController extends AbstractController
 {
@@ -44,22 +43,21 @@ final class MembershipController extends AbstractController
         Request $request,
         MembershipMapperInterface $mapper,
         MembershipQuery $handler,
-        MembershipRepository $membershipRepo,
+        MembershipPlanRepository $membershipPlanRepo,
     ): OkResponse
     {
-        $clientId = $client->getId();
         $sortRaw = $request->query->get('sort', 'createdAt:ASC');
         $status = $request->query->get('status');
-        $membershipPlanId = $request->query->get('membershipPlanId') ? (int) $request->query->get('membershipPlanId') : null;
+        $membershipPlan = $membershipPlanRepo->find((int) $request->query->get('membershipPlanId'));
         $minVisits = $request->query->get('minVisits') ? (int) $request->query->get('minVisits') : null;
         $maxVisits = $request->query->get('maxVisits') ? (int) $request->query->get('maxVisits') : null;
         $page = (int) $request->query->get('page', 1);
         $limit = (int) $request->query->get('limit', 20);
 
         $queryDto = new GetMemberships(
-            $clientId,
+            $client,
             $sortRaw,
-            $membershipPlanId,
+            $membershipPlan,
             $status,
             $minVisits,
             $maxVisits,
@@ -73,7 +71,7 @@ final class MembershipController extends AbstractController
             array_map(fn ($membership) => $mapper->map($membership), $memberships),
             $page,
             $limit,
-            $membershipRepo->count(['client' => $client]),
+            $handler->getTotal($queryDto->filter),
             $queryDto->sort,
             Response::HTTP_OK,
         );

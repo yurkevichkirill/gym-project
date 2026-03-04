@@ -7,6 +7,7 @@ namespace App\TrainerWorkTime\Query;
 use App\Trainer\Repository\TrainerRepository;
 use App\TrainerWorkTime\DTO\GetTrainerWorkTime;
 use App\TrainerWorkTime\Repository\TrainerWorkTimeRepository;
+use Doctrine\ORM\QueryBuilder;
 use Psr\Cache\InvalidArgumentException;
 use Symfony\Component\Cache\CacheItem;
 use Symfony\Contracts\Cache\TagAwareCacheInterface;
@@ -29,17 +30,7 @@ final readonly class WorkTimeQuery
 
         return $this->gymCache->get($cacheKey, function (CacheItem $item) use ($dto): array
         {
-            $trainer = $this->trainerRepo->find($dto->filter['trainerId']);
-
-            $qb = $this->worktimeRepo->createQueryBuilder('w')
-                ->andWhere('w.trainer = :trainer')
-                ->setParameter('trainer', $trainer)
-                ->innerJoin('w.trainer', 't');
-
-            if(isset($dto->filter['date'])) {
-                $qb->andWhere('w.date = :date')
-                    ->setParameter('date', $dto->filter['date']);
-            }
+            $qb = $this->createQuery($dto->filter);
 
             $offset = ($dto->page - 1) * $dto->limit;
 
@@ -53,6 +44,26 @@ final readonly class WorkTimeQuery
 
             return $qb->getQuery()->getResult();
         });
+    }
+
+    public function getTotal(array $filter): int
+    {
+        return $this->createQuery($filter)->select("COUNT(w.id)")->getQuery()->getSingleScalarResult();
+    }
+
+    private function createQuery(array $filter): QueryBuilder
+    {
+        $qb = $this->worktimeRepo->createQueryBuilder('w')
+            ->andWhere('w.trainer = :trainer')
+            ->setParameter('trainer', $filter['trainer'])
+            ->innerJoin('w.trainer', 't');
+
+        if(isset($filter['date'])) {
+            $qb->andWhere('w.date = :date')
+                ->setParameter('date', $filter['date']);
+        }
+
+        return $qb;
     }
 
     private function generateCacheKey(GetTrainerWorkTime $query): string

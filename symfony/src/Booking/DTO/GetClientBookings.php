@@ -4,7 +4,8 @@ declare(strict_types=1);
 
 namespace App\Booking\DTO;
 
-use App\Booking\Enum\BookingStatusEnum;
+use App\Client\Entity\Client;
+use App\Trainer\Entity\Trainer;
 
 final readonly class GetClientBookings
 {
@@ -14,35 +15,35 @@ final readonly class GetClientBookings
     public int $limit;
 
     public function __construct(
-        int $clientId,
+        Client $client,
         string $sortRaw = 'bookedAt:ASC',
-        ?int $trainerId = null,
+        ?Trainer $trainer = null,
         ?string $date = null,
         ?string $durationMinutes = null,
         ?string $startTime = null,
         ?string $status = null,
         int $page = 1,
-        int $limit = 20
+        int $limit = 20,
     )
     {
         $this->sort = $this->parseSort($sortRaw);
-        $this->filter = $this->putFilter($clientId, $trainerId, $date, (int) $durationMinutes, $startTime, $status);
+        $this->filter = $this->putFilter($client, $trainer, $date, (int) $durationMinutes, $startTime, $status);
         $this->page = $page;
         $this->limit = $limit;
     }
 
     private function putFilter (
-        int $clientId,
-        ?int $trainerId,
+        Client $client,
+        ?Trainer $trainer,
         ?string $date = null,
         ?int $durationMinutes = null,
         ?string $startTime = null,
         ?string $status = null,
     ): array
     {
-        $filter = ['clientId' => $clientId];
-        if($trainerId) {
-            $filter['trainerId'] = $trainerId;
+        $filter = ['client' => $client];
+        if($trainer) {
+            $filter['trainer'] = $trainer;
         }
         if($date) {
             $filter['date'] = $date;

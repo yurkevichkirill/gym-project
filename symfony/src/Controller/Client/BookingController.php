@@ -5,17 +5,15 @@ namespace App\Controller\Client;
 use App\Booking\DTO\BookingRequest;
 use App\Booking\DTO\GetClientBookings;
 use App\Booking\Entity\Booking;
-use App\Booking\Enum\BookingStatusEnum;
 use App\Booking\Mapper\BookingMapperInterface;
 use App\Booking\Query\ClientBookingsQuery;
 use App\Booking\Repository\BookingRepository;
 use App\Booking\Service\BookingManager;
 use App\Client\Entity\Client;
-use App\Client\Repository\ClientRepository;
 use App\Response\OkResponse;
+use App\Trainer\Repository\TrainerRepository;
 use DateMalformedIntervalStringException;
 use DateMalformedStringException;
-use DateTimeImmutable;
 use Doctrine\ORM\Exception\ORMException;
 use Doctrine\ORM\OptimisticLockException;
 use Nelmio\ApiDocBundle\Attribute\Model;
@@ -33,7 +31,6 @@ final class BookingController extends AbstractController
 {
     /**
      * @throws InvalidArgumentException
-     * @throws DateMalformedStringException
      */
     #[Route('/api/me/bookings', methods: ['GET'], format: 'json')]
     #[OA\Parameter(name: 'trainerId', in: 'query', example: 6)]
@@ -51,13 +48,11 @@ final class BookingController extends AbstractController
         #[CurrentUser] Client $client,
         ClientBookingsQuery   $handler,
         Request               $request,
-        BookingRepository     $bookingRepo,
-        ClientRepository      $clientRepo,
+        TrainerRepository     $trainerRepo,
     ): OkResponse
     {
-        $id = $client->getId();
         $sortRaw = $request->query->get('sort', 'bookedAt:ASC');
-        $trainerId = $request->query->get('trainerId') ? (int) $request->query->get('trainerId') : null;
+        $trainer = $trainerRepo->find((int) $request->query->get('trainerId'));
         $status = $request->query->get('status');
         $date = $request->query->get('date');
         $durationMinutes = $request->query->get('durationMinutes') ? (int) $request->query->get('durationMinutes') : null;
@@ -66,9 +61,9 @@ final class BookingController extends AbstractController
         $limit = (int) $request->query->get('limit', 20);
 
         $queryDto = new GetClientBookings(
-            $id,
+            $client,
             $sortRaw,
-            $trainerId,
+            $trainer,
             $date,
             $durationMinutes,
             $startTime,
@@ -83,7 +78,7 @@ final class BookingController extends AbstractController
             array_map(fn($booking) => $mapper->map($booking), $bookings),
             $queryDto->page,
             $queryDto->limit,
-            $bookingRepo->count(['client' => $clientRepo->find($id)]),
+            $handler->getTotal($queryDto->filter),
             $queryDto->sort,
             200
         );

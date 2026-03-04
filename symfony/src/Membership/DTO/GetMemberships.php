@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace App\Membership\DTO;
 
+use App\Client\Entity\Client;
+use App\MembershipPlan\Entity\MembershipPlan;
+
 class GetMemberships
 {
     public array $sort;
@@ -12,9 +15,9 @@ class GetMemberships
     public int $limit;
 
     public function __construct(
-        int $clientId,
+        Client $client,
         string $sortRaw = 'bookedAt:ASC',
-        ?int $membershipPlanId = null,
+        ?MembershipPlan $membershipPlan = null,
         ?string $status = null,
         ?int $minVisits = null,
         ?int $maxVisits = null,
@@ -23,22 +26,22 @@ class GetMemberships
     )
     {
         $this->sort = $this->parseSort($sortRaw);
-        $this->filter = $this->putFilter($clientId, $membershipPlanId, $status, $minVisits, $maxVisits);
+        $this->filter = $this->putFilter($client, $membershipPlan, $status, $minVisits, $maxVisits);
         $this->page = $page;
         $this->limit = $limit;
     }
 
     private function putFilter (
-        int $clientId,
-        ?int $membershipPlanId = null,
+        Client $client,
+        ?MembershipPlan $membershipPlan = null,
         ?string $status = null,
         ?int $minVisits = null,
         ?int $maxVisits = null,
     ): array
     {
-        $filter = ['clientId' => $clientId];
-        if($membershipPlanId) {
-            $filter['membershipPlanId'] = $membershipPlanId;
+        $filter = ['client' => $client];
+        if($membershipPlan) {
+            $filter['membershipPlan'] = $membershipPlan;
         }
         if($status) {
             $filter['status'] = $status;

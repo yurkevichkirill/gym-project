@@ -6,11 +6,9 @@ namespace App\Payment\Query;
 
 use App\Client\Repository\ClientRepository;
 use App\Payment\DTO\GetPayments;
-use App\Payment\DTO\PaymentResponse;
 use App\Payment\Repository\PaymentRepository;
 use App\Trainer\Repository\TrainerRepository;
-use App\Training\DTO\GetTrainings;
-use App\Training\Repository\TrainingRepository;
+use Doctrine\ORM\QueryBuilder;
 use Psr\Cache\InvalidArgumentException;
 use Symfony\Component\Cache\CacheItem;
 use Symfony\Contracts\Cache\TagAwareCacheInterface;
@@ -76,6 +74,43 @@ final readonly class PaymentsQuery
         });
     }
 
+    public function getTotal(array $filter): int
+    {
+        return $this->createQuery($filter)->select("COUNT(p.id)")->getQuery()->getSingleScalarResult();
+    }
+
+    private function createQuery(array $filter): QueryBuilder
+    {
+        $qb = $this->paymentRepo->createQueryBuilder('p');
+
+        if(isset($filter['client'])) {
+            $qb->andWhere('p.client = :client')
+                ->setParameter('client', $filter['client']);
+        }
+
+        if(isset($filter['trainer'])) {
+            $qb->andWhere('p.trainer = :trainer')
+                ->setParameter('trainer', $filter['trainer']);
+        }
+
+        if(isset($filter['minAmount'])) {
+            $qb->andWhere('p.amount >= :minAmount')
+                ->setParameter('minAmount', $filter['minAmount']);
+        }
+
+        if(isset($filter['maxAmount'])) {
+            $qb->andWhere('p.amount <= :maxAmount')
+                ->setParameter('maxAmount', $filter['maxAmount']);
+        }
+
+        if(isset($filter['category'])) {
+            $qb->andWhere('p.category = :category')
+                ->setParameter('category', $filter['category']);
+        }
+
+        return $qb;
+    }
+
     private function generateCacheKey(GetPayments $query): string
     {
         $params = [
@@ -84,11 +119,11 @@ final readonly class PaymentsQuery
             'limit' => $query->limit,
         ];
 
-        if(isset($query->filter['clientId'])) {
-            $params['clientId'] = $query->filter['clientId'];
+        if(isset($query->filter['client'])) {
+            $params['client'] = $query->filter['client'];
         }
-        if(isset($query->filter['trainerId'])) {
-            $params['trainerId'] = $query->filter['trainerId'];
+        if(isset($query->filter['trainer'])) {
+            $params['trainer'] = $query->filter['trainer'];
         }
         if(isset($query->filter['minAmount'])) {
             $params['minAmount'] = $query->filter['minAmount'];
