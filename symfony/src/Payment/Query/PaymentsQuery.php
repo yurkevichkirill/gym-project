@@ -68,7 +68,7 @@ final readonly class PaymentsQuery
             $qb->setFirstResult($offset)
                 ->setMaxResults($dto->limit);
 
-            $item->tag(['payments_list']);
+            $item->tag(['payments_list_' . $dto->filter['client']->getId()]);
 
             return $qb->getQuery()->getResult();
         });
@@ -121,6 +121,8 @@ final readonly class PaymentsQuery
 
         if(isset($query->filter['client'])) {
             $params['client'] = $query->filter['client'];
+        } else {
+            $params['client'] = null;
         }
         if(isset($query->filter['trainer'])) {
             $params['trainer'] = $query->filter['trainer'];
