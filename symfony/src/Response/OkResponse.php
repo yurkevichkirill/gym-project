@@ -12,7 +12,7 @@ final readonly class OkResponse
         public int $limit = 1,
         public int $total = 0,
         public array $sort = [],
-        public int $status = 200
+        public int $status = 200,
     )
     {}
 }
