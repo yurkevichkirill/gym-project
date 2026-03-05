@@ -32,7 +32,7 @@ final class TrainingController extends AbstractController
     /**
      * @throws InvalidArgumentException
      */
-    #[Route('api/trainer/me/trainings', methods: ['GET'], format: 'json')]
+    #[Route('api/trainer/me/trainings/', methods: ['GET'], format: 'json')]
     #[OA\Parameter(name: 'clientId', in: 'query', example: 6)]
     #[OA\Parameter(name: 'status', in: 'query', example: 'scheduled')]
     #[OA\Parameter(name: 'date', in: 'query', example: '2026-03-10')]
@@ -72,7 +72,7 @@ final class TrainingController extends AbstractController
         );
     }
 
-    #[Route('api/trainings/{id}', methods: ['GET'], format: 'json')]
+    #[Route('api/trainings/{id}/', methods: ['GET'], format: 'json')]
     #[OA\Tag(name: "Trainer: Training")]
     public function get(
         TrainingMapperInterface $mapper,
@@ -92,7 +92,7 @@ final class TrainingController extends AbstractController
      * @throws DateMalformedStringException
      * @throws DateMalformedIntervalStringException
      */
-    #[Route('api/trainings/{id}', methods: ['PUT', 'PATCH'], format: 'json')]
+    #[Route('api/trainings/{id}/', methods: ['PUT', 'PATCH'], format: 'json')]
     #[OA\RequestBody(content: new Model(type: TrainingRequest::class))]
     #[OA\Tag(name: "Trainer: Training")]
     public function update(
@@ -116,7 +116,7 @@ final class TrainingController extends AbstractController
      * @throws OptimisticLockException
      * @throws ORMException
      */
-    #[Route('api/trainings/{id}', methods: ['DELETE'], format: 'json')]
+    #[Route('api/trainings/{id}/', methods: ['DELETE'], format: 'json')]
     #[OA\Tag(name: "Trainer: Training")]
     public function delete(
         Training $training,

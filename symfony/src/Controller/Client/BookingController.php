@@ -32,7 +32,7 @@ final class BookingController extends AbstractController
     /**
      * @throws InvalidArgumentException
      */
-    #[Route('/api/me/bookings', methods: ['GET'], format: 'json')]
+    #[Route('/api/me/bookings/', methods: ['GET'], format: 'json')]
     #[OA\Parameter(name: 'trainerId', in: 'query', example: 6)]
     #[OA\Parameter(name: 'status', in: 'query', example: 'scheduled')]
     #[OA\Parameter(name: 'date', in: 'query', example: '10-03-2026')]
@@ -84,7 +84,7 @@ final class BookingController extends AbstractController
         );
     }
 
-    #[Route('api/me/bookings/{id}', methods: ['GET'], format: 'json')]
+    #[Route('api/me/bookings/{id}/', methods: ['GET'], format: 'json')]
     #[OA\Tag(name: "Client: Bookings")]
     public function get(BookingMapperInterface $mapper, Booking $booking): OkResponse
     {
@@ -101,7 +101,7 @@ final class BookingController extends AbstractController
      * @throws DateMalformedStringException
      * @throws ORMException|DateMalformedIntervalStringException
      */
-    #[Route('api/me/bookings', methods: ['POST'], format: 'json')]
+    #[Route('api/me/bookings/', methods: ['POST'], format: 'json')]
     #[OA\RequestBody(content: new Model(type: BookingRequest::class))]
     #[OA\Tag(name: "Client: Bookings")]
     #[IsGranted('ROLE_CLIENT')]
@@ -120,7 +120,7 @@ final class BookingController extends AbstractController
         );
     }
 
-    #[Route('api/me/bookings/{id}', methods: ['DELETE'], format: 'json')]
+    #[Route('api/me/bookings/{id}/', methods: ['DELETE'], format: 'json')]
     #[OA\Tag(name: "Client: Bookings")]
     public function remove(
         Booking $booking,
