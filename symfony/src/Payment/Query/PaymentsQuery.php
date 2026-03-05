@@ -32,6 +32,7 @@ final readonly class PaymentsQuery
 
         return $this->gymCache->get($cacheKey, function (CacheItem $item) use ($dto): array
         {
+            $item->expiresAfter(3600);
 
             $qb = $this->paymentRepo->createQueryBuilder('p');
 
