@@ -20,7 +20,7 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 final class ClientController extends AbstractController
 {
-    #[Route('/api/me', methods: ['GET'], format: 'json')]
+    #[Route('/api/me/', methods: ['GET'], format: 'json')]
     #[IsGranted('ROLE_CLIENT')]
     #[OA\Tag(name: "Client: Client")]
     public function get(
@@ -36,7 +36,7 @@ final class ClientController extends AbstractController
         );
     }
 
-    #[Route('api/me', methods: ['PUT', 'PATCH'], format: 'json')]
+    #[Route('api/me/', methods: ['PUT', 'PATCH'], format: 'json')]
     #[OA\RequestBody(content: new Model(type: UpdateClientRequest::class))]
     #[OA\Tag(name: "Client: Client")]
     public function update(
@@ -58,7 +58,7 @@ final class ClientController extends AbstractController
      * @throws OptimisticLockException
      * @throws ORMException
      */
-    #[Route('api/me', methods: ['DELETE'], format: 'json')]
+    #[Route('api/me/', methods: ['DELETE'], format: 'json')]
     #[IsGranted('ROLE_CLIENT')]
     #[OA\Tag(name: "Client: Client")]
     public function delete(

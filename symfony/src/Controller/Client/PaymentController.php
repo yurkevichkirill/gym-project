@@ -22,7 +22,7 @@ final class PaymentController extends AbstractController
     /**
      * @throws InvalidArgumentException
      */
-    #[Route('/api/me/payments', methods: ['GET'], format: 'json')]
+    #[Route('/api/me/payments/', methods: ['GET'], format: 'json')]
     #[OA\Parameter(name: 'trainerId', in: 'query', example: 6)]
     #[OA\Parameter(name: 'minAmount', in: 'query', example: 20)]
     #[OA\Parameter(name: 'maxAmount', in: 'query', example: 100)]
@@ -70,7 +70,7 @@ final class PaymentController extends AbstractController
         );
     }
 
-    #[Route('/api/me/payments/{id}', methods: ['GET'], format: 'json')]
+    #[Route('/api/me/payments/{id}/', methods: ['GET'], format: 'json')]
     #[OA\Tag(name: "Client: Payments")]
     public function get(
         Payment $payment,

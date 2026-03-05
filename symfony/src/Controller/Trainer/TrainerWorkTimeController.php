@@ -35,7 +35,7 @@ final class TrainerWorkTimeController extends AbstractController
      * @throws InvalidArgumentException
      */
 
-    #[Route('api/trainer/me/worktime', methods: ['GET'], format: 'json')]
+    #[Route('api/trainer/me/worktime/', methods: ['GET'], format: 'json')]
     #[OA\Tag(name: "Trainer: WorkTime")]
     #[OA\Parameter(name: 'date', in: 'query', example: '2026-03-10')]
     #[OA\Parameter(name: 'sort', in: 'query', example: 'date:ASC')]
@@ -71,7 +71,7 @@ final class TrainerWorkTimeController extends AbstractController
      * @throws DateMalformedStringException
      * @throws DateTimeAlreadyTakenException
      */
-    #[Route('api/trainer/me/worktime', methods: ['POST'], format: 'json')]
+    #[Route('api/trainer/me/worktime/', methods: ['POST'], format: 'json')]
     #[OA\RequestBody(content: new Model(type: CreateWorkTimeRequest::class))]
     #[OA\Tag(name: "Trainer: WorkTime")]
     public function create(
@@ -94,7 +94,7 @@ final class TrainerWorkTimeController extends AbstractController
      * @throws \DateMalformedIntervalStringException
      * @throws DateTimeAlreadyTakenException
      */
-    #[Route('api/worktime/{id}', methods: ['PUT', 'PATCH'], format: 'json')]
+    #[Route('api/worktime/{id}/', methods: ['PUT', 'PATCH'], format: 'json')]
     #[OA\RequestBody(content: new Model(type: UpdateWorkTimeRequest::class))]
     #[OA\Tag(name: "Trainer: WorkTime")]
     public function update(
@@ -118,7 +118,7 @@ final class TrainerWorkTimeController extends AbstractController
      * @throws OptimisticLockException
      * @throws ORMException
      */
-    #[Route('api/worktime/{id}', methods: ['DELETE'], format: 'json')]
+    #[Route('api/worktime/{id}/', methods: ['DELETE'], format: 'json')]
     #[OA\Tag(name: "Trainer: WorkTime")]
     public function remove(
         TrainerWorkTime $worktime,

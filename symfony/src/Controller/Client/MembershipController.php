@@ -29,7 +29,7 @@ final class MembershipController extends AbstractController
     /**
      * @throws InvalidArgumentException
      */
-    #[Route('/api/me/memberships', methods: ['GET'], format: 'json')]
+    #[Route('/api/me/memberships/', methods: ['GET'], format: 'json')]
     #[OA\Parameter(name: 'membershipPlanId', in: 'query', example: 6)]
     #[OA\Parameter(name: 'status', in: 'query', example: 'active')]
     #[OA\Parameter(name: 'minVisits', in: 'query', example: 10)]
@@ -77,7 +77,7 @@ final class MembershipController extends AbstractController
         );
     }
 
-    #[Route('/api/memberships/{id}', methods: ['GET'], format: 'json')]
+    #[Route('/api/memberships/{id}/', methods: ['GET'], format: 'json')]
     #[OA\Tag(name: "Client: Membership")]
     public function get(
         Membership $membership,
@@ -96,7 +96,7 @@ final class MembershipController extends AbstractController
      * @throws OptimisticLockException
      * @throws ORMException
      */
-    #[Route('api/me/membership', methods: ['POST'], format: 'json')]
+    #[Route('api/me/membership/', methods: ['POST'], format: 'json')]
     #[OA\RequestBody(content: new Model(type: CreateMembershipRequest::class))]
     #[OA\Tag(name: "Client: Membership")]
     public function create(
@@ -118,7 +118,7 @@ final class MembershipController extends AbstractController
      * @throws OptimisticLockException
      * @throws ORMException
      */
-    #[Route('api/memberships/{id}', methods: ['PUT', 'PATCH'], format: 'json')]
+    #[Route('api/memberships/{id}/', methods: ['PUT', 'PATCH'], format: 'json')]
     #[OA\RequestBody(content: new Model(type: UpdateMembershipRequest::class))]
     #[OA\Tag(name: "Client: Membership")]
     public function update(

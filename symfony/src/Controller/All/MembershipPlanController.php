@@ -19,7 +19,7 @@ final class MembershipPlanController extends AbstractController
     /**
      * @throws InvalidArgumentException
      */
-    #[Route('/api/membership/plans', methods: ['GET'], format: 'json')]
+    #[Route('/api/membership/plans/', methods: ['GET'], format: 'json')]
     #[OA\Parameter(name: 'minPrice', in: 'query', example: 50)]
     #[OA\Parameter(name: 'maxPrice', in: 'query', example: 100)]
     #[OA\Parameter(name: 'durationDays', in: 'query', example: 30)]
@@ -56,7 +56,7 @@ final class MembershipPlanController extends AbstractController
         );
     }
 
-    #[Route('api/membership/plans/{id}', methods: ['GET'], format: 'json')]
+    #[Route('api/membership/plans/{id}/', methods: ['GET'], format: 'json')]
     #[OA\Tag(name: "All: MembershipPlan")]
     public function get(
         MembershipPlan $membershipPlan,
