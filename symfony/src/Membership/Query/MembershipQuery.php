@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Membership\Query;
 
-use App\Client\Repository\ClientRepository;
 use App\Membership\DTO\GetMemberships;
 use App\Membership\Repository\MembershipRepository;
 use Doctrine\ORM\QueryBuilder;

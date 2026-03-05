@@ -26,8 +26,8 @@ class TrainerManager
         if($requestDto->phone) {
             $trainer->setPhone($requestDto->phone);
         }
-        if($requestDto->price) {
-            $trainer->setPricePerHour($requestDto->price);
+        if($requestDto->pricePerHour) {
+            $trainer->setPricePerHour($requestDto->pricePerHour);
         }
 
         $this->trainerRepo->save();

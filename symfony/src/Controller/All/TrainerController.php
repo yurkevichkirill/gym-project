@@ -23,7 +23,7 @@ final class TrainerController extends AbstractController
     #[OA\Parameter(name: 'minPrice', in: 'query', example: 30)]
     #[OA\Parameter(name: 'maxPrice', in: 'query', example: 50)]
     #[OA\Parameter(name: 'trainingTypeId', in: 'query', example: 1)]
-    #[OA\Parameter(name: 'sort', in: 'query', example: 'createdAt:ASC')]
+    #[OA\Parameter(name: 'sort', in: 'query', example: 'lastName:ASC')]
     #[OA\Parameter(name: 'page', in: 'query', example: 1)]
     #[OA\Parameter(name: 'limit', in: 'query', example: 20)]
     #[OA\Tag(name: "All: Trainers")]
@@ -34,7 +34,7 @@ final class TrainerController extends AbstractController
         TrainingTypeRepository $trainingTypeRepo,
     ): OkResponse
     {
-        $sortRaw = $request->query->get('sort', 'createdAt:ASC');
+        $sortRaw = $request->query->get('sort', 'lastName:ASC');
         $minPrice = $request->query->get('minPrice');
         $maxPrice = $request->query->get('maxPrice');
         $trainingType = $trainingTypeRepo->find((int) $request->query->get('trainingTypeId'));

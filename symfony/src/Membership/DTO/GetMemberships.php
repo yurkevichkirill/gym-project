@@ -60,9 +60,20 @@ class GetMemberships
     {
         $sort = [];
         $allowedOrders = ['ASC', 'DESC'];
+        $allowedParams = ['startDate', 'endDate', 'status', 'visits', 'membershipPlanId'];
 
         foreach (explode(',', $sortRaw) as $item) {
-            [$field, $rawOrder] = explode(':', $item);
+            $exploded = explode(':', $item);
+
+            if (!in_array($exploded[0], $allowedParams)) {
+                continue;
+            }
+
+            if (count($exploded) === 1) {
+                $exploded[] = 'ASC';
+            }
+
+            [$field, $rawOrder] = $exploded;
             $order = strtoupper(trim($rawOrder));
 
             if (!in_array($order, $allowedOrders)) {

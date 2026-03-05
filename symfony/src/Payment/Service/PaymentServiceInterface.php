@@ -12,7 +12,6 @@ use App\Payment\Enum\PaymentStatusEnum;
 interface PaymentServiceInterface
 {
     public function pay(Client $client, Payment $payment): void;
-    public function cancel(Payment $payment): void;
     public function findBy(array $sort, ?int $clientId, ?PaymentCategoryEnum $category, ?PaymentStatusEnum $status): array;
     public function generateCacheKey(array $sort, ?int $clientId, ?PaymentCategoryEnum $category, ?PaymentStatusEnum $status): string;
 }

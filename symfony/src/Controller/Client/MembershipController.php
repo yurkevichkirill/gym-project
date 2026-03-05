@@ -34,7 +34,7 @@ final class MembershipController extends AbstractController
     #[OA\Parameter(name: 'status', in: 'query', example: 'active')]
     #[OA\Parameter(name: 'minVisits', in: 'query', example: 10)]
     #[OA\Parameter(name: 'maxVisits', in: 'query', example: 100)]
-    #[OA\Parameter(name: 'sort', in: 'query', example: 'createdAt:ASC')]
+    #[OA\Parameter(name: 'sort', in: 'query', example: 'startDate:ASC')]
     #[OA\Parameter(name: 'page', in: 'query', example: 1)]
     #[OA\Parameter(name: 'limit', in: 'query', example: 20)]
     #[OA\Tag(name: "Client: Membership")]
@@ -46,7 +46,7 @@ final class MembershipController extends AbstractController
         MembershipPlanRepository $membershipPlanRepo,
     ): OkResponse
     {
-        $sortRaw = $request->query->get('sort', 'createdAt:ASC');
+        $sortRaw = $request->query->get('sort', 'startDate:ASC');
         $status = $request->query->get('status');
         $membershipPlan = $membershipPlanRepo->find((int) $request->query->get('membershipPlanId'));
         $minVisits = $request->query->get('minVisits') ? (int) $request->query->get('minVisits') : null;
