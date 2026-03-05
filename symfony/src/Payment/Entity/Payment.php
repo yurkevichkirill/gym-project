@@ -48,7 +48,7 @@ class Payment
     #[ORM\Column(type: Types::ENUM)]
     private ?PaymentCategoryEnum $category = null;
 
-    #[ORM\Column(nullable: true, options: ["default" => "CURRENT_TIMESTAMP"])]
+    #[ORM\Column(nullable: true)]
     private ?\DateTimeImmutable $paidAt = null;
 
     public function getId(): ?int
@@ -107,21 +107,6 @@ class Payment
         return $this;
     }
 
-    public function getStatus(): ?PaymentStatusEnum
-    {
-        return $this->status;
-    }
-
-    public function setStatus(PaymentStatusEnum $status): static
-    {
-        if($this->status === PaymentStatusEnum::PENDING && $status === PaymentStatusEnum::PAID) {
-            $this->paidAt = new DateTimeImmutable();
-        }
-        $this->status = $status;
-
-        return $this;
-    }
-
     public function getPaidAt(): ?\DateTimeImmutable
     {
         return $this->paidAt;
@@ -137,7 +122,7 @@ class Payment
     #[ORM\PrePersist]
     public function initializeDefaults(): void
     {
-        $this->status = PaymentStatusEnum::PENDING;
+        $this->paidAt = new DateTimeImmutable();
     }
 
     public function getClientFullName(): ?string

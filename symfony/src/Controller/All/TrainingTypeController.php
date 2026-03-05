@@ -32,7 +32,7 @@ final class TrainingTypeController extends AbstractController
         Request $request
     ): OkResponse
     {
-        $sortRaw = $request->query->get('sort', 'bookedAt:ASC');
+        $sortRaw = $request->query->get('sort', 'name:ASC');
         $page = (int) $request->query->get('page', 'name');
         $limit = (int) $request->query->get('limit', 20);
 

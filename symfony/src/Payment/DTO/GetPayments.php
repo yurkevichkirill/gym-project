@@ -63,9 +63,20 @@ final readonly class GetPayments
     {
         $sort = [];
         $allowedOrders = ['ASC', 'DESC'];
+        $allowedParams = ['amount', 'category', 'paidAt'];
 
         foreach (explode(',', $sortRaw) as $item) {
-            [$field, $rawOrder] = explode(':', $item);
+            $exploded = explode(':', $item);
+
+            if (!in_array($exploded[0], $allowedParams)) {
+                continue;
+            }
+
+            if (count($exploded) === 1) {
+                $exploded[] = 'ASC';
+            }
+
+            [$field, $rawOrder] = $exploded;
             $order = strtoupper(trim($rawOrder));
 
             if (!in_array($order, $allowedOrders)) {

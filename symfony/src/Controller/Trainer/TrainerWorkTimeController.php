@@ -31,7 +31,6 @@ use Symfony\Component\Security\Http\Attribute\CurrentUser;
 final class TrainerWorkTimeController extends AbstractController
 {
     /**
-     * @throws DateMalformedStringException
      * @throws InvalidArgumentException
      */
 

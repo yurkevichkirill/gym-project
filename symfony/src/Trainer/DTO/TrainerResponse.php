@@ -10,11 +10,11 @@ use App\Trainer\Entity\Trainer;
 final readonly class TrainerResponse
 {
     public function __construct(
-        public int $id,
+        public int    $id,
         public string $firstName,
         public string $lastName,
-        public int $trainingTypeId,
-        public string $price,
+        public int    $trainingTypeId,
+        public string $pricePerHour,
     )
     {}
 
@@ -25,7 +25,7 @@ final readonly class TrainerResponse
             firstName: $trainer->getFirstName(),
             lastName: $trainer->getLastName(),
             trainingTypeId:  $trainer->getTrainingType()->getId(),
-            price: $trainer->getPricePerHour(),
+            pricePerHour: $trainer->getPricePerHour(),
         );
     }
 }

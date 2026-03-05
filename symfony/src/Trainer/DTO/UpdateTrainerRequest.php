@@ -11,7 +11,7 @@ final readonly class UpdateTrainerRequest
     public function __construct(
         public ?string $phone = null,
         #[Assert\Positive]
-        public ?string $price = null,
+        public ?string $pricePerHour = null,
     )
     {}
 }
