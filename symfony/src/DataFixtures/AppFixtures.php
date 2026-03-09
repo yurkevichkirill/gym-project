@@ -50,10 +50,10 @@ class AppFixtures extends Fixture
 //        $admin->setPassword('123456789');
 //        $manager->persist($admin);
 
-        $trainingType = new TrainingType();
-        $trainingType->setName("Fitness");
-        $trainingType->setDescription("htwerdfahtesrhdbght");
-        $manager->persist($trainingType);
+//        $trainingType = new TrainingType();
+//        $trainingType->setName("Fitness");
+//        $trainingType->setDescription("htwerdfahtesrhdbght");
+//        $manager->persist($trainingType);
 //
 //        $trainingType = new TrainingType();
 //        $trainingType->setName("Armwrestling");
@@ -131,12 +131,12 @@ class AppFixtures extends Fixture
 //        $membership_plan1->setSessionLimit(6);
 //        $manager->persist($membership_plan1);
 //
-//        $membership_plan2 = new MembershipPlan();
-//        $membership_plan2->setName("8 visits");
-//        $membership_plan2->setPrice("80");
-//        $membership_plan2->setDurationDays(31);
-//        $membership_plan2->setSessionLimit(8);
-//        $manager->persist($membership_plan2);
+        $membership_plan2 = new MembershipPlan();
+        $membership_plan2->setName("50 visits");
+        $membership_plan2->setPrice("500");
+        $membership_plan2->setDurationDays(366);
+        $membership_plan2->setSessionLimit(50);
+        $manager->persist($membership_plan2);
 //
 //        for($i = 0; $i < 23; $i++) {
 //            $booking = new Booking();
