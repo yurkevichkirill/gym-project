@@ -22,7 +22,7 @@ use OpenApi\Attributes as OA;
 
 final class RegistrationController extends AbstractController
 {
-    #[Route('/api/client/registration', methods: ['POST'])]
+    #[Route('/api/client/registration/', methods: ['POST'])]
     #[OA\Tag(name: "Registration")]
     #[OA\RequestBody(content: new Model(type: CreateClientRequest::class))]
     public function register(
@@ -38,41 +38,5 @@ final class RegistrationController extends AbstractController
             data: $responseDto,
             status: 201,
         );
-
-//        $content = $request->getContent();
-//
-//        try {
-//            $client = $serializer->deserialize($content, Client::class, "json");
-//        } catch(Throwable $e) {
-//            return $this->json(['error' => $e->getMessage()], 400);
-//        }
-//
-//        $plaintextPassword = $client->getPassword();
-//        $hashedPassword = $passwordHasher->hashPassword(
-//            $client,
-//            $plaintextPassword
-//        );
-//        $client->setPassword($hashedPassword);
-//
-//        $errors = $validator->validate($client);
-//
-//        if (count($errors) > 0) {
-//            $errorMessages = [];
-//            foreach ($errors as $error) {
-//                $errorMessages[$error->getPropertyPath()][] = $error->getMessage();
-//            }
-//
-//            return $this->json(['errors' => $errorMessages], 422);
-//        }
-//
-//        try {
-//            $repo->create($client);
-//        } catch (Throwable $e) {
-//            return $this->json(['error' => $e->getMessage()], 400);
-//        }
-//
-//        return $this->json($client, 201, [], [
-//            'groups' => ["public-client"]
-//        ]);
     }
 }

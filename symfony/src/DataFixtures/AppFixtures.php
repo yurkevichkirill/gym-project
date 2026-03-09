@@ -50,10 +50,10 @@ class AppFixtures extends Fixture
 //        $admin->setPassword('123456789');
 //        $manager->persist($admin);
 
-//        $trainingType = new TrainingType();
-//        $trainingType->setName("Bodybuilding");
-//        $trainingType->setDescription("rlkgnlrewnlgrewknewrg");
-//        $manager->persist($trainingType);
+        $trainingType = new TrainingType();
+        $trainingType->setName("Fitness");
+        $trainingType->setDescription("htwerdfahtesrhdbght");
+        $manager->persist($trainingType);
 //
 //        $trainingType = new TrainingType();
 //        $trainingType->setName("Armwrestling");
@@ -177,7 +177,7 @@ class AppFixtures extends Fixture
 //        $membership->setEndDate(new \DateTimeImmutable('2026-02-20'));
 //        $manager->persist($membership);
 
-        $manager->remove($manager->getRepository(Membership::class)->find(2));
+//        $manager->remove($manager->getRepository(Membership::class)->find(2));
 //        $manager->getRepository(Client::class)->find(5)->setBalance("1000");
         $manager->flush();
     }
