@@ -14,7 +14,7 @@ use OpenApi\Attributes as OA;
 
 final class ApiLoginController extends AbstractController
 {
-    #[Route('/api/login', name: 'app_api_login', methods: ['POST'])]
+    #[Route('/api/login/', name: 'app_api_login', methods: ['POST'])]
     #[OA\Tag(name: "Login")]
     #[OA\RequestBody(content: new Model(type: User::class, groups: ['login']))]
     public function login(#[CurrentUser] ?User $user, JWTTokenManagerInterface $jwtManager): JsonResponse

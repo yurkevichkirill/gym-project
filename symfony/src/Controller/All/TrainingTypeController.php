@@ -33,7 +33,7 @@ final class TrainingTypeController extends AbstractController
     ): OkResponse
     {
         $sortRaw = $request->query->get('sort', 'name:ASC');
-        $page = (int) $request->query->get('page', 'name');
+        $page = (int) $request->query->get('page', 1);
         $limit = (int) $request->query->get('limit', 20);
 
         $queryDto = new GetTrainingTypes($sortRaw, $page, $limit);
