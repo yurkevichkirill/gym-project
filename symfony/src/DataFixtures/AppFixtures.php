@@ -42,13 +42,13 @@ class AppFixtures extends Fixture
 //        $client->setPassword('$2y$13$Mp9L.CtbTiu7ga.NTfjtVOO6vhCLPDxyYenodaTLzZIpRx7OrMVBi');
 //        $manager->persist($client);
 
-//        $admin = new Admin();
-//        $admin->setFirstName("Kirill");
-//        $admin->setLastName("Yurkevich");
-//        $admin->setEmail("yurkevichkirill@gmail.com");
-//        $admin->setPhone("+34142342354235");
-//        $admin->setPassword('123456789');
-//        $manager->persist($admin);
+        $admin = new Admin();
+        $admin->setFirstName("Kirill");
+        $admin->setLastName("Yurkevich");
+        $admin->setEmail("yurkevichkirill@gmail.com");
+        $admin->setPhone("+34142342354235");
+        $admin->setPassword('$2y$13$eLimavuJKRqcSolTR5ci7OjvWGrQaXediepuvOqw3jbnewCZ6inxK');
+        $manager->persist($admin);
 
 //        $trainingType = new TrainingType();
 //        $trainingType->setName("Fitness");
@@ -131,12 +131,12 @@ class AppFixtures extends Fixture
 //        $membership_plan1->setSessionLimit(6);
 //        $manager->persist($membership_plan1);
 //
-        $membership_plan2 = new MembershipPlan();
-        $membership_plan2->setName("50 visits");
-        $membership_plan2->setPrice("500");
-        $membership_plan2->setDurationDays(366);
-        $membership_plan2->setSessionLimit(50);
-        $manager->persist($membership_plan2);
+//        $membership_plan2 = new MembershipPlan();
+//        $membership_plan2->setName("50 visits");
+//        $membership_plan2->setPrice("500");
+//        $membership_plan2->setDurationDays(366);
+//        $membership_plan2->setSessionLimit(50);
+//        $manager->persist($membership_plan2);
 //
 //        for($i = 0; $i < 23; $i++) {
 //            $booking = new Booking();
