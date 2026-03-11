@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\EventListener;
 
 use App\Booking\Entity\Booking;
+use App\Cache\CacheVersionService;
 use App\Client\Entity\Client;
 use App\Membership\Entity\Membership;
 use App\MembershipPlan\Entity\MembershipPlan;
@@ -20,7 +21,8 @@ use Symfony\Contracts\Cache\TagAwareCacheInterface;
 readonly class CacheInvalidatorListener
 {
     public function __construct(
-        private TagAwareCacheInterface $gymCache
+        private TagAwareCacheInterface $gymCache,
+        private CacheVersionService $cacheVersionService,
     )
     {}
 
@@ -31,6 +33,7 @@ readonly class CacheInvalidatorListener
     {
         $em = $eventArgs->getObjectManager();
         $uow = $em->getUnitOfWork();
+        $groups = [];
 
         foreach (array_merge(
             $uow->getScheduledEntityInsertions(),
@@ -40,16 +43,33 @@ readonly class CacheInvalidatorListener
             match(true) {
                 $entity instanceof Client => $this->gymCache->invalidateTags(['clients_list']),
                 $entity instanceof Booking => $this->gymCache->invalidateTags(["bookings_list_" . $entity->getClient()->getId()]),
-                $entity instanceof MembershipPlan => $this->gymCache->invalidateTags(['membership_plans_list']),
+                $entity instanceof MembershipPlan => [
+                    $this->gymCache->invalidateTags(['membership_plans_list']),
+                    $groups[] = 'membership',
+                ],
                 $entity instanceof Membership => $this->gymCache->invalidateTags(['memberships_list_' . $entity->getClient()->getId()]),
                 $entity instanceof Payment => $this->gymCache->invalidateTags(['payments_list', 'payments_list_' . $entity->getClient()->getId()]),
-                $entity instanceof Trainer => $this->gymCache->invalidateTags(['trainers_list']),
-                $entity instanceof TrainerWorkTime => $this->gymCache->invalidateTags(['trainer_worktimes_list_' . $entity->getTrainer()->getId()]),
+                $entity instanceof Trainer => [
+                    $this->gymCache->invalidateTags(['trainers_list']),
+                    $groups[] = 'trainers',
+                ],
+                $entity instanceof TrainerWorkTime => [
+                    $this->gymCache->invalidateTags(['trainer_worktimes_list_' . $entity->getTrainer()->getId()]),
+                    $groups[] = 'trainers',
+                ],
                 $entity instanceof Training => $this->gymCache->invalidateTags(['trainings_list', 'trainer_worktimes_list_' . $entity->getTrainerWorkTime()->getTrainer()->getId()]),
-                $entity instanceof TrainingType => $this->gymCache->invalidateTags(['training_types_list']),
+                $entity instanceof TrainingType => [
+                    $this->gymCache->invalidateTags(['training_types_list']),
+                    $groups[] = 'training',
+                ],
 
                 default => null
             };
+        }
+
+        $groupsUnique = array_unique($groups);
+        foreach ($groupsUnique as $group) {
+            $this->cacheVersionService->bump($group);
         }
     }
 }
