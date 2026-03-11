@@ -2,14 +2,21 @@
 
 namespace App\Controller\Admin;
 
+use App\MembershipPlan\DTO\CreateMembershipPlanRequest;
 use App\MembershipPlan\Entity\MembershipPlan;
+use App\MembershipPlan\Mapper\MembershipPlanMapper;
 use App\MembershipPlan\Repository\MembershipPlanRepository;
+use App\MembershipPlan\Service\MembershipPlanManager;
 use App\MembershipPlan\Service\MembershipPlanServiceInterface;
+use App\Response\OkResponse;
+use Doctrine\ORM\Exception\ORMException;
+use Doctrine\ORM\OptimisticLockException;
 use Nelmio\ApiDocBundle\Attribute\Model;
 use OpenApi\Attributes as OA;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Component\Serializer\Normalizer\AbstractNormalizer;
@@ -19,42 +26,26 @@ use Throwable;
 
 final class MembershipPlanController extends AbstractController
 {
-    #[Route('api/membership-plans', methods: ['POST'], format: 'json')]
-    #[OA\RequestBody(content: new Model(type: MembershipPlan::class, groups: ['create-update-membership-plan']))]
+    /**
+     * @throws OptimisticLockException
+     * @throws ORMException
+     */
+    #[Route('api/membership/plans', methods: ['POST'], format: 'json')]
+    #[OA\RequestBody(content: new Model(type: CreateMembershipPlanRequest::class))]
+    #[OA\Tag(name: "Admin: Membership Plan")]
     #[IsGranted('ROLE_ADMIN')]
     public function create(
-        Request $request,
-        MembershipPlanRepository $repo,
-        SerializerInterface $serializer,
-        ValidatorInterface $validator
-    ): JsonResponse
+        #[MapRequestPayload] CreateMembershipPlanRequest $requestDto,
+        MembershipPlanManager                            $manager,
+        MembershipPlanMapper                             $mapper,
+    ): OkResponse
     {
-        $json = $request->getContent();
-        try {
-            $membershipPlan = $serializer->deserialize($json, MembershipPlan::class, 'json');
-        } catch (Throwable $e) {
-            return $this->json(['error' => $e->getMessage()], 400);
-        }
+        $responseDto = $mapper->map($manager->create($requestDto));
 
-        $errors = $validator->validate($membershipPlan);
-        if (count($errors) > 0) {
-            $errorMessages = [];
-            foreach ($errors as $error) {
-                $errorMessages[$error->getPropertyPath()][] = $error->getMessage();
-            }
-
-            return $this->json(['errors' => $errorMessages], 422);
-        }
-
-        try {
-            $repo->create($membershipPlan);
-        } catch (Throwable $e) {
-            return $this->json(['error' => $e->getMessage()], 400);
-        }
-
-        return $this->json($membershipPlan, 201, [], [
-            'groups' => ['public-membership-plan']
-        ]);
+        return new OkResponse(
+            data: $requestDto,
+            status: 201,
+        );
     }
 
     #[Route('api/membership-plans/{id}', methods: ['PATCH', 'PUT'], format: 'json')]
@@ -94,7 +85,7 @@ final class MembershipPlanController extends AbstractController
 
     #[Route('api/membership-plans/{id}', methods: ['DELETE'], format: 'json')]
     #[IsGranted('ROLE_ADMIN')]
-    public function delete(MembershipPlanRepository $repo, MembershipPlan $membershipPlan): JsonResponse
+    public function remove(MembershipPlanRepository $repo, MembershipPlan $membershipPlan): JsonResponse
     {
         try {
             $repo->remove($membershipPlan);
