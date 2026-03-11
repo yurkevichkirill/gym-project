@@ -33,10 +33,3 @@ services:
             - { name: doctrine.event_listener, event: 'loadClassMetadata' }
         calls:
             - [ setAnnotationReader, ['@Gedmo\Mapping\Driver\AttributeReader'] ]
-
-    App\CacheKernel:
-        decorates: http_cache
-        arguments:
-            - '@kernel'
-            - '@http_cache.store'
-            - '@?esi'
