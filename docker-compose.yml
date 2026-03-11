@@ -1,9 +1,8 @@
 services:
   nginx:
     container_name: nginx
-    build:
-      context: .
-      dockerfile: docker/dockerfiles/nginx/Dockerfile
+    image: openresty/openresty:1.29.2.1-alpine
+    command: /bin/sh -c "mkdir -p /var/cache/nginx/fastcgi && openresty -g 'daemon off;'"
     volumes:
       - ./symfony:/var/www
       - ./docker/conf/default.conf:/etc/nginx/conf.d/default.conf

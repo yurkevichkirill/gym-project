@@ -42,23 +42,23 @@ class AppFixtures extends Fixture
 //        $client->setPassword('$2y$13$Mp9L.CtbTiu7ga.NTfjtVOO6vhCLPDxyYenodaTLzZIpRx7OrMVBi');
 //        $manager->persist($client);
 
-        $admin = new Admin();
-        $admin->setFirstName("Kirill");
-        $admin->setLastName("Yurkevich");
-        $admin->setEmail("yurkevichkirill@gmail.com");
-        $admin->setPhone("+34142342354235");
-        $admin->setPassword('$2y$13$eLimavuJKRqcSolTR5ci7OjvWGrQaXediepuvOqw3jbnewCZ6inxK');
-        $manager->persist($admin);
+//        $admin = new Admin();
+//        $admin->setFirstName("Kirill");
+//        $admin->setLastName("Yurkevich");
+//        $admin->setEmail("yurkevichkirill@gmail.com");
+//        $admin->setPhone("+34142342354235");
+//        $admin->setPassword('$2y$13$eLimavuJKRqcSolTR5ci7OjvWGrQaXediepuvOqw3jbnewCZ6inxK');
+//        $manager->persist($admin);
 
 //        $trainingType = new TrainingType();
 //        $trainingType->setName("Fitness");
 //        $trainingType->setDescription("htwerdfahtesrhdbght");
 //        $manager->persist($trainingType);
 //
-//        $trainingType = new TrainingType();
-//        $trainingType->setName("Armwrestling");
-//        $trainingType->setDescription("goooooood");
-//        $manager->persist($trainingType);
+        $trainingType = new TrainingType();
+        $trainingType->setName("Penibeib");
+        $trainingType->setDescription("btrhtfdbhtrgfdbht");
+        $manager->persist($trainingType);
 
 //        $trainer = new Trainer();
 //        $trainer->setPassword('$2y$13$AZRdOuh3hPh36DLKTzT/ouye24yo0Ks1V6NjSkBbFkFzopReD9aLG');
