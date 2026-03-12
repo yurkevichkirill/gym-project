@@ -3,14 +3,13 @@ type Props = {
     name: string,
     trainingTypeName: string,
     pricePerHour: number,
+    photoUrl: string,
 }
 
-const Trainer = ({ id, name, trainingTypeName, pricePerHour }: Props) => {
-    return <div>
-        <p>{ id }</p>
-        <p>{ name }</p>
-        <p>{ trainingTypeName }</p>
-        <p>{ pricePerHour }</p>
+const Trainer = ({ name, photoUrl }: Props) => {
+    return <div className="border rounded-lg">
+        <img src={ photoUrl } alt="Avatar" className="w-80 h-100"/>
+        <h4 className="font-bold">{ name }</h4>
     </div>
 }
 

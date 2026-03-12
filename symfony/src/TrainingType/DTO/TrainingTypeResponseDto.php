@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\TrainingType\DTO;
 
-use App\Training\Entity\Training;
 use App\TrainingType\Entity\TrainingType;
 
 final readonly class TrainingTypeResponseDto

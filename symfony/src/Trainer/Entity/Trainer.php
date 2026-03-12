@@ -22,6 +22,9 @@ class Trainer extends User
     #[ORM\Column(type: Types::DECIMAL, precision: 10, scale: 2)]
     private ?string $pricePerHour = null;
 
+    #[ORM\Column()]
+    private ?string $photoUrl = null;
+
     /**
      * @var Collection<int, TrainerWorkTime>
      */
@@ -54,6 +57,16 @@ class Trainer extends User
     public function getPricePerHour(): ?string
     {
         return $this->pricePerHour;
+    }
+
+    public function getPhotoUrl(): ?string
+    {
+        return $this->photoUrl;
+    }
+
+    public function setPhotoUrl(?string $photoUrl): void
+    {
+        $this->photoUrl = $photoUrl;
     }
 
     public function setPricePerHour(string $pricePerHour): static

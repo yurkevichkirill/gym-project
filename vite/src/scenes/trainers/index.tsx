@@ -7,7 +7,7 @@ type Props = {
 
 const Trainers = ({ trainers }: Props) => {
     return (
-        <div>
+        <div className="flex gap-10">
             {trainers.map(trainer => (
                 <Trainer
                     key = { trainer.id }
@@ -15,6 +15,7 @@ const Trainers = ({ trainers }: Props) => {
                     name = { trainer.firstName + " " + trainer.lastName }
                     trainingTypeName = { trainer.trainingType.name }
                     pricePerHour = { trainer.pricePerHour }
+                    photoUrl={ trainer.photoUrl }
                 >
                 </Trainer>
             ))}
