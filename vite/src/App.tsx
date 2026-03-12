@@ -6,7 +6,7 @@ function App() {
     return (
         <Routes>
             <Route index element={<MainPage />} />
-            <Route path="trainers" element={<TrainersPage />}></Route>
+            <Route path="trainers/" element={<TrainersPage />}></Route>
         </Routes>
     );
 }

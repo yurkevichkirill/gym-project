@@ -55,10 +55,10 @@ class AppFixtures extends Fixture
 //        $trainingType->setDescription("htwerdfahtesrhdbght");
 //        $manager->persist($trainingType);
 //
-        $trainingType = new TrainingType();
-        $trainingType->setName("Penibeib");
-        $trainingType->setDescription("btrhtfdbhtrgfdbht");
-        $manager->persist($trainingType);
+//        $trainingType = new TrainingType();
+//        $trainingType->setName("Penibeib");
+//        $trainingType->setDescription("btrhtfdbhtrgfdbht");
+//        $manager->persist($trainingType);
 
 //        $trainer = new TrainersListComponent();
 //        $trainer->setPassword('$2y$13$AZRdOuh3hPh36DLKTzT/ouye24yo0Ks1V6NjSkBbFkFzopReD9aLG');
@@ -179,6 +179,9 @@ class AppFixtures extends Fixture
 
 //        $manager->remove($manager->getRepository(Membership::class)->find(2));
 //        $manager->getRepository(Client::class)->find(5)->setBalance("1000");
+
+        $manager->getRepository(Trainer::class)->find(3)->setPhotoUrl("http://localhost/uploads/trainers/ronny.jpg");
+        $manager->getRepository(Trainer::class)->find(4)->setPhotoUrl("http://localhost/uploads/trainers/ivan.jpeg");
         $manager->flush();
     }
 }
