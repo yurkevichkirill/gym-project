@@ -60,7 +60,7 @@ class AppFixtures extends Fixture
         $trainingType->setDescription("btrhtfdbhtrgfdbht");
         $manager->persist($trainingType);
 
-//        $trainer = new Trainer();
+//        $trainer = new TrainersListComponent();
 //        $trainer->setPassword('$2y$13$AZRdOuh3hPh36DLKTzT/ouye24yo0Ks1V6NjSkBbFkFzopReD9aLG');
 //        $trainer->setTrainingType($manager->getRepository(TrainingType::class)->find(1));
 //        $trainer->setPricePerHour('50');
@@ -70,7 +70,7 @@ class AppFixtures extends Fixture
 //        $trainer->setEmail("ronnycoleman@gmail.com");
 //        $manager->persist($trainer);
 //
-//        $trainer = new Trainer();
+//        $trainer = new TrainersListComponent();
 //        $trainer->setPassword('$2y$13$7bWAa/e271z1Q30ebuFPHuQW5r4.WzurA45q7CqKDOb9UMs8It8QC');
 //        $trainer->setTrainingType($manager->getRepository(TrainingType::class)->find(2));
 //        $trainer->setPricePerHour('10');
@@ -80,33 +80,33 @@ class AppFixtures extends Fixture
 //        $trainer->setEmail("sylentjooo@gmail.com");
 //        $manager->persist($trainer);
 
-//        $manager->getRepository(Trainer::class)->find(3)->setTrainingType($manager->getRepository(TrainingType::class)->find(3));
+//        $manager->getRepository(TrainersListComponent::class)->find(3)->setTrainingType($manager->getRepository(TrainingType::class)->find(3));
 //
-//        $manager->getRepository(Trainer::class)->find(4)->setTrainingType($manager->getRepository(TrainingType::class)->find(4));
+//        $manager->getRepository(TrainersListComponent::class)->find(4)->setTrainingType($manager->getRepository(TrainingType::class)->find(4));
 
 //        $trainerWorkTime = new TrainerWorkTime();
-//        $trainerWorkTime->setTrainer($manager->getRepository(Trainer::class)->find(3));
+//        $trainerWorkTime->setTrainer($manager->getRepository(TrainersListComponent::class)->find(3));
 //        $trainerWorkTime->setStartTime(new \DateTimeImmutable("10:00"));
 //        $trainerWorkTime->setEndTime(new \DateTimeImmutable("22:00"));
 //        $trainerWorkTime->setDate(new \DateTimeImmutable("10-03-2026"));
 //        $manager->persist($trainerWorkTime);
 //
 //        $trainerWorkTime = new TrainerWorkTime();
-//        $trainerWorkTime->setTrainer($manager->getRepository(Trainer::class)->find(3));
+//        $trainerWorkTime->setTrainer($manager->getRepository(TrainersListComponent::class)->find(3));
 //        $trainerWorkTime->setStartTime(new \DateTimeImmutable("10:00"));
 //        $trainerWorkTime->setEndTime(new \DateTimeImmutable("22:00"));
 //        $trainerWorkTime->setDate(new \DateTimeImmutable("11-03-2026"));
 //        $manager->persist($trainerWorkTime);
 //
 //        $trainerWorkTime = new TrainerWorkTime();
-//        $trainerWorkTime->setTrainer($manager->getRepository(Trainer::class)->find(4));
+//        $trainerWorkTime->setTrainer($manager->getRepository(TrainersListComponent::class)->find(4));
 //        $trainerWorkTime->setStartTime(new \DateTimeImmutable("12:00"));
 //        $trainerWorkTime->setEndTime(new \DateTimeImmutable("19:00"));
 //        $trainerWorkTime->setDate(new \DateTimeImmutable("11-03-2026"));
 //        $manager->persist($trainerWorkTime);
 //
 //        $trainerWorkTime = new TrainerWorkTime();
-//        $trainerWorkTime->setTrainer($manager->getRepository(Trainer::class)->find(4));
+//        $trainerWorkTime->setTrainer($manager->getRepository(TrainersListComponent::class)->find(4));
 //        $trainerWorkTime->setStartTime(new \DateTimeImmutable("12:00"));
 //        $trainerWorkTime->setEndTime(new \DateTimeImmutable("20:00"));
 //        $trainerWorkTime->setDate(new \DateTimeImmutable("12-03-2026"));

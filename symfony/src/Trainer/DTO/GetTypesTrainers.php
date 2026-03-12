@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Trainer\DTO;
 
-use App\Booking\Enum\BookingStatusEnum;
 use App\TrainingType\Entity\TrainingType;
 
 class GetTypesTrainers

@@ -10,7 +10,7 @@ import Benefit from "./Benefit.tsx";
 import ActionButton from "../../shared/ActionButton.tsx";
 import BenefitsPageGraphic from "../../assets/BenefitsPageGraphic.png";
 
-const benefits: Array<BenefitType> =[
+const benefits: Array<BenefitType> = [
     {
         icon: <HomeModernIcon className="h-6 w-6" />,
         title: "State of the Art Facilities",
@@ -23,7 +23,7 @@ const benefits: Array<BenefitType> =[
     },
     {
         icon: <AcademicCapIcon className="h-6 w-6" />,
-        title: "Expert and Pro Trainers",
+        title: "Expert and Pro TrainersListComponent",
         description: "Elite coaches who've forged champions. No theory - only battle-tested methods that deliver results."
     },
 ]
