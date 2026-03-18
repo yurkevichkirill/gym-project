@@ -46,7 +46,7 @@ class TrainingManager
         if ($newDate->format('Y-m-d') === $training->getTrainerWorkTime()->getDate()->format("Y-m-d")) {
             $worktime = $training->getTrainerWorkTime();
             if(!$this->worktimeManager->isTimeAvailable($worktime, $newStartTime, $newDurationMinutes, $oldStartTime, $oldDurationMinutes)) {
-                throw new DateRescheduledException("Trainer doesn't work at this time");
+                throw new DateRescheduledException("OurTrainer doesn't work at this time");
             }
             if(!$this->clientManager->isClientAvailableInDate($client, $newDate, $newStartTime, $newDurationMinutes, $oldStartTime)) {
                 throw new DateRescheduledException("Client already have training at this time");
@@ -66,7 +66,7 @@ class TrainingManager
 
             $training->setTrainerWorkTime($newWorktime);
             if(!$this->worktimeManager->isTimeAvailable($newWorktime, $newStartTime, $newDurationMinutes, $oldStartTime, $oldDurationMinutes)) {
-                throw new DateRescheduledException("Trainer doesn't work at this time");
+                throw new DateRescheduledException("OurTrainer doesn't work at this time");
             }
             if(!$this->clientManager->isClientAvailableInDate($client, $newDate, $newStartTime, $newDurationMinutes,  $oldStartTime)) {
                 throw new DateRescheduledException("Client already have training at this time");

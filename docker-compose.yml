@@ -84,14 +84,14 @@ services:
   frontend:
     container_name: frontend
     build:
-      context: "vite"
+      context: "nextjs"
       dockerfile: ../docker/dockerfiles/node/Dockerfile
     restart: always
     ports:
-      - "${VITE_PORT}:5173"
+      - "${NEXT_PORT}:3000"
     working_dir: /app
     volumes:
-      - ./vite:/app
+      - ./nextjs:/app
       - /app/node_modules
     networks:
       - app-network

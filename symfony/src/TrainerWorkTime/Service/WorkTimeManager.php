@@ -34,7 +34,7 @@ class WorkTimeManager
         ]));
 
         if($count > 0) {
-            throw new DateTimeAlreadyTakenException("Trainer already have worktime in this date");
+            throw new DateTimeAlreadyTakenException("OurTrainer already have worktime in this date");
         }
 
         $worktime = new TrainerWorkTime();
@@ -69,7 +69,7 @@ class WorkTimeManager
                 $lastTrainingEndTime = end($freeSlots)['end'];
             }
             if ($newStartTime > $firstTrainingStartTime || $newEndTime < $lastTrainingEndTime) {
-                throw new DateTimeAlreadyTakenException("Trainer already have training in this time");
+                throw new DateTimeAlreadyTakenException("OurTrainer already have training in this time");
             }
         }
 

@@ -95,7 +95,7 @@ final class TrainingController extends AbstractController
 
         $trainer = $trainerRepo->find($id);
         if(is_null($trainer)) {
-            return $this->json(['error' => 'Trainer not found'], 404);
+            return $this->json(['error' => 'OurTrainer not found'], 404);
         }
 
         $training->setTrainer($trainer);

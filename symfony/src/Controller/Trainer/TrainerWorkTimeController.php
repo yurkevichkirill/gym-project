@@ -35,7 +35,7 @@ final class TrainerWorkTimeController extends AbstractController
      */
 
     #[Route('api/trainer/me/worktime/', methods: ['GET'], format: 'json')]
-    #[OA\Tag(name: "Trainer: WorkTime")]
+    #[OA\Tag(name: "OurTrainer: WorkTime")]
     #[OA\Parameter(name: 'date', in: 'query', example: '2026-03-10')]
     #[OA\Parameter(name: 'sort', in: 'query', example: 'date:ASC')]
     #[OA\Parameter(name: 'page', in: 'query', example: 1)]
@@ -72,7 +72,7 @@ final class TrainerWorkTimeController extends AbstractController
      */
     #[Route('api/trainer/me/worktime/', methods: ['POST'], format: 'json')]
     #[OA\RequestBody(content: new Model(type: CreateWorkTimeRequest::class))]
-    #[OA\Tag(name: "Trainer: WorkTime")]
+    #[OA\Tag(name: "OurTrainer: WorkTime")]
     public function create(
         #[CurrentUser] Trainer                     $trainer,
         #[MapRequestPayload] CreateWorkTimeRequest $requestDto,
@@ -95,7 +95,7 @@ final class TrainerWorkTimeController extends AbstractController
      */
     #[Route('api/worktime/{id}/', methods: ['PUT', 'PATCH'], format: 'json')]
     #[OA\RequestBody(content: new Model(type: UpdateWorkTimeRequest::class))]
-    #[OA\Tag(name: "Trainer: WorkTime")]
+    #[OA\Tag(name: "OurTrainer: WorkTime")]
     public function update(
         TrainerWorkTime $worktime,
         #[MapRequestPayload] UpdateWorkTimeRequest $requestDto,
@@ -118,7 +118,7 @@ final class TrainerWorkTimeController extends AbstractController
      * @throws ORMException
      */
     #[Route('api/worktime/{id}/', methods: ['DELETE'], format: 'json')]
-    #[OA\Tag(name: "Trainer: WorkTime")]
+    #[OA\Tag(name: "OurTrainer: WorkTime")]
     public function remove(
         TrainerWorkTime $worktime,
         TrainerWorkTimeRepository $worktimeRepo
