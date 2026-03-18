@@ -48,7 +48,7 @@ class TrainerRepository extends ServiceEntityRepository
         $this->save();
     }
     //    /**
-    //     * @return Trainer[] Returns an array of Trainer objects
+    //     * @return OurTrainer[] Returns an array of OurTrainer objects
     //     */
     //    public function findByExampleField($value): array
     //    {
@@ -62,7 +62,7 @@ class TrainerRepository extends ServiceEntityRepository
     //        ;
     //    }
 
-    //    public function findOneBySomeField($value): ?Trainer
+    //    public function findOneBySomeField($value): ?OurTrainer
     //    {
     //        return $this->createQueryBuilder('t')
     //            ->andWhere('t.exampleField = :val')

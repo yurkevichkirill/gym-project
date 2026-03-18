@@ -59,7 +59,8 @@ final readonly class TrainersQuery
     private function createQuery(array $filter): QueryBuilder
     {
         $qb = $this->trainerRepo->createQueryBuilder('t')
-            ->leftJoin('t.trainingType', 'type');
+            ->leftJoin('t.trainingType', 'type')
+            ->addSelect('type');
 
         if(isset($filter['minPrice'])) {
             $qb->andWhere('t.pricePerHour >= :minPrice')

@@ -41,7 +41,7 @@ final class TrainingController extends AbstractController
     #[OA\Parameter(name: 'sort', in: 'query', example: 'bookedAt:ASC')]
     #[OA\Parameter(name: 'page', in: 'query', example: 1)]
     #[OA\Parameter(name: 'limit', in: 'query', example: 20)]
-    #[OA\Tag(name: "Trainer: Training")]
+    #[OA\Tag(name: "OurTrainer: Training")]
     public function getAll(
         TrainingMapperInterface $mapper,
         #[CurrentUser] Trainer $trainer,
@@ -73,7 +73,7 @@ final class TrainingController extends AbstractController
     }
 
     #[Route('api/trainings/{id}/', methods: ['GET'], format: 'json')]
-    #[OA\Tag(name: "Trainer: Training")]
+    #[OA\Tag(name: "OurTrainer: Training")]
     public function get(
         TrainingMapperInterface $mapper,
         Training $training,
@@ -94,7 +94,7 @@ final class TrainingController extends AbstractController
      */
     #[Route('api/trainings/{id}/', methods: ['PUT', 'PATCH'], format: 'json')]
     #[OA\RequestBody(content: new Model(type: TrainingRequest::class))]
-    #[OA\Tag(name: "Trainer: Training")]
+    #[OA\Tag(name: "OurTrainer: Training")]
     public function update(
         Training $training,
         #[MapRequestPayload] TrainingRequest $requestDto,
@@ -117,7 +117,7 @@ final class TrainingController extends AbstractController
      * @throws ORMException
      */
     #[Route('api/trainings/{id}/', methods: ['DELETE'], format: 'json')]
-    #[OA\Tag(name: "Trainer: Training")]
+    #[OA\Tag(name: "OurTrainer: Training")]
     public function delete(
         Training $training,
         TrainingRepository $trainingRepo,

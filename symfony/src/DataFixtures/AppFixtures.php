@@ -70,14 +70,35 @@ class AppFixtures extends Fixture
 //        $trainer->setEmail("ronnycoleman@gmail.com");
 //        $manager->persist($trainer);
 //
-//        $trainer = new TrainersListComponent();
-//        $trainer->setPassword('$2y$13$7bWAa/e271z1Q30ebuFPHuQW5r4.WzurA45q7CqKDOb9UMs8It8QC');
-//        $trainer->setTrainingType($manager->getRepository(TrainingType::class)->find(2));
-//        $trainer->setPricePerHour('10');
-//        $trainer->setFirstName("Ivan");
-//        $trainer->setLastName('Rylkow');
-//        $trainer->setPhone('+375292281488');
-//        $trainer->setEmail("sylentjooo@gmail.com");
+//        $trainer = new OurTrainer();
+//        $trainer->setPassword('$2y$13$fBRTPMrtZWQ3HxgOPQRPE.wRqqgQSDuqr7jS2yZRw0W8m/dsjCrK6');
+//        $trainer->setTrainingType($manager->getRepository(TrainingType::class)->find(1));
+//        $trainer->setPricePerHour('100');
+//        $trainer->setFirstName("Maxim");
+//        $trainer->setLastName('Donchenko');
+//        $trainer->setPhone('+395689302556');
+//        $trainer->setEmail("antitrainer@gmail.com");
+//        $manager->persist($trainer);
+//
+//        $trainer = new OurTrainer();
+//        $trainer->setPassword('$2y$13$bgyRBn49o3/LpdR0gIPIe.ZHL4P7JAjRl.6.IIqqqtuSXzx0Nrb2O');
+//        $trainer->setTrainingType($manager->getRepository(TrainingType::class)->find(3));
+//        $trainer->setPricePerHour('69');
+//        $trainer->setFirstName("Egor");
+//        $trainer->setLastName('Harchenko');
+//        $trainer->setPhone('+734986983496');
+//        $trainer->setEmail("minipekka@gmail.com");
+//        $manager->persist($trainer);
+//
+//        $trainer = new OurTrainer();
+//        $trainer->setPassword('$2y$13$/XpOef5i17ZClUA72eOv/.13bpUgmbDkx02KsCuovxByXAhNfVV8C');
+//        $trainer->setTrainingType($manager->getRepository(TrainingType::class)->find(5));
+//        $trainer->setPricePerHour('420');
+//        $trainer->setFirstName("Aziz");
+//        $trainer->setLastName('Shavershian');
+//        $trainer->setPhone('+5673654757');
+//        $trainer->setEmail("zyzz@gmail.com");
+//        $trainer->setPhotoUrl("http://localhost/uploads/trainers/zyzz.jpg");
 //        $manager->persist($trainer);
 
 //        $manager->getRepository(TrainersListComponent::class)->find(3)->setTrainingType($manager->getRepository(TrainingType::class)->find(3));
@@ -180,8 +201,14 @@ class AppFixtures extends Fixture
 //        $manager->remove($manager->getRepository(Membership::class)->find(2));
 //        $manager->getRepository(Client::class)->find(5)->setBalance("1000");
 
-        $manager->getRepository(Trainer::class)->find(3)->setPhotoUrl("http://localhost/uploads/trainers/ronny.jpg");
-        $manager->getRepository(Trainer::class)->find(4)->setPhotoUrl("http://localhost/uploads/trainers/ivan.jpeg");
+        $manager->getRepository(Trainer::class)->find(3)->setPhotoUrl("http://nginx/uploads/trainers/ronny.jpg");
+        $manager->getRepository(Trainer::class)->find(4)->setPhotoUrl("http://nginx/uploads/trainers/ivan.png");
+        $manager->getRepository(Trainer::class)->find(8)->setPhotoUrl("http://nginx/uploads/trainers/antitrainer.jpg");
+        $manager->getRepository(Trainer::class)->find(9)->setPhotoUrl("http://nginx/uploads/trainers/minipekka.jpg");
+        $manager->getRepository(Trainer::class)->find(10)->setPhotoUrl("http://nginx/uploads/trainers/vadimsapog.png");
+        $manager->getRepository(Trainer::class)->find(11)->setPhotoUrl("http://nginx/uploads/trainers/zyzz.jpg");
+//        $manager->getRepository(Trainer::class)->find(4)->setPhotoUrl("http://localhost/uploads/trainers/ivan.png");
+//        $manager->getRepository(OurTrainer::class)->find(4)->setTrainingType($manager->getRepository(TrainingType::class)->find(5));
         $manager->flush();
     }
 }

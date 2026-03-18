@@ -41,7 +41,7 @@ final class TrainerWorkTimeController extends AbstractController
 
         $trainer = $trainerRepo->find($id);
         if(is_null($trainer)) {
-            return $this->json(['error' => 'Trainer not found'], 404);
+            return $this->json(['error' => 'OurTrainer not found'], 404);
         }
 
         $trainerAvailability->setTrainer($trainer);
@@ -82,7 +82,7 @@ final class TrainerWorkTimeController extends AbstractController
     {
         $worktime = $worktimeRepo->find($id);
         if(is_null($worktime)) {
-            return $this->json(['error' => 'Trainer work time not found'], 404);
+            return $this->json(['error' => 'OurTrainer work time not found'], 404);
         }
 
         try {
@@ -120,7 +120,7 @@ final class TrainerWorkTimeController extends AbstractController
     {
         $worktime = $worktimeRepo->find($id);
         if(is_null($worktime)) {
-            return $this->json(['error' => 'Trainer work time not found'], 404);
+            return $this->json(['error' => 'OurTrainer work time not found'], 404);
         }
 
         try {
