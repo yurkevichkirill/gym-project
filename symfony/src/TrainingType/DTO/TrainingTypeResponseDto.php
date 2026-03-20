@@ -12,6 +12,7 @@ final readonly class TrainingTypeResponseDto
         public int $id,
         public string $name,
         public string $description,
+        public string $photoUrl,
     )
     {}
 
@@ -21,6 +22,7 @@ final readonly class TrainingTypeResponseDto
             id: $trainingType->getId(),
             name: $trainingType->getName(),
             description: $trainingType->getDescription(),
+            photoUrl: $trainingType->getPhotoUrl(),
         );
     }
 }

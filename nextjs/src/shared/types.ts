@@ -4,17 +4,20 @@ import {StaticImageData} from "next/image";
 export const SelectedPage = {
     Home: "home",
     OurTrainers: "ourtrainers",
-    Benefits: "benefits",
+    Memberships: "memberships",
     OurClasses: "ourclasses",
     ContactUs: "contactus",
+    TrainingTypes: "trainingtypes",
 } as const;
 
 export type SelectedPage = (typeof SelectedPage)[keyof typeof SelectedPage];
 
-export interface BenefitType {
-    icon: JSX.Element;
-    title: string;
-    description: string;
+export interface MembershipType {
+    id: number;
+    name: string;
+    durationDays: number;
+    sessionLimit: number | null;
+    price: string;
 }
 
 export interface ClassType {

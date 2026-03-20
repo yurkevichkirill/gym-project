@@ -11,6 +11,7 @@ use App\Payment\Entity\Payment;
 use App\Payment\Enum\PaymentCategoryEnum;
 use App\Payment\Repository\PaymentRepository;
 use App\Trainer\Entity\Trainer;
+use App\Trainer\Service\TrainerManager;
 use App\TrainerWorkTime\Entity\TrainerWorkTime;
 use App\Training\Entity\Training;
 use App\TrainingType\Entity\TrainingType;
@@ -51,14 +52,25 @@ class AppFixtures extends Fixture
 //        $manager->persist($admin);
 
 //        $trainingType = new TrainingType();
-//        $trainingType->setName("Fitness");
-//        $trainingType->setDescription("htwerdfahtesrhdbght");
+//        $trainingType->setName("Powerlifting");
+//        $trainingType->setDescription("Bodybuilding is a form of physical training focused on developing muscle size, strength, and symmetry through resistance exercises. It typically involves structured workouts targeting specific muscle groups, such as chest, back, legs, and arms, using weights or machines. Athletes follow carefully planned routines, combining progressive overload, proper technique, and recovery. Nutrition plays a crucial role, emphasizing high protein intake, balanced macronutrients, and adequate hydration to support muscle growth and repair. Bodybuilding can be practiced recreationally for fitness and aesthetics or competitively, where participants are judged on muscular definition, proportion, and presentation. Consistency, discipline, and goal-setting are key elements of success in this training style.");
 //        $manager->persist($trainingType);
 //
 //        $trainingType = new TrainingType();
-//        $trainingType->setName("Penibeib");
-//        $trainingType->setDescription("btrhtfdbhtrgfdbht");
+//        $trainingType->setName("Crossfit");
+//        $trainingType->setDescription("Bodybuilding is a form of physical training focused on developing muscle size, strength, and symmetry through resistance exercises. It typically involves structured workouts targeting specific muscle groups, such as chest, back, legs, and arms, using weights or machines. Athletes follow carefully planned routines, combining progressive overload, proper technique, and recovery. Nutrition plays a crucial role, emphasizing high protein intake, balanced macronutrients, and adequate hydration to support muscle growth and repair. Bodybuilding can be practiced recreationally for fitness and aesthetics or competitively, where participants are judged on muscular definition, proportion, and presentation. Consistency, discipline, and goal-setting are key elements of success in this training style.");
 //        $manager->persist($trainingType);
+//
+//        $trainingType = new TrainingType();
+//        $trainingType->setName("Joga");
+//        $trainingType->setDescription("Bodybuilding is a form of physical training focused on developing muscle size, strength, and symmetry through resistance exercises. It typically involves structured workouts targeting specific muscle groups, such as chest, back, legs, and arms, using weights or machines. Athletes follow carefully planned routines, combining progressive overload, proper technique, and recovery. Nutrition plays a crucial role, emphasizing high protein intake, balanced macronutrients, and adequate hydration to support muscle growth and repair. Bodybuilding can be practiced recreationally for fitness and aesthetics or competitively, where participants are judged on muscular definition, proportion, and presentation. Consistency, discipline, and goal-setting are key elements of success in this training style.");
+//        $manager->persist($trainingType);
+//
+        $trainingType = new TrainingType();
+        $trainingType->setName("Box");
+        $trainingType->setDescription("Bodybuilding is a form of physical training focused on developing muscle size, strength, and symmetry through resistance exercises. It typically involves structured workouts targeting specific muscle groups, such as chest, back, legs, and arms, using weights or machines. Athletes follow carefully planned routines, combining progressive overload, proper technique, and recovery. Nutrition plays a crucial role, emphasizing high protein intake, balanced macronutrients, and adequate hydration to support muscle growth and repair. Bodybuilding can be practiced recreationally for fitness and aesthetics or competitively, where participants are judged on muscular definition, proportion, and presentation. Consistency, discipline, and goal-setting are key elements of success in this training style.");
+        $trainingType->setPhotoUrl("http://nginx/uploads/training_types/box.jpg");
+        $manager->persist($trainingType);
 
 //        $trainer = new TrainersListComponent();
 //        $trainer->setPassword('$2y$13$AZRdOuh3hPh36DLKTzT/ouye24yo0Ks1V6NjSkBbFkFzopReD9aLG');
@@ -90,15 +102,15 @@ class AppFixtures extends Fixture
 //        $trainer->setEmail("minipekka@gmail.com");
 //        $manager->persist($trainer);
 //
-//        $trainer = new OurTrainer();
-//        $trainer->setPassword('$2y$13$/XpOef5i17ZClUA72eOv/.13bpUgmbDkx02KsCuovxByXAhNfVV8C');
+//        $trainer = new Trainer();
+//        $trainer->setPassword('$2y$13$mtp4ePCsWZocUEkmjqbmv.ohR7dhktcjEliLQirHO3jlVXznpoeVm');
 //        $trainer->setTrainingType($manager->getRepository(TrainingType::class)->find(5));
-//        $trainer->setPricePerHour('420');
-//        $trainer->setFirstName("Aziz");
-//        $trainer->setLastName('Shavershian');
-//        $trainer->setPhone('+5673654757');
-//        $trainer->setEmail("zyzz@gmail.com");
-//        $trainer->setPhotoUrl("http://localhost/uploads/trainers/zyzz.jpg");
+//        $trainer->setPricePerHour('1000');
+//        $trainer->setFirstName("Arnold");
+//        $trainer->setLastName('Schwarzenegger');
+//        $trainer->setPhone('+903485902592');
+//        $trainer->setEmail("arnold@gmail.com");
+//        $trainer->setPhotoUrl("http://nginx/uploads/trainers/arnold.jpg");
 //        $manager->persist($trainer);
 
 //        $manager->getRepository(TrainersListComponent::class)->find(3)->setTrainingType($manager->getRepository(TrainingType::class)->find(3));
@@ -134,9 +146,9 @@ class AppFixtures extends Fixture
 //        $manager->persist($trainerWorkTime);
 //
 //        $membership_plan = new MembershipPlan();
-//        $membership_plan->setName("Month Unlimit");
-//        $membership_plan->setPrice("100");
-//        $membership_plan->setDurationDays(31);
+//        $membership_plan->setName("3 Month");
+//        $membership_plan->setPrice("240");
+//        $membership_plan->setDurationDays(93);
 //        $manager->persist($membership_plan);
 //
 //        $membership_plan3 = new MembershipPlan();
@@ -201,14 +213,34 @@ class AppFixtures extends Fixture
 //        $manager->remove($manager->getRepository(Membership::class)->find(2));
 //        $manager->getRepository(Client::class)->find(5)->setBalance("1000");
 
-        $manager->getRepository(Trainer::class)->find(3)->setPhotoUrl("http://nginx/uploads/trainers/ronny.jpg");
-        $manager->getRepository(Trainer::class)->find(4)->setPhotoUrl("http://nginx/uploads/trainers/ivan.png");
-        $manager->getRepository(Trainer::class)->find(8)->setPhotoUrl("http://nginx/uploads/trainers/antitrainer.jpg");
-        $manager->getRepository(Trainer::class)->find(9)->setPhotoUrl("http://nginx/uploads/trainers/minipekka.jpg");
-        $manager->getRepository(Trainer::class)->find(10)->setPhotoUrl("http://nginx/uploads/trainers/vadimsapog.png");
-        $manager->getRepository(Trainer::class)->find(11)->setPhotoUrl("http://nginx/uploads/trainers/zyzz.jpg");
+//        $manager->getRepository(Trainer::class)->find(3)->setPhotoUrl("http://nginx/uploads/trainers/ronny.jpg");
+//        $manager->getRepository(Trainer::class)->find(4)->setPhotoUrl("http://nginx/uploads/trainers/ivan.png");
+//        $manager->getRepository(Trainer::class)->find(8)->setPhotoUrl("http://nginx/uploads/trainers/antitrainer.jpg");
+//        $manager->getRepository(Trainer::class)->find(9)->setPhotoUrl("http://nginx/uploads/trainers/minipekka.jpg");
+//        $manager->getRepository(Trainer::class)->find(10)->setPhotoUrl("http://nginx/uploads/trainers/vadimsapog.png");
+//        $manager->getRepository(Trainer::class)->find(11)->setPhotoUrl("http://nginx/uploads/trainers/zyzz.jpg");
 //        $manager->getRepository(Trainer::class)->find(4)->setPhotoUrl("http://localhost/uploads/trainers/ivan.png");
 //        $manager->getRepository(OurTrainer::class)->find(4)->setTrainingType($manager->getRepository(TrainingType::class)->find(5));
+
+//        $manager->getRepository(Trainer::class)->find(10)->setPricePerHour(52);
+//        $manager->getRepository(Trainer::class)->find(3)->setPricePerHour("60");
+//        $manager->getRepository(TrainingType::class)->find(3)->setDescription("Bodybuilding is a form of physical training focused on developing muscle size, strength, and symmetry through resistance exercises. It typically involves structured workouts targeting specific muscle groups, such as chest, back, legs, and arms, using weights or machines. Athletes follow carefully planned routines, combining progressive overload, proper technique, and recovery. Nutrition plays a crucial role, emphasizing high protein intake, balanced macronutrients, and adequate hydration to support muscle growth and repair. Bodybuilding can be practiced recreationally for fitness and aesthetics or competitively, where participants are judged on muscular definition, proportion, and presentation. Consistency, discipline, and goal-setting are key elements of success in this training style.");
+//        $manager->getRepository(TrainingType::class)->find(4)->setDescription("Bodybuilding is a form of physical training focused on developing muscle size, strength, and symmetry through resistance exercises. It typically involves structured workouts targeting specific muscle groups, such as chest, back, legs, and arms, using weights or machines. Athletes follow carefully planned routines, combining progressive overload, proper technique, and recovery. Nutrition plays a crucial role, emphasizing high protein intake, balanced macronutrients, and adequate hydration to support muscle growth and repair. Bodybuilding can be practiced recreationally for fitness and aesthetics or competitively, where participants are judged on muscular definition, proportion, and presentation. Consistency, discipline, and goal-setting are key elements of success in this training style.");
+//        $manager->getRepository(TrainingType::class)->find(5)->setDescription("Bodybuilding is a form of physical training focused on developing muscle size, strength, and symmetry through resistance exercises. It typically involves structured workouts targeting specific muscle groups, such as chest, back, legs, and arms, using weights or machines. Athletes follow carefully planned routines, combining progressive overload, proper technique, and recovery. Nutrition plays a crucial role, emphasizing high protein intake, balanced macronutrients, and adequate hydration to support muscle growth and repair. Bodybuilding can be practiced recreationally for fitness and aesthetics or competitively, where participants are judged on muscular definition, proportion, and presentation. Consistency, discipline, and goal-setting are key elements of success in this training style.");
+//        $manager->getRepository(TrainingType::class)->find(8)->setDescription("Bodybuilding is a form of physical training focused on developing muscle size, strength, and symmetry through resistance exercises. It typically involves structured workouts targeting specific muscle groups, such as chest, back, legs, and arms, using weights or machines. Athletes follow carefully planned routines, combining progressive overload, proper technique, and recovery. Nutrition plays a crucial role, emphasizing high protein intake, balanced macronutrients, and adequate hydration to support muscle growth and repair. Bodybuilding can be practiced recreationally for fitness and aesthetics or competitively, where participants are judged on muscular definition, proportion, and presentation. Consistency, discipline, and goal-setting are key elements of success in this training style.");
+//        $manager->getRepository(TrainingType::class)->find(3)->setPhotoUrl("http://nginx/uploads/trainers/zyzz.jpg");
+//        $manager->getRepository(TrainingType::class)->find(3)->setPhotoUrl("http://nginx/uploads/training_types/bodybuilding.jpg");
+//        $manager->getRepository(TrainingType::class)->find(4)->setPhotoUrl("http://nginx/uploads/training_types/armwrestling.jpg");
+//        $manager->getRepository(TrainingType::class)->find(5)->setPhotoUrl("http://nginx/uploads/training_types/fitness.jpg");
+//        $manager->getRepository(TrainingType::class)->find(8)->setPhotoUrl("http://nginx/uploads/training_types/pilates.jpg");
+//        $manager->getRepository(TrainingType::class)->find(11)->setPhotoUrl("http://nginx/uploads/training_types/powerlifting.jpg");
+//        $manager->getRepository(TrainingType::class)->find(12)->setPhotoUrl("http://nginx/uploads/training_types/crossfit.jpg");
+//        $manager->getRepository(TrainingType::class)->find(13)->setName("Yoga");
+//        $manager->remove($manager->getRepository(TrainingType::class)->find(14));
+//        $manager->remove($manager->getRepository(TrainingType::class)->find(15));
+//        $manager->remove($manager->getRepository(TrainingType::class)->find(16));
+
+
         $manager->flush();
     }
 }

@@ -4,9 +4,6 @@ declare(strict_types=1);
 
 namespace App\TrainingType\Query;
 
-use App\Trainer\Repository\TrainerRepository;
-use App\Training\DTO\GetTrainings;
-use App\Training\Repository\TrainingRepository;
 use App\TrainingType\DTO\GetTrainingTypes;
 use App\TrainingType\Repository\TrainingTypeRepository;
 use Psr\Cache\InvalidArgumentException;

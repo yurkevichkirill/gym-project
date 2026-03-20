@@ -47,8 +47,7 @@ readonly class CacheInvalidatorListener
                     $this->gymCache->invalidateTags(['membership_plans_list']),
                     $groups[] = 'membership',
                 ],
-                $entity instanceof Membership => $this->gymCache->invalidateTags(['memberships_list_' . $entity->getClient()->getId()]),
-                $entity instanceof Payment => $this->gymCache->invalidateTags(['payments_list', 'payments_list_' . $entity->getClient()->getId()]),
+                $entity instanceof Membership => $this->gymCache->invalidateTags(['memberships_list_' . $entity->getClient()->getId()]),$entity instanceof Payment => $this->gymCache->invalidateTags(['payments_list', 'payments_list_' . $entity->getClient()->getId()]),
                 $entity instanceof Trainer => [
                     $this->gymCache->invalidateTags(['trainers_list']),
                     $groups[] = 'trainers',
