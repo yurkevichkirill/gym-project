@@ -5,32 +5,16 @@ import {
     UserGroupIcon,
     AcademicCapIcon,
 } from "@heroicons/react/24/solid";
-import {type BenefitType, SelectedPage} from "@/shared/types";
+import {type MembershipType, SelectedPage} from "@/shared/types";
 import { motion } from "framer-motion";
 import HText from "@/shared/HText";
-import Benefit from "@/scenes/benefits/Benefit";
+import Membership from "@/scenes/memberships/Membership";
 import ActionButton from "@/shared/ActionButton";
 import BenefitsPageGraphic from "@/assets/BenefitsPageGraphic.png";
 import {useNavigation} from "@/context/navigation-context";
 import Image from "next/image";
-
-const benefits: Array<BenefitType> = [
-    {
-        icon: <HomeModernIcon className="h-6 w-6" />,
-        title: "State of the Art Facilities",
-        description: "World-class equipment and cutting-edge facilities designed to push your limits and accelerate your gains."
-    },
-    {
-        icon: <UserGroupIcon className="h-6 w-6" />,
-        title: "100's of Diverse Classes",
-        description: "Brutal strength training, HIIT combat sessions, powerlifting clinics - endless variety to destroy plateaus."
-    },
-    {
-        icon: <AcademicCapIcon className="h-6 w-6" />,
-        title: "Expert and Pro TrainersListComponent",
-        description: "Elite coaches who've forged champions. No theory - only battle-tested methods that deliver results."
-    },
-]
+import {useEffect, useState} from "react";
+import {ApiResponse} from "@/types/api-response.type";
 
 const container = {
     hidden: {},
@@ -39,17 +23,32 @@ const container = {
     }
 }
 
-const Benefits = () => {
+const Memberships = () => {
     const { setSelectedPage } = useNavigation();
+    const [ memberships, setMemberships ] = useState<MembershipType[]>([]);
+
+    useEffect(() => {
+        const fetchData = async () => {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/membership/plans/`);
+            if (!response.ok) {
+                console.log("Failed to fetch trainers, status:  ", response.status);
+            }
+
+            const data: ApiResponse<MembershipType[]> = await response.json();
+            setMemberships(data.data);
+        }
+
+        fetchData();
+    }, []);
 
     return (
-        <section id="benefits" className="mx-auto min-h-full w-5/6 py-20">
+        <section id="memberships" className="mx-auto min-h-full w-full py-20">
             <motion.div
-                onViewportEnter={() => setSelectedPage(SelectedPage.Benefits)}
+                onViewportEnter={() => setSelectedPage(SelectedPage.Memberships)}
             >
                 {/* HEADER */}
                 <motion.div
-                    className="md:my-5 md:w-3/5"
+                    className="mx-auto w-5/6"
                     initial="hidden"
                     whileInView="visible"
                     viewport={{ once: true, amount: 0.5 }}
@@ -67,27 +66,26 @@ const Benefits = () => {
                     </p>
                 </motion.div>
 
-                {/* BENEFITS */}
-                <motion.div
-                    className="mt-5 items-center justify-between gap-8 md:flex"
-                    initial="hidden"
-                    whileInView="visible"
-                    viewport={{ once: true, amount: 0.5 }}
-                    variants={container}
-                >
-                    {benefits.map((benefit: BenefitType) => (
-                        <Benefit
-                            key={benefit.title}
-                            icon={benefit.icon}
-                            title={benefit.title}
-                            description={benefit.description}
-                            setSelectedPage={setSelectedPage}
-                        />
-                    ))}
-                </motion.div>
+                {/* MEMBERSHIPS */}
+                <div>
+                    <div className="mt-10 h-[353px] w-full overflow-x-auto overflow-y-hidden">
+                        <ul className="flex gap-20 whitespace-nowrap">
+                            {memberships.map((membership: MembershipType) => (
+                                <Membership
+                                    key={membership.id}
+                                    name={membership.name}
+                                    durationDays={membership.durationDays}
+                                    sessionLimit={membership.sessionLimit}
+                                    price={membership.price}
+                                    setSelectedPage={setSelectedPage}
+                                />
+                            ))}
+                        </ul>
+                    </div>
+                </div>
 
                 {/* GRAPHICS AND DESCRIPTION */}
-                <div className="mt-16 items-center justify-between gap-20 md:mt-28 md:flex">
+                <div className="mt-16 items-center justify-between gap-20 md:mt-28 md:flex mx-auto w-5/6">
                     {/* GRAPHIC */}
                     <Image
                         className="mx-auto"
@@ -159,4 +157,4 @@ const Benefits = () => {
     );
 };
 
-export default Benefits;
+export default Memberships;

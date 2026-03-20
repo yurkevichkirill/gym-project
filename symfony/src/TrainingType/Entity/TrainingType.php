@@ -25,6 +25,9 @@ class TrainingType
     #[ORM\Column(type: Types::TEXT)]
     private ?string $description = null;
 
+    #[ORM\Column()]
+    private ?string $photoUrl = null;
+
     /**
      * @var Collection<int, Trainer>
      */
@@ -44,6 +47,18 @@ class TrainingType
     public function getName(): ?string
     {
         return $this->name;
+    }
+
+    public function getPhotoUrl(): ?string
+    {
+        return $this->photoUrl;
+    }
+
+    public function setPhotoUrl(?string $photoUrl): static
+    {
+        $this->photoUrl = $photoUrl;
+
+        return $this;
     }
 
     public function setName(string $name): static

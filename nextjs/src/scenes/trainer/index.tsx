@@ -45,7 +45,7 @@ const TrainerPersonal = ({ id }: { id: string }) => {
     }, [id]);
 
     return (
-        <section id="ourtrainers" className="min-w-[300px]">
+        <section className="min-w-[300px]">
             <motion.div
                 onViewportEnter={() => setSelectedPage(SelectedPage.OurTrainers)}
                 className="flex flex-col gap-5 mx-auto min-h-full w-5/6 m-20"

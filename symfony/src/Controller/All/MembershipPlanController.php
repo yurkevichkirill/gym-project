@@ -29,7 +29,6 @@ final class MembershipPlanController extends AbstractController
     #[OA\Parameter(name: 'page', in: 'query', example: 1)]
     #[OA\Parameter(name: 'limit', in: 'query', example: 20)]
     #[OA\Tag(name: "All: MembershipPlan")]
-    #[Cache(maxage: 3600, public: true, mustRevalidate: true)]
     public function getAll(
         Request $request,
         MembershipPlanMapperInterface $mapper,
