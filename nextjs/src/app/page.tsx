@@ -6,6 +6,7 @@ import OurTrainers from "@/scenes/ourTrainers";
 import TrainingTypes from "@/scenes/trainingTypes";
 
 export default function MainPage() {
+    debugger
 
     return (
         <>

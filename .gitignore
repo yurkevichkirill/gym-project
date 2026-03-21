@@ -58,3 +58,5 @@
 .env
 
 docker/db/data
+
+certs/
