@@ -2,34 +2,121 @@
 
 namespace App\Controller;
 
-use App\User\Entity\User;
-use Lexik\Bundle\JWTAuthenticationBundle\Services\JWTTokenManagerInterface;
+use App\RefreshToken\Service\RefreshTokenManager;
+use App\User\DTO\LoginUserRequest;
+use App\User\Service\UserManager;
+use Doctrine\ORM\Exception\ORMException;
+use Doctrine\ORM\OptimisticLockException;
 use Nelmio\ApiDocBundle\Attribute\Model;
+use Random\RandomException;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Cookie;
 use Symfony\Component\HttpFoundation\JsonResponse;
-use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
 use Symfony\Component\Routing\Attribute\Route;
-use Symfony\Component\Security\Http\Attribute\CurrentUser;
 use OpenApi\Attributes as OA;
 
 final class ApiLoginController extends AbstractController
 {
+    /**
+     * @throws RandomException
+     */
     #[Route('/api/login/', name: 'app_api_login', methods: ['POST'])]
     #[OA\Tag(name: "Login")]
-    #[OA\RequestBody(content: new Model(type: User::class, groups: ['login']))]
-    public function login(#[CurrentUser] ?User $user, JWTTokenManagerInterface $jwtManager): JsonResponse
+    #[OA\RequestBody(content: new Model(type: LoginUserRequest::class))]
+    public function login(
+        #[MapRequestPayload] LoginUserRequest $dto,
+        UserManager $userManager,
+        RefreshTokenManager $refreshTokenManager,
+    ): JsonResponse
     {
-        if(null === $user) {
-            return $this->json([
-                'message' => 'missing credentials',
-            ], Response::HTTP_UNAUTHORIZED);
-        }
+        $user = $userManager->login($dto);
 
-        $token = $jwtManager->create($user);
+        $accessToken = $refreshTokenManager->generateAccessToken($user);
+        $refreshToken = $refreshTokenManager->generateRefreshToken();
 
-        return $this->json([
-            'user' => $user->getUserIdentifier(),
-            'token' => $token,
+        $refreshTokenManager->create($refreshToken, $user);
+
+        $response = $this->json([
+            'data' => ['user' => $user->getUserIdentifier()]
         ]);
+
+        $accessTokenCookie = Cookie::create(
+            'access_token',
+            $accessToken,
+            time() + 900,
+            '/',
+            null,
+            true,
+            true,
+            false,
+            'Lax'
+        );
+
+        $refreshTokenCookie = Cookie::create(
+            'refresh_token',
+            $refreshToken,
+            time() + 604800,
+            '/',
+            null,
+            true,
+            true,
+            false,
+            'Lax',
+        );
+
+        $response->headers->setCookie($accessTokenCookie);
+        $response->headers->setCookie($refreshTokenCookie);
+
+        return $response;
+    }
+
+    /**
+     * @throws OptimisticLockException
+     * @throws RandomException
+     * @throws ORMException
+     */
+    #[Route('/api/refresh/', methods: ['POST'])]
+    public function refresh(
+        Request $request,
+        RefreshTokenManager $manager,
+    ): JsonResponse
+    {
+        $refreshToken = $request->cookies->get('refresh_token');
+
+        [$newAccessToken, $newRefreshToken] = $manager->refresh($refreshToken);
+
+        $response = new JsonResponse();
+
+        $response->headers->setCookie(
+            Cookie::create(
+                'access_token',
+                $newAccessToken,
+                time()+900,
+                '/',
+                null,
+                true,
+                true,
+                false,
+                'Lax'
+            )
+        );
+
+        $response->headers->setCookie(
+            Cookie::create(
+                'refresh_token',
+                $newRefreshToken,
+                time()+604800,
+                '/',
+                null,
+                true,
+                true,
+                false,
+                'Lax'
+            )
+        );
+
+        return $response;
     }
 }
