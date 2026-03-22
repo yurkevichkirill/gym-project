@@ -1,0 +1,31 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\User\Service;
+
+use App\User\DTO\LoginUserRequest;
+use App\User\Entity\User;
+use App\User\Repository\UserRepository;
+use Symfony\Component\HttpKernel\Exception\UnauthorizedHttpException;
+use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
+
+final readonly class UserManager
+{
+    public function __construct(
+        public UserRepository $repo,
+        public UserPasswordHasherInterface $hasher,
+    )
+    {}
+
+    public function login(?LoginUserRequest $dto): User
+    {
+        $user = $this->repo->findOneBy(['email' => $dto->email ?? null]);
+
+        if (!$user || !$this->hasher->isPasswordValid($user, $dto->password ?? '')) {
+            throw new UnauthorizedHttpException('Bearer', 'Invalid credentials');
+        }
+
+        return $user;
+    }
+}

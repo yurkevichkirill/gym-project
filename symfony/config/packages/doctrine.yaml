@@ -91,6 +91,12 @@ doctrine:
                 dir: '%kernel.project_dir%/src/MembershipPlan/Entity'
                 prefix: 'App\MembershipPlan\Entity'
                 alias: MembershipPlan
+            RefreshToken:
+                type: attribute
+                is_bundle: false
+                dir: '%kernel.project_dir%/src/RefreshToken/Entity'
+                prefix: 'App\RefreshToken\Entity'
+                alias: RefreshToken
         controller_resolver:
             auto_mapping: false
 

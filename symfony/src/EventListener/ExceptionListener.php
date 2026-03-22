@@ -9,6 +9,7 @@ use Symfony\Component\HttpKernel\Event\ExceptionEvent;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Symfony\Component\HttpKernel\Exception\UnauthorizedHttpException;
 use Symfony\Component\HttpKernel\KernelEvents;
 
 final class ExceptionListener
@@ -23,6 +24,7 @@ final class ExceptionListener
             $exception instanceof BadRequestHttpException  => 400,
             $exception instanceof LogicException => 422,
             $exception instanceof ConflictHttpException => 409,
+            $exception instanceof UnauthorizedHttpException => 401,
 
             default => 500
         };

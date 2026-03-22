@@ -44,7 +44,6 @@ final class SerializeViewListener
                     $result->status,
                 ));
             }
-
         }
     }
 }
