@@ -7,6 +7,7 @@ import {useNavigation} from "@/context/navigation-context";
 import { motion } from "framer-motion";
 import {SelectedPage} from "@/shared/types";
 import TrainingType from "@/scenes/trainingTypes/trainingType";
+import HText from "@/shared/HText";
 
 const trainingTypes = () => {const { setSelectedPage } = useNavigation();
     const [trainingTypes, setTrainingTypes] = useState<TrainingTypeData[]>([]);

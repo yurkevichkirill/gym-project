@@ -1,13 +1,13 @@
 'use client'
 
 import {useNavigation} from "@/context/navigation-context";
-import {useState} from "react";
+import {useEffect, useState} from "react";
 import Image from "next/image"
 import useMediaQuery from "@/hooks/useMediaQuery";
 import Logo from "@/assets/Logo.png"
 import NavLink from "@/scenes/navbar/NavLink";
-import ActionButton from "@/shared/ActionButton";
 import {Bars3Icon, XMarkIcon} from "@heroicons/react/24/solid"
+import LoginModal from "@/scenes/authorization";
 
 const Navbar =  () => {
     const { selectedPage, setSelectedPage, isTopOfPage } = useNavigation();
@@ -16,11 +16,26 @@ const Navbar =  () => {
     const [isMenuToggled, setIsMenuToggled] = useState<boolean>(false);
     const isAboveMediumScreens = useMediaQuery("(min-width: 1060px)");
     const navbarBackground = isTopOfPage ? "" : "bg-primary-100 drop-shadow";
+    const [isOpen, setIsOpen] = useState(false);
+
+    useEffect(() => {
+        if (!isOpen) return;
+
+        const scrollBarWidth = window.innerWidth - document.documentElement.clientWidth;
+
+        document.body.style.overflow = "hidden";
+        document.body.style.paddingRight = `${scrollBarWidth}px`;
+
+        return () => {
+            document.body.style.overflow = "";
+            document.body.style.paddingRight = "";
+        };
+    }, [isOpen]);
 
     return (
     <nav>
         <div
-            className={`${navbarBackground} ${flexBetween} fixed top-0 z-999 w-full py-6`}
+            className={`${navbarBackground} ${flexBetween} fixed top-0 z-30 w-full py-6`}
         >
             <div className={`${flexBetween} mx-auto w-5/6`}>
                 <div className={`${flexBetween} w-full gap-16`}>
@@ -58,8 +73,14 @@ const Navbar =  () => {
                                 />
                             </div>
                             <div className={`${flexBetween} gap-8`}>
-                                <p>Sign In</p>
-                                <ActionButton setSelectedPage={setSelectedPage}>Become a member</ActionButton>
+                                <button className="hover:text-secondary-500 cursor-pointer" type="button" onClick={() => setIsOpen(true)}>
+                                    Sign In
+                                </button>
+                                <LoginModal
+                                    isOpen={isOpen}
+                                    onClose={() => setIsOpen(false)}
+                                />
+                                <button className="rounded-md cursor-pointer bg-secondary-500 px-10 py-2 hover:bg-primary-500 hover:text-white">Become a member</button>
                             </div>
                         </div>)
                         : (

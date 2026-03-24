@@ -7,7 +7,7 @@ type Props = {
 }
 
 const TrainingType = ({ name, description, photoUrl }: Props) => {
-    const overlayStyles = `absolute inset-0 z-30 flex
+    const overlayStyles = `absolute inset-0 z-20 flex
     flex-col items-center justify-center
     bg-gray-200 text-center text-gray-400
     opacity-0 transition duration-500 hover:opacity-90`;
