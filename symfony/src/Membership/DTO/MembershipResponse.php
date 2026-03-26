@@ -6,12 +6,13 @@ namespace App\Membership\DTO;
 
 use App\Membership\Entity\Membership;
 use App\Membership\Enum\MembershipStatusEnum;
+use App\MembershipPlan\DTO\MembershipPlanResponse;
 
 final readonly class MembershipResponse
 {
     public function __construct(
         public int $id,
-        public int $membershipPlanId,
+        public MembershipPlanResponse $membershipPlan,
         public string $startDate,
         public string $endDate,
         public MembershipStatusEnum $status,
@@ -25,7 +26,7 @@ final readonly class MembershipResponse
     {
         return new self(
             id: $membership->getId(),
-            membershipPlanId: $membership->getPlan()->getId(),
+            membershipPlan: MembershipPlanResponse::fromEntity($membership->getPlan()),
             startDate: $membership->getStartDate()->format("Y-m-d"),
             endDate: $membership->getEndDate()->format("Y-m-d"),
             status: $membership->getStatus(),

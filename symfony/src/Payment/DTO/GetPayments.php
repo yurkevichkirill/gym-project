@@ -15,9 +15,9 @@ final readonly class GetPayments
     public int $limit;
 
     public function __construct(
+        Client $client,
         string $sortRaw = 'paidAt:ASC',
         ?Trainer $trainer = null,
-        ?Client $client = null,
         ?string $minAmount = null,
         ?string $maxAmount = null,
         ?string $category = null,
@@ -26,23 +26,21 @@ final readonly class GetPayments
     )
     {
         $this->sort = $this->parseSort($sortRaw);
-        $this->filter = $this->putFilter($trainer, $client, $minAmount, $maxAmount, $category);
+        $this->filter = $this->putFilter($client, $trainer, $minAmount, $maxAmount, $category);
         $this->page = $page;
         $this->limit = $limit;
     }
 
     private function putFilter (
+        Client $client,
         ?Trainer $trainer = null,
-        ?Client $client = null,
         ?string $minAmount = null,
         ?string $maxAmount = null,
         ?string $category = null,
     ): array
     {
-        $filter = [];
-        if($client) {
-            $filter['client'] = $client;
-        }
+        $filter['client'] = $client;
+
         if($trainer) {
             $filter['trainer'] = $trainer;
         }

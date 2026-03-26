@@ -5,8 +5,10 @@ namespace App\User\Entity;
 use App\Admin\Entity\Admin;
 use App\Client\Entity\Client;
 use App\Manager\Entity\Manager;
+use App\RefreshToken\Entity\RefreshToken;
 use App\Trainer\Entity\Trainer;
 use App\User\Repository\UserRepository;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Gedmo\SoftDeleteable\Traits\SoftDeleteableEntity;
 use Gedmo\Timestampable\Traits\TimestampableEntity;
@@ -63,6 +65,9 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column]
     #[Groups(['login'])]
     private ?string $password = null;
+
+    #[ORM\OneToMany(targetEntity: RefreshToken::class, mappedBy: 'user')]
+    private Collection $refreshTokens;
 
     public function getId(): ?int
     {

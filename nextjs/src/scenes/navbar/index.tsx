@@ -6,17 +6,21 @@ import Image from "next/image"
 import useMediaQuery from "@/hooks/useMediaQuery";
 import Logo from "@/assets/Logo.png"
 import NavLink from "@/scenes/navbar/NavLink";
-import {Bars3Icon, XMarkIcon} from "@heroicons/react/24/solid"
+import {Bars3Icon, XMarkIcon} from "@heroicons/react/24/solid";
 import LoginModal from "@/scenes/authorization";
+import {useStore} from "@/providers/StoreProvider";
+import Link from "next/link";
+import {observer} from "mobx-react-lite";
 
-const Navbar =  () => {
+const Navbar =  observer (() => {
     const { selectedPage, setSelectedPage, isTopOfPage } = useNavigation();
 
     const flexBetween = "flex items-center justify-between";
     const [isMenuToggled, setIsMenuToggled] = useState<boolean>(false);
-    const isAboveMediumScreens = useMediaQuery("(min-width: 1060px)");
+    const isAboveMediumScreens = useMediaQuery("(min-width: 1250px)");
     const navbarBackground = isTopOfPage ? "" : "bg-primary-100 drop-shadow";
     const [isOpen, setIsOpen] = useState(false);
+    const { authStore } = useStore();
 
     useEffect(() => {
         if (!isOpen) return;
@@ -66,22 +70,38 @@ const Navbar =  () => {
                                     selectedPage={selectedPage}
                                     setSelectedPage={setSelectedPage}
                                 />
-                                <NavLink
-                                    page="Contact Us"
-                                    selectedPage={selectedPage}
-                                    setSelectedPage = {setSelectedPage}
-                                />
+                                {/*<NavLink*/}
+                                {/*    page="Contact Us"*/}
+                                {/*    selectedPage={selectedPage}*/}
+                                {/*    setSelectedPage = {setSelectedPage}*/}
+                                {/*/>*/}
                             </div>
-                            <div className={`${flexBetween} gap-8`}>
-                                <button className="hover:text-secondary-500 cursor-pointer" type="button" onClick={() => setIsOpen(true)}>
-                                    Sign In
-                                </button>
-                                <LoginModal
-                                    isOpen={isOpen}
-                                    onClose={() => setIsOpen(false)}
-                                />
-                                <button className="rounded-md cursor-pointer bg-secondary-500 px-10 py-2 hover:bg-primary-500 hover:text-white">Become a member</button>
-                            </div>
+                            {authStore.isAuth ?
+                                <div className={`${flexBetween} gap-8`}>
+                                    <p>
+                                        {authStore.user?.email}
+                                    </p>
+                                    <Link
+                                        className="rounded-md cursor-pointer bg-secondary-500 px-10 py-2 hover:bg-primary-500 hover:text-white"
+                                        href={"/me"}
+                                    >
+                                        My profile
+                                    </Link>
+                                    <button className="hover:text-primary-500 cursor-pointer" type="button" onClick={() => authStore.logout()}>
+                                        Logout
+                                    </button>
+                                </div> :
+                                <div className={`${flexBetween} gap-8`}>
+                                    <button className="hover:text-secondary-500 cursor-pointer" type="button" onClick={() => setIsOpen(true)}>
+                                        Sign In
+                                    </button>
+                                    <LoginModal
+                                        isOpen={isOpen}
+                                        onClose={() => setIsOpen(false)}
+                                    />
+                                    <button className="rounded-md cursor-pointer bg-secondary-500 px-10 py-2 hover:bg-primary-500 hover:text-white">Become a member</button>
+                                </div>
+                            }
                         </div>)
                         : (
                             <div>
@@ -108,7 +128,31 @@ const Navbar =  () => {
                 </div>
 
                 {/* MENU ITEMS */}
-                <div className="ml-[33%] flex flex-col gap-10 text-2xl">
+                <div className="ml-[22%] flex flex-col gap-10 text-2xl">
+                    {
+                        authStore.isAuth ?
+                        <>
+                            <div className="flex flex-col gap-2">
+                                <p className="text-[16px]">{authStore.user?.email}</p>
+                                <div className="bg-gray-500 h-[2px] w-3/4"></div>
+                            </div>
+                            <button
+                                className="cursor-pointer text-left transition duration-500 hover:text-primary-300"
+                                type="button" onClick={() => authStore.logout()}>
+                                Logout
+                            </button>
+                        </>
+                        :
+                            <button
+                                className="cursor-pointer text-left transition duration-500 hover:text-primary-300"
+                                type="button" onClick={() => setIsOpen(true)}>
+                                Sign In
+                            </button>
+                    }
+                    <LoginModal
+                        isOpen={isOpen}
+                        onClose={() => setIsOpen(false)}
+                    />
                     <NavLink
                         page="Home"
                         selectedPage={selectedPage}
@@ -120,25 +164,24 @@ const Navbar =  () => {
                         setSelectedPage={setSelectedPage}
                     />
                     <NavLink
-                        page="Benefits"
+                        page="Memberships"
                         selectedPage={selectedPage}
                         setSelectedPage = {setSelectedPage}
                     />
                     <NavLink
-                        page="Our Classes"
+                        page="Training Types"
                         selectedPage={selectedPage}
                         setSelectedPage = {setSelectedPage}
-                    />
-                    <NavLink
-                        page="Contact Us"
-                        selectedPage={selectedPage}
-                        setSelectedPage = {setSelectedPage}
-                    />
+                    />{/*<NavLink*/}
+                    {/*    page="Contact Us"*/}
+                    {/*    selectedPage={selectedPage}*/}
+                    {/*    setSelectedPage = {setSelectedPage}*/}
+                    {/*/>*/}
                 </div>
             </div>
         )}
     </nav>
     );
-}
+});
 
 export default Navbar

@@ -19,7 +19,7 @@ class RefreshToken
     #[ORM\Column(length: 1023)]
     private ?string $token = null;
 
-    #[ORM\ManyToOne(inversedBy: 'refresh_tokens')]
+    #[ORM\ManyToOne(inversedBy: 'refreshTokens')]
     #[ORM\JoinColumn(nullable: false)]
     private ?User $user = null;
 

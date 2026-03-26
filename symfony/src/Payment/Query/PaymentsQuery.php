@@ -4,10 +4,8 @@ declare(strict_types=1);
 
 namespace App\Payment\Query;
 
-use App\Client\Repository\ClientRepository;
 use App\Payment\DTO\GetPayments;
 use App\Payment\Repository\PaymentRepository;
-use App\Trainer\Repository\TrainerRepository;
 use Doctrine\ORM\QueryBuilder;
 use Psr\Cache\InvalidArgumentException;
 use Symfony\Component\Cache\CacheItem;
@@ -17,8 +15,6 @@ final readonly class PaymentsQuery
 {
     public function __construct(
         private PaymentRepository $paymentRepo,
-        private TrainerRepository $trainerRepo,
-        private ClientRepository $clientRepo,
         private TagAwareCacheInterface $gymCache
     )
     {}
@@ -34,32 +30,7 @@ final readonly class PaymentsQuery
         {
             $item->expiresAfter(3600);
 
-            $qb = $this->paymentRepo->createQueryBuilder('p');
-
-            if(isset($dto->filter['clientId'])) {
-                $qb->andWhere('p.client = :client')
-                    ->setParameter('client', $this->clientRepo->find($dto->filter['clientId']));
-            }
-
-            if(isset($dto->filter['trainerId'])) {
-                $qb->andWhere('p.trainerId = :trainerId')
-                    ->setParameter('trainerId', $this->trainerRepo->find($dto->filter['trainerId']));
-            }
-
-            if(isset($dto->filter['minAmount'])) {
-                $qb->andWhere('p.amount >= :minAmount')
-                    ->setParameter('minAmount', $dto->filter['minAmount']);
-            }
-
-            if(isset($dto->filter['maxAmount'])) {
-                $qb->andWhere('p.amount <= :maxAmount')
-                    ->setParameter('maxAmount', $dto->filter['maxAmount']);
-            }
-
-            if(isset($dto->filter['category'])) {
-                $qb->andWhere('p.category = :category')
-                    ->setParameter('category', $dto->filter['category']);
-            }
+            $qb = $this->createQuery($dto->filter);
 
             $offset = ($dto->page - 1) * $dto->limit;
 
@@ -82,12 +53,14 @@ final readonly class PaymentsQuery
 
     private function createQuery(array $filter): QueryBuilder
     {
-        $qb = $this->paymentRepo->createQueryBuilder('p');
+        $qb = $this->paymentRepo->createQueryBuilder('p')
+            ->leftJoin("p.trainer", "t")
+            ->addSelect("t")
+            ->leftJoin("t.trainingType", 'type')
+            ->addSelect("type");
 
-        if(isset($filter['client'])) {
-            $qb->andWhere('p.client = :client')
-                ->setParameter('client', $filter['client']);
-        }
+        $qb->andWhere('p.client = :client')
+            ->setParameter('client', $filter['client']);
 
         if(isset($filter['trainer'])) {
             $qb->andWhere('p.trainer = :trainer')
@@ -120,11 +93,8 @@ final readonly class PaymentsQuery
             'limit' => $query->limit,
         ];
 
-        if(isset($query->filter['client'])) {
-            $params['client'] = $query->filter['client'];
-        } else {
-            $params['client'] = null;
-        }
+        $params['client'] = $query->filter['client'];
+
         if(isset($query->filter['trainer'])) {
             $params['trainer'] = $query->filter['trainer'];
         }

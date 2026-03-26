@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\MembershipPlan\DTO;
 
 use App\MembershipPlan\Entity\MembershipPlan;
-use App\TrainingType\Entity\TrainingType;
 
 final readonly class MembershipPlanResponse
 {
