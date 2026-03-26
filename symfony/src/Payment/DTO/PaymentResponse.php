@@ -6,13 +6,13 @@ namespace App\Payment\DTO;
 
 use App\Payment\Entity\Payment;
 use App\Payment\Enum\PaymentCategoryEnum;
-use App\Payment\Enum\PaymentStatusEnum;
+use App\Trainer\DTO\TrainerResponse;
 
 final readonly class PaymentResponse
 {
     public function __construct(
         public int $id,
-        public ?int $trainerId = null,
+        public ?TrainerResponse $trainer = null,
         public string $amount,
         public PaymentCategoryEnum $category
     )
@@ -22,7 +22,7 @@ final readonly class PaymentResponse
     {
         return new self(
             id: $payment->getId(),
-            trainerId: $payment->getTrainer()?->getId(),
+            trainer: $payment->getTrainer() ? TrainerResponse::fromEntity($payment->getTrainer()) : null,
             amount: $payment->getAmount(),
             category: $payment->getCategory()
         );

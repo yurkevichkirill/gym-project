@@ -2,15 +2,15 @@
 
 import {useEffect, useState} from "react";
 import {ApiResponse} from "@/types/api-response.type";
-import BookingType from "@/types/booking.typs";
-import Booking from "@/scenes/bookings/Booking";
+import BookingType from "@/types/booking.type";
+import Booking from "@/scenes/userPersonal/bookings/Booking";
 
 export const Bookings = () => {
     const [bookings, setBookings] = useState<BookingType[]>([]);
 
     useEffect(() => {
         const fetchData = async () => {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/me/bookings`);
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/me/bookings/`);
             if (!response.ok) {
                 console.error("Failed to fetch bookings, status:  ", response.status);
             }

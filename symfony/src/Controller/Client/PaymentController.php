@@ -32,7 +32,7 @@ final class PaymentController extends AbstractController
     #[OA\Parameter(name: 'limit', in: 'query', example: 20)]
     #[OA\Tag(name: "Client: Payments")]
     public function getAll(
-        #[CurrentUser] ?Client $client,
+        #[CurrentUser] Client $client,
         Request $request,
         PaymentMapperInterface $mapper,
         PaymentsQuery $handler,
@@ -48,9 +48,9 @@ final class PaymentController extends AbstractController
         $limit = (int) $request->query->get('limit', 20);
 
         $queryDto = new GetPayments(
+            $client,
             $sortRaw,
             $trainer,
-            $client,
             $minAmount,
             $maxAmount,
             $category,

@@ -58,7 +58,9 @@ class MembershipQuery
 
     private function createQuery(array $filter): QueryBuilder
     {
-        $qb = $this->membershipRepo->createQueryBuilder('m');
+        $qb = $this->membershipRepo->createQueryBuilder('m')
+            ->leftJoin('m.plan', 'plan')
+            ->addSelect('plan');
 
         if(isset($filter['client'])) {
             $qb->andWhere('m.client = :client')

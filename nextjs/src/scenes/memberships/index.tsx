@@ -1,11 +1,6 @@
 'use client'
 
-import {
-    HomeModernIcon,
-    UserGroupIcon,
-    AcademicCapIcon,
-} from "@heroicons/react/24/solid";
-import {type MembershipType, SelectedPage} from "@/shared/types";
+import {SelectedPage} from "@/shared/types";
 import { motion } from "framer-motion";
 import HText from "@/shared/HText";
 import Membership from "@/scenes/memberships/Membership";
@@ -15,6 +10,7 @@ import {useNavigation} from "@/context/navigation-context";
 import Image from "next/image";
 import {useEffect, useState} from "react";
 import {ApiResponse} from "@/types/api-response.type";
+import {MembershipPlanType} from "@/types/membership-plan.type";
 
 const container = {
     hidden: {},
@@ -25,7 +21,7 @@ const container = {
 
 const Memberships = () => {
     const { setSelectedPage } = useNavigation();
-    const [ memberships, setMemberships ] = useState<MembershipType[]>([]);
+    const [ memberships, setMemberships ] = useState<MembershipPlanType[]>([]);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -34,7 +30,7 @@ const Memberships = () => {
                 console.log("Failed to fetch trainers, status:  ", response.status);
             }
 
-            const data: ApiResponse<MembershipType[]> = await response.json();
+            const data: ApiResponse<MembershipPlanType[]> = await response.json();
             setMemberships(data.data);
         }
 
@@ -70,7 +66,7 @@ const Memberships = () => {
                 <div>
                     <div className="mt-10 h-[353px] w-full overflow-x-auto overflow-y-hidden">
                         <ul className="flex gap-20 whitespace-nowrap">
-                            {memberships.map((membership: MembershipType) => (
+                            {memberships.map((membership: MembershipPlanType) => (
                                 <Membership
                                     key={membership.id}
                                     name={membership.name}

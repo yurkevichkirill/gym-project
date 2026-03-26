@@ -84,7 +84,6 @@ final class ApiLoginController extends AbstractController
     ): JsonResponse
     {
         $refreshToken = $request->cookies->get('refresh_token');
-
         [$newAccessToken, $newRefreshToken] = $manager->refresh($refreshToken);
 
         $response = new JsonResponse();
@@ -115,6 +114,24 @@ final class ApiLoginController extends AbstractController
                 false,
                 'Lax'
             )
+        );
+
+        return $response;
+    }
+
+    #[Route("/api/logout/", methods: ['POST'])]
+    public function logout(): JsonResponse
+    {
+        $response = new JsonResponse();
+
+        $response->headers->clearCookie(
+            'access_token',
+            '/',
+        );
+
+        $response->headers->clearCookie(
+            'refresh_token',
+            '/',
         );
 
         return $response;

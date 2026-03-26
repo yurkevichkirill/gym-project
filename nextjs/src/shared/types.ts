@@ -12,14 +12,6 @@ export const SelectedPage = {
 
 export type SelectedPage = (typeof SelectedPage)[keyof typeof SelectedPage];
 
-export interface MembershipType {
-    id: number;
-    name: string;
-    durationDays: number;
-    sessionLimit: number | null;
-    price: string;
-}
-
 export interface ClassType {
     name: string;
     description?: string;

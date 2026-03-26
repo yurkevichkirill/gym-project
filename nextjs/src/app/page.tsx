@@ -12,7 +12,7 @@ export default function MainPage() {
             <OurTrainers />
             <Memberships />
             <TrainingTypes />
-            <ContactUs />
+            {/*<ContactUs />*/}
         </>
     );
 }

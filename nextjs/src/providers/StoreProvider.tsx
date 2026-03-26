@@ -1,7 +1,7 @@
 'use client'
 
 import {authStore} from "@/stores/AuthStore";
-import {createContext, useContext} from "react";
+import {createContext, useContext, useEffect} from "react";
 
 interface StoreContextType {
     authStore: typeof authStore;
@@ -14,6 +14,18 @@ export const StoreProvider = ({
 }: {
     children: React.ReactNode;
 }) => {
+    useEffect(() => {
+        const init = async () => {
+            try {
+                await authStore.checkAuth();
+            } catch (e) {
+                console.error(e);
+            }
+        };
+
+        void init();
+    }, []);
+
     return (
         <StoreContext.Provider value={{ authStore }}>
             {children}
