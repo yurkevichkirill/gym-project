@@ -11,7 +11,9 @@ export const Payments = () => {
 
     useEffect(() => {
         const fetchData = async () => {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/me/payments/`);
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/me/payments/`, {
+                credentials: "include",
+            });
             if (!response.ok) {
                 console.error("Failed to fetch payments, status:  ", response.status);
             }

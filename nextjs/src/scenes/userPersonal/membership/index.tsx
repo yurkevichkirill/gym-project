@@ -11,7 +11,9 @@ export const PersonalMemberships = () => {
 
     useEffect(() => {
         const fetchData = async () => {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/me/memberships/`);
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/me/memberships/`, {
+                credentials: "include",
+            });
             if (!response.ok) {
                 console.error("Failed to fetch personal memberships, status:  ", response.status);
             }

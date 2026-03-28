@@ -11,7 +11,10 @@ export const Bookings = () => {
 
     useEffect(() => {
         const fetchData = async () => {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/me/bookings/`);
+            const response = await fetch(
+                `${process.env.NEXT_PUBLIC_API_URL}/me/bookings/`,{
+                    credentials: 'include'
+                });
             if (!response.ok) {
                 console.error("Failed to fetch bookings, status:  ", response.status);
             }

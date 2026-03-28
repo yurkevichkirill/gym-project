@@ -47,11 +47,11 @@ final class ApiLoginController extends AbstractController
             $accessToken,
             time() + 900,
             '/',
-            null,
+            '.evogym.local',
             true,
             true,
             false,
-            'Lax'
+            'None'
         );
 
         $refreshTokenCookie = Cookie::create(
@@ -59,11 +59,11 @@ final class ApiLoginController extends AbstractController
             $refreshToken,
             time() + 604800,
             '/',
-            null,
+            '.evogym.local',
             true,
             true,
             false,
-            'Lax',
+            'None',
         );
 
         $response->headers->setCookie($accessTokenCookie);
@@ -94,11 +94,11 @@ final class ApiLoginController extends AbstractController
                 $newAccessToken,
                 time()+900,
                 '/',
-                null,
+                '.evogym.local',
                 true,
                 true,
                 false,
-                'Lax'
+                'None'
             )
         );
 
@@ -108,11 +108,11 @@ final class ApiLoginController extends AbstractController
                 $newRefreshToken,
                 time()+604800,
                 '/',
-                null,
+                '.evogym.local',
                 true,
                 true,
                 false,
-                'Lax'
+                'None'
             )
         );
 
@@ -127,11 +127,13 @@ final class ApiLoginController extends AbstractController
         $response->headers->clearCookie(
             'access_token',
             '/',
+            '.evogym.local',
         );
 
         $response->headers->clearCookie(
             'refresh_token',
             '/',
+            '.evogym.local',
         );
 
         return $response;

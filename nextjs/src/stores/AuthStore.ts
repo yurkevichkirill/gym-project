@@ -64,10 +64,11 @@ export const authStore: AuthStore = {
     },
 
     logout: async () => {
-        await fetch('/api/logout/', {
-            method: 'POST',
-            credentials: 'include',
-        })
+        await apiPost(
+            "/logout/",
+            {
+                credentials: "include"
+            });
         authStore.user = null;
         authStore.isAuth = false;
     },

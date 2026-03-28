@@ -39,7 +39,7 @@ final class MembershipController extends AbstractController
     #[OA\Parameter(name: 'limit', in: 'query', example: 20)]
     #[OA\Tag(name: "Client: Membership")]
     public function getAll(
-        #[CurrentUser] ?Client $client,
+        #[CurrentUser] Client $client,
         Request $request,
         MembershipMapperInterface $mapper,
         MembershipQuery $handler,
@@ -100,7 +100,7 @@ final class MembershipController extends AbstractController
     #[OA\RequestBody(content: new Model(type: CreateMembershipRequest::class))]
     #[OA\Tag(name: "Client: Membership")]
     public function create(
-        #[CurrentUser] ?Client $client,
+        #[CurrentUser] Client $client,
         #[MapRequestPayload] CreateMembershipRequest $requestDto,
         MembershipMapperInterface $mapper,
         MembershipManager $manager,

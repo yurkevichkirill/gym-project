@@ -7,7 +7,6 @@ import {useNavigation} from "@/context/navigation-context";
 import { motion } from "framer-motion";
 import {SelectedPage} from "@/shared/types";
 import TrainingType from "@/scenes/trainingTypes/trainingType";
-import HText from "@/shared/HText";
 
 const trainingTypes = () => {const { setSelectedPage } = useNavigation();
     const [trainingTypes, setTrainingTypes] = useState<TrainingTypeData[]>([]);
@@ -15,12 +14,14 @@ const trainingTypes = () => {const { setSelectedPage } = useNavigation();
     useEffect(() => {
         const fetchData = async () => {
             const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/training/types`);
+            if (!response.ok) {
+                console.error("Failed to fetch trainers, status:  ", response.status);
+            }
             const trainingTypes: ApiResponse<TrainingTypeData[]> = await response.json();
 
             setTrainingTypes(trainingTypes.data);
         }
-
-        fetchData();
+        void fetchData();
     }, []);
 
     return (
