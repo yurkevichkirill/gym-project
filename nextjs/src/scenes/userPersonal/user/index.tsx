@@ -2,32 +2,49 @@
 
 import {useEffect, useState} from "react";
 import UserPersonalType from "@/types/user.type";
-import {ApiResponse} from "@/types/api-response.type";
 import User from "@/scenes/userPersonal/user/User";
 import Bookings from "@/scenes/userPersonal/bookings";
 import PersonalMemberships from "@/scenes/userPersonal/membership";
 import Payments from "@/scenes/userPersonal/payment";
+import {getMe} from "@/api/user.api";
 
 const MyPersonalUser = () => {
-
     const [user, setUser] = useState<UserPersonalType>();
+    const [error, setError] = useState<string | null>(null);
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         const fetchData = async () => {
-            const response = await fetch(
-                `${process.env.NEXT_PUBLIC_API_URL}/me`, {
-                    credentials: "include",
-                });
-            if (!response.ok) {
-                console.error("Failed to fetch user, status:  ", response.status);
+            try {
+                const data = await getMe();
+                setUser(data);
+            } catch (e) {
+                console.error(e);
+
+                if (e instanceof Error) {
+                    setError(e.message);
+                } else {
+                    setError("Something went wrong");
+                }
+            } finally {
+                setLoading(false);
             }
-            const data: ApiResponse<UserPersonalType> = await response.json();
-            setUser(data.data);
         }
+
         void fetchData();
     }, []);
 
-    if (!user) return null;
+    if (loading) {
+        return <div>Loading...</div>;
+    }
+
+    if (error) {
+        return <div>Error: {error}</div>;
+    }
+
+    if (!user) {
+        return null;
+    }
 
     return (
         <div className="pt-32 pb-20">

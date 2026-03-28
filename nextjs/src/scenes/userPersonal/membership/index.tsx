@@ -1,29 +1,44 @@
 'use client'
 
 import {useEffect, useState} from "react";
-import {ApiResponse} from "@/types/api-response.type";
 import MembershipType from "@/types/membership.type";
 import PersonalMembership from "@/scenes/userPersonal/membership/Membership";
 import Section from "@/shared/Section";
+import {getMyMemberships} from "@/api/memberships.api";
 
 export const PersonalMemberships = () => {
     const [memberships, setMemberships] = useState<MembershipType[]>([]);
+    const [error, setError] = useState<string | null>(null);
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         const fetchData = async () => {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/me/memberships/`, {
-                credentials: "include",
-            });
-            if (!response.ok) {
-                console.error("Failed to fetch personal memberships, status:  ", response.status);
-            }
-            const data: ApiResponse<MembershipType[]> = await response.json();
+            try {
+                const data = await getMyMemberships();
+                setMemberships(data);
+            } catch (e) {
+                console.error(e);
 
-            setMemberships(data.data);
+                if (e instanceof Error) {
+                    setError(e.message);
+                } else {
+                    setError("Something went wrong");
+                }
+            } finally {
+                setLoading(false);
+            }
         }
 
         void fetchData();
     }, []);
+
+    if (loading) {
+        return <div>Error: {error}</div>;
+    }
+
+    if (error) {
+        return <div>Error: {error}</div>;
+    }
 
     return (
         <Section title="My Memberships">

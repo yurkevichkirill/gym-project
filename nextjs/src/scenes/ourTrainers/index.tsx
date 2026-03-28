@@ -6,26 +6,43 @@ import type TrainerData from "@/types/trainer.type";
 import { motion } from "framer-motion";
 import Trainers from "@/scenes/ourTrainers/Trainers";
 import {useNavigation} from "@/context/navigation-context";
-import {ApiResponse} from "@/types/api-response.type";
 import HText from "@/shared/HText";
+import {getTrainers} from "@/api/public/trainers.api";
 
 const OurTrainers = () => {
     const { setSelectedPage } = useNavigation();
     const [ourTrainers, setOurTrainers] = useState<TrainerData[]>([]);
+    const [error, setError] = useState<string | null>(null);
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         const fetchData = async () => {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/trainers/`);
-            if (!response.ok) {
-                console.error("Failed to fetch trainers, status:  ", response.status);
-            }
-            const obj: ApiResponse<TrainerData[]> = await response.json();
+            try {
+                const data = await getTrainers();
+                setOurTrainers(data);
+            } catch (e) {
+                console.error(e);
 
-            setOurTrainers(obj.data);
+                if (e instanceof Error) {
+                    setError(e.message);
+                } else {
+                    setError("Something went wrong");
+                }
+            } finally {
+                setLoading(false);
+            }
         }
 
         void fetchData();
     }, []);
+
+    if (loading) {
+        return <div>Error: {error}</div>;
+    }
+
+    if (error) {
+        return <div>Error: {error}</div>;
+    }
 
     return (
         <section id="ourtrainers" className="mx-auto min-h-full w-5/6 py-20">

@@ -32,3 +32,21 @@ export function generateEndTimes(end: string, selectedStart: string) {
 
     return result
 }
+
+export function generateDurationMinutes(end: string, selectedStart: string) {
+    const result: string[] = []
+
+    let current = new Date(`1970-01-01T${selectedStart}`)
+
+    let durationMinutes = 60;
+    current.setMinutes(current.getMinutes() + durationMinutes);
+
+    const endDate = new Date(`1970-01-01T${end}`)
+    while (current <= endDate) {
+        result.push(durationMinutes.toString())
+        durationMinutes += 30;
+        current.setMinutes(current.getMinutes() + 30);
+    }
+
+    return result
+}

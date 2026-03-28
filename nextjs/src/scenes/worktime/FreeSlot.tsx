@@ -1,5 +1,5 @@
 import type FreeSlotData from "@/types/free-slot.type";
-import {generateEndTimes, generateStartTimes} from "@/services/time.utils";
+import {generateDurationMinutes, generateEndTimes, generateStartTimes} from "@/lib/utils/time.utils";
 
 type Props = {
     freeSlot: FreeSlotData,
@@ -12,7 +12,7 @@ type Props = {
 const FreeSlot = ({ freeSlot, startTime, setStartTime, endTime, setEndTime }: Props) => {
     const startTimes = generateStartTimes(freeSlot.start, freeSlot.end)
     const endTimes = startTime
-        ? generateEndTimes(freeSlot.end, startTime)
+        ? generateDurationMinutes(freeSlot.end, startTime)
         : []
 
     return (

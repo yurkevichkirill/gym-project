@@ -30,5 +30,5 @@ export interface MeResponse {
 }
 
 export interface ApiError {
-    error: string;
+    message: string;
 }

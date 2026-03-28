@@ -8,7 +8,7 @@ import Logo from "@/assets/Logo.png"
 import NavLink from "@/scenes/navbar/NavLink";
 import {Bars3Icon, XMarkIcon} from "@heroicons/react/24/solid";
 import LoginModal from "@/scenes/authorization";
-import {useStore} from "@/providers/StoreProvider";
+import {useStore} from "@/store/StoreProvider";
 import Link from "next/link";
 import {observer} from "mobx-react-lite";
 

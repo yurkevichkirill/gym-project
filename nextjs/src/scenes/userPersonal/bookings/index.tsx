@@ -1,30 +1,44 @@
 'use client'
 
 import {useEffect, useState} from "react";
-import {ApiResponse} from "@/types/api-response.type";
 import BookingType from "@/types/booking.type";
 import Booking from "@/scenes/userPersonal/bookings/Booking";
 import Section from "@/shared/Section";
+import {getMyBookings} from "@/api/bookings.api";
 
 export const Bookings = () => {
     const [bookings, setBookings] = useState<BookingType[]>([]);
+    const [error, setError] = useState<string | null>(null);
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         const fetchData = async () => {
-            const response = await fetch(
-                `${process.env.NEXT_PUBLIC_API_URL}/me/bookings/`,{
-                    credentials: 'include'
-                });
-            if (!response.ok) {
-                console.error("Failed to fetch bookings, status:  ", response.status);
-            }
-            const data: ApiResponse<BookingType[]> = await response.json();
+            try {
+                const data = await getMyBookings();
+                setBookings(data);
+            } catch (e) {
+                console.error(e);
 
-            setBookings(data.data);
+                if (e instanceof Error) {
+                    setError(e.message);
+                } else {
+                    setError("Something went wrong");
+                }
+            } finally {
+                setLoading(false);
+            }
         }
 
         void fetchData();
     }, []);
+
+    if (loading) {
+        return <div>Error: {error}</div>;
+    }
+
+    if (error) {
+        return <div>Error: {error}</div>;
+    }
 
     return (
         <Section title="My Bookings">
