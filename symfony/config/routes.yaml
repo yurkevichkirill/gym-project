@@ -15,7 +15,7 @@ login:
     methods: ["POST"]
 
 app.swagger_ui:
-    path: /api/doc
+    path: /api/docs
     methods: GET
     defaults: { _controller: nelmio_api_doc.controller.swagger_ui }
 

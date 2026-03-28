@@ -14,7 +14,10 @@ const MyPersonalUser = () => {
 
     useEffect(() => {
         const fetchData = async () => {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/me`);
+            const response = await fetch(
+                `${process.env.NEXT_PUBLIC_API_URL}/me`, {
+                    credentials: "include",
+                });
             if (!response.ok) {
                 console.error("Failed to fetch user, status:  ", response.status);
             }

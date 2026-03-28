@@ -24,7 +24,7 @@ final class ClientController extends AbstractController
     #[IsGranted('ROLE_CLIENT')]
     #[OA\Tag(name: "Client: Client")]
     public function get(
-        #[CurrentUser] ?Client $client,
+        #[CurrentUser] Client $client,
         ClientMapperInterface $mapper,
     ): OkResponse
     {
@@ -40,7 +40,7 @@ final class ClientController extends AbstractController
     #[OA\RequestBody(content: new Model(type: UpdateClientRequest::class))]
     #[OA\Tag(name: "Client: Client")]
     public function update(
-        #[CurrentUser] ?Client $client,
+        #[CurrentUser] Client $client,
         #[MapRequestPayload] UpdateClientRequest $requestDto,
         ClientMapperInterface $mapper,
         ClientManager $manager,
