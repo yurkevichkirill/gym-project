@@ -22,6 +22,7 @@ final class TrainerController extends AbstractController
 {
     #[Route('/api/trainer/me/', methods: ['GET'], format: 'json')]
     #[OA\Tag(name: "OurTrainer: OurTrainer")]
+    #[IsGranted('ROLE_TRAINER')]
     public function get(
         #[CurrentUser] Trainer                    $trainer,
         TrainerMapperInterface                    $mapper,
@@ -38,6 +39,7 @@ final class TrainerController extends AbstractController
     #[Route('/api/trainer/me/', methods: ['PUT', 'PATCH'], format: 'json')]
     #[OA\RequestBody(content: new Model(type: UpdateTrainerRequest::class))]
     #[OA\Tag(name: "OurTrainer: OurTrainer")]
+    #[IsGranted('ROLE_TRAINER')]
     public function update(
         #[CurrentUser] Trainer                    $trainer,
         #[MapRequestPayload] UpdateTrainerRequest $requestDto,
@@ -58,8 +60,8 @@ final class TrainerController extends AbstractController
      * @throws NotFoundExceptionInterface
      */
     #[Route('/api/trainer/me/', methods: ['DELETE'], format: 'json')]
-    #[IsGranted('ROLE_TRAINER')]
     #[OA\Tag(name: "OurTrainer: OurTrainer")]
+    #[IsGranted('ROLE_TRAINER')]
     public function remove(
         #[CurrentUser] Trainer $trainer,
         TrainerManager $manager,

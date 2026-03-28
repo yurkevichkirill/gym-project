@@ -27,6 +27,7 @@ use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
 use Symfony\Component\Routing\Attribute\Route;
 use OpenApi\Attributes as OA;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
+use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 final class TrainerWorkTimeController extends AbstractController
 {
@@ -40,6 +41,7 @@ final class TrainerWorkTimeController extends AbstractController
     #[OA\Parameter(name: 'sort', in: 'query', example: 'date:ASC')]
     #[OA\Parameter(name: 'page', in: 'query', example: 1)]
     #[OA\Parameter(name: 'limit', in: 'query', example: 20)]
+    #[IsGranted('ROLE_TRAINER')]
     public function getAll(
         #[CurrentUser] Trainer $trainer,
         Request $request,
@@ -73,6 +75,7 @@ final class TrainerWorkTimeController extends AbstractController
     #[Route('/api/trainer/me/worktime/', methods: ['POST'], format: 'json')]
     #[OA\RequestBody(content: new Model(type: CreateWorkTimeRequest::class))]
     #[OA\Tag(name: "OurTrainer: WorkTime")]
+    #[IsGranted('ROLE_TRAINER')]
     public function create(
         #[CurrentUser] Trainer                     $trainer,
         #[MapRequestPayload] CreateWorkTimeRequest $requestDto,
