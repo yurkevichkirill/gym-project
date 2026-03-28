@@ -20,7 +20,7 @@ final class TrainingTypeController extends AbstractController
     /**
      * @throws InvalidArgumentException
      */
-    #[Route('api/training/types/', methods: ['GET'], format: 'json')]
+    #[Route('/api/training/types/', methods: ['GET'], format: 'json')]
     #[OA\Parameter(name: 'sort', in: 'query', example: 'name:ASC')]
     #[OA\Parameter(name: 'page', in: 'query', example: 1)]
     #[OA\Parameter(name: 'limit', in: 'query', example: 20)]
@@ -50,7 +50,7 @@ final class TrainingTypeController extends AbstractController
         );
     }
 
-    #[Route('api/training/types/{id}/', methods: ['GET'], format: 'json')]
+    #[Route('/api/training/types/{id}/', methods: ['GET'], format: 'json')]
     #[OA\Tag(name: "All: TrainingType")]
     public function get(
         TrainingType $trainingType,

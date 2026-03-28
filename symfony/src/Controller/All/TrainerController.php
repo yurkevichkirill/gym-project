@@ -19,7 +19,7 @@ final class TrainerController extends AbstractController
     /**
      * @throws InvalidArgumentException
      */
-    #[Route('api/trainers/', methods: ['GET'], format: 'json')]
+    #[Route('/api/trainers/', methods: ['GET'], format: 'json')]
     #[OA\Parameter(name: 'minPrice', in: 'query', example: 30)]
     #[OA\Parameter(name: 'maxPrice', in: 'query', example: 50)]
     #[OA\Parameter(name: 'trainingTypeId', in: 'query', example: 1)]
@@ -55,7 +55,7 @@ final class TrainerController extends AbstractController
         );
     }
 
-    #[Route('api/trainers/{id}/', methods: ['GET'], format: 'json')]
+    #[Route('/api/trainers/{id}/', methods: ['GET'], format: 'json')]
     #[OA\Tag(name: "All: Trainers")]
     public function get(Trainer $trainer, TrainerMapperInterface $mapper): OkResponse
     {

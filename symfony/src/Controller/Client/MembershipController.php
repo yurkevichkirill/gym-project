@@ -96,7 +96,7 @@ final class MembershipController extends AbstractController
      * @throws OptimisticLockException
      * @throws ORMException
      */
-    #[Route('api/me/membership/', methods: ['POST'], format: 'json')]
+    #[Route('/api/me/membership/', methods: ['POST'], format: 'json')]
     #[OA\RequestBody(content: new Model(type: CreateMembershipRequest::class))]
     #[OA\Tag(name: "Client: Membership")]
     public function create(
@@ -118,7 +118,7 @@ final class MembershipController extends AbstractController
      * @throws OptimisticLockException
      * @throws ORMException
      */
-    #[Route('api/memberships/{id}/', methods: ['PUT', 'PATCH'], format: 'json')]
+    #[Route('/api/memberships/{id}/', methods: ['PUT', 'PATCH'], format: 'json')]
     #[OA\RequestBody(content: new Model(type: UpdateMembershipRequest::class))]
     #[OA\Tag(name: "Client: Membership")]
     public function update(

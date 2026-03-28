@@ -20,17 +20,13 @@ const PersonalMembership =
          visits,
          createdAt
     }: Props) => {
-    return (
-        <>
-            <p>{id}</p>
-            <p>{membershipPlan.name}</p>
-            <p>{startDate}</p>
-            <p>{endDate}</p>
-            <p>{status}</p>
-            <p>{visits}</p>
-            <p>{createdAt}</p>
-        </>
-    );
+        return (
+            <div className="border rounded-xl p-4">
+                <p className="font-semibold">{membershipPlan.name}</p>
+                <p className="text-sm">{startDate} — {endDate}</p>
+                <p className="text-sm mt-2">Visits left: {visits}</p>
+            </div>
+        );
 }
 
 export default PersonalMembership;
