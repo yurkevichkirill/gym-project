@@ -27,21 +27,23 @@ const MyPersonalUser = () => {
     if (!user) return null;
 
     return (
-        <>
-            <User
-                id={user.id}
-                age={user.age}
-                firstName={user.firstName}
-                lastName={user.lastName}
-                email={user.email}
-                phone={user.phone}
-                createdAt={user.createdAt}
-                balance={user.balance}
-            />
-            <Bookings />
-            <PersonalMemberships />
-            <Payments />
-        </>
+        <div className="pt-32 pb-20">
+            <div className="mx-auto w-5/6 max-w-5xl flex flex-col gap-10">
+                <User
+                    id={user.id}
+                    age={user.age}
+                    firstName={user.firstName}
+                    lastName={user.lastName}
+                    email={user.email}
+                    phone={user.phone}
+                    createdAt={user.createdAt}
+                    balance={user.balance}
+                />
+                <Bookings />
+                <PersonalMemberships />
+                <Payments />
+            </div>
+        </div>
     );
 }
 

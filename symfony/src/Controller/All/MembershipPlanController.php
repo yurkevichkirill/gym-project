@@ -12,7 +12,6 @@ use Psr\Cache\InvalidArgumentException;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\HttpKernel\Attribute\Cache;
 use Symfony\Component\Routing\Attribute\Route;
 
 final class MembershipPlanController extends AbstractController
@@ -57,7 +56,7 @@ final class MembershipPlanController extends AbstractController
         );
     }
 
-    #[Route('api/membership/plans/{id}/', methods: ['GET'], format: 'json')]
+    #[Route('/api/membership/plans/{id}/', methods: ['GET'], format: 'json')]
     #[OA\Tag(name: "All: MembershipPlan")]
     public function get(
         MembershipPlan $membershipPlan,

@@ -4,6 +4,7 @@ import {useEffect, useState} from "react";
 import {ApiResponse} from "@/types/api-response.type";
 import PaymentType from "@/types/payment.type";
 import Payment from "@/scenes/userPersonal/payment/Payment";
+import Section from "@/shared/Section";
 
 export const Payments = () => {
     const [payments, setPayments] = useState<PaymentType[]>([]);
@@ -23,16 +24,18 @@ export const Payments = () => {
     }, []);
 
     return (
-        <div className='p-20 border'>
-            {...payments.map((payment: PaymentType) => (
-                <Payment
-                    id={payment.id}
-                    trainer={payment.trainer}
-                    amount={payment.amount}
-                    category={payment.category}
-                />
-            ))}
-        </div>
+        <Section title="Payments">
+            <div className="flex flex-col gap-3">
+                {...payments.map((payment: PaymentType) => (
+                    <Payment
+                        id={payment.id}
+                        trainer={payment.trainer}
+                        amount={payment.amount}
+                        category={payment.category}
+                    />
+                ))}
+            </div>
+        </Section>
     );
 }
 

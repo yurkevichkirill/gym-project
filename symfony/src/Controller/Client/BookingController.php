@@ -84,7 +84,7 @@ final class BookingController extends AbstractController
         );
     }
 
-    #[Route('api/me/bookings/{id}/', methods: ['GET'], format: 'json')]
+    #[Route('/api/me/bookings/{id}/', methods: ['GET'], format: 'json')]
     #[OA\Tag(name: "Client: Bookings")]
     public function get(BookingMapperInterface $mapper, Booking $booking): OkResponse
     {
@@ -120,7 +120,7 @@ final class BookingController extends AbstractController
         );
     }
 
-    #[Route('api/me/bookings/{id}/', methods: ['DELETE'], format: 'json')]
+    #[Route('/api/me/bookings/{id}/', methods: ['DELETE'], format: 'json')]
     #[OA\Tag(name: "Client: Bookings")]
     public function remove(
         Booking $booking,

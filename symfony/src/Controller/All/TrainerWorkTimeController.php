@@ -20,7 +20,7 @@ final class TrainerWorkTimeController extends AbstractController
     /**
      * @throws InvalidArgumentException
      */
-    #[Route('api/trainers/{id}/worktime/', methods: ['GET'], format: 'json')]
+    #[Route('/api/trainers/{id}/worktime/', methods: ['GET'], format: 'json')]
     #[OA\Parameter(name: 'date', in: 'query', example: '10-03-2026')]
     #[OA\Parameter(name: 'sort', in: 'query', example: 'date:ASC')]
     #[OA\Parameter(name: 'page', in: 'query', example: 1)]
@@ -54,7 +54,7 @@ final class TrainerWorkTimeController extends AbstractController
         );
     }
 
-    #[Route('api/worktime/{id}/', methods: ['GET'], format: 'json')]
+    #[Route('/api/worktime/{id}/', methods: ['GET'], format: 'json')]
     #[OA\Tag(name: "All: WorkTime")]
     public function get(
         TrainerWorkTime $worktime,

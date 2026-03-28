@@ -18,7 +18,7 @@ const Navbar =  observer (() => {
     const flexBetween = "flex items-center justify-between";
     const [isMenuToggled, setIsMenuToggled] = useState<boolean>(false);
     const isAboveMediumScreens = useMediaQuery("(min-width: 1250px)");
-    const navbarBackground = isTopOfPage ? "" : "bg-primary-100 drop-shadow";
+    const navbarBackground = isTopOfPage ? "bg-gray-20" : "bg-primary-100 drop-shadow";
     const [isOpen, setIsOpen] = useState(false);
     const { authStore } = useStore();
 
@@ -85,7 +85,7 @@ const Navbar =  observer (() => {
                                         className="rounded-md cursor-pointer bg-secondary-500 px-10 py-2 hover:bg-primary-500 hover:text-white"
                                         href={"/me"}
                                     >
-                                        My profile
+                                        My Profile
                                     </Link>
                                     <button className="hover:text-primary-500 cursor-pointer" type="button" onClick={() => authStore.logout()}>
                                         Logout
@@ -136,6 +136,12 @@ const Navbar =  observer (() => {
                                 <p className="text-[16px]">{authStore.user?.email}</p>
                                 <div className="bg-gray-500 h-[2px] w-3/4"></div>
                             </div>
+                            <Link
+                                className="cursor-pointer text-left transition duration-500 hover:text-primary-300"
+                                href={"/me"}
+                            >
+                                My Profile
+                            </Link>
                             <button
                                 className="cursor-pointer text-left transition duration-500 hover:text-primary-300"
                                 type="button" onClick={() => authStore.logout()}>

@@ -9,11 +9,14 @@ type Props = {
 
 const Payment = ({ id, trainer, amount, category }: Props) => {
     return (
-        <><p>{id}</p>
-            <p>{trainer?.firstName}</p>
-            <p>{amount}</p>
+        <div className={`flex justify-between items-center rounded-xl p-4
+        ${category === 'trainer' ? "bg-primary-100" : "bg-secondary-400"} 
+        `}>
             <p>{category}</p>
-        </>
+            <p className="font-semibold">
+                {amount} $
+            </p>
+        </div>
     );
 }
 

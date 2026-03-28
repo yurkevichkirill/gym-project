@@ -4,6 +4,7 @@ import {useEffect, useState} from "react";
 import {ApiResponse} from "@/types/api-response.type";
 import BookingType from "@/types/booking.type";
 import Booking from "@/scenes/userPersonal/bookings/Booking";
+import Section from "@/shared/Section";
 
 export const Bookings = () => {
     const [bookings, setBookings] = useState<BookingType[]>([]);
@@ -23,19 +24,21 @@ export const Bookings = () => {
     }, []);
 
     return (
-        <div className='p-20 border'>
-            {...bookings.map((booking: BookingType) => (
-                <Booking
-                    id={booking.id}
-                    trainerId={booking.trainerId}
-                    bookedAt={booking.bookedAt}
-                    date={booking.date}
-                    durationMinutes={booking.durationMinutes}
-                    startTime={booking.startTime}
-                    status={booking.status}
-                />
-            ))}
-        </div>
+        <Section title="My Bookings">
+            <div className="flex flex-col gap-4">
+                {...bookings.map((booking: BookingType) => (
+                    <Booking
+                        id={booking.id}
+                        trainerId={booking.trainerId}
+                        bookedAt={booking.bookedAt}
+                        date={booking.date}
+                        durationMinutes={booking.durationMinutes}
+                        startTime={booking.startTime}
+                        status={booking.status}
+                    />
+                ))}
+            </div>
+        </Section>
     );
 }
 
