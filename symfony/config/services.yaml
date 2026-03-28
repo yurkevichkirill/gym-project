@@ -1,6 +1,6 @@
 # yaml-language-server: $schema=../vendor/symfony/dependency-injection/Loader/schema/services.schema.json
 
-# This file is the entry point to configure your own services.
+# This file is the entry point to configure your own utils.
 # Files in the packages/ subdirectory configure your dependencies.
 # See also https://symfony.com/doc/current/service_container/import.html
 
@@ -9,11 +9,11 @@
 parameters:
 
 services:
-    # default configuration for services in *this* file
+    # default configuration for utils in *this* file
     _defaults:
-        autowire: true      # Automatically injects dependencies in your services.
-        autoconfigure: true # Automatically registers your services as commands, event subscribers, etc.
-    # makes classes in src/ available to be used as services
+        autowire: true      # Automatically injects dependencies in your utils.
+        autoconfigure: true # Automatically registers your utils as commands, event subscribers, etc.
+    # makes classes in src/ available to be used as utils
     # this creates a service per class whose id is the fully-qualified class name
     App\:
         resource: '../src/'

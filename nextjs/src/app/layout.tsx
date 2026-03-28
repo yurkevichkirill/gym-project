@@ -2,7 +2,7 @@ import {NavigationProvider} from "@/context/navigation-context";
 import Navbar from "@/scenes/navbar";
 import Footer from "@/scenes/footer";
 import React from "react";
-import {StoreProvider} from "@/providers/StoreProvider";
+import {StoreProvider} from "@/store/StoreProvider";
 
 const Layout = ({ children }: {children: React.ReactNode}) => {
     return (

@@ -5,25 +5,42 @@ import {ApiResponse} from "@/types/api-response.type";
 import PaymentType from "@/types/payment.type";
 import Payment from "@/scenes/userPersonal/payment/Payment";
 import Section from "@/shared/Section";
+import {getMyMemberships} from "@/api/memberships.api";
+import {getMyPayments} from "@/api/payments.api";
 
 export const Payments = () => {
     const [payments, setPayments] = useState<PaymentType[]>([]);
+    const [error, setError] = useState<string | null>(null);
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         const fetchData = async () => {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/me/payments/`, {
-                credentials: "include",
-            });
-            if (!response.ok) {
-                console.error("Failed to fetch payments, status:  ", response.status);
-            }
-            const data: ApiResponse<PaymentType[]> = await response.json();
+            try {
+                const data = await getMyPayments();
+                setPayments(data);
+            } catch (e) {
+                console.error(e);
 
-            setPayments(data.data);
+                if (e instanceof Error) {
+                    setError(e.message);
+                } else {
+                    setError("Something went wrong");
+                }
+            } finally {
+                setLoading(false);
+            }
         }
 
         void fetchData();
     }, []);
+
+    if (loading) {
+        return <div>Error: {error}</div>;
+    }
+
+    if (error) {
+        return <div>Error: {error}</div>;
+    }
 
     return (
         <Section title="Payments">

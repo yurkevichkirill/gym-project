@@ -7,22 +7,41 @@ import {useNavigation} from "@/context/navigation-context";
 import { motion } from "framer-motion";
 import {SelectedPage} from "@/shared/types";
 import TrainingType from "@/scenes/trainingTypes/trainingType";
+import {getTrainers} from "@/api/public/trainers.api";
+import {getTrainingTypes} from "@/api/public/training-types.api";
 
 const trainingTypes = () => {const { setSelectedPage } = useNavigation();
     const [trainingTypes, setTrainingTypes] = useState<TrainingTypeData[]>([]);
+    const [error, setError] = useState<string | null>(null);
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         const fetchData = async () => {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/training/types`);
-            if (!response.ok) {
-                console.error("Failed to fetch trainers, status:  ", response.status);
-            }
-            const trainingTypes: ApiResponse<TrainingTypeData[]> = await response.json();
+            try {
+                const data = await getTrainingTypes();
+                setTrainingTypes(data);
+            } catch (e) {
+                console.error(e);
 
-            setTrainingTypes(trainingTypes.data);
+                if (e instanceof Error) {
+                    setError(e.message);
+                } else {
+                    setError("Something went wrong");
+                }
+            } finally {
+                setLoading(false);
+            }
         }
         void fetchData();
     }, []);
+
+    if (loading) {
+        return <div>Error: {error}</div>;
+    }
+
+    if (error) {
+        return <div>Error: {error}</div>;
+    }
 
     return (
         <section id="trainingtypes" className="mb-10 mt-10 mx-4">

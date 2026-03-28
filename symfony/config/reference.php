@@ -7,7 +7,7 @@ namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 use Symfony\Component\Config\Loader\ParamConfigurator as Param;
 
 /**
- * This class provides array-shapes for configuring the services and bundles of an application.
+ * This class provides array-shapes for configuring the utils and bundles of an application.
  *
  * Services declared with the config() method below are autowired and autoconfigured by default.
  *
@@ -16,11 +16,11 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  * Example:
  *
  *     ```php
- *     // config/services.php
+ *     // config/utils.php
  *     namespace Symfony\Component\DependencyInjection\Loader\Configurator;
  *
  *     return App::config([
- *         'services' => [
+ *         'utils' => [
  *             'App\\' => [
  *                 'resource' => '../src/',
  *             ],
@@ -341,7 +341,7 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *         },
  *         disable_translation?: bool|Param, // Default: false
  *         auto_mapping?: array<string, array{ // Default: []
- *             services?: list<scalar|Param|null>,
+ *             utils?: list<scalar|Param|null>,
  *         }>,
  *     },
  *     serializer?: bool|array{ // Serializer configuration
@@ -870,7 +870,7 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  * @psalm-type DoctrineMigrationsConfig = array{
  *     enable_service_migrations?: bool|Param, // Whether to enable fetching migrations from the service container. // Default: false
  *     migrations_paths?: array<string, scalar|Param|null>,
- *     services?: array<string, scalar|Param|null>,
+ *     utils?: array<string, scalar|Param|null>,
  *     factories?: array<string, scalar|Param|null>,
  *     storage?: array{ // Storage to use for migration status metadata.
  *         table_storage?: array{ // The default metadata storage, implemented as a table in the database.
@@ -1653,7 +1653,7 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  * @psalm-type ConfigType = array{
  *     imports?: ImportsConfig,
  *     parameters?: ParametersConfig,
- *     services?: ServicesConfig,
+ *     utils?: ServicesConfig,
  *     framework?: FrameworkConfig,
  *     doctrine?: DoctrineConfig,
  *     doctrine_migrations?: DoctrineMigrationsConfig,
@@ -1669,7 +1669,7 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *     "when@dev"?: array{
  *         imports?: ImportsConfig,
  *         parameters?: ParametersConfig,
- *         services?: ServicesConfig,
+ *         utils?: ServicesConfig,
  *         framework?: FrameworkConfig,
  *         doctrine?: DoctrineConfig,
  *         doctrine_migrations?: DoctrineMigrationsConfig,
@@ -1689,7 +1689,7 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *     "when@prod"?: array{
  *         imports?: ImportsConfig,
  *         parameters?: ParametersConfig,
- *         services?: ServicesConfig,
+ *         utils?: ServicesConfig,
  *         framework?: FrameworkConfig,
  *         doctrine?: DoctrineConfig,
  *         doctrine_migrations?: DoctrineMigrationsConfig,
@@ -1706,7 +1706,7 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *     "when@test"?: array{
  *         imports?: ImportsConfig,
  *         parameters?: ParametersConfig,
- *         services?: ServicesConfig,
+ *         utils?: ServicesConfig,
  *         framework?: FrameworkConfig,
  *         doctrine?: DoctrineConfig,
  *         doctrine_migrations?: DoctrineMigrationsConfig,
@@ -1724,7 +1724,7 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *     ...<string, ExtensionType|array{ // extra keys must follow the when@%env% pattern or match an extension alias
  *         imports?: ImportsConfig,
  *         parameters?: ParametersConfig,
- *         services?: ServicesConfig,
+ *         utils?: ServicesConfig,
  *         ...<string, ExtensionType>,
  *     }>
  * }

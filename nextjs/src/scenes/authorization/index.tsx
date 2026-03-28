@@ -1,7 +1,7 @@
 'use client';
 
 import { useForm } from "react-hook-form";
-import {useStore} from "@/providers/StoreProvider";
+import {useStore} from "@/store/StoreProvider";
 import {createPortal} from "react-dom";
 import {AnimatePresence, motion} from "framer-motion";
 import {

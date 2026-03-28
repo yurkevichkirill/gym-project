@@ -29,11 +29,14 @@ final class ExceptionListener
             default => 500
         };
 
-        $response = new JsonResponse([
-            'error' => $exception->getMessage(),
-            'trace' => $exception->getTrace(),
-        ], $statusCode);
+        $responseData = [
+            'message' => $exception->getMessage(),
+        ];
 
-        $event->setResponse($response);
+        if ($_ENV['APP_ENV' === 'dev']) {
+            $responseData['trace'] = $exception->getTrace();
+        }
+
+        $event->setResponse(new JsonResponse($responseData, $statusCode));
     }
 }

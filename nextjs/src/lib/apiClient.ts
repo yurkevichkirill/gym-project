@@ -43,7 +43,7 @@ const request = async <T>(
 
     if (!res.ok) {
         const error: ApiError = await res.json();
-        throw new Error(error.error);
+        throw new Error(error.message || "Request failed");
     }
 
     return res.json() as Promise<T>;

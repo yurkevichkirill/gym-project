@@ -9,8 +9,8 @@ import BenefitsPageGraphic from "@/assets/BenefitsPageGraphic.png";
 import {useNavigation} from "@/context/navigation-context";
 import Image from "next/image";
 import {useEffect, useState} from "react";
-import {ApiResponse} from "@/types/api-response.type";
 import {MembershipPlanType} from "@/types/membership-plan.type";
+import {getMembershipPlans} from "@/api/public/membership-plans.api";
 
 const container = {
     hidden: {},
@@ -22,20 +22,37 @@ const container = {
 const Memberships = () => {
     const { setSelectedPage } = useNavigation();
     const [ memberships, setMemberships ] = useState<MembershipPlanType[]>([]);
+    const [error, setError] = useState<string | null>(null);
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         const fetchData = async () => {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/membership/plans/`);
-            if (!response.ok) {
-                console.log("Failed to fetch trainers, status:  ", response.status);
-            }
+            try {
+                const data = await getMembershipPlans();
+                setMemberships(data);
+            } catch (e) {
+                console.error(e);
 
-            const data: ApiResponse<MembershipPlanType[]> = await response.json();
-            setMemberships(data.data);
+                if (e instanceof Error) {
+                    setError(e.message);
+                } else {
+                    setError("Something went wrong");
+                }
+            } finally {
+                setLoading(false);
+            }
         }
 
         fetchData();
     }, []);
+
+    if (loading) {
+        return <div>Error: {error}</div>;
+    }
+
+    if (error) {
+        return <div>Error: {error}</div>;
+    }
 
     return (
         <section id="memberships" className="mx-auto min-h-full w-full py-20">

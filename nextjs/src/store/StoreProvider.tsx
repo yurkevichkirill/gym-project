@@ -1,6 +1,6 @@
 'use client'
 
-import {authStore} from "@/stores/AuthStore";
+import {authStore} from "@/store/AuthStore";
 import {createContext, useContext, useEffect} from "react";
 
 interface StoreContextType {
