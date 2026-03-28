@@ -23,6 +23,7 @@ final class ClientController extends AbstractController
     #[Route('/api/me/', methods: ['GET'], format: 'json')]
     #[IsGranted('ROLE_CLIENT')]
     #[OA\Tag(name: "Client: Client")]
+    #[IsGranted('ROLE_CLIENT')]
     public function get(
         #[CurrentUser] Client $client,
         ClientMapperInterface $mapper,
@@ -39,6 +40,7 @@ final class ClientController extends AbstractController
     #[Route('/api/me/', methods: ['PUT', 'PATCH'], format: 'json')]
     #[OA\RequestBody(content: new Model(type: UpdateClientRequest::class))]
     #[OA\Tag(name: "Client: Client")]
+    #[IsGranted('ROLE_CLIENT')]
     public function update(
         #[CurrentUser] Client $client,
         #[MapRequestPayload] UpdateClientRequest $requestDto,

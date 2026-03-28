@@ -23,6 +23,7 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
+use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 final class MembershipController extends AbstractController
 {
@@ -38,6 +39,7 @@ final class MembershipController extends AbstractController
     #[OA\Parameter(name: 'page', in: 'query', example: 1)]
     #[OA\Parameter(name: 'limit', in: 'query', example: 20)]
     #[OA\Tag(name: "Client: Membership")]
+    #[IsGranted('ROLE_CLIENT')]
     public function getAll(
         #[CurrentUser] Client $client,
         Request $request,
@@ -99,6 +101,7 @@ final class MembershipController extends AbstractController
     #[Route('/api/me/membership/', methods: ['POST'], format: 'json')]
     #[OA\RequestBody(content: new Model(type: CreateMembershipRequest::class))]
     #[OA\Tag(name: "Client: Membership")]
+    #[IsGranted('ROLE_CLIENT')]
     public function create(
         #[CurrentUser] Client $client,
         #[MapRequestPayload] CreateMembershipRequest $requestDto,

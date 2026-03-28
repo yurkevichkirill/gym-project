@@ -16,6 +16,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
+use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 final class PaymentController extends AbstractController
 {
@@ -31,6 +32,7 @@ final class PaymentController extends AbstractController
     #[OA\Parameter(name: 'page', in: 'query', example: 1)]
     #[OA\Parameter(name: 'limit', in: 'query', example: 20)]
     #[OA\Tag(name: "Client: Payments")]
+    #[IsGranted('ROLE_CLIENT')]
     public function getAll(
         #[CurrentUser] Client $client,
         Request $request,
