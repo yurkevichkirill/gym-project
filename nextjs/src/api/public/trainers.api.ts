@@ -10,3 +10,13 @@ export const getTrainers = async (): Promise<TrainerData[]> => {
 
     return obj.data;
 }
+
+export const getTrainer = async (id: string):Promise<TrainerData> => {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/trainers/${id}/`);
+    if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+    }
+    const obj: ApiResponse<TrainerData> = await response.json();
+
+    return obj.data;
+}

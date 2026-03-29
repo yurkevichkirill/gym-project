@@ -10,6 +10,8 @@ import {useNavigation} from "@/context/navigation-context";
 import {ApiResponse} from "@/types/api-response.type";
 import Image from "next/image";
 import {bookTraining} from "@/api/bookings.api";
+import {getTrainer, getTrainers} from "@/api/public/trainers.api";
+import {getWorktimes} from "@/api/public/worktime.api";
 
 const TrainerPersonal = ({ id }: { id: string }) => {
     const { setSelectedPage } = useNavigation();
@@ -19,32 +21,58 @@ const TrainerPersonal = ({ id }: { id: string }) => {
     const [date, setDate] = useState<string | null>(null);
     const [startTime, setStartTime] = useState<string | null>(null);
     const [durationMinutes, setDurationMinutes] = useState<number | null>(null);
-    const trainerId = trainer?.id;
+    const [error, setError] = useState<string | null>(null);
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         const fetchTrainer = async () => {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/trainers/${id}/`);
-            if (!response.ok) {
-                console.log("Failed to fetch trainers, status:  ", response.status);
-            }
-            const obj: ApiResponse<TrainerData> = await response.json();
+            try {
+                const data = await getTrainer(id);
+                setTrainer(data);
+            } catch (e) {
+                console.error(e);
 
-            setTrainer(obj.data);
+                if (e instanceof Error) {
+                    setError(e.message);
+                } else {
+                    setError("Something went wrong");
+                }
+            } finally {
+                setLoading(false);
+            }
         };
-
         const fetchWorktime = async () => {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/trainers/${id}/worktime/`);
-            if (!response.ok) {
-                console.log("Failed to fetch trainers, status:  ", response.status);
-            }
-            const obj: ApiResponse<WorktimeData[]> = await response.json();
+            try {
+                const data = await getWorktimes(id);
+                setWorktimes(data);
+            } catch (e) {
+                console.error(e);
 
-            setWorktimes(obj.data);
+                if (e instanceof Error) {
+                    setError(e.message);
+                } else {
+                    setError("Something went wrong");
+                }
+            } finally {
+                setLoading(false);
+            }
         }
 
         void fetchTrainer();
         void fetchWorktime();
     }, [id]);
+
+    if (loading) {
+        return <div>Loading ...</div>;
+    }
+
+    if (error) {
+        return <div>Error: {error}</div>;
+    }
+
+    if (!trainer) {
+        return null;
+    }
 
     return (
         <section className="min-w-[300px] mt-30">
@@ -118,6 +146,7 @@ const TrainerPersonal = ({ id }: { id: string }) => {
                                     setStartTime = { setStartTime }
                                     duration = { durationMinutes }
                                     setDuration = { setDurationMinutes }
+                                    pricePerHour = {trainer.pricePerHour}
                                     key = { worktime.id }
                                 />
                             ))}
@@ -125,8 +154,8 @@ const TrainerPersonal = ({ id }: { id: string }) => {
                         <button
                             className="rounded-md bg-secondary-500 px-10 py-2 hover:bg-primary-500 hover:text-white self-start"
                             onClick={() => (
-                                trainerId && date && durationMinutes && startTime &&
-                                bookTraining({ trainerId, date, durationMinutes, startTime: startTime + ":00" })
+                                date && durationMinutes && startTime &&
+                                bookTraining({ trainerId: Number(id), date, durationMinutes, startTime: startTime + ":00" })
                             )}
                         >
                             Book Training

@@ -47,7 +47,7 @@ const Memberships = () => {
     }, []);
 
     if (loading) {
-        return <div>Error: {error}</div>;
+        return <div>Loading ...</div>;
     }
 
     if (error) {

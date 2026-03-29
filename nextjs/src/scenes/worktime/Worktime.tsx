@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import type FreeSlotData from "@/types/free-slot.type";
 import type WorktimeData from "@/types/worktime.type";
 import FreeSlot from "@/scenes/worktime/FreeSlot";
+import {useState} from "react";
 
 type Props = {
     worktime: WorktimeData,
@@ -13,9 +14,12 @@ type Props = {
     setStartTime: (value: string | null) => void,
     duration: number | null,
     setDuration: (value: number | null) => void,
+    pricePerHour: number,
 }
 
-const Worktime = ({ worktime, date, setDate , startTime, setStartTime, duration, setDuration}: Props) => {
+const Worktime = ({ worktime, date, setDate , startTime, setStartTime, duration, setDuration, pricePerHour}: Props) => {
+    const [activeSlot, setActiveSlot] = useState<FreeSlotData | null>(null)
+
     return (
         <motion.div className="border rounded-xl p-4 flex flex-col gap-3">
             <button
@@ -26,6 +30,7 @@ const Worktime = ({ worktime, date, setDate , startTime, setStartTime, duration,
                         setDate(worktime.date)
                         setStartTime(null)
                         setDuration(null);
+                        setActiveSlot(null);
                 } }
             >
                 {worktime.date}
@@ -40,6 +45,9 @@ const Worktime = ({ worktime, date, setDate , startTime, setStartTime, duration,
                         setStartTime = { setStartTime }
                         duration = { duration }
                         setDuration = { setDuration }
+                        pricePerHour = { pricePerHour }
+                        activeSlot = {activeSlot}
+                        setActiveSlot = {setActiveSlot}
                         key = { index }
                     />
                 ))}

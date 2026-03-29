@@ -2,7 +2,6 @@
 
 import type FreeSlotData from "@/types/free-slot.type";
 import {generateDurationMinutes, generateStartTimes} from "@/lib/utils/time.utils";
-import {useState} from "react";
 
 type Props = {
     freeSlot: FreeSlotData,
@@ -10,10 +9,12 @@ type Props = {
     setStartTime: (value: string | null) => void,
     duration: number | null,
     setDuration: (value: number | null) => void,
+    pricePerHour: number,
+    activeSlot: FreeSlotData | null,
+    setActiveSlot: (value: FreeSlotData | null) => void,
 }
 
-const FreeSlot = ({ freeSlot, startTime, setStartTime, duration, setDuration }: Props) => {
-    const [active, setActive] = useState(false);
+const FreeSlot = ({ freeSlot, startTime, setStartTime, duration, setDuration, pricePerHour, activeSlot, setActiveSlot }: Props) => {
     const startTimes = generateStartTimes(freeSlot.start, freeSlot.end)
     const endTimes = startTime
         ? generateDurationMinutes(freeSlot.end, startTime)
@@ -34,10 +35,10 @@ const FreeSlot = ({ freeSlot, startTime, setStartTime, duration, setDuration }: 
                         onClick={() => {
                             setStartTime(time === startTime ? null : time);
                             setDuration(null);
-                            setActive(time !== startTime);
+                            setActiveSlot(freeSlot === activeSlot ? null : freeSlot);
                         }}
-                        className={`px-3 py-1 rounded border w-16
-                        ${startTime === time ? "bg-primary-500 text-white" : "bg-gray-100"}`}
+                        className={`px-3 py-1 rounded w-16
+                        ${startTime === time ? "bg-primary-500 text-white" : "bg-primary-100"}`}
                     >
                         {time}
                     </button>
@@ -54,8 +55,8 @@ const FreeSlot = ({ freeSlot, startTime, setStartTime, duration, setDuration }: 
                             <button
                                 key={time}
                                 onClick={() => setDuration(duration === time ? null : time)}
-                                className={`px-3 py-1 rounded border w-[50px]
-                                ${duration === time && active ? "bg-secondary-500 text-white" : "bg-gray-100"}`}
+                                className={`px-3 py-1 rounded w-[50px]
+                                ${duration === time && activeSlot === freeSlot ? "bg-primary-500 text-white" : "bg-primary-100"}`}
                             >
                                 {time}
                             </button>
@@ -65,9 +66,10 @@ const FreeSlot = ({ freeSlot, startTime, setStartTime, duration, setDuration }: 
             )}
 
             {/* RESULT */}
-            {startTime && duration && active && (
-                <p className="text-green-600 font-bold">
-                    Selected: {startTime} - {endTimes.get(duration)}
+            {startTime && duration && activeSlot === freeSlot && (
+                <p className="text-primary-500 font-bold">
+                    Selected: {startTime} - {endTimes.get(duration)}<br />
+                    Price: {duration / 60 * pricePerHour}$
                 </p>
             )}
 
