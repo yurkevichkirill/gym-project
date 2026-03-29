@@ -1,9 +1,21 @@
-import BookingType from "@/types/booking.type";
+import BookingType from "@/types/booking/booking.type";
 import {ApiResponse} from "@/types/api-response.type";
-import {apiGet} from "@/lib/apiClient";
+import {apiGet, apiPost} from "@/lib/apiClient";
+import BookingCreateType from "@/types/booking/booking-create.type";
 
 export const getMyBookings = async (): Promise<BookingType[]> => {
     const data = await apiGet<ApiResponse<BookingType[]>>('/me/bookings');
+
+    return data.data;
+}
+
+export const bookTraining = async ({ trainerId, date, durationMinutes, startTime }: BookingCreateType): Promise<BookingType> => {
+    const data = await apiPost<ApiResponse<BookingType>, BookingCreateType>('/me/bookings/', {
+        trainerId,
+        date,
+        durationMinutes,
+        startTime,
+    });
 
     return data.data;
 }

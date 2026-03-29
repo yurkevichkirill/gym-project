@@ -12,6 +12,7 @@ use OpenApi\Attributes as OA;
 use Psr\Cache\InvalidArgumentException;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpKernel\Attribute\Cache;
 use Symfony\Component\Routing\Attribute\Route;
 
 final class TrainerController extends AbstractController
@@ -20,6 +21,7 @@ final class TrainerController extends AbstractController
      * @throws InvalidArgumentException
      */
     #[Route('/api/trainers/', methods: ['GET'], format: 'json')]
+    #[Cache(public: true)]
     #[OA\Parameter(name: 'minPrice', in: 'query', example: 30)]
     #[OA\Parameter(name: 'maxPrice', in: 'query', example: 50)]
     #[OA\Parameter(name: 'trainingTypeId', in: 'query', example: 1)]

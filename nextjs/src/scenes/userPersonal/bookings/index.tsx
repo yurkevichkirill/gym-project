@@ -1,7 +1,7 @@
 'use client'
 
 import {useEffect, useState} from "react";
-import BookingType from "@/types/booking.type";
+import BookingType from "@/types/booking/booking.type";
 import Booking from "@/scenes/userPersonal/bookings/Booking";
 import Section from "@/shared/Section";
 import {getMyBookings} from "@/api/bookings.api";

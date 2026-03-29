@@ -13,6 +13,7 @@ use App\Exception\DateTimeAlreadyTakenException;
 use App\Exception\NoActiveMembershipException;
 use App\Membership\Enum\MembershipStatusEnum;
 use App\Membership\Repository\MembershipRepository;
+use App\Trainer\Repository\TrainerRepository;
 use App\Trainer\Service\TrainerManager;
 use App\TrainerWorkTime\Entity\TrainerWorkTime;
 use App\TrainerWorkTime\Repository\TrainerWorkTimeRepository;
@@ -35,6 +36,7 @@ final readonly class BookingManager
         private TrainerManager            $trainerManager,
         private ClientManager             $clientManager,
         private WorkTimeManager           $worktimeManager,
+        private TrainerRepository         $trainerRepo,
     )
     {}
 
@@ -46,7 +48,11 @@ final readonly class BookingManager
      */
     public function book(Client $client, BookingRequest $dto): Booking
     {
-        $worktime = $this->worktimeRepo->find($dto->worktimeId);
+        $trainer = $this->trainerRepo->find($dto->trainerId);
+        $worktime = $this->worktimeRepo->findOneBy([
+            'trainer' => $trainer,
+            'date' => new DateTimeImmutable($dto->date),
+        ]);
 
         $this->validateTrainingTimeAvailable($worktime, $dto->startTime, $dto->durationMinutes);
 

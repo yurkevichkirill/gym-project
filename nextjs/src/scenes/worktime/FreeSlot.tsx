@@ -1,19 +1,23 @@
+'use client'
+
 import type FreeSlotData from "@/types/free-slot.type";
-import {generateDurationMinutes, generateEndTimes, generateStartTimes} from "@/lib/utils/time.utils";
+import {generateDurationMinutes, generateStartTimes} from "@/lib/utils/time.utils";
+import {useState} from "react";
 
 type Props = {
     freeSlot: FreeSlotData,
     startTime: string | null,
     setStartTime: (value: string | null) => void,
-    endTime: string | null,
-    setEndTime: (value: string | null) => void,
+    duration: number | null,
+    setDuration: (value: number | null) => void,
 }
 
-const FreeSlot = ({ freeSlot, startTime, setStartTime, endTime, setEndTime }: Props) => {
+const FreeSlot = ({ freeSlot, startTime, setStartTime, duration, setDuration }: Props) => {
+    const [active, setActive] = useState(false);
     const startTimes = generateStartTimes(freeSlot.start, freeSlot.end)
     const endTimes = startTime
         ? generateDurationMinutes(freeSlot.end, startTime)
-        : []
+        : new Map<number, string>();
 
     return (
         <div className="flex flex-col gap-3 p-3 border rounded-xl">
@@ -28,8 +32,9 @@ const FreeSlot = ({ freeSlot, startTime, setStartTime, endTime, setEndTime }: Pr
                     <button
                         key={time}
                         onClick={() => {
-                            setStartTime(time === startTime ? null : time)
-                            setEndTime(null)
+                            setStartTime(time === startTime ? null : time);
+                            setDuration(null);
+                            setActive(time !== startTime);
                         }}
                         className={`px-3 py-1 rounded border w-16
                         ${startTime === time ? "bg-primary-500 text-white" : "bg-gray-100"}`}
@@ -39,18 +44,18 @@ const FreeSlot = ({ freeSlot, startTime, setStartTime, endTime, setEndTime }: Pr
                 ))}
             </div>
 
-            {/* END TIMES */}
+            {/* DURATION */}
             {startTime && (
                 <>
-                    <p>Select end time</p>
+                    <p>Select duration (minutes)</p>
 
                     <div className="flex flex-wrap gap-2">
-                        {endTimes.map(time => (
+                        {Array.from(endTimes.keys()).map(time => (
                             <button
                                 key={time}
-                                onClick={() => setEndTime(time === endTime ? null : time)}
-                                className={`px-3 py-1 rounded border
-                                ${endTime === time ? "bg-secondary-500 text-white" : "bg-gray-100"}`}
+                                onClick={() => setDuration(duration === time ? null : time)}
+                                className={`px-3 py-1 rounded border w-[50px]
+                                ${duration === time && active ? "bg-secondary-500 text-white" : "bg-gray-100"}`}
                             >
                                 {time}
                             </button>
@@ -60,9 +65,9 @@ const FreeSlot = ({ freeSlot, startTime, setStartTime, endTime, setEndTime }: Pr
             )}
 
             {/* RESULT */}
-            {startTime && endTime && (
+            {startTime && duration && active && (
                 <p className="text-green-600 font-bold">
-                    Selected: {startTime} - {endTime}
+                    Selected: {startTime} - {endTimes.get(duration)}
                 </p>
             )}
 

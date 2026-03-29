@@ -33,7 +33,7 @@ final class ExceptionListener
             'message' => $exception->getMessage(),
         ];
 
-        if ($_ENV['APP_ENV' === 'dev']) {
+        if ($_ENV['APP_ENV'] === 'dev') {
             $responseData['trace'] = $exception->getTrace();
         }
 

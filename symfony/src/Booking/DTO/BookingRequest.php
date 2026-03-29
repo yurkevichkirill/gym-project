@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Booking\DTO;
 
 use App\Booking\Validator\MultipleOf30;
+use DateTimeImmutable;
 use Symfony\Component\Validator\Constraints as Assert;
 
 final readonly class BookingRequest
@@ -19,7 +20,10 @@ final readonly class BookingRequest
         public string $startTime,
         #[Assert\NotBlank]
         #[Assert\Positive]
-        public int $worktimeId,
+        public int $trainerId,
+        #[Assert\NotBlank]
+        #[Assert\Date]
+        public string $date,
     )
     {}
 }
