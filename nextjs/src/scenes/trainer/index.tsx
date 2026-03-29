@@ -9,8 +9,7 @@ import Worktime from "@/scenes/worktime/Worktime";
 import {useNavigation} from "@/context/navigation-context";
 import {ApiResponse} from "@/types/api-response.type";
 import Image from "next/image";
-import {apiPost} from "@/lib/apiClient";
-import {book, BookingData} from "@/lib/apiBooking";
+import {bookTraining} from "@/api/bookings.api";
 
 const TrainerPersonal = ({ id }: { id: string }) => {
     const { setSelectedPage } = useNavigation();
@@ -19,16 +18,8 @@ const TrainerPersonal = ({ id }: { id: string }) => {
     const [worktimes, setWorktimes] = useState<WorktimeData[]>([]);
     const [date, setDate] = useState<string | null>(null);
     const [startTime, setStartTime] = useState<string | null>(null);
-    const [endTime, setEndTime] = useState<string | null>(null);
-    const [curWorktime, setCurWorkTime] = useState<WorktimeData | null>(null);
-
-    const onClick = async ({ durationMinutes, startTime, workTimeId }: BookingData) => {
-        try {
-            await book({ durationMinutes, startTime, workTimeId });
-        } catch (e) {
-            console.error(e);
-        }
-    };
+    const [durationMinutes, setDurationMinutes] = useState<number | null>(null);
+    const trainerId = trainer?.id;
 
     useEffect(() => {
         const fetchTrainer = async () => {
@@ -55,11 +46,8 @@ const TrainerPersonal = ({ id }: { id: string }) => {
         void fetchWorktime();
     }, [id]);
 
-    // const diffInMs
-    // const durationMinutes =
-
     return (
-        <section className="min-w-[300px]">
+        <section className="min-w-[300px] mt-30">
             <motion.div
                 onViewportEnter={() => setSelectedPage(SelectedPage.OurTrainers)}
                 className="flex flex-col gap-5 mx-auto min-h-full w-5/6 m-20"
@@ -117,34 +105,32 @@ const TrainerPersonal = ({ id }: { id: string }) => {
                             </p>
                             <p>
                                 <span className="font-bold">Price: </span>
-                                { trainer?.pricePerHour }
+                                { trainer?.pricePerHour }$
                             </p>
                         </div>
                         <ul className="flex flex-col gap-3 max-h-86 overflow-y-auto pr-2">
                             { worktimes.map((worktime: WorktimeData) => (
                                 <Worktime
-                                    curWorktime = { curWorktime }
-                                    setCurWorktime = { setCurWorkTime }
                                     worktime = { worktime }
                                     date = { date }
                                     setDate = { setDate }
                                     startTime = { startTime }
                                     setStartTime = { setStartTime }
-                                    endTime = { endTime }
-                                    setEndTime = { setEndTime }
+                                    duration = { durationMinutes }
+                                    setDuration = { setDurationMinutes }
                                     key = { worktime.id }
                                 />
                             ))}
                         </ul>
-                        {/*<button*/}
-                        {/*    className="rounded-md bg-secondary-500 px-10 py-2 hover:bg-primary-500 hover:text-white self-start"*/}
-                        {/*    onClick={async () => {*/}
-                        {/*        durationMinutes && startTime && curWorktime &&*/}
-                        {/*        onClick({ durationMinutes, startTime, curWorktime.id })*/}
-                        {/*    }}*/}
-                        {/*>*/}
-                        {/*    Book Training*/}
-                        {/*</button>*/}
+                        <button
+                            className="rounded-md bg-secondary-500 px-10 py-2 hover:bg-primary-500 hover:text-white self-start"
+                            onClick={() => (
+                                trainerId && date && durationMinutes && startTime &&
+                                bookTraining({ trainerId, date, durationMinutes, startTime: startTime + ":00" })
+                            )}
+                        >
+                            Book Training
+                        </button>
                     </motion.div>
                 </div>
             </motion.div>

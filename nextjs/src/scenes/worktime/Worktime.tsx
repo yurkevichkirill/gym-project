@@ -6,25 +6,26 @@ import type WorktimeData from "@/types/worktime.type";
 import FreeSlot from "@/scenes/worktime/FreeSlot";
 
 type Props = {
-    curWorktime: WorktimeData | null,
-    setCurWorktime: (value: WorktimeData | null) => void,
     worktime: WorktimeData,
     date: string | null,
     setDate: (value: string | null) => void,
     startTime: string | null,
     setStartTime: (value: string | null) => void,
-    endTime: string | null,
-    setEndTime: (value: string | null) => void,
+    duration: number | null,
+    setDuration: (value: number | null) => void,
 }
 
-const Worktime = ({ curWorktime, setCurWorktime, worktime, date, setDate , startTime, setStartTime, endTime, setEndTime}: Props) => {
+const Worktime = ({ worktime, date, setDate , startTime, setStartTime, duration, setDuration}: Props) => {
     return (
         <motion.div className="border rounded-xl p-4 flex flex-col gap-3">
             <button
                 className="text-xl font-bold"
                 onClick={ () => {
-                    setDate(date === worktime.date ? null : worktime.date);
-                    setCurWorktime(worktime);
+                    date === worktime.date ?
+                        setDate(null) :
+                        setDate(worktime.date)
+                        setStartTime(null)
+                        setDuration(null);
                 } }
             >
                 {worktime.date}
@@ -37,8 +38,8 @@ const Worktime = ({ curWorktime, setCurWorktime, worktime, date, setDate , start
                         freeSlot = { freeSlot }
                         startTime = { startTime }
                         setStartTime = { setStartTime }
-                        endTime = { endTime }
-                        setEndTime = { setEndTime }
+                        duration = { duration }
+                        setDuration = { setDuration }
                         key = { index }
                     />
                 ))}

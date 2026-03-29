@@ -12,6 +12,7 @@ use Psr\Cache\InvalidArgumentException;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Attribute\Cache;
 use Symfony\Component\Routing\Attribute\Route;
 
 final class MembershipPlanController extends AbstractController
@@ -20,6 +21,7 @@ final class MembershipPlanController extends AbstractController
      * @throws InvalidArgumentException
      */
     #[Route('/api/membership/plans/', methods: ['GET'], format: 'json')]
+    #[Cache(public: true)]
     #[OA\Parameter(name: 'minPrice', in: 'query', example: 50)]
     #[OA\Parameter(name: 'maxPrice', in: 'query', example: 100)]
     #[OA\Parameter(name: 'durationDays', in: 'query', example: 30)]

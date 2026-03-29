@@ -13,6 +13,7 @@ use Psr\Cache\InvalidArgumentException;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Attribute\Cache;
 use Symfony\Component\Routing\Attribute\Route;
 
 final class TrainingTypeController extends AbstractController
@@ -21,6 +22,7 @@ final class TrainingTypeController extends AbstractController
      * @throws InvalidArgumentException
      */
     #[Route('/api/training/types/', methods: ['GET'], format: 'json')]
+    #[Cache(public: true)]
     #[OA\Parameter(name: 'sort', in: 'query', example: 'name:ASC')]
     #[OA\Parameter(name: 'page', in: 'query', example: 1)]
     #[OA\Parameter(name: 'limit', in: 'query', example: 20)]

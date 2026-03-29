@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace App\EventListener;
 
-use App\Booking\DTO\BookingResponse;
-use App\Booking\Entity\Booking;
 use App\Response\OkResponse;
 use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
 use Symfony\Component\HttpFoundation\JsonResponse;
