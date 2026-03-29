@@ -36,7 +36,7 @@ const trainingTypes = () => {const { setSelectedPage } = useNavigation();
     }, []);
 
     if (loading) {
-        return <div>Error: {error}</div>;
+        return <div>Loading ...</div>;
     }
 
     if (error) {
