@@ -46,7 +46,7 @@ const FreeSlot = ({ freeSlot, startTime, setStartTime, duration, setDuration, pr
             </div>
 
             {/* DURATION */}
-            {startTime && (
+            {startTime && activeSlot === freeSlot && (
                 <>
                     <p>Select duration (minutes)</p>
 

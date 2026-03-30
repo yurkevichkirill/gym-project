@@ -66,11 +66,11 @@ class AppFixtures extends Fixture
 //        $trainingType->setDescription("Bodybuilding is a form of physical training focused on developing muscle size, strength, and symmetry through resistance exercises. It typically involves structured workouts targeting specific muscle groups, such as chest, back, legs, and arms, using weights or machines. Athletes follow carefully planned routines, combining progressive overload, proper technique, and recovery. Nutrition plays a crucial role, emphasizing high protein intake, balanced macronutrients, and adequate hydration to support muscle growth and repair. Bodybuilding can be practiced recreationally for fitness and aesthetics or competitively, where participants are judged on muscular definition, proportion, and presentation. Consistency, discipline, and goal-setting are key elements of success in this training style.");
 //        $manager->persist($trainingType);
 //
-        $trainingType = new TrainingType();
-        $trainingType->setName("Box");
-        $trainingType->setDescription("Bodybuilding is a form of physical training focused on developing muscle size, strength, and symmetry through resistance exercises. It typically involves structured workouts targeting specific muscle groups, such as chest, back, legs, and arms, using weights or machines. Athletes follow carefully planned routines, combining progressive overload, proper technique, and recovery. Nutrition plays a crucial role, emphasizing high protein intake, balanced macronutrients, and adequate hydration to support muscle growth and repair. Bodybuilding can be practiced recreationally for fitness and aesthetics or competitively, where participants are judged on muscular definition, proportion, and presentation. Consistency, discipline, and goal-setting are key elements of success in this training style.");
-        $trainingType->setPhotoUrl("http://nginx/uploads/training_types/box.jpg");
-        $manager->persist($trainingType);
+//        $trainingType = new TrainingType();
+//        $trainingType->setName("Box");
+//        $trainingType->setDescription("Bodybuilding is a form of physical training focused on developing muscle size, strength, and symmetry through resistance exercises. It typically involves structured workouts targeting specific muscle groups, such as chest, back, legs, and arms, using weights or machines. Athletes follow carefully planned routines, combining progressive overload, proper technique, and recovery. Nutrition plays a crucial role, emphasizing high protein intake, balanced macronutrients, and adequate hydration to support muscle growth and repair. Bodybuilding can be practiced recreationally for fitness and aesthetics or competitively, where participants are judged on muscular definition, proportion, and presentation. Consistency, discipline, and goal-setting are key elements of success in this training style.");
+//        $trainingType->setPhotoUrl("http://nginx/uploads/training_types/box.jpg");
+//        $manager->persist($trainingType);
 
 //        $trainer = new TrainersListComponent();
 //        $trainer->setPassword('$2y$13$AZRdOuh3hPh36DLKTzT/ouye24yo0Ks1V6NjSkBbFkFzopReD9aLG');
@@ -239,7 +239,26 @@ class AppFixtures extends Fixture
 //        $manager->remove($manager->getRepository(TrainingType::class)->find(14));
 //        $manager->remove($manager->getRepository(TrainingType::class)->find(15));
 //        $manager->remove($manager->getRepository(TrainingType::class)->find(16));
+        $manager->getRepository(Trainer::class)->find(3)->setEducation("Brest State A.S. Pushkin University");
+        $manager->getRepository(Trainer::class)->find(3)->setAbout("Experiense more than 20 years, mr Olimpia");
 
+        $manager->getRepository(Trainer::class)->find(4)->setEducation("Belarusian State University of Informatics and Radioelectronics");
+        $manager->getRepository(Trainer::class)->find(4)->setAbout("Mr Kartoshka");
+
+        $manager->getRepository(Trainer::class)->find(8)->setEducation("Grafit courses");
+        $manager->getRepository(Trainer::class)->find(8)->setAbout("Experience 5 year in dance and bodybuilding");
+
+        $manager->getRepository(Trainer::class)->find(9)->setEducation("9 classes at school");
+        $manager->getRepository(Trainer::class)->find(9)->setAbout("Tik Tok, youtube bloger");
+
+        $manager->getRepository(Trainer::class)->find(10)->setEducation("Doctor of Philosophy Stanford University");
+        $manager->getRepository(Trainer::class)->find(10)->setAbout("Tik Tok, youtube bloger");
+
+        $manager->getRepository(Trainer::class)->find(11)->setEducation("Lyceum 1 Brest");
+        $manager->getRepository(Trainer::class)->find(11)->setAbout("Aestetic founder");
+
+        $manager->getRepository(Trainer::class)->find(13)->setEducation("University of Wisconsin-Superior");
+        $manager->getRepository(Trainer::class)->find(13)->setAbout("First mr Olimpia, California governor");
 
         $manager->flush();
     }

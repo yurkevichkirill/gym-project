@@ -23,7 +23,7 @@ final class ApiLoginController extends AbstractController
      * @throws RandomException
      */
     #[Route('/api/login/', name: 'app_api_login', methods: ['POST'])]
-    #[OA\Tag(name: "Login")]
+    #[OA\Tag(name: "Authorization")]
     #[OA\RequestBody(content: new Model(type: LoginUserRequest::class))]
     public function login(
         #[MapRequestPayload] LoginUserRequest $dto,
@@ -78,6 +78,7 @@ final class ApiLoginController extends AbstractController
      * @throws ORMException
      */
     #[Route('/api/refresh/', methods: ['POST'])]
+    #[OA\Tag(name: "Authorization")]
     public function refresh(
         Request $request,
         RefreshTokenManager $manager,
@@ -120,6 +121,7 @@ final class ApiLoginController extends AbstractController
     }
 
     #[Route("/api/logout/", methods: ['POST'])]
+    #[OA\Tag(name: "Authorization")]
     public function logout(): JsonResponse
     {
         $response = new JsonResponse();

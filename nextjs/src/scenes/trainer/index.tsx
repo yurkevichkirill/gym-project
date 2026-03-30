@@ -7,11 +7,11 @@ import {motion} from "framer-motion";
 import type WorktimeData from "@/types/worktime.type";
 import Worktime from "@/scenes/worktime/Worktime";
 import {useNavigation} from "@/context/navigation-context";
-import {ApiResponse} from "@/types/api-response.type";
 import Image from "next/image";
 import {bookTraining} from "@/api/bookings.api";
 import {getTrainer, getTrainers} from "@/api/public/trainers.api";
 import {getWorktimes} from "@/api/public/worktime.api";
+import {handleBooking} from "@/handlers/bookingHandler";
 
 const TrainerPersonal = ({ id }: { id: string }) => {
     const { setSelectedPage } = useNavigation();
@@ -127,13 +127,15 @@ const TrainerPersonal = ({ id }: { id: string }) => {
                             </p>
                             <p>
                                 <span className="font-bold">Education: </span>
+                                {trainer.education}
                             </p>
                             <p>
-                                <span className="font-bold">Experience: </span>
+                                <span className="font-bold">About: </span>
+                                {trainer.about}
                             </p>
                             <p>
                                 <span className="font-bold">Price: </span>
-                                { trainer?.pricePerHour }$
+                                { trainer.pricePerHour }$
                             </p>
                         </div>
                         <ul className="flex flex-col gap-3 max-h-86 overflow-y-auto pr-2">
@@ -153,10 +155,7 @@ const TrainerPersonal = ({ id }: { id: string }) => {
                         </ul>
                         <button
                             className="rounded-md bg-secondary-500 px-10 py-2 hover:bg-primary-500 hover:text-white self-start"
-                            onClick={() => (
-                                date && durationMinutes && startTime &&
-                                bookTraining({ trainerId: Number(id), date, durationMinutes, startTime: startTime + ":00" })
-                            )}
+                            onClick={() => handleBooking(id, date, durationMinutes, startTime)}
                         >
                             Book Training
                         </button>

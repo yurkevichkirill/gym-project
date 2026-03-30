@@ -7,7 +7,7 @@ namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 use Symfony\Component\Config\Loader\ParamConfigurator as Param;
 
 /**
- * This class provides array-shapes for configuring the utils and bundles of an application.
+ * This class provides array-shapes for configuring the services and bundles of an application.
  *
  * Services declared with the config() method below are autowired and autoconfigured by default.
  *
@@ -16,11 +16,11 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  * Example:
  *
  *     ```php
- *     // config/utils.php
+ *     // config/services.php
  *     namespace Symfony\Component\DependencyInjection\Loader\Configurator;
  *
  *     return App::config([
- *         'utils' => [
+ *         'services' => [
  *             'App\\' => [
  *                 'resource' => '../src/',
  *             ],
@@ -341,7 +341,7 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *         },
  *         disable_translation?: bool|Param, // Default: false
  *         auto_mapping?: array<string, array{ // Default: []
- *             utils?: list<scalar|Param|null>,
+ *             services?: list<scalar|Param|null>,
  *         }>,
  *     },
  *     serializer?: bool|array{ // Serializer configuration
@@ -870,7 +870,7 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  * @psalm-type DoctrineMigrationsConfig = array{
  *     enable_service_migrations?: bool|Param, // Whether to enable fetching migrations from the service container. // Default: false
  *     migrations_paths?: array<string, scalar|Param|null>,
- *     utils?: array<string, scalar|Param|null>,
+ *     services?: array<string, scalar|Param|null>,
  *     factories?: array<string, scalar|Param|null>,
  *     storage?: array{ // Storage to use for migration status metadata.
  *         table_storage?: array{ // The default metadata storage, implemented as a table in the database.
@@ -1650,10 +1650,38 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *     skip_translation_on_load?: bool|Param, // Default: false
  *     metadata_cache_pool?: scalar|Param|null, // Default: null
  * }
+ * @psalm-type NelmioCorsConfig = array{
+ *     defaults?: array{
+ *         allow_credentials?: bool|Param, // Default: false
+ *         allow_origin?: list<scalar|Param|null>,
+ *         allow_headers?: list<scalar|Param|null>,
+ *         allow_methods?: list<scalar|Param|null>,
+ *         allow_private_network?: bool|Param, // Default: false
+ *         expose_headers?: list<scalar|Param|null>,
+ *         max_age?: scalar|Param|null, // Default: 0
+ *         hosts?: list<scalar|Param|null>,
+ *         origin_regex?: bool|Param, // Default: false
+ *         forced_allow_origin_value?: scalar|Param|null, // Default: null
+ *         skip_same_as_origin?: bool|Param, // Default: true
+ *     },
+ *     paths?: array<string, array{ // Default: []
+ *         allow_credentials?: bool|Param,
+ *         allow_origin?: list<scalar|Param|null>,
+ *         allow_headers?: list<scalar|Param|null>,
+ *         allow_methods?: list<scalar|Param|null>,
+ *         allow_private_network?: bool|Param,
+ *         expose_headers?: list<scalar|Param|null>,
+ *         max_age?: scalar|Param|null, // Default: 0
+ *         hosts?: list<scalar|Param|null>,
+ *         origin_regex?: bool|Param,
+ *         forced_allow_origin_value?: scalar|Param|null, // Default: null
+ *         skip_same_as_origin?: bool|Param,
+ *     }>,
+ * }
  * @psalm-type ConfigType = array{
  *     imports?: ImportsConfig,
  *     parameters?: ParametersConfig,
- *     utils?: ServicesConfig,
+ *     services?: ServicesConfig,
  *     framework?: FrameworkConfig,
  *     doctrine?: DoctrineConfig,
  *     doctrine_migrations?: DoctrineMigrationsConfig,
@@ -1666,10 +1694,11 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *     nelmio_api_doc?: NelmioApiDocConfig,
  *     lexik_jwt_authentication?: LexikJwtAuthenticationConfig,
  *     stof_doctrine_extensions?: StofDoctrineExtensionsConfig,
+ *     nelmio_cors?: NelmioCorsConfig,
  *     "when@dev"?: array{
  *         imports?: ImportsConfig,
  *         parameters?: ParametersConfig,
- *         utils?: ServicesConfig,
+ *         services?: ServicesConfig,
  *         framework?: FrameworkConfig,
  *         doctrine?: DoctrineConfig,
  *         doctrine_migrations?: DoctrineMigrationsConfig,
@@ -1685,11 +1714,12 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *         nelmio_api_doc?: NelmioApiDocConfig,
  *         lexik_jwt_authentication?: LexikJwtAuthenticationConfig,
  *         stof_doctrine_extensions?: StofDoctrineExtensionsConfig,
+ *         nelmio_cors?: NelmioCorsConfig,
  *     },
  *     "when@prod"?: array{
  *         imports?: ImportsConfig,
  *         parameters?: ParametersConfig,
- *         utils?: ServicesConfig,
+ *         services?: ServicesConfig,
  *         framework?: FrameworkConfig,
  *         doctrine?: DoctrineConfig,
  *         doctrine_migrations?: DoctrineMigrationsConfig,
@@ -1702,11 +1732,12 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *         nelmio_api_doc?: NelmioApiDocConfig,
  *         lexik_jwt_authentication?: LexikJwtAuthenticationConfig,
  *         stof_doctrine_extensions?: StofDoctrineExtensionsConfig,
+ *         nelmio_cors?: NelmioCorsConfig,
  *     },
  *     "when@test"?: array{
  *         imports?: ImportsConfig,
  *         parameters?: ParametersConfig,
- *         utils?: ServicesConfig,
+ *         services?: ServicesConfig,
  *         framework?: FrameworkConfig,
  *         doctrine?: DoctrineConfig,
  *         doctrine_migrations?: DoctrineMigrationsConfig,
@@ -1720,11 +1751,12 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *         nelmio_api_doc?: NelmioApiDocConfig,
  *         lexik_jwt_authentication?: LexikJwtAuthenticationConfig,
  *         stof_doctrine_extensions?: StofDoctrineExtensionsConfig,
+ *         nelmio_cors?: NelmioCorsConfig,
  *     },
  *     ...<string, ExtensionType|array{ // extra keys must follow the when@%env% pattern or match an extension alias
  *         imports?: ImportsConfig,
  *         parameters?: ParametersConfig,
- *         utils?: ServicesConfig,
+ *         services?: ServicesConfig,
  *         ...<string, ExtensionType>,
  *     }>
  * }
