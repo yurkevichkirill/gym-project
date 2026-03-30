@@ -3,6 +3,7 @@ import Navbar from "@/scenes/navbar";
 import Footer from "@/scenes/footer";
 import React from "react";
 import {StoreProvider} from "@/store/StoreProvider";
+import {Toaster} from "sonner";
 
 const Layout = ({ children }: {children: React.ReactNode}) => {
     return (
@@ -13,6 +14,12 @@ const Layout = ({ children }: {children: React.ReactNode}) => {
                         <NavigationProvider>
                             <Navbar />
                             {children}
+                            <Toaster
+                                position="top-right"
+                                expand={true}
+                                richColors
+                                closeButton
+                            />
                             <Footer />
                         </NavigationProvider>
                     </StoreProvider>

@@ -22,8 +22,14 @@ class Trainer extends User
     #[ORM\Column(type: Types::DECIMAL, precision: 10, scale: 2)]
     private ?string $pricePerHour = null;
 
-    #[ORM\Column()]
+    #[ORM\Column]
     private ?string $photoUrl = null;
+
+    #[ORM\Column]
+    private ?string $education = null;
+
+    #[ORM\Column]
+    private ?string $about = null;
 
     /**
      * @var Collection<int, TrainerWorkTime>
@@ -34,12 +40,31 @@ class Trainer extends User
     #[ORM\OneToMany(targetEntity: Payment::class, mappedBy: 'trainer')]
     private Collection $payments;
 
-
     public function __construct()
     {
         $this->trainerWorkTime = new ArrayCollection();
         $this->payments = new ArrayCollection();
         $this->setRoles(['ROLE_TRAINER']);
+    }
+
+    public function getEducation(): ?string
+    {
+        return $this->education;
+    }
+
+    public function setEducation(?string $education): void
+    {
+        $this->education = $education;
+    }
+
+    public function getAbout(): ?string
+    {
+        return $this->about;
+    }
+
+    public function setAbout(?string $about): void
+    {
+        $this->about = $about;
     }
 
     public function getTrainingType(): ?TrainingType
