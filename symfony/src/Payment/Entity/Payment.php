@@ -2,7 +2,9 @@
 
 namespace App\Payment\Entity;
 
+use App\Booking\Entity\Booking;
 use App\Client\Entity\Client;
+use App\Membership\Entity\Membership;
 use App\Payment\Enum\PaymentCategoryEnum;
 use App\Payment\Repository\PaymentRepository;
 use App\Trainer\Entity\Trainer;
@@ -22,6 +24,12 @@ class Payment
     #[ORM\ManyToOne(inversedBy: 'payments')]
     #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
     private ?Client $client = null;
+
+    #[ORM\OneToOne(targetEntity: Membership::class, mappedBy: 'payment')]
+    private ?Membership $membership = null;
+
+    #[ORM\OneToOne(targetEntity: Booking::class, mappedBy: 'payment')]
+    private ?Booking $booking = null;
 
     #[ORM\Column(length: 200)]
     private ?string $clientFullName = null;
@@ -88,6 +96,30 @@ class Payment
     public function setAmount(string $amount): static
     {
         $this->amount = $amount;
+
+        return $this;
+    }
+
+    public function getMembership(): ?Membership
+    {
+        return $this->membership;
+    }
+
+    public function setMembership(?Membership $membership): static
+    {
+        $this->membership = $membership;
+
+        return $this;
+    }
+
+    public function getBooking(): ?Booking
+    {
+        return $this->booking;
+    }
+
+    public function setBooking(?Booking $booking): static
+    {
+        $this->booking = $booking;
 
         return $this;
     }

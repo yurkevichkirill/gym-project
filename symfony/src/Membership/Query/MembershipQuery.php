@@ -60,7 +60,9 @@ class MembershipQuery
     {
         $qb = $this->membershipRepo->createQueryBuilder('m')
             ->leftJoin('m.plan', 'plan')
-            ->addSelect('plan');
+            ->addSelect('plan')
+            ->leftJoin('m.payment', 'p')
+            ->addSelect('p');
 
         if(isset($filter['client'])) {
             $qb->andWhere('m.client = :client')

@@ -59,7 +59,7 @@ final readonly class BookingManager
         $this->validateActiveMembership($client);
 
         $price = $this->trainerManager->countPrice($worktime->getTrainer(), $dto->durationMinutes);
-        $this->clientManager->pay($client, $price, $worktime->getTrainer());
+        $payment = $this->clientManager->pay($client, $price, $worktime->getTrainer());
 
         $training = new Training();
         $training->setDurationMinutes($dto->durationMinutes);
@@ -70,6 +70,7 @@ final readonly class BookingManager
         $booking = new Booking();
         $booking->setClient($client);
         $booking->setTraining($training);
+        $booking->setPayment($payment);
         $this->bookingRepo->create($booking);
 
         return $booking;

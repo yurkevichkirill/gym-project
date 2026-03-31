@@ -5,6 +5,7 @@ namespace App\Booking\Entity;
 use App\Booking\Enum\BookingStatusEnum;
 use App\Booking\Repository\BookingRepository;
 use App\Client\Entity\Client;
+use App\Payment\Entity\Payment;
 use App\Training\Entity\Training;
 use DateTimeImmutable;
 use Doctrine\DBAL\Types\Types;
@@ -34,19 +35,19 @@ class Booking
         cascade: ['persist', 'remove']
     )]
     #[ORM\JoinColumn(nullable: false)]
-    #[Groups(['public-booking', 'create-update-booking'])]
-    #[Assert\NotBlank]
     private ?Training $training = null;
 
+    #[ORM\OneToOne(targetEntity: Payment::class, inversedBy: 'membership', cascade: ['persist'])]
+    #[ORM\JoinColumn(nullable: false, onDelete: 'SET NULL')]
+    private ?Payment $payment = null;
+
     #[ORM\Column(options: ["default" => "CURRENT_TIMESTAMP"])]
-    #[Groups('public-booking')]
     private ?DateTimeImmutable $bookedAt = null;
 
     #[ORM\Column(
         type: Types::ENUM,
         options: ['default' => BookingStatusEnum::SCHEDULED]
     )]
-    #[Groups('public-booking')]
     private ?BookingStatusEnum $status = null;
 
     public function getId(): ?int
@@ -62,6 +63,18 @@ class Booking
     public function setClient(?Client $client): static
     {
         $this->client = $client;
+
+        return $this;
+    }
+
+    public function getPayment(): ?Payment
+    {
+        return $this->payment;
+    }
+
+    public function setPayment(?Payment $payment): static
+    {
+        $this->payment = $payment;
 
         return $this;
     }
