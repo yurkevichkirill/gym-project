@@ -1,7 +1,7 @@
 'use client'
 
 import {useEffect, useState} from "react";
-import MembershipType from "@/types/membership.type";
+import MembershipType from "@/types/membership/membership.type";
 import PersonalMembership from "@/scenes/userPersonal/membership/Membership";
 import Section from "@/shared/Section";
 import {getMyMemberships} from "@/api/memberships.api";

@@ -46,6 +46,10 @@ const request = async <T>(
         throw new Error(error.message || "Request failed");
     }
 
+    if (res.status === 204) {
+        return null as T;
+    }
+
     return res.json() as Promise<T>;
 };
 
@@ -63,3 +67,17 @@ export const apiPost = <T, B = unknown>(
     });
 };
 
+export const apiPatch = <T, B = unknown>(
+    url: string,
+    body: B
+): Promise<T> => {
+    return request<T>(url, {
+        method: 'PATCH',
+        body: JSON.stringify(body),
+    });
+};
+
+
+export const apiDelete = <T>(url: string) => {
+    return request<T>(url, { method: 'DELETE' });
+};

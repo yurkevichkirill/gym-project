@@ -1,7 +1,7 @@
 'use client'
 
 import {useEffect, useState} from "react";
-import UserPersonalType from "@/types/user.type";
+import UserPersonalType from "@/types/user/user.type";
 import User from "@/scenes/userPersonal/user/User";
 import Bookings from "@/scenes/userPersonal/bookings";
 import PersonalMemberships from "@/scenes/userPersonal/membership";

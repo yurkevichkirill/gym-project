@@ -1,6 +1,6 @@
 import BookingType from "@/types/booking/booking.type";
 import {ApiResponse} from "@/types/api-response.type";
-import {apiGet, apiPost} from "@/lib/apiClient";
+import {apiDelete, apiGet, apiPost} from "@/lib/apiClient";
 import BookingCreateType from "@/types/booking/booking-create.type";
 
 export const getMyBookings = async (): Promise<BookingType[]> => {
@@ -18,4 +18,8 @@ export const bookTraining = async ({ trainerId, date, durationMinutes, startTime
     });
 
     return data.data;
+}
+
+export const deleteBooking = async (id: number) => {
+    return apiDelete<null>(`/me/bookings/${id}/`);
 }

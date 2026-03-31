@@ -1,6 +1,5 @@
 import {notify} from "@/lib/notify";
 import {bookTraining} from "@/api/bookings.api";
-import {ApiError} from "@/types/auth.type";
 
 export const handleBooking = async (id: string | null, date: string | null, durationMinutes: number | null, startTime: string | null) => {
     if (!id || !date || !durationMinutes || !startTime) {

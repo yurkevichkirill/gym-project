@@ -11,9 +11,13 @@ import LoginModal from "@/scenes/authorization";
 import {useStore} from "@/store/StoreProvider";
 import Link from "next/link";
 import {observer} from "mobx-react-lite";
+import {usePathname, useRouter} from "next/navigation";
 
 const Navbar =  observer (() => {
     const { selectedPage, setSelectedPage, isTopOfPage } = useNavigation();
+    const router = useRouter();
+    const path = usePathname();
+    const isHome = path ==='/';
 
     const flexBetween = "flex items-center justify-between";
     const [isMenuToggled, setIsMenuToggled] = useState<boolean>(false);
@@ -44,37 +48,38 @@ const Navbar =  observer (() => {
             <div className={`${flexBetween} mx-auto w-5/6`}>
                 <div className={`${flexBetween} w-full gap-16`}>
                     {/*LEFT SIDE*/}
-                    <Image src={Logo} alt="logo"/>
+                    <Link href="/" className="shrink-0">
+                        <Image src={Logo} alt="logo"/>
+                    </Link>
 
                     {/*RIGHT SIDE*/}
                     {isAboveMediumScreens ? (
                         <div className={`${flexBetween} w-full`}>
                             <div className={`${flexBetween} gap-8 text-sm`}>
-                                <NavLink
-                                    page="Home"
-                                    selectedPage={selectedPage}
-                                    setSelectedPage = {setSelectedPage}
-                                />
-                                <NavLink
-                                    page="Our Trainers"
-                                    selectedPage={selectedPage}
-                                    setSelectedPage={setSelectedPage}
-                                />
-                                <NavLink
-                                    page="Memberships"
-                                    selectedPage={selectedPage}
-                                    setSelectedPage = {setSelectedPage}
-                                />
-                                <NavLink
-                                    page="Training Types"
-                                    selectedPage={selectedPage}
-                                    setSelectedPage={setSelectedPage}
-                                />
-                                {/*<NavLink*/}
-                                {/*    page="Contact Us"*/}
-                                {/*    selectedPage={selectedPage}*/}
-                                {/*    setSelectedPage = {setSelectedPage}*/}
-                                {/*/>*/}
+                                {isHome &&
+                                <>
+                                    <NavLink
+                                        page="Home"
+                                        selectedPage={selectedPage}
+                                        setSelectedPage = {setSelectedPage}
+                                    />
+                                    <NavLink
+                                        page="Our Trainers"
+                                        selectedPage={selectedPage}
+                                        setSelectedPage={setSelectedPage}
+                                    />
+                                    <NavLink
+                                        page="Memberships"
+                                        selectedPage={selectedPage}
+                                        setSelectedPage = {setSelectedPage}
+                                    />
+                                    <NavLink
+                                        page="Training Types"
+                                        selectedPage={selectedPage}
+                                        setSelectedPage={setSelectedPage}
+                                    />
+                                </>
+                                }
                             </div>
                             {authStore.isAuth ?
                                 <div className={`${flexBetween} gap-8`}>
@@ -87,7 +92,7 @@ const Navbar =  observer (() => {
                                     >
                                         My Profile
                                     </Link>
-                                    <button className="hover:text-primary-500 cursor-pointer" type="button" onClick={() => authStore.logout()}>
+                                    <button className="hover:text-primary-500 cursor-pointer" type="button" onClick={() => authStore.logout(router)}>
                                         Logout
                                     </button>
                                 </div> :
@@ -144,7 +149,7 @@ const Navbar =  observer (() => {
                             </Link>
                             <button
                                 className="cursor-pointer text-left transition duration-500 hover:text-primary-300"
-                                type="button" onClick={() => authStore.logout()}>
+                                type="button" onClick={() => authStore.logout(router)}>
                                 Logout
                             </button>
                         </>
@@ -178,11 +183,7 @@ const Navbar =  observer (() => {
                         page="Training Types"
                         selectedPage={selectedPage}
                         setSelectedPage = {setSelectedPage}
-                    />{/*<NavLink*/}
-                    {/*    page="Contact Us"*/}
-                    {/*    selectedPage={selectedPage}*/}
-                    {/*    setSelectedPage = {setSelectedPage}*/}
-                    {/*/>*/}
+                    />
                 </div>
             </div>
         )}

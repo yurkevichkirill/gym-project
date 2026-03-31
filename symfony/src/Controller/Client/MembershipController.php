@@ -109,7 +109,7 @@ final class MembershipController extends AbstractController
         MembershipManager $manager,
     ): OkResponse
     {
-        $responseDto = $mapper->map($manager->create($client, $requestDto->membershipTypeId));
+        $responseDto = $mapper->map($manager->create($client, $requestDto->membershipPlanId));
 
         return new OkResponse(
             data: $responseDto,
