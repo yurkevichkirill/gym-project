@@ -23,15 +23,15 @@ class AppFixtures extends Fixture
 {
     public function load(ObjectManager $manager): void
     {
-//        $client = new Client();
-//        $client->setFirstName("Slava");
-//        $client->setLastName("Merlow");
-//        $client->setEmail("slava_marlow@gmail.com");
-//        $client->setPhone("+34142342354235");
-//        $client->setBalance("100");
-//        $client->setAge(25);
-//        $client->setPassword('$2y$13$xn19jDhOYkY6AXH96H37KOO6KILDHrnu47IaRErPT2XZSlauYZXVS');
-//        $manager->persist($client);
+        $client = new Client();
+        $client->setFirstName("Veronika");
+        $client->setLastName("Loving");
+        $client->setEmail("veronika@gmail.com");
+        $client->setPhone("+36326574675");
+        $client->setBalance("499");
+        $client->setAge(17);
+        $client->setPassword('$2y$13$0/iZHd/aJHWZgiUlE4.JSul5NjEZZSvXQuUgAJcJShUnXY5Qz7b7m');
+        $manager->persist($client);
 //
 //        $client = new Client();
 //        $client->setFirstName("Kirill");
@@ -239,26 +239,26 @@ class AppFixtures extends Fixture
 //        $manager->remove($manager->getRepository(TrainingType::class)->find(14));
 //        $manager->remove($manager->getRepository(TrainingType::class)->find(15));
 //        $manager->remove($manager->getRepository(TrainingType::class)->find(16));
-        $manager->getRepository(Trainer::class)->find(3)->setEducation("Brest State A.S. Pushkin University");
-        $manager->getRepository(Trainer::class)->find(3)->setAbout("Experiense more than 20 years, mr Olimpia");
-
-        $manager->getRepository(Trainer::class)->find(4)->setEducation("Belarusian State University of Informatics and Radioelectronics");
-        $manager->getRepository(Trainer::class)->find(4)->setAbout("Mr Kartoshka");
-
-        $manager->getRepository(Trainer::class)->find(8)->setEducation("Grafit courses");
-        $manager->getRepository(Trainer::class)->find(8)->setAbout("Experience 5 year in dance and bodybuilding");
-
-        $manager->getRepository(Trainer::class)->find(9)->setEducation("9 classes at school");
-        $manager->getRepository(Trainer::class)->find(9)->setAbout("Tik Tok, youtube bloger");
-
-        $manager->getRepository(Trainer::class)->find(10)->setEducation("Doctor of Philosophy Stanford University");
-        $manager->getRepository(Trainer::class)->find(10)->setAbout("Tik Tok, youtube bloger");
-
-        $manager->getRepository(Trainer::class)->find(11)->setEducation("Lyceum 1 Brest");
-        $manager->getRepository(Trainer::class)->find(11)->setAbout("Aestetic founder");
-
-        $manager->getRepository(Trainer::class)->find(13)->setEducation("University of Wisconsin-Superior");
-        $manager->getRepository(Trainer::class)->find(13)->setAbout("First mr Olimpia, California governor");
+//        $manager->getRepository(Trainer::class)->find(3)->setEducation("Brest State A.S. Pushkin University");
+//        $manager->getRepository(Trainer::class)->find(3)->setAbout("Experiense more than 20 years, mr Olimpia");
+//
+//        $manager->getRepository(Trainer::class)->find(4)->setEducation("Belarusian State University of Informatics and Radioelectronics");
+//        $manager->getRepository(Trainer::class)->find(4)->setAbout("Mr Kartoshka");
+//
+//        $manager->getRepository(Trainer::class)->find(8)->setEducation("Grafit courses");
+//        $manager->getRepository(Trainer::class)->find(8)->setAbout("Experience 5 year in dance and bodybuilding");
+//
+//        $manager->getRepository(Trainer::class)->find(9)->setEducation("9 classes at school");
+//        $manager->getRepository(Trainer::class)->find(9)->setAbout("Tik Tok, youtube bloger");
+//
+//        $manager->getRepository(Trainer::class)->find(10)->setEducation("Doctor of Philosophy Stanford University");
+//        $manager->getRepository(Trainer::class)->find(10)->setAbout("Tik Tok, youtube bloger");
+//
+//        $manager->getRepository(Trainer::class)->find(11)->setEducation("Lyceum 1 Brest");
+//        $manager->getRepository(Trainer::class)->find(11)->setAbout("Aestetic founder");
+//
+//        $manager->getRepository(Trainer::class)->find(13)->setEducation("University of Wisconsin-Superior");
+//        $manager->getRepository(Trainer::class)->find(13)->setAbout("First mr Olimpia, California governor");
 
         $manager->flush();
     }

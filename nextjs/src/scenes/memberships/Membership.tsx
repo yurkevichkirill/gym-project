@@ -5,16 +5,17 @@ import {
     ClockIcon,
     BoltIcon
 } from "@heroicons/react/16/solid";
+import {handleMembership} from "@/handlers/membershipHandler";
 
 type Props = {
+    id: number;
     name: string;
     durationDays: number;
     sessionLimit: number | null;
     price: string;
-    setSelectedPage: (value: SelectedPage) => void;
 };
 
-const Membership = ({ name, durationDays, sessionLimit, price, setSelectedPage }: Props) => {
+const Membership = ({ id, name, durationDays, sessionLimit, price }: Props) => {
     return (
         <li
             className="
@@ -71,7 +72,7 @@ const Membership = ({ name, durationDays, sessionLimit, price, setSelectedPage }
             </div>
 
             {/* CTA */}
-            <a
+            <button
                 className="
                     mt-2
                     inline-block
@@ -83,11 +84,10 @@ const Membership = ({ name, durationDays, sessionLimit, price, setSelectedPage }
                     hover:bg-primary-500
                     hover:text-white
                 "
-                onClick={() => setSelectedPage(SelectedPage.ContactUs)}
-                href={`#${SelectedPage.ContactUs}`}
+                onClick={() => handleMembership(id)}
             >
                 Buy plan
-            </a>
+            </button>
         </li>
     );
 };

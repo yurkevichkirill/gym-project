@@ -9,7 +9,7 @@ import BenefitsPageGraphic from "@/assets/BenefitsPageGraphic.png";
 import {useNavigation} from "@/context/navigation-context";
 import Image from "next/image";
 import {useEffect, useState} from "react";
-import {MembershipPlanType} from "@/types/membership-plan.type";
+import {MembershipPlanType} from "@/types/membership/membership-plan.type";
 import {getMembershipPlans} from "@/api/public/membership-plans.api";
 
 const container = {
@@ -85,12 +85,12 @@ const Memberships = () => {
                         <ul className="flex gap-20 whitespace-nowrap">
                             {memberships.map((membership: MembershipPlanType) => (
                                 <Membership
-                                    key={membership.id}
-                                    name={membership.name}
-                                    durationDays={membership.durationDays}
-                                    sessionLimit={membership.sessionLimit}
-                                    price={membership.price}
-                                    setSelectedPage={setSelectedPage}
+                                    key = {membership.id}
+                                    id = {membership.id}
+                                    name = {membership.name}
+                                    durationDays = {membership.durationDays}
+                                    sessionLimit = {membership.sessionLimit}
+                                    price = {membership.price}
                                 />
                             ))}
                         </ul>

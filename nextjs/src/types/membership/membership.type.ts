@@ -1,4 +1,4 @@
-import {MembershipPlanType} from "@/types/membership-plan.type";
+import {MembershipPlanType} from "@/types/membership/membership-plan.type";
 
 export default interface MembershipType {
     id: number,

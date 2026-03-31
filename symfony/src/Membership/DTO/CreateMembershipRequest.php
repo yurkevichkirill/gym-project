@@ -7,7 +7,7 @@ namespace App\Membership\DTO;
 final readonly class CreateMembershipRequest
 {
     public function __construct(
-        public int $membershipTypeId
+        public int $membershipPlanId
     )
     {}
 }

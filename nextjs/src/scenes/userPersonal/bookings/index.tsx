@@ -11,6 +11,10 @@ export const Bookings = () => {
     const [error, setError] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
 
+    const handleRemove = (id: number) => {
+        setBookings(prev => prev.filter(b => b.id !== id));
+    };
+
     useEffect(() => {
         const fetchData = async () => {
             try {
@@ -45,13 +49,14 @@ export const Bookings = () => {
             <div className="flex flex-col gap-4">
                 {...bookings.map((booking: BookingType) => (
                     <Booking
-                        id={booking.id}
-                        trainerId={booking.trainerId}
-                        bookedAt={booking.bookedAt}
-                        date={booking.date}
-                        durationMinutes={booking.durationMinutes}
-                        startTime={booking.startTime}
-                        status={booking.status}
+                        id = {booking.id}
+                        trainerId = {booking.trainerId}
+                        bookedAt = {booking.bookedAt}
+                        date = {booking.date}
+                        durationMinutes = {booking.durationMinutes}
+                        startTime = {booking.startTime}
+                        status = {booking.status}
+                        onDelete = {handleRemove}
                     />
                 ))}
             </div>

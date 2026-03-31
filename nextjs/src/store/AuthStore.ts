@@ -9,7 +9,7 @@ export interface AuthStore {
 
     login: (payload: LoginRequest) => Promise<void>;
     checkAuth: () => Promise<void>;
-    logout: () => void;
+    logout: (router: any) => void;
 }
 
 export const authStore: AuthStore = {
@@ -63,14 +63,20 @@ export const authStore: AuthStore = {
         }
     },
 
-    logout: async () => {
+    logout: async (router: any) => {
+        if (!confirm("Logout from your account?")) return;
+
         await apiPost(
             "/logout/",
             {
                 credentials: "include"
-            });
+            }
+        );
+
         authStore.user = null;
         authStore.isAuth = false;
+
+        router.push("/");
     },
 };
 
