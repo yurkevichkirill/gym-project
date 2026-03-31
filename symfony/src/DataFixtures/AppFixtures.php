@@ -23,15 +23,15 @@ class AppFixtures extends Fixture
 {
     public function load(ObjectManager $manager): void
     {
-        $client = new Client();
-        $client->setFirstName("Veronika");
-        $client->setLastName("Loving");
-        $client->setEmail("veronika@gmail.com");
-        $client->setPhone("+36326574675");
-        $client->setBalance("499");
-        $client->setAge(17);
-        $client->setPassword('$2y$13$0/iZHd/aJHWZgiUlE4.JSul5NjEZZSvXQuUgAJcJShUnXY5Qz7b7m');
-        $manager->persist($client);
+//        $client = new Client();
+//        $client->setFirstName("Veronika");
+//        $client->setLastName("Loving");
+//        $client->setEmail("veronika@gmail.com");
+//        $client->setPhone("+36326574675");
+//        $client->setBalance("499");
+//        $client->setAge(17);
+//        $client->setPassword('$2y$13$0/iZHd/aJHWZgiUlE4.JSul5NjEZZSvXQuUgAJcJShUnXY5Qz7b7m');
+//        $manager->persist($client);
 //
 //        $client = new Client();
 //        $client->setFirstName("Kirill");
@@ -259,7 +259,13 @@ class AppFixtures extends Fixture
 //
 //        $manager->getRepository(Trainer::class)->find(13)->setEducation("University of Wisconsin-Superior");
 //        $manager->getRepository(Trainer::class)->find(13)->setAbout("First mr Olimpia, California governor");
+//        $memberships = $manager->getRepository(Membership::class)->findAll();
+//        $manager->remove($manager->getRepository(Membership::class)->find(1));
+//        $manager->remove($manager->getRepository(Membership::class)->find(3));
+//        $manager->remove($manager->getRepository(Membership::class)->find(4));
 
+        $manager->remove($manager->getRepository(Booking::class)->find(5));
+        $manager->remove($manager->getRepository(Booking::class)->find(6));
         $manager->flush();
     }
 }

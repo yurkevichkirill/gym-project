@@ -6,6 +6,7 @@ namespace App\Booking\DTO;
 
 use App\Booking\Entity\Booking;
 use App\Booking\Enum\BookingStatusEnum;
+use App\Payment\DTO\PaymentResponse;
 
 readonly class BookingResponse
 {
@@ -17,6 +18,7 @@ readonly class BookingResponse
         public int $durationMinutes,
         public string $startTime,
         public BookingStatusEnum $status,
+        public PaymentResponse $payment,
     )
     {}
 
@@ -30,6 +32,7 @@ readonly class BookingResponse
             durationMinutes: $b->getTraining()->getDurationMinutes(),
             startTime: $b->getTraining()->getStartTime()->format("H:i:s"),
             status: $b->getStatus(),
+            payment: PaymentResponse::fromEntity($b->getPayment()),
         );
     }
 }

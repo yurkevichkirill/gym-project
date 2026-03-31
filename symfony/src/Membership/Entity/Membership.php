@@ -6,12 +6,12 @@ use App\Client\Entity\Client;
 use App\Membership\Enum\MembershipStatusEnum;
 use App\Membership\Repository\MembershipRepository;
 use App\MembershipPlan\Entity\MembershipPlan;
+use App\Payment\Entity\Payment;
 use DateInterval;
 use DateMalformedIntervalStringException;
 use DateTimeImmutable;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
-use Symfony\Component\Serializer\Attribute\Groups;
 use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\HasLifecycleCallbacks]
@@ -30,6 +30,10 @@ class Membership
     #[ORM\ManyToOne(inversedBy: 'memberships')]
     #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
     private ?MembershipPlan $plan = null;
+
+    #[ORM\OneToOne(targetEntity: Payment::class, inversedBy: 'membership', cascade: ['persist'])]
+    #[ORM\JoinColumn(nullable: false, onDelete: 'SET NULL')]
+    private ?Payment $payment = null;
 
     #[ORM\Column(type: Types::DATE_IMMUTABLE)]
     private ?DateTimeImmutable $startDate = null;
@@ -75,6 +79,18 @@ class Membership
     public function setClient(?Client $client): static
     {
         $this->client = $client;
+
+        return $this;
+    }
+
+    public function getPayment(): ?Payment
+    {
+        return $this->payment;
+    }
+
+    public function setPayment(?Payment $payment): static
+    {
+        $this->payment = $payment;
 
         return $this;
     }

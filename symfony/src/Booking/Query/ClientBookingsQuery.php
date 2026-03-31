@@ -61,7 +61,9 @@ final readonly class ClientBookingsQuery
 
     private function createQuery(array $filter, bool $isCount = false): QueryBuilder
     {
-        $qb = $this->bookingRepo->createQueryBuilder('b');
+        $qb = $this->bookingRepo->createQueryBuilder('b')
+            ->leftJoin("b.payment", 'p')
+            ->addSelect('p');
 
         if (!$isCount) {
             $qb->addSelect('t', 'w');

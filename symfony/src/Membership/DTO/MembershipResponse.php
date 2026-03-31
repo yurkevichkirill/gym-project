@@ -7,6 +7,7 @@ namespace App\Membership\DTO;
 use App\Membership\Entity\Membership;
 use App\Membership\Enum\MembershipStatusEnum;
 use App\MembershipPlan\DTO\MembershipPlanResponse;
+use App\Payment\DTO\PaymentResponse;
 
 final readonly class MembershipResponse
 {
@@ -19,6 +20,7 @@ final readonly class MembershipResponse
         public int $visits,
         public string $createdAt,
         public ?string $frozenAt,
+        public PaymentResponse $payment,
     )
     {}
 
@@ -33,6 +35,7 @@ final readonly class MembershipResponse
             visits: $membership->getVisits(),
             createdAt: $membership->getCreatedAt()->format(DATE_ATOM),
             frozenAt: $membership->getFrozenAt()?->format("Y-m-d"),
+            payment: PaymentResponse::fromEntity($membership->getPayment()),
         );
     }
 }

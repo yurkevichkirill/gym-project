@@ -124,7 +124,7 @@ final readonly class ClientManager
      * @throws OptimisticLockException
      * @throws ORMException
      */
-    public function pay(Client $client, float $price, ?Trainer $trainer = null): void
+    public function pay(Client $client, float $price, ?Trainer $trainer = null): Payment
     {
         $balance = (float) $client->getBalance();
         if (!$this->hasClientEnoughMoney($balance, $price)) {
@@ -143,6 +143,8 @@ final readonly class ClientManager
         $this->paymentRepo->create($payment);
 
         $client->setBalance((string) ($balance - $price));
+
+        return $payment;
     }
 
     private function hasClientEnoughMoney(float $balance, float $price): bool

@@ -35,11 +35,12 @@ final readonly class MembershipManager
         $this->validateClientHasActiveMembership($client);
 
         $plan = $this->membershipPlanRepo->find($membershipPlanId);
-        $this->clientManager->pay($client, (float) $plan->getPrice());
+        $payment = $this->clientManager->pay($client, (float) $plan->getPrice());
 
         $membership = new Membership();
         $membership->setClient($client);
         $membership->setPlan($plan);
+        $membership->setPayment($payment);
         $this->membershipRepo->create($membership);
 
         return $membership;
