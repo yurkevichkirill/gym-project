@@ -124,11 +124,14 @@ final class BookingController extends AbstractController
     #[OA\Tag(name: "Client: Bookings")]
     public function remove(
         Booking $booking,
-        BookingRepository $bookingRepo
+        #[CurrentUser] Client $client,
+        BookingRepository $bookingRepo,
+        BookingManager $manager,
     ): Response
     {
         $this->denyAccessUnlessGranted("BOOKING_REMOVE", $booking);
 
+        $manager->cancelBooking($client, $booking);
         $bookingRepo->remove($booking);
 
         return new Response(

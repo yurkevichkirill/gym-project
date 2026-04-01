@@ -262,10 +262,11 @@ class AppFixtures extends Fixture
 //        $memberships = $manager->getRepository(Membership::class)->findAll();
 //        $manager->remove($manager->getRepository(Membership::class)->find(1));
 //        $manager->remove($manager->getRepository(Membership::class)->find(3));
-//        $manager->remove($manager->getRepository(Membership::class)->find(4));
-
-        $manager->remove($manager->getRepository(Booking::class)->find(5));
-        $manager->remove($manager->getRepository(Booking::class)->find(6));
+//        $manager->remove($manager->getRepository(Membership::class)->find(5));
+        foreach ($manager->getRepository(Payment::class)->findAll() as $item) {
+            $manager->remove($manager->getRepository(Payment::class)->find($item->getId()));
+        }
+//        $manager->remove($manager->getRepository(Booking::class)->find(12));
         $manager->flush();
     }
 }

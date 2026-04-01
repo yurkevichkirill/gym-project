@@ -31,6 +31,9 @@ class Payment
     #[ORM\OneToOne(targetEntity: Booking::class, mappedBy: 'payment')]
     private ?Booking $booking = null;
 
+    #[ORM\Column]
+    private ?bool $isRefund = null;
+
     #[ORM\Column(length: 200)]
     private ?string $clientFullName = null;
 
@@ -96,6 +99,18 @@ class Payment
     public function setAmount(string $amount): static
     {
         $this->amount = $amount;
+
+        return $this;
+    }
+
+    public function getIsRefund(): ?bool
+    {
+        return $this->isRefund;
+    }
+
+    public function setIsRefund(?bool $isRefund): static
+    {
+        $this->isRefund = $isRefund;
 
         return $this;
     }

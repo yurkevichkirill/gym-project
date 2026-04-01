@@ -6,6 +6,7 @@ namespace App\Booking\Service;
 
 use App\Booking\DTO\BookingRequest;
 use App\Booking\Entity\Booking;
+use App\Booking\Enum\BookingStatusEnum;
 use App\Booking\Repository\BookingRepository;
 use App\Client\Entity\Client;
 use App\Client\Service\ClientManager;
@@ -74,6 +75,19 @@ final readonly class BookingManager
         $this->bookingRepo->create($booking);
 
         return $booking;
+    }
+
+    /**
+     * @throws OptimisticLockException
+     * @throws ORMException
+     */
+    public function cancelBooking(Client $client, Booking $booking): void
+    {
+        $this->clientManager->refund($client, $booking->getPayment());
+
+        $booking->setStatus(BookingStatusEnum::CANCELLED);
+
+        $this->trainingRepo->remove($booking->getTraining());
     }
 
     private function validateActiveMembership(Client $client): void

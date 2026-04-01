@@ -34,10 +34,10 @@ class Booking
         inversedBy: 'booking',
         cascade: ['persist', 'remove']
     )]
-    #[ORM\JoinColumn(nullable: false)]
+    #[ORM\JoinColumn(nullable: true)]
     private ?Training $training = null;
 
-    #[ORM\OneToOne(targetEntity: Payment::class, inversedBy: 'membership', cascade: ['persist'])]
+    #[ORM\OneToOne(targetEntity: Payment::class, inversedBy: 'booking', cascade: ['persist'])]
     #[ORM\JoinColumn(nullable: false, onDelete: 'SET NULL')]
     private ?Payment $payment = null;
 
