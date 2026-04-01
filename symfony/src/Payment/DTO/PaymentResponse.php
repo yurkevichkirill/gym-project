@@ -14,7 +14,8 @@ final readonly class PaymentResponse
         public int $id,
         public ?TrainerResponse $trainer = null,
         public string $amount,
-        public PaymentCategoryEnum $category
+        public PaymentCategoryEnum $category,
+        public bool $isRefund,
     )
     {}
 
@@ -24,7 +25,8 @@ final readonly class PaymentResponse
             id: $payment->getId(),
             trainer: $payment->getTrainer() ? TrainerResponse::fromEntity($payment->getTrainer()) : null,
             amount: $payment->getAmount(),
-            category: $payment->getCategory()
+            category: $payment->getCategory(),
+            isRefund: $payment->getIsRefund(),
         );
     }
 }

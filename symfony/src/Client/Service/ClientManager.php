@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace App\Client\Service;
 
+use App\Booking\Entity\Booking;
 use App\Booking\Repository\BookingRepository;
 use App\Client\DTO\CreateClientRequest;
 use App\Client\DTO\UpdateClientRequest;
 use App\Client\Entity\Client;
 use App\Client\Repository\ClientRepository;
 use App\Exception\InsufficientFundsException;
+use App\Membership\Entity\Membership;
 use App\Membership\Repository\MembershipRepository;
 use App\Payment\Entity\Payment;
 use App\Payment\Enum\PaymentCategoryEnum;
@@ -134,6 +136,7 @@ final readonly class ClientManager
         $payment = new Payment();
         $payment->setClient($client);
         $payment->setAmount((string) $price);
+        $payment->setIsRefund(false);
         if ($trainer) {
             $payment->setTrainer($trainer);
             $payment->setCategory(PaymentCategoryEnum::TRAINER);
@@ -145,6 +148,27 @@ final readonly class ClientManager
         $client->setBalance((string) ($balance - $price));
 
         return $payment;
+    }
+
+    /**
+     * @throws OptimisticLockException
+     * @throws ORMException
+     */
+    public function refund(Client $client, Payment $payment): void
+    {
+        $balance = (float) $client->getBalance();
+
+        $paymentRefund = new Payment();
+        $paymentRefund->setClient($client);
+        $paymentRefund->setAmount($payment->getAmount());
+        $paymentRefund->setIsRefund(true);
+
+        $paymentRefund->setTrainer($payment->getTrainer());
+        $paymentRefund->setCategory($payment->getCategory());
+
+        $this->paymentRepo->create($paymentRefund);
+
+        $client->setBalance((string) ($balance + $payment->getAmount()));
     }
 
     private function hasClientEnoughMoney(float $balance, float $price): bool
