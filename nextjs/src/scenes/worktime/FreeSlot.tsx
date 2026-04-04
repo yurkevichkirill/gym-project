@@ -1,20 +1,23 @@
 'use client'
 
-import type FreeSlotData from "@/types/free-slot.type";
+import type FreeSlotData from "@/types/trainer/public/free-slot.type";
 import {generateDurationMinutes, generateStartTimes} from "@/lib/utils/time.utils";
+import {useBooking} from "@/context/booking.context";
 
 type Props = {
     freeSlot: FreeSlotData,
-    startTime: string | null,
-    setStartTime: (value: string | null) => void,
-    duration: number | null,
-    setDuration: (value: number | null) => void,
     pricePerHour: number,
     activeSlot: FreeSlotData | null,
     setActiveSlot: (value: FreeSlotData | null) => void,
 }
 
-const FreeSlot = ({ freeSlot, startTime, setStartTime, duration, setDuration, pricePerHour, activeSlot, setActiveSlot }: Props) => {
+const FreeSlot = ({ freeSlot, pricePerHour, activeSlot, setActiveSlot }: Props) => {
+    const {
+        startTime,
+        setStartTime,
+        durationMinutes,
+        setDurationMinutes,
+    } = useBooking();
     const startTimes = generateStartTimes(freeSlot.start, freeSlot.end)
     const endTimes = startTime
         ? generateDurationMinutes(freeSlot.end, startTime)
@@ -34,7 +37,7 @@ const FreeSlot = ({ freeSlot, startTime, setStartTime, duration, setDuration, pr
                         key={time}
                         onClick={() => {
                             setStartTime(time === startTime ? null : time);
-                            setDuration(null);
+                            setDurationMinutes(null);
                             setActiveSlot(freeSlot === activeSlot ? null : freeSlot);
                         }}
                         className={`px-3 py-1 rounded w-16
@@ -54,9 +57,9 @@ const FreeSlot = ({ freeSlot, startTime, setStartTime, duration, setDuration, pr
                         {Array.from(endTimes.keys()).map(time => (
                             <button
                                 key={time}
-                                onClick={() => setDuration(duration === time ? null : time)}
+                                onClick={() => setDurationMinutes(durationMinutes === time ? null : time)}
                                 className={`px-3 py-1 rounded w-[50px]
-                                ${duration === time && activeSlot === freeSlot ? "bg-primary-500 text-white" : "bg-primary-100"}`}
+                                ${durationMinutes === time && activeSlot === freeSlot ? "bg-primary-500 text-white" : "bg-primary-100"}`}
                             >
                                 {time}
                             </button>
@@ -66,10 +69,10 @@ const FreeSlot = ({ freeSlot, startTime, setStartTime, duration, setDuration, pr
             )}
 
             {/* RESULT */}
-            {startTime && duration && activeSlot === freeSlot && (
+            {startTime && durationMinutes && activeSlot === freeSlot && (
                 <p className="text-primary-500 font-bold">
-                    Selected: {startTime} - {endTimes.get(duration)}<br />
-                    Price: {duration / 60 * pricePerHour}$
+                    Selected: {startTime} - {endTimes.get(durationMinutes)}<br />
+                    Price: {durationMinutes / 60 * pricePerHour}$
                 </p>
             )}
 

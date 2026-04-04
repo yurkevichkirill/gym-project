@@ -1,66 +1,51 @@
 'use client'
 
 import {SelectedPage} from "@/shared/types";
-import type TrainerData from "@/types/trainer.type";
-import {useEffect, useState} from "react";
 import {motion} from "framer-motion";
-import type WorktimeData from "@/types/worktime.type";
+import type WorktimeData from "@/types/trainer/public/worktime.type";
 import Worktime from "@/scenes/worktime/Worktime";
 import {useNavigation} from "@/context/navigation-context";
 import Image from "next/image";
-import {bookTraining} from "@/api/bookings.api";
-import {getTrainer, getTrainers} from "@/api/public/trainers.api";
-import {getWorktimes} from "@/api/public/worktime.api";
-import {handleBooking} from "@/handlers/bookingHandler";
+import {notify} from "@/lib/notify";
+import {useStore} from "@/store/StoreProvider";
+import {useBooking} from "@/context/booking.context";
+import {useTrainerData} from "@/hooks/useTrainerData";
 
 const TrainerPersonal = ({ id }: { id: string }) => {
     const { setSelectedPage } = useNavigation();
+    const { date, startTime, durationMinutes } = useBooking();
+    const { clientStore } = useStore();
+    const { trainer, worktimes, loading, error } = useTrainerData(id);
 
-    const [trainer, setTrainer] = useState<TrainerData>();
-    const [worktimes, setWorktimes] = useState<WorktimeData[]>([]);
-    const [date, setDate] = useState<string | null>(null);
-    const [startTime, setStartTime] = useState<string | null>(null);
-    const [durationMinutes, setDurationMinutes] = useState<number | null>(null);
-    const [error, setError] = useState<string | null>(null);
-    const [loading, setLoading] = useState(true);
-
-    useEffect(() => {
-        const fetchTrainer = async () => {
-            try {
-                const data = await getTrainer(id);
-                setTrainer(data);
-            } catch (e) {
-                console.error(e);
-
-                if (e instanceof Error) {
-                    setError(e.message);
-                } else {
-                    setError("Something went wrong");
-                }
-            } finally {
-                setLoading(false);
-            }
-        };
-        const fetchWorktime = async () => {
-            try {
-                const data = await getWorktimes(id);
-                setWorktimes(data);
-            } catch (e) {
-                console.error(e);
-
-                if (e instanceof Error) {
-                    setError(e.message);
-                } else {
-                    setError("Something went wrong");
-                }
-            } finally {
-                setLoading(false);
-            }
+    const handleBooking = async () => {
+        if (!id || !date || !durationMinutes || !startTime) {
+            notify.error("Missing data", "Please select date and time");
+            return;
         }
 
-        void fetchTrainer();
-        void fetchWorktime();
-    }, [id]);
+        const toastId = notify.loading("Booking training...");
+
+        try {
+            const res = await clientStore.bookTraining({
+                trainerId: Number(id),
+                date,
+                durationMinutes,
+                startTime: startTime + ":00",
+            });
+
+            notify.success(
+                "Training booked",
+                `${res.durationMinutes} min on ${res.date} at ${res.startTime}`,
+                toastId,
+            );
+        } catch (error: any) {
+            notify.error(
+                "Booking failed",
+                error?.message || "Something went wrong",
+                toastId,
+            );
+        }
+    }
 
     if (loading) {
         return <div>Loading ...</div>;
@@ -142,12 +127,6 @@ const TrainerPersonal = ({ id }: { id: string }) => {
                             { worktimes.map((worktime: WorktimeData) => (
                                 <Worktime
                                     worktime = { worktime }
-                                    date = { date }
-                                    setDate = { setDate }
-                                    startTime = { startTime }
-                                    setStartTime = { setStartTime }
-                                    duration = { durationMinutes }
-                                    setDuration = { setDurationMinutes }
                                     pricePerHour = {trainer.pricePerHour}
                                     key = { worktime.id }
                                 />
@@ -155,7 +134,7 @@ const TrainerPersonal = ({ id }: { id: string }) => {
                         </ul>
                         <button
                             className="rounded-md bg-secondary-500 px-10 py-2 hover:bg-primary-500 hover:text-white self-start"
-                            onClick={() => handleBooking(id, date, durationMinutes, startTime)}
+                            onClick={handleBooking}
                         >
                             Book Training
                         </button>

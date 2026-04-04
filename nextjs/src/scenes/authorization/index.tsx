@@ -9,6 +9,7 @@ import {
     EyeSlashIcon,
 } from "@heroicons/react/24/solid";
 import {useState} from "react";
+import {notify} from "@/lib/notify";
 
 interface FormData {
     email: string;
@@ -33,11 +34,23 @@ const LoginModal = ({
     });
 
     const onSubmit = async (data: FormData) => {
+        const toastId = notify.loading("Authorization...");
+
         try {
-            await authStore.login(data);
+            const res = await authStore.login(data);
             onClose();
-        } catch (e) {
-            console.error(e);
+
+            notify.success(
+                "Logged successfully",
+                `User ${res.data.user} signed in`,
+                toastId,
+            );
+        } catch (error: any) {
+            notify.error(
+                "Authorization failed",
+                error?.message || "Something went wrong",
+                toastId,
+            );
         }
     };
 

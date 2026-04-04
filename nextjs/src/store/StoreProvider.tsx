@@ -2,9 +2,11 @@
 
 import {authStore} from "@/store/AuthStore";
 import {createContext, useContext, useEffect} from "react";
+import {clientStore} from "@/store/ClientStore";
 
 interface StoreContextType {
     authStore: typeof authStore;
+    clientStore: typeof clientStore;
 }
 
 const StoreContext = createContext<StoreContextType | null>(null);
@@ -27,7 +29,7 @@ export const StoreProvider = ({
     }, []);
 
     return (
-        <StoreContext.Provider value={{ authStore }}>
+        <StoreContext.Provider value={{ authStore, clientStore }}>
             {children}
         </StoreContext.Provider>
     );

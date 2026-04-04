@@ -1,5 +1,7 @@
 import {notify} from "@/lib/notify";
 import {buyMembership} from "@/api/memberships.api";
+import {clientStore} from "@/store/ClientStore";
+import {authStore} from "@/store/AuthStore";
 
 export const handleMembership = async (membershipPlanId: number) => {
     const toastId = notify.loading("Buying membership...");
@@ -18,6 +20,11 @@ export const handleMembership = async (membershipPlanId: number) => {
             }`,
             toastId
         );
+
+        await Promise.all([
+            clientStore.init(),
+            authStore.checkAuth(),
+        ])
 
     } catch (error: any) {
         notify.error(

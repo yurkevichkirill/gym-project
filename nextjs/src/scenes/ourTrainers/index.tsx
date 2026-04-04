@@ -2,7 +2,7 @@
 
 import {SelectedPage} from "@/shared/types";
 import {useEffect, useState} from "react";
-import type TrainerData from "@/types/trainer.type";
+import type TrainerData from "@/types/trainer/public/trainer.type";
 import { motion } from "framer-motion";
 import Trainers from "@/scenes/ourTrainers/Trainers";
 import {useNavigation} from "@/context/navigation-context";

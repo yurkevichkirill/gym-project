@@ -22,9 +22,9 @@ doctrine:
             User:
                 type: attribute
                 is_bundle: false
-                dir: '%kernel.project_dir%/src/User/Entity'
+                dir: '%kernel.project_dir%/src/Client/Entity'
                 prefix: 'App\User\Entity'
-                alias: User
+                alias: Client
             Admin:
                 type: attribute
                 is_bundle: false

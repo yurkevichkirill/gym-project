@@ -1,5 +1,5 @@
 import {ApiResponse} from "@/types/api-response.type";
-import TrainerData from "@/types/trainer.type";
+import TrainerData from "@/types/trainer/public/trainer.type";
 
 export const getTrainers = async (): Promise<TrainerData[]> => {
     const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/trainers/`);

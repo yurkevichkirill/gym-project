@@ -1,6 +1,5 @@
 'use client'
 
-import { SelectedPage } from "@/shared/types";
 import {
     ClockIcon,
     BoltIcon

@@ -18,7 +18,8 @@ readonly class ClientResponse
         public string $email,
         public string $phone,
         public string $createdAt,
-        public string $balance
+        public string $balance,
+        public string $type,
     )
     {}
 
@@ -32,7 +33,8 @@ readonly class ClientResponse
             email: $client->getEmail(),
             phone: $client->getPhone(),
             createdAt: $client->getCreatedAt()?->format(DATE_ATOM) ??'',
-            balance: $client->getBalance()
+            balance: $client->getBalance(),
+            type: 'client',
         );
     }
 }

@@ -1,11 +1,13 @@
 import { useState } from "react";
-import { editMe } from "@/api/user.api";
 import { notify } from "@/lib/notify";
+import {useStore} from "@/store/StoreProvider";
 
-export const useEditUser = (initialPhone: string) => {
+export const useModifyClient = (initialPhone: string) => {
     const [newPhone, setNewPhone] = useState(initialPhone);
     const [onEdit, setOnEdit] = useState(false);
     const [loading, setLoading] = useState(false);
+
+    const { authStore } = useStore();
 
     const handleEdit = async () => {
         if (!onEdit) {
@@ -22,7 +24,7 @@ export const useEditUser = (initialPhone: string) => {
         setLoading(true);
 
         try {
-            await editMe({ phone: newPhone });
+            await authStore.editUser({ phone: newPhone });
 
             notify.success("Profile updated", "Phone number changed", toastId);
             setOnEdit(false);
@@ -37,6 +39,29 @@ export const useEditUser = (initialPhone: string) => {
         }
     };
 
+    const handleDelete = async () => {
+        if (!confirm("Delete your profile?")) return;
+
+        const toastId = notify.loading("Deleting account...");
+
+        try {
+            await authStore.deleteUser();
+
+            notify.success(
+                "Account was deleted",
+                "Your profile was removed",
+                toastId
+            );
+
+        } catch (error: any) {
+            notify.error(
+                "Deleting failed",
+                error?.message || "Something went wrong",
+                toastId,
+            );
+        }
+    }
+
     return {
         newPhone,
         setNewPhone,
@@ -44,5 +69,6 @@ export const useEditUser = (initialPhone: string) => {
         setOnEdit,
         loading,
         handleEdit,
+        handleDelete,
     };
 };

@@ -1,7 +1,7 @@
 'use client'
 
 import { motion } from "framer-motion";
-import type TrainerData from "@/types/trainer.type";
+import type TrainerData from "@/types/trainer/public/trainer.type";
 import OurTrainer from "@/scenes/ourTrainers/OurTrainer";
 
 type Props = {
