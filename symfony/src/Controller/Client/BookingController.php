@@ -7,7 +7,6 @@ use App\Booking\DTO\GetClientBookings;
 use App\Booking\Entity\Booking;
 use App\Booking\Mapper\BookingMapperInterface;
 use App\Booking\Query\ClientBookingsQuery;
-use App\Booking\Repository\BookingRepository;
 use App\Booking\Service\BookingManager;
 use App\Client\Entity\Client;
 use App\Response\OkResponse;
@@ -120,19 +119,21 @@ final class BookingController extends AbstractController
         );
     }
 
+    /**
+     * @throws OptimisticLockException
+     * @throws ORMException
+     */
     #[Route('/api/me/bookings/{id}/', methods: ['DELETE'], format: 'json')]
     #[OA\Tag(name: "Client: Bookings")]
     public function remove(
         Booking $booking,
         #[CurrentUser] Client $client,
-        BookingRepository $bookingRepo,
         BookingManager $manager,
     ): Response
     {
         $this->denyAccessUnlessGranted("BOOKING_REMOVE", $booking);
 
         $manager->cancelBooking($client, $booking);
-        $bookingRepo->remove($booking);
 
         return new Response(
             status: 204

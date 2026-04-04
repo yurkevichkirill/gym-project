@@ -6,6 +6,7 @@ use LogicException;
 use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpKernel\Event\ExceptionEvent;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -25,6 +26,7 @@ final class ExceptionListener
             $exception instanceof LogicException => 422,
             $exception instanceof ConflictHttpException => 409,
             $exception instanceof UnauthorizedHttpException => 401,
+            $exception instanceof AccessDeniedHttpException => 403,
 
             default => 500
         };

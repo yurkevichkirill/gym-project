@@ -5,7 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 
 type Props = {
-    id: string,
+    id: number,
     name: string,
     photoUrl: string,
 }

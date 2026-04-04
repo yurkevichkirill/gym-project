@@ -10,7 +10,7 @@ export const handleEditUser = async (phone: string) => {
         });
 
         notify.success(
-            "User edited",
+            "Client edited",
             `New phone: ${res.phone}`,
             toastId
         );

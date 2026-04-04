@@ -1,5 +1,7 @@
 import { motion } from "framer-motion";
-import {handleBookingDelete} from "@/handlers/bokingDeleteHandler";
+import {useStore} from "@/store/StoreProvider";
+import {observer} from "mobx-react-lite";
+import {notify} from "@/lib/notify";
 
 type Props = {
     id: number,
@@ -9,10 +11,34 @@ type Props = {
     durationMinutes: number,
     startTime: string,
     status: string,
-    onDelete: (id: number) => void,
 }
 
-const Booking = ({ id, trainerId, bookedAt, date, durationMinutes, startTime, status, onDelete }: Props) => {
+const Booking = observer(({ id, trainerId, bookedAt, date, durationMinutes, startTime, status }: Props) => {
+    const { clientStore } = useStore();
+
+    const handleDelete = async () => {
+        if (!confirm("Cancel this training?")) return;
+
+        const toastId = notify.loading("Cancelling booking...");
+
+        try {
+            await clientStore.deleteBooking(id);
+
+            notify.success(
+                "Booking cancelled",
+                "Your training has been removed",
+                toastId
+            );
+
+        } catch (error: any) {
+            notify.error(
+                "Cancellation failed",
+                error?.message || "Something went wrong",
+                toastId,
+            );
+        }
+    }
+
     return (
         <motion.div
             whileHover={{ scale: 1.02 }}
@@ -34,15 +60,12 @@ const Booking = ({ id, trainerId, bookedAt, date, durationMinutes, startTime, st
             </motion.div>
             <button
                 className="rounded-b-2xl cursor-pointer bg-primary-300 px-10 hover:bg-primary-500 hover:text-white"
-                onClick={async () => {
-                    await handleBookingDelete(id);
-                    onDelete(id);
-                }}
+                onClick={handleDelete}
             >
                 Delete
             </button>
         </motion.div>
     );
-}
+});
 
 export default Booking;

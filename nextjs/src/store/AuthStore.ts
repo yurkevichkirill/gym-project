@@ -1,15 +1,19 @@
 import {makeAutoObservable, runInAction} from "mobx";
 import {LoginRequest, LoginResponse, MeResponse, User} from "@/types/auth.type";
-import {apiGet, apiPost} from "@/lib/apiClient";
+import {apiDelete, apiGet, apiPatch, apiPost} from "@/lib/apiClient";
+import {ApiResponse} from "@/types/api-response.type";
+import ClientEditType from "@/types/client/client-edit.type";
 
 export interface AuthStore {
     user: User | null;
     isAuth: boolean;
     isLoading: boolean;
 
-    login: (payload: LoginRequest) => Promise<void>;
+    login: (payload: LoginRequest) => Promise<LoginResponse>;
     checkAuth: () => Promise<void>;
-    logout: (router: any) => void;
+    logout: () => void;
+    editUser: (payload: ClientEditType) => Promise<void>;
+    deleteUser: () => Promise<void>;
 }
 
 export const authStore: AuthStore = {
@@ -26,14 +30,9 @@ export const authStore: AuthStore = {
                 payload
             );
 
-            runInAction(() => {
-                authStore.user = {
-                    id: 0,
-                    email: res.data.user,
-                    roles: [],
-                };
-                authStore.isAuth = true;
-            });
+            await authStore.checkAuth();
+
+            return res;
         } finally {
             runInAction(() => {
                 authStore.isLoading = false;
@@ -63,7 +62,7 @@ export const authStore: AuthStore = {
         }
     },
 
-    logout: async (router: any) => {
+    logout: async () => {
         if (!confirm("Logout from your account?")) return;
 
         await apiPost(
@@ -75,9 +74,51 @@ export const authStore: AuthStore = {
 
         authStore.user = null;
         authStore.isAuth = false;
-
-        router.push("/");
     },
+
+    editUser: async (data: ClientEditType) => {
+        runInAction(() => {
+            authStore.isLoading = true;
+        });
+
+        try {
+            const res = await apiPatch<ApiResponse<User>>('/me/', data);
+
+            runInAction(() => {
+                authStore.user = res.data;
+            });
+
+        } catch (e) {
+            console.error(e);
+            throw e;
+        } finally {
+            runInAction(() => {
+                authStore.isLoading = false;
+            });
+        }
+    },
+
+    deleteUser: async () => {
+        runInAction(() => {
+            authStore.isLoading = true;
+        });
+
+        try {
+            await apiDelete<null>('/me/');
+
+            runInAction(() => {
+                authStore.user = null;
+                authStore.isAuth = false;
+            });
+        } catch (e) {
+            console.error(e);
+            throw e;
+        } finally {
+            runInAction(() => {
+                authStore.isLoading = false;
+            });
+        }
+    }
 };
 
 makeAutoObservable(authStore);

@@ -1,8 +1,22 @@
 export interface User {
-    id: number;
-    email: string;
-    roles: string[];
+    id: number,
+    email: string,
+    roles: string[],
+    type: UserTypes,
+    firstName: string,
+    lastName: string,
+    phone: string,
+    createdAt: string,
 }
+
+export const UserTypes = {
+    CLIENT: "client",
+    TRAINER: "trainer",
+    ADMIN: "admin",
+    MANAGER: "manager",
+} as const;
+
+export type UserTypes = typeof UserTypes[keyof typeof UserTypes];
 
 export const Roles = {
     USER: "ROLE_USER",

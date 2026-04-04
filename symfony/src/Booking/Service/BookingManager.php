@@ -85,9 +85,7 @@ final readonly class BookingManager
     {
         $this->clientManager->refund($client, $booking->getPayment());
 
-        $booking->setStatus(BookingStatusEnum::CANCELLED);
-
-        $this->trainingRepo->remove($booking->getTraining());
+        $this->bookingRepo->remove($booking);
     }
 
     private function validateActiveMembership(Client $client): void

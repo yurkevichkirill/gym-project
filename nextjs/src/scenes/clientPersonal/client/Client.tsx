@@ -1,29 +1,22 @@
+'use client'
+
 import { motion } from "framer-motion";
-import {useEditUser} from "@/hooks/useEditUser";
+import {useModifyClient} from "@/hooks/useModifyClient";
+import {observer} from "mobx-react-lite";
+import {useStore} from "@/store/StoreProvider";
+import {isClient} from "@/lib/utils/user.types.utils";
+import ClientType from "@/types/client/client.type";
+import {useRouter} from "next/navigation";
 
-type Props = {
-    id: number,
-    age: number,
-    firstName: string,
-    lastName: string,
-    email: string,
-    phone: string,
-    createdAt: string,
-    balance: string,
-}
+const Client = observer(() => {
+    const { authStore } = useStore();
+    const router = useRouter();
+    const user = authStore.user;
 
-const User =
-    ({
-          id,
-          age,
-          firstName,
-          lastName,
-          email,
-          phone,
-          createdAt,
-          balance
-     }: Props
-    ) => {
+    if (!user || !isClient(user)) return null;
+
+    const client = user as ClientType;
+
     const {
         newPhone,
         setNewPhone,
@@ -31,7 +24,8 @@ const User =
         setOnEdit,
         loading,
         handleEdit,
-    } = useEditUser(phone);
+        handleDelete,
+    } = useModifyClient(client.phone);
 
     return (
         <motion.div className="flex flex-col rounded-2xl shadow-md ">
@@ -43,9 +37,9 @@ const User =
                 {/* LEFT */}
                 <div className="flex flex-col gap-2">
                     <h2 className="text-2xl font-bold">
-                        {firstName} {lastName}
+                        {client.firstName} {client.lastName}
                     </h2>
-                    <p className="text-sm">{email}</p>
+                    <p className="text-sm">{client.email}</p>
                     {onEdit ?
                         <input
                             type="text"
@@ -53,17 +47,17 @@ const User =
                             onChange={(e) => setNewPhone(e.target.value)}
                             className="rounded text-sm bg-gray-100"
                         /> :
-                        <p className="text-sm">{newPhone}</p>
+                        <p className="text-sm">{client.phone}</p>
                     }
                 </div>
 
                 {/* RIGHT */}
                 <div className="flex flex-col items-start md:items-end gap-2">
-                    <p className="text-sm">Age: {age}</p>
-                    <p className="text-sm">Joined: {new Date(createdAt).toISOString().split('T')[0]}</p>
+                    <p className="text-sm">Age: {client.age}</p>
+                    <p className="text-sm">Joined: {new Date(client.createdAt).toISOString().split('T')[0]}</p>
 
                     <p className="text-sm">
-                        Balance: {balance} $
+                        Balance: {client.balance} $
                     </p>
                 </div>
             </motion.div>
@@ -77,17 +71,26 @@ const User =
                 {onEdit &&
                 <button
                     className="flex-1 cursor-pointer bg-gray-100 px-10 hover:bg-primary-500 hover:text-white"
-                    onClick={() => setOnEdit(false)}
+                    onClick={() => {
+                        setOnEdit(false);
+                        setNewPhone(client.phone);
+                    }}
                 >
                     Cancel
                 </button>
                 }
-                <button className="flex-1 rounded-br-2xl cursor-pointer bg-primary-300 px-10 hover:bg-primary-500 hover:text-white">
+                <button
+                    className="flex-1 rounded-br-2xl cursor-pointer bg-primary-300 px-10 hover:bg-primary-500 hover:text-white"
+                    onClick={() => {
+                        void handleDelete();
+                        router.push("/");
+                    }}
+                >
                     Delete
                 </button>
             </div>
         </motion.div>
     );
-}
+});
 
-export default User;
+export default Client;

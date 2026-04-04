@@ -63,7 +63,11 @@ final readonly class ClientBookingsQuery
     {
         $qb = $this->bookingRepo->createQueryBuilder('b')
             ->leftJoin("b.payment", 'p')
-            ->addSelect('p');
+            ->addSelect('p')
+            ->leftJoin("p.trainer", "trainer")
+            ->addSelect("trainer")
+            ->leftJoin("trainer.trainingType", 'type')
+            ->addSelect("type");
 
         if (!$isCount) {
             $qb->addSelect('t', 'w');

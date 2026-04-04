@@ -1,9 +1,9 @@
 import "@/app/globals.css"
-import MyPersonalUser from "@/scenes/userPersonal/user";
+import MyPersonalClient from "@/scenes/clientPersonal/client";
 
 const PersonalPage = () => {
     return (
-        <MyPersonalUser />
+        <MyPersonalClient />
     );
 }
 

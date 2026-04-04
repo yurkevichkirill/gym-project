@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Trainer\DTO;
 
 use App\Trainer\Entity\Trainer;
+use App\TrainingType\DTO\TrainingTypeResponseDto;
 
 final readonly class TrainerResponsePrivate
 {
@@ -14,8 +15,12 @@ final readonly class TrainerResponsePrivate
         public string $lastName,
         public string $phone,
         public string $email,
-        public int    $trainingTypeId,
+        public TrainingTypeResponseDto $trainingType,
         public string $pricePerHour,
+        public string $photoUrl,
+        public string $education,
+        public string $about,
+        public string $type,
     )
     {}
 
@@ -27,8 +32,12 @@ final readonly class TrainerResponsePrivate
             lastName: $trainer->getLastName(),
             phone: $trainer->getPhone(),
             email: $trainer->getEmail(),
-            trainingTypeId:  $trainer->getTrainingType()->getId(),
+            trainingType:  TrainingTypeResponseDto::fromEntity($trainer->getTrainingType()),
             pricePerHour: $trainer->getPricePerHour(),
+            photoUrl: $trainer->getPhotoUrl(),
+            education: $trainer->getEducation(),
+            about: $trainer->getAbout(),
+            type: 'trainer',
         );
     }
 }

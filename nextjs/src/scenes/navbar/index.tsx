@@ -92,7 +92,10 @@ const Navbar =  observer (() => {
                                     >
                                         My Profile
                                     </Link>
-                                    <button className="hover:text-primary-500 cursor-pointer" type="button" onClick={() => authStore.logout(router)}>
+                                    <button className="hover:text-primary-500 cursor-pointer" type="button" onClick={() => {
+                                        authStore.logout();
+                                        router.push("/");
+                                    }}>
                                         Logout
                                     </button>
                                 </div> :
@@ -149,7 +152,10 @@ const Navbar =  observer (() => {
                             </Link>
                             <button
                                 className="cursor-pointer text-left transition duration-500 hover:text-primary-300"
-                                type="button" onClick={() => authStore.logout(router)}>
+                                type="button" onClick={() => {
+                                    authStore.logout();
+                                    router.push("/");
+                                }}>
                                 Logout
                             </button>
                         </>
