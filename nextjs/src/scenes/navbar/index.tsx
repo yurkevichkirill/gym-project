@@ -12,6 +12,7 @@ import {useStore} from "@/store/StoreProvider";
 import Link from "next/link";
 import {observer} from "mobx-react-lite";
 import {usePathname, useRouter} from "next/navigation";
+import {notify} from "@/lib/notify";
 
 const Navbar =  observer (() => {
     const { selectedPage, setSelectedPage, isTopOfPage } = useNavigation();
@@ -25,6 +26,31 @@ const Navbar =  observer (() => {
     const navbarBackground = isTopOfPage ? "bg-gray-20" : "bg-primary-100 drop-shadow";
     const [isOpen, setIsOpen] = useState(false);
     const { authStore } = useStore();
+
+    const handleLogout = async () => {
+        if (!confirm("Log out from your profile?")) return;
+
+        const toastId = notify.loading("Logging out...");
+
+        try {
+            await authStore.logout();
+
+            router.push("/");
+
+            notify.success(
+                "Logged out",
+                "Log in to continue",
+                toastId
+            );
+
+        } catch (error: any) {
+            notify.error(
+                "Logout failed",
+                error?.message || "Something went wrong",
+                toastId,
+            );
+        }
+    }
 
     useEffect(() => {
         if (!isOpen) return;
@@ -92,10 +118,10 @@ const Navbar =  observer (() => {
                                     >
                                         My Profile
                                     </Link>
-                                    <button className="hover:text-primary-500 cursor-pointer" type="button" onClick={() => {
-                                        authStore.logout();
-                                        router.push("/");
-                                    }}>
+                                    <button
+                                        className="hover:text-primary-500 cursor-pointer"
+                                        type="button" onClick={handleLogout}
+                                    >
                                         Logout
                                     </button>
                                 </div> :
@@ -152,10 +178,7 @@ const Navbar =  observer (() => {
                             </Link>
                             <button
                                 className="cursor-pointer text-left transition duration-500 hover:text-primary-300"
-                                type="button" onClick={() => {
-                                    authStore.logout();
-                                    router.push("/");
-                                }}>
+                                type="button" onClick={handleLogout}>
                                 Logout
                             </button>
                         </>

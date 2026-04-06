@@ -11,7 +11,7 @@ export interface AuthStore {
 
     login: (payload: LoginRequest) => Promise<LoginResponse>;
     checkAuth: () => Promise<void>;
-    logout: () => void;
+    logout: () => Promise<void>;
     editUser: (payload: ClientEditType) => Promise<void>;
     deleteUser: () => Promise<void>;
 }
@@ -63,8 +63,6 @@ export const authStore: AuthStore = {
     },
 
     logout: async () => {
-        if (!confirm("Logout from your account?")) return;
-
         await apiPost(
             "/logout/",
             {

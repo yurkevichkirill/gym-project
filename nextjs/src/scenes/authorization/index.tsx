@@ -34,20 +34,20 @@ const LoginModal = ({
     });
 
     const onSubmit = async (data: FormData) => {
-        const toastId = notify.loading("Authorization...");
+        const toastId = notify.loading("Logging in...");
 
         try {
             const res = await authStore.login(data);
             onClose();
 
             notify.success(
-                "Logged successfully",
+                "Logged in successfully",
                 `User ${res.data.user} signed in`,
                 toastId,
             );
         } catch (error: any) {
             notify.error(
-                "Authorization failed",
+                "Logging failed",
                 error?.message || "Something went wrong",
                 toastId,
             );

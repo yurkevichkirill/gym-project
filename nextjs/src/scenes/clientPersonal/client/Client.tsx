@@ -6,11 +6,9 @@ import {observer} from "mobx-react-lite";
 import {useStore} from "@/store/StoreProvider";
 import {isClient} from "@/lib/utils/user.types.utils";
 import ClientType from "@/types/client/client.type";
-import {useRouter} from "next/navigation";
 
 const Client = observer(() => {
     const { authStore } = useStore();
-    const router = useRouter();
     const user = authStore.user;
 
     if (!user || !isClient(user)) return null;
@@ -81,10 +79,7 @@ const Client = observer(() => {
                 }
                 <button
                     className="flex-1 rounded-br-2xl cursor-pointer bg-primary-300 px-10 hover:bg-primary-500 hover:text-white"
-                    onClick={() => {
-                        void handleDelete();
-                        router.push("/");
-                    }}
+                    onClick={handleDelete}
                 >
                     Delete
                 </button>

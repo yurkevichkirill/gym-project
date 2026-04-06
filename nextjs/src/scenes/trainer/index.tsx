@@ -13,12 +13,12 @@ import {useTrainerData} from "@/hooks/useTrainerData";
 
 const TrainerPersonal = ({ id }: { id: string }) => {
     const { setSelectedPage } = useNavigation();
-    const { date, startTime, durationMinutes } = useBooking();
+    const { booking } = useBooking();
     const { clientStore } = useStore();
     const { trainer, worktimes, loading, error } = useTrainerData(id);
 
     const handleBooking = async () => {
-        if (!id || !date || !durationMinutes || !startTime) {
+        if (!id || !booking.date || !booking.durationMinutes || !booking.startTime) {
             notify.error("Missing data", "Please select date and time");
             return;
         }
@@ -28,9 +28,9 @@ const TrainerPersonal = ({ id }: { id: string }) => {
         try {
             const res = await clientStore.bookTraining({
                 trainerId: Number(id),
-                date,
-                durationMinutes,
-                startTime: startTime + ":00",
+                date: booking.date,
+                durationMinutes: booking.durationMinutes,
+                startTime: booking.startTime + ":00",
             });
 
             notify.success(

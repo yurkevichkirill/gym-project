@@ -1,55 +1,87 @@
 'use client'
 
-import {createContext, ReactNode, useContext, useState} from "react";
+import { BookingStateType } from "@/types/booking/booking-state.type";
+import { createContext, useContext, useState } from "react";
 
 type BookingContextType = {
-    date: string | null;
-    setDate: (value: string | null) => void;
-
-    startTime: string | null;
-    setStartTime: (value: string | null) => void;
-
-    durationMinutes: number | null;
-    setDurationMinutes: (value: number | null) => void;
-
+    booking: BookingStateType;
+    selectDate: (date: string) => void;
+    selectSlot: (slotId: string) => void;
+    selectStartTime: (time: string) => void;
+    selectDuration: (duration: number) => void;
     reset: () => void;
-}
+};
 
 const BookingContext = createContext<BookingContextType | null>(null);
 
-export const BookingProvider = ({ children }: { children: ReactNode }) => {
-    const [date, setDate] = useState<string | null>(null);
-    const [startTime, setStartTime] = useState<string | null>(null);
-    const [durationMinutes, setDurationMinutes] = useState<number | null>(null);
+export const BookingProvider = ({ children }: { children: React.ReactNode }) => {
+    const [booking, setBooking] = useState<BookingStateType>({
+        date: null,
+        slotId: null,
+        startTime: null,
+        durationMinutes: null,
+    });
+
+    const selectDate = (date: string) => {
+        setBooking({
+            date,
+            slotId: null,
+            startTime: null,
+            durationMinutes: null,
+        });
+    };
+
+    const selectSlot = (slotId: string) => {
+        setBooking(prev => ({
+            ...prev,
+            slotId,
+            startTime: null,
+            durationMinutes: null,
+        }));
+    };
+
+    const selectStartTime = (time: string) => {
+        setBooking(prev => ({
+            ...prev,
+            startTime: time,
+            durationMinutes: null,
+        }));
+    };
+
+    const selectDuration = (duration: number) => {
+        setBooking(prev => ({
+            ...prev,
+            durationMinutes: duration,
+        }));
+    };
 
     const reset = () => {
-        setStartTime(null);
-        setDurationMinutes(null);
+        setBooking({
+            date: null,
+            slotId: null,
+            startTime: null,
+            durationMinutes: null,
+        });
     };
 
     return (
         <BookingContext.Provider
             value={{
-                date,
-                setDate,
-                startTime,
-                setStartTime,
-                durationMinutes,
-                setDurationMinutes,
+                booking,
+                selectDate,
+                selectSlot,
+                selectStartTime,
+                selectDuration,
                 reset,
             }}
         >
             {children}
         </BookingContext.Provider>
     );
-}
+};
 
 export const useBooking = () => {
-    const context = useContext(BookingContext);
-
-    if (!context) {
-        throw new Error("useBooking must be used within BookingProvider");
-    }
-
-    return context;
-}
+    const ctx = useContext(BookingContext);
+    if (!ctx) throw new Error("useBooking must be used within BookingProvider");
+    return ctx;
+};
