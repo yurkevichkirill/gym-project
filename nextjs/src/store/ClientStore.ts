@@ -12,7 +12,7 @@ export interface ClientStore {
     bookings: BookingType[];
     memberships: MembershipType[];
     payments: PaymentType[];
-    isLoading: boolean
+    isLoading: boolean;
 
     init: () => Promise<void>;
     bookTraining: (payload: BookingCreateType) => Promise<BookingType>

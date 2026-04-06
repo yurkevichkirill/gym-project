@@ -5,22 +5,25 @@ import {generateDurationMinutes, generateStartTimes} from "@/lib/utils/time.util
 import {useBooking} from "@/context/booking.context";
 
 type Props = {
+    slotId: string,
     freeSlot: FreeSlotData,
     pricePerHour: number,
-    activeSlot: FreeSlotData | null,
-    setActiveSlot: (value: FreeSlotData | null) => void,
 }
 
-const FreeSlot = ({ freeSlot, pricePerHour, activeSlot, setActiveSlot }: Props) => {
+const FreeSlot = ({ slotId, freeSlot, pricePerHour }: Props) => {
     const {
-        startTime,
-        setStartTime,
-        durationMinutes,
-        setDurationMinutes,
+        booking,
+        selectSlot,
+        selectStartTime,
+        selectDuration,
     } = useBooking();
-    const startTimes = generateStartTimes(freeSlot.start, freeSlot.end)
-    const endTimes = startTime
-        ? generateDurationMinutes(freeSlot.end, startTime)
+
+    const isActive = booking.slotId === slotId;
+
+    const startTimes = generateStartTimes(freeSlot.start, freeSlot.end);
+
+    const endTimes = booking.startTime && isActive
+        ? generateDurationMinutes(freeSlot.end,booking.startTime)
         : new Map<number, string>();
 
     return (
@@ -36,12 +39,13 @@ const FreeSlot = ({ freeSlot, pricePerHour, activeSlot, setActiveSlot }: Props) 
                     <button
                         key={time}
                         onClick={() => {
-                            setStartTime(time === startTime ? null : time);
-                            setDurationMinutes(null);
-                            setActiveSlot(freeSlot === activeSlot ? null : freeSlot);
+                            selectSlot(slotId);
+                            selectStartTime(time);
                         }}
                         className={`px-3 py-1 rounded w-16
-                        ${startTime === time ? "bg-primary-500 text-white" : "bg-primary-100"}`}
+                        ${booking.startTime === time && isActive
+                            ? "bg-primary-500 text-white"
+                            : "bg-primary-100"}`}
                     >
                         {time}
                     </button>
@@ -49,7 +53,7 @@ const FreeSlot = ({ freeSlot, pricePerHour, activeSlot, setActiveSlot }: Props) 
             </div>
 
             {/* DURATION */}
-            {startTime && activeSlot === freeSlot && (
+            {booking.startTime && isActive && (
                 <>
                     <p>Select duration (minutes)</p>
 
@@ -57,9 +61,11 @@ const FreeSlot = ({ freeSlot, pricePerHour, activeSlot, setActiveSlot }: Props) 
                         {Array.from(endTimes.keys()).map(time => (
                             <button
                                 key={time}
-                                onClick={() => setDurationMinutes(durationMinutes === time ? null : time)}
+                                onClick={() => selectDuration(time)}
                                 className={`px-3 py-1 rounded w-[50px]
-                                ${durationMinutes === time && activeSlot === freeSlot ? "bg-primary-500 text-white" : "bg-primary-100"}`}
+                                ${booking.durationMinutes === time
+                                    ? "bg-primary-500 text-white"
+                                    : "bg-primary-100"}`}
                             >
                                 {time}
                             </button>
@@ -69,10 +75,10 @@ const FreeSlot = ({ freeSlot, pricePerHour, activeSlot, setActiveSlot }: Props) 
             )}
 
             {/* RESULT */}
-            {startTime && durationMinutes && activeSlot === freeSlot && (
+            {booking.startTime && booking.durationMinutes && isActive && (
                 <p className="text-primary-500 font-bold">
-                    Selected: {startTime} - {endTimes.get(durationMinutes)}<br />
-                    Price: {durationMinutes / 60 * pricePerHour}$
+                    Selected: {booking.startTime} - {endTimes.get(booking.durationMinutes)}<br />
+                    Price: {booking.durationMinutes / 60 * pricePerHour}$
                 </p>
             )}
 

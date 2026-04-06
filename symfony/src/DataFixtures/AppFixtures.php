@@ -23,15 +23,15 @@ class AppFixtures extends Fixture
 {
     public function load(ObjectManager $manager): void
     {
-        $client = new Client();
-        $client->setFirstName("Veronika");
-        $client->setLastName("Loving");
-        $client->setEmail("veronika2@gmail.com");
-        $client->setPhone("+36326574675");
-        $client->setBalance("499");
-        $client->setAge(17);
-        $client->setPassword('$2y$13$0/iZHd/aJHWZgiUlE4.JSul5NjEZZSvXQuUgAJcJShUnXY5Qz7b7m');
-        $manager->persist($client);
+//        $client = new Client();
+//        $client->setFirstName("Veronika");
+//        $client->setLastName("Loving");
+//        $client->setEmail("veronika2@gmail.com");
+//        $client->setPhone("+36326574675");
+//        $client->setBalance("499");
+//        $client->setAge(17);
+//        $client->setPassword('$2y$13$0/iZHd/aJHWZgiUlE4.JSul5NjEZZSvXQuUgAJcJShUnXY5Qz7b7m');
+//        $manager->persist($client);
 //
 //        $client = new Client();
 //        $client->setFirstName("Kirill");
@@ -277,6 +277,10 @@ class AppFixtures extends Fixture
 //        $manager->remove($manager->getRepository(Booking::class)->find(12));
 
 //        $manager->getRepository(Client::class)->find(5)->setBalance(1000);
+        $manager->remove($manager->getRepository(Booking::class)->find(29));
+        $manager->remove($manager->getRepository(Booking::class)->find(31));
+        $manager->remove($manager->getRepository(Booking::class)->find(32));
+
         $manager->flush();
     }
 }

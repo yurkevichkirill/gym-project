@@ -1,11 +1,13 @@
 import { useState } from "react";
 import { notify } from "@/lib/notify";
 import {useStore} from "@/store/StoreProvider";
+import {useRouter} from "next/navigation";
 
 export const useModifyClient = (initialPhone: string) => {
     const [newPhone, setNewPhone] = useState(initialPhone);
     const [onEdit, setOnEdit] = useState(false);
     const [loading, setLoading] = useState(false);
+    const router = useRouter();
 
     const { authStore } = useStore();
 
@@ -46,6 +48,8 @@ export const useModifyClient = (initialPhone: string) => {
 
         try {
             await authStore.deleteUser();
+
+            router.push("/");
 
             notify.success(
                 "Account was deleted",

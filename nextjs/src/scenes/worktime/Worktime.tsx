@@ -14,40 +14,35 @@ type Props = {
 
 const Worktime = ({ worktime, pricePerHour}: Props) => {
     const {
-        date,
-        setDate,
-        reset,
+        booking,
+        selectDate,
     } = useBooking();
-    const [activeSlot, setActiveSlot] = useState<FreeSlotData | null>(null)
+
+    const isOpen = booking.date === worktime.date;
 
     return (
         <motion.div className="border rounded-xl p-4 flex flex-col gap-3">
             <button
                 className="text-xl font-bold"
-                onClick={() => {
-                    if (date === worktime.date) {
-                        setDate(null);
-                    } else {
-                        setDate(worktime.date);
-                    }
-
-                    reset();
-                }}
+                onClick={() => selectDate(worktime.date)}
             >
                 {worktime.date}
             </button>
 
-            { date === worktime.date &&
+            {isOpen &&
             <ul className="flex flex-col gap-3">
-                {worktime.freeSlots.map((freeSlot: FreeSlotData, index) => (
-                    <FreeSlot
-                        freeSlot = { freeSlot }
-                        pricePerHour = { pricePerHour }
-                        activeSlot = {activeSlot}
-                        setActiveSlot = {setActiveSlot}
-                        key = { index }
-                    />
-                ))}
+                {worktime.freeSlots.map((freeSlot: FreeSlotData, index) => {
+                    const slotId = `${worktime.date}_${freeSlot.start}_${freeSlot.end}`;
+
+                    return (
+                        <FreeSlot
+                            key = {index}
+                            slotId = {slotId}
+                            freeSlot = {freeSlot}
+                            pricePerHour = {pricePerHour}
+                        />
+                    );
+                })}
             </ul>
             }
         </motion.div>
