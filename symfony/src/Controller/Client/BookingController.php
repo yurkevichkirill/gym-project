@@ -3,10 +3,10 @@
 namespace App\Controller\Client;
 
 use App\Booking\DTO\BookingRequest;
-use App\Booking\DTO\GetClientBookings;
+use App\Booking\DTO\GetBookings;
 use App\Booking\Entity\Booking;
 use App\Booking\Mapper\BookingMapperInterface;
-use App\Booking\Query\ClientBookingsQuery;
+use App\Booking\Query\BookingsQuery;
 use App\Booking\Service\BookingManager;
 use App\Client\Entity\Client;
 use App\Response\OkResponse;
@@ -22,6 +22,7 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
@@ -44,14 +45,22 @@ final class BookingController extends AbstractController
     #[IsGranted('ROLE_CLIENT')]
     public function getAll(
         BookingMapperInterface $mapper,
-        #[CurrentUser] Client $client,
-        ClientBookingsQuery   $handler,
-        Request               $request,
-        TrainerRepository     $trainerRepo,
+        #[CurrentUser] Client  $client,
+        BookingsQuery          $handler,
+        Request                $request,
+        TrainerRepository      $trainerRepo,
     ): OkResponse
     {
         $sortRaw = $request->query->get('sort', 'bookedAt:ASC');
-        $trainer = $trainerRepo->find((int) $request->query->get('trainerId'));
+        if ($request->query->get('trainerId')) {
+            $trainer = $trainerRepo->find((int) $request->query->get('trainerId'));
+
+            if (is_null($trainer)) {
+                throw new NotFoundHttpException("Trainer not found");
+            }
+        } else {
+            $trainer = null;
+        }
         $status = $request->query->get('status');
         $date = $request->query->get('date');
         $durationMinutes = $request->query->get('durationMinutes') ? (int) $request->query->get('durationMinutes') : null;
@@ -59,9 +68,9 @@ final class BookingController extends AbstractController
         $page = (int) $request->query->get('page', 1);
         $limit = (int) $request->query->get('limit', 20);
 
-        $queryDto = new GetClientBookings(
-            $client,
+        $queryDto = new GetBookings(
             $sortRaw,
+            $client,
             $trainer,
             $date,
             $durationMinutes,

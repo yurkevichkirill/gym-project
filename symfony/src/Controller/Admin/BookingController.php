@@ -3,77 +3,159 @@
 namespace App\Controller\Admin;
 
 use App\Booking\DTO\BookingRequest;
-use App\Booking\DTO\GetClientBookings;
+use App\Booking\DTO\GetBookings;
 use App\Booking\Entity\Booking;
-use App\Booking\Enum\BookingStatusEnum;
-use App\Booking\Mapper\ClientMapperInterface;
-use App\Booking\Query\ClientBookingsQuery;
-use App\Booking\Repository\BookingRepository;
+use App\Booking\Mapper\BookingAdminMapperInterface;
+use App\Booking\Query\BookingsQuery;
 use App\Booking\Service\BookingManager;
 use App\Client\Entity\Client;
-use App\Client\Repository\ClientRepository;
 use App\Response\OkResponse;
-use App\Training\Repository\TrainingRepository;
+use App\Trainer\Repository\TrainerRepository;
+use Doctrine\ORM\Exception\ORMException;
+use Doctrine\ORM\OptimisticLockException;
 use Nelmio\ApiDocBundle\Attribute\Model;
 use OpenApi\Attributes as OA;
+use Psr\Cache\InvalidArgumentException;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Routing\Attribute\Route;
-use Symfony\Component\Security\Http\Attribute\CurrentUser;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
-use Symfony\Component\Serializer\Normalizer\AbstractNormalizer;
-use Symfony\Component\Serializer\Normalizer\DateTimeNormalizer;
-use Symfony\Component\Serializer\SerializerInterface;
-use Symfony\Component\Validator\Validator\ValidatorInterface;
-use Throwable;
 
 final class BookingController extends AbstractController
 {
-    #[Route('/api/clients/{id}/bookings', methods: ['GET'], format: 'json')]
-    #[OA\Parameter(
-        name: 'status',
-        in: 'query'
-    )]
-    #[OA\Parameter(
-        name: 'sort',
-        in: 'query'
-    )]
+    /**
+     * @throws InvalidArgumentException
+     */
+    #[Route('/api/bookings/', methods: ['GET'], format: 'json')]
+    #[OA\Parameter(name: 'trainerId', in: 'query', example: 6)]
+    #[OA\Parameter(name: 'status', in: 'query', example: 'scheduled')]
+    #[OA\Parameter(name: 'date', in: 'query', example: '10-03-2026')]
+    #[OA\Parameter(name: 'startTime', in: 'query', example: '15:00:00')]
+    #[OA\Parameter(name: 'durationMinutes', in: 'query', example: 90)]
+    #[OA\Parameter(name: 'sort', in: 'query', example: 'bookedAt:ASC')]
+    #[OA\Parameter(name: 'page', in: 'query', example: 1)]
+    #[OA\Parameter(name: 'limit', in: 'query', example: 20)]
+    #[OA\Tag(name: "Admin: Bookings")]
     #[IsGranted('ROLE_ADMIN')]
     public function getAll(
-        int                   $id,
-        Request               $request,
-        ClientMapperInterface $mapper,
-        ClientBookingsQuery   $handler,
-        BookingRepository     $repo,
+        BookingAdminMapperInterface $mapper,
+        BookingsQuery          $handler,
+        Request                $request,
+        TrainerRepository      $trainerRepo,
     ): OkResponse
     {
         $sortRaw = $request->query->get('sort', 'bookedAt:ASC');
-        $status = BookingStatusEnum::tryFrom($request->query->get('status'));
+        if ($request->query->get('trainerId')) {
+            $trainer = $trainerRepo->find((int) $request->query->get('trainerId'));
+
+            if (is_null($trainer)) {
+                throw new NotFoundHttpException("Trainer not found");
+            }
+        } else {
+            $trainer = null;
+        }
+        $status = $request->query->get('status');
+        $date = $request->query->get('date');
+        $durationMinutes = $request->query->get('durationMinutes') ? (int) $request->query->get('durationMinutes') : null;
+        $startTime = $request->query->get('startTime');
         $page = (int) $request->query->get('page', 1);
         $limit = (int) $request->query->get('limit', 20);
 
-        $queryDto = new GetClientBookings($id, $sortRaw, $status, $page, $limit);
+        $queryDto = new GetBookings(
+            $sortRaw,
+            null,
+            $trainer,
+            $date,
+            $durationMinutes,
+            $startTime,
+            $status,
+            $page,
+            $limit
+        );
 
-        $bookings =  $handler->handle($queryDto);
+        $bookings = $handler->handle($queryDto);
 
         return new OkResponse(
             array_map(fn($booking) => $mapper->map($booking), $bookings),
             $queryDto->page,
             $queryDto->limit,
-            $repo->count(['client' => $bookings[0]->getClient()]),
+            $handler->getTotal($queryDto->filter),
             $queryDto->sort,
             200
         );
     }
 
-    #[Route('api/bookings/{bookingId}', methods: ['GET'], format: 'json')]
+    /**
+     * @throws InvalidArgumentException
+     */
+    #[Route('/api/clients/{id}/bookings/', methods: ['GET'], format: 'json')]
+    #[OA\Parameter(name: 'trainerId', in: 'query', example: 6)]
+    #[OA\Parameter(name: 'status', in: 'query', example: 'scheduled')]
+    #[OA\Parameter(name: 'date', in: 'query', example: '10-03-2026')]
+    #[OA\Parameter(name: 'startTime', in: 'query', example: '15:00:00')]
+    #[OA\Parameter(name: 'durationMinutes', in: 'query', example: 90)]
+    #[OA\Parameter(name: 'sort', in: 'query', example: 'bookedAt:ASC')]
+    #[OA\Parameter(name: 'page', in: 'query', example: 1)]
+    #[OA\Parameter(name: 'limit', in: 'query', example: 20)]
+    #[OA\Tag(name: "Admin: Bookings")]
     #[IsGranted('ROLE_ADMIN')]
-    public function get(int $bookingId, BookingRepository $bookingRepo, ClientMapperInterface $mapper): OkResponse
+    public function getAllByClient(
+        BookingAdminMapperInterface $mapper,
+        Client                 $client,
+        BookingsQuery          $handler,
+        Request                $request,
+        TrainerRepository      $trainerRepo,
+    ): OkResponse
     {
-        $booking = $bookingRepo->findOneBy(['id' => $bookingId]);
+        $sortRaw = $request->query->get('sort', 'bookedAt:ASC');
+        if ($request->query->get('trainerId')) {
+            $trainer = $trainerRepo->find((int) $request->query->get('trainerId'));
+
+            if (is_null($trainer)) {
+                throw new NotFoundHttpException("Trainer not found");
+            }
+        } else {
+            $trainer = null;
+        }
+        $status = $request->query->get('status');
+        $date = $request->query->get('date');
+        $durationMinutes = $request->query->get('durationMinutes') ? (int) $request->query->get('durationMinutes') : null;
+        $startTime = $request->query->get('startTime');
+        $page = (int) $request->query->get('page', 1);
+        $limit = (int) $request->query->get('limit', 20);
+
+        $queryDto = new GetBookings(
+            $sortRaw,
+            $client,
+            $trainer,
+            $date,
+            $durationMinutes,
+            $startTime,
+            $status,
+            $page,
+            $limit
+        );
+
+        $bookings = $handler->handle($queryDto);
+
+        return new OkResponse(
+            array_map(fn($booking) => $mapper->map($booking), $bookings),
+            $queryDto->page,
+            $queryDto->limit,
+            $handler->getTotal($queryDto->filter),
+            $queryDto->sort,
+            200
+        );
+    }
+
+    #[Route('api/bookings/{id}/', methods: ['GET'], format: 'json')]
+    #[OA\Tag(name: "Admin: Bookings")]
+    public function get(BookingAdminMapperInterface $mapper, Booking $booking): OkResponse
+    {
+        $this->denyAccessUnlessGranted('BOOKING_VIEW', $booking);
 
         return new OkResponse(
             data: $mapper->map($booking),
@@ -81,37 +163,49 @@ final class BookingController extends AbstractController
         );
     }
 
-    #[Route('api/clients/{id}/bookings', methods: ['POST'], format: 'json')]
+    /**
+     * @throws \DateMalformedStringException
+     * @throws OptimisticLockException
+     * @throws ORMException
+     * @throws \DateMalformedIntervalStringException
+     */
+    #[Route('api/clients/{id}/bookings/', methods: ['POST'], format: 'json')]
     #[OA\RequestBody(content: new Model(type: BookingRequest::class))]
+    #[OA\Tag(name: "Admin: Bookings")]
     #[IsGranted('ROLE_ADMIN')]
     public function create(
-        int                                 $id,
-        ClientMapperInterface               $mapper,
-        ClientRepository                    $clientRepo,
-        #[MapRequestPayload] BookingRequest $dto,
+        BookingAdminMapperInterface              $mapper,
+        Client                              $client,
+        #[MapRequestPayload] BookingRequest $requestDto,
         BookingManager                      $manager
     ): OkResponse
     {
-        $client = $clientRepo->find($id);
-
-        $dto = $mapper->map($manager->book($client, $dto));
+        $responseDto = $mapper->map($manager->book($client, $requestDto));
 
         return new OkResponse(
-            data: $dto,
+            data: $responseDto,
             status: 201,
         );
-
     }
 
-    #[Route('api/bookings/{id}', methods: ['DELETE'], format: 'json')]
-    #[IsGranted('ROLE_ADMIN')]
+    /**
+     * @throws OptimisticLockException
+     * @throws ORMException
+     */
+    #[Route('api/bookings/{id}/', methods: ['DELETE'], format: 'json')]
+    #[OA\Tag(name: "Admin: Bookings")]
     public function remove(
         Booking $booking,
-        BookingRepository $bookingRepo
+        BookingManager $manager,
     ): Response
     {
-        $bookingRepo->remove($booking);
+        $this->denyAccessUnlessGranted("BOOKING_REMOVE", $booking);
 
-        return new Response(status: 204);
+        $client = $booking->getClient();
+        $manager->cancelBooking($client, $booking);
+
+        return new Response(
+            status: 204
+        );
     }
 }

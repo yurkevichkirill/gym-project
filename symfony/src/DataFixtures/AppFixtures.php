@@ -277,10 +277,11 @@ class AppFixtures extends Fixture
 //        $manager->remove($manager->getRepository(Booking::class)->find(12));
 
 //        $manager->getRepository(Client::class)->find(5)->setBalance(1000);
-        $manager->remove($manager->getRepository(Booking::class)->find(29));
-        $manager->remove($manager->getRepository(Booking::class)->find(31));
-        $manager->remove($manager->getRepository(Booking::class)->find(32));
+//        $manager->remove($manager->getRepository(Booking::class)->find(29));
+//        $manager->remove($manager->getRepository(Booking::class)->find(31));
+//        $manager->remove($manager->getRepository(Booking::class)->find(32));
 
+        $manager->getRepository(Client::class)->find(5)->setBalance("99999");
         $manager->flush();
     }
 }
