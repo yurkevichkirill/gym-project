@@ -42,21 +42,24 @@ readonly class CacheInvalidatorListener
         ) as $entity) {
             match(true) {
                 $entity instanceof Client => $this->gymCache->invalidateTags(['clients_list']),
-                $entity instanceof Booking => $this->gymCache->invalidateTags(["bookings_list_" . $entity->getClient()->getId()]),
+                $entity instanceof Booking => $this->gymCache->invalidateTags(["bookings_list_" . $entity->getClient()->getId(), "bookings_list_all"]),
                 $entity instanceof MembershipPlan => [
                     $this->gymCache->invalidateTags(['membership_plans_list']),
                     $groups[] = 'membership',
                 ],
-                $entity instanceof Membership => $this->gymCache->invalidateTags(['memberships_list_' . $entity->getClient()->getId()]),$entity instanceof Payment => $this->gymCache->invalidateTags(['payments_list', 'payments_list_' . $entity->getClient()->getId()]),
+                $entity instanceof Membership => $this->gymCache->invalidateTags(['memberships_list_' . $entity->getClient()->getId(), "memberships_list_all"]),
+                $entity instanceof Payment => $this->gymCache->invalidateTags(['payments_list', 'payments_list_' . $entity->getClient()->getId(), "payments_list_all"]),
                 $entity instanceof Trainer => [
                     $this->gymCache->invalidateTags(['trainers_list']),
                     $groups[] = 'trainers',
                 ],
                 $entity instanceof TrainerWorkTime => [
-                    $this->gymCache->invalidateTags(['trainer_worktimes_list_' . $entity->getTrainer()->getId()]),
+                    $this->gymCache->invalidateTags(['trainer_worktimes_list_' . $entity->getTrainer()->getId(), 'trainer_worktimes_list_all']),
                     $groups[] = 'trainers',
                 ],
-                $entity instanceof Training => $this->gymCache->invalidateTags(['trainings_list', 'trainer_worktimes_list_' . $entity->getTrainerWorkTime()->getTrainer()->getId()]),
+                $entity instanceof Training => [
+                    $this->gymCache->invalidateTags(['trainings_list', 'trainer_worktimes_list_' . $entity->getTrainerWorkTime()->getTrainer()->getId(), "trainings_list_all"]),
+                ],
                 $entity instanceof TrainingType => [
                     $this->gymCache->invalidateTags(['training_types_list']),
                     $groups[] = 'training',

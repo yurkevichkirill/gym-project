@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace App\Booking\Query;
 
-use App\Booking\DTO\GetClientBookings;
+use App\Booking\DTO\GetBookings;
 use App\Booking\Repository\BookingRepository;
 use Doctrine\ORM\QueryBuilder;
 use Psr\Cache\InvalidArgumentException;
 use Symfony\Component\Cache\CacheItem;
 use Symfony\Contracts\Cache\TagAwareCacheInterface;
 
-final readonly class ClientBookingsQuery
+final readonly class BookingsQuery
 {
     private const array SORT_MAP = [
         'trainingId' => 't.id',
@@ -29,7 +29,7 @@ final readonly class ClientBookingsQuery
     /**
      * @throws InvalidArgumentException
      */
-    public function handle(GetClientBookings $dto): array
+    public function handle(GetBookings $dto): array
     {
         $cacheKey = $this->generateCacheKey($dto);
 
@@ -47,8 +47,11 @@ final readonly class ClientBookingsQuery
             }
             $qb->setFirstResult($offset)
                 ->setMaxResults($dto->limit);
-
-            $item->tag(["bookings_list_" . $dto->filter['client']->getId()]);
+            if (isset($dto->filter['client'])) {
+                $item->tag(["bookings_list_" . $dto->filter['client']->getId()]);
+            } else {
+                $item->tag(["bookings_list_all"]);
+            }
 
             return $qb->getQuery()->getResult();
         });
@@ -74,12 +77,15 @@ final readonly class ClientBookingsQuery
         }
 
         $qb->innerJoin('b.training', 't')
-            ->innerJoin('t.trainerWorkTime', 'w')
-            ->andWhere('b.client = :client')
-            ->setParameter('client', $filter['client']);
+            ->innerJoin('t.trainerWorkTime', 'w');
+
+        if (isset($filter['client'])) {
+            $qb->andWhere('b.client = :client')
+                ->setParameter('client', $filter['client']);
+        }
 
         if(isset($filter['trainer'])) {
-            $qb->andWhere('w.trainer = :trainer')
+            $qb->andWhere('trainer = :trainer')
                 ->setParameter('trainer', $filter['trainer']);
         }
 
@@ -106,20 +112,22 @@ final readonly class ClientBookingsQuery
         return $qb;
     }
 
-    private function generateCacheKey(GetClientBookings $query): string
+    private function generateCacheKey(GetBookings $query): string
     {
         $params = [
-            'client' => $query->filter['client'],
             'sort' => $query->sort,
             'page' => $query->page,
             'limit' => $query->limit,
         ];
 
+        if(isset($query->filter['client'])) {
+            $params['client'] = $query->filter['client']->getId();
+        }
         if(isset($query->filter['status'])) {
             $params['status'] = $query->filter['status'];
         }
         if(isset($query->filter['trainer'])) {
-            $params['trainer'] = $query->filter['trainer'];
+            $params['trainer'] = $query->filter['trainer']->getId();
         }
         if(isset($query->filter['date'])) {
             $params['date'] = $query->filter['date'];

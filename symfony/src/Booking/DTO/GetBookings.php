@@ -7,7 +7,7 @@ namespace App\Booking\DTO;
 use App\Client\Entity\Client;
 use App\Trainer\Entity\Trainer;
 
-final readonly class GetClientBookings
+final readonly class GetBookings
 {
     public array $sort;
     public array $filter;
@@ -15,11 +15,11 @@ final readonly class GetClientBookings
     public int $limit;
 
     public function __construct(
-        Client $client,
         string $sortRaw = 'bookedAt:ASC',
+        ?Client $client = null,
         ?Trainer $trainer = null,
         ?string $date = null,
-        ?string $durationMinutes = null,
+        ?int $durationMinutes = null,
         ?string $startTime = null,
         ?string $status = null,
         int $page = 1,
@@ -33,7 +33,7 @@ final readonly class GetClientBookings
     }
 
     private function putFilter (
-        Client $client,
+        ?Client $client,
         ?Trainer $trainer,
         ?string $date = null,
         ?int $durationMinutes = null,
@@ -41,20 +41,24 @@ final readonly class GetClientBookings
         ?string $status = null,
     ): array
     {
-        $filter = ['client' => $client];
-        if($trainer) {
+        $filter = [];
+
+        if ($client) {
+            $filter = ['client' => $client];
+        }
+        if ($trainer) {
             $filter['trainer'] = $trainer;
         }
-        if($date) {
+        if ($date) {
             $filter['date'] = $date;
         }
-        if($durationMinutes) {
+        if ($durationMinutes) {
             $filter['durationMinutes'] = $durationMinutes;
         }
-        if($startTime) {
+        if ($startTime) {
             $filter['startTime'] = $startTime;
         }
-        if($status) {
+        if ($status) {
             $filter['status'] = $status;
         }
 

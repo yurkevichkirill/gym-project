@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Booking\Security;
 
+use App\Admin\Entity\Admin;
 use App\Booking\Entity\Booking;
 use App\Client\Entity\Client;
 use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
@@ -31,6 +32,8 @@ class BookingVoter extends Voter
     protected function voteOnAttribute(string $attribute, mixed $subject, TokenInterface $token, ?Vote $vote = null): bool
     {
         $user = $token->getUser();
+        if(in_array("ROLE_ADMIN", $user->getRoles(), true)) return true;
+
         if(!$user instanceof Client) return false;
 
         /** @var Booking $booking **/
