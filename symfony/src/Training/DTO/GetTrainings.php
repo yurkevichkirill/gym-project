@@ -42,19 +42,19 @@ final readonly class GetTrainings
     ): array
     {
         $filter = ['trainer' => $trainer];
-        if($client) {
+        if($client !== null) {
             $filter['client'] = $client;
         }
-        if($date) {
+        if($date !== null) {
             $filter['date'] = $date;
         }
-        if($durationMinutes) {
+        if($durationMinutes !== null) {
             $filter['durationMinutes'] = $durationMinutes;
         }
-        if($startTime) {
+        if($startTime !== null) {
             $filter['startTime'] = $startTime;
         }
-        if($status) {
+        if($status !== null) {
             $filter['status'] = $status;
         }
 

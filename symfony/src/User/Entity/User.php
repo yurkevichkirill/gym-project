@@ -8,6 +8,7 @@ use App\Manager\Entity\Manager;
 use App\RefreshToken\Entity\RefreshToken;
 use App\Trainer\Entity\Trainer;
 use App\User\Repository\UserRepository;
+use DateTimeImmutable;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Gedmo\SoftDeleteable\Traits\SoftDeleteableEntity;
@@ -69,6 +70,9 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\OneToMany(targetEntity: RefreshToken::class, mappedBy: 'user')]
     private Collection $refreshTokens;
 
+    #[ORM\Column(nullable: true)]
+    private ?DateTimeImmutable $blockedAt = null;
+
     public function getId(): ?int
     {
         return $this->id;
@@ -104,7 +108,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
      */
     public function getRoles(): array
     {
-        if ($this->getDeletedAt() !== null) {
+        if ($this->getDeletedAt() !== null || $this->getBlockedAt()) {
             return [];
         }
         $roles = $this->roles;
@@ -183,5 +187,17 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         $data["\0".self::class."\0password"] = hash('crc32c', $this->password);
 
         return $data;
+    }
+
+    public function getBlockedAt(): ?DateTimeImmutable
+    {
+        return $this->blockedAt;
+    }
+
+    public function setBlockedAt(?DateTimeImmutable $blockedAt): static
+    {
+        $this->blockedAt = $blockedAt;
+
+        return $this;
     }
 }

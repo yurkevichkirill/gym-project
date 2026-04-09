@@ -35,16 +35,17 @@ class GetMembershipPlans
     ): array
     {
         $filter = [];
-        if($minPrice) {
+
+        if($minPrice !== null) {
             $filter['minPrice'] = $minPrice;
         }
-        if($maxPrice) {
+        if($maxPrice !== null) {
             $filter['maxPrice'] = $maxPrice;
         }
-        if($durationDays) {
+        if($durationDays !== null) {
             $filter['durationDays'] = $durationDays;
         }
-        if($sessionLimit) {
+        if($sessionLimit !== null) {
             $filter['sessionLimit'] = $sessionLimit;
         }
 
@@ -67,7 +68,7 @@ class GetMembershipPlans
             if (count($exploded) === 1) {
                 $exploded[] = 'ASC';
             }
-            
+
             [$field, $rawOrder] = $exploded;
             $order = strtoupper(trim($rawOrder));
 

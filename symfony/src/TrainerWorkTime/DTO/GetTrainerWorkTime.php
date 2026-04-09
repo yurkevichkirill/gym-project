@@ -33,7 +33,7 @@ final readonly class GetTrainerWorkTime
     ): array
     {
         $filter = ['trainer' => $trainer];
-        if($date) {
+        if($date !== null) {
             $filter['date'] = $date;
         }
 

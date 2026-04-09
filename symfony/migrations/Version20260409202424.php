@@ -10,7 +10,7 @@ use Doctrine\Migrations\AbstractMigration;
 /**
  * Auto-generated Migration: Please modify to your needs!
  */
-final class Version20260312181001 extends AbstractMigration
+final class Version20260409202424 extends AbstractMigration
 {
     public function getDescription(): string
     {
@@ -20,14 +20,14 @@ final class Version20260312181001 extends AbstractMigration
     public function up(Schema $schema): void
     {
         // this up() migration is auto-generated, please modify it to your needs
-        $this->addSql('ALTER TABLE payment ALTER paid_at DROP DEFAULT');
-        $this->addSql('ALTER TABLE "user" ADD photo_url VARCHAR(255) DEFAULT NULL');
+        $this->addSql('ALTER TABLE "user" DROP is_blocked');
+        $this->addSql('ALTER TABLE "user" DROP blocked_reason');
     }
 
     public function down(Schema $schema): void
     {
         // this down() migration is auto-generated, please modify it to your needs
-        $this->addSql('ALTER TABLE payment ALTER paid_at SET DEFAULT CURRENT_TIMESTAMP');
-        $this->addSql('ALTER TABLE "user" DROP photo_url');
+        $this->addSql('ALTER TABLE "user" ADD is_blocked BOOLEAN DEFAULT false NOT NULL');
+        $this->addSql('ALTER TABLE "user" ADD blocked_reason TEXT DEFAULT NULL');
     }
 }

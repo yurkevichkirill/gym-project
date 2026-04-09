@@ -41,16 +41,16 @@ final readonly class GetPayments
     {
         $filter['client'] = $client;
 
-        if($trainer) {
+        if($trainer !== null) {
             $filter['trainer'] = $trainer;
         }
-        if($minAmount) {
+        if($minAmount !== null) {
             $filter['minAmount'] = $minAmount;
         }
-        if($maxAmount) {
+        if($maxAmount !== null) {
             $filter['maxAmount'] = $maxAmount;
         }
-        if($category) {
+        if($category !== null) {
             $filter['category'] = $category;
         }
 
