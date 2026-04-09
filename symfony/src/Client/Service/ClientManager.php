@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Client\Service;
 
-use App\Booking\Entity\Booking;
 use App\Booking\Repository\BookingRepository;
 use App\Client\DTO\AdminUpdateClientRequest;
 use App\Client\DTO\CreateClientRequest;
@@ -12,7 +11,6 @@ use App\Client\DTO\UpdateClientRequest;
 use App\Client\Entity\Client;
 use App\Client\Repository\ClientRepository;
 use App\Exception\InsufficientFundsException;
-use App\Membership\Entity\Membership;
 use App\Membership\Repository\MembershipRepository;
 use App\Payment\Entity\Payment;
 use App\Payment\Enum\PaymentCategoryEnum;
@@ -26,6 +24,8 @@ use DateMalformedStringException;
 use DateTimeImmutable;
 use Doctrine\ORM\Exception\ORMException;
 use Doctrine\ORM\OptimisticLockException;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
+use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
 final readonly class ClientManager
@@ -63,6 +63,8 @@ final readonly class ClientManager
 
     public function update(Client $client, UpdateClientRequest $requestDto): Client
     {
+        $this->ensureNotBlocked($client);
+
         if ($requestDto->phone !== null) {
             $client->setPhone($requestDto->phone);
         }
@@ -112,7 +114,16 @@ final readonly class ClientManager
      * @throws OptimisticLockException
      * @throws ORMException
      */
-    public function softDelete(Client $client): void {
+    public function softDelete(Client $client, ?User $admin = null): void
+    {
+        if ($admin !== null && $admin->getId() === $client->getId()) {
+            throw new AccessDeniedHttpException('You cannot delete yourself');
+        }
+
+        if ($client->getDeletedAt()) {
+            throw new ConflictHttpException("Client already deleted");
+        }
+
         foreach ($client->getMemberships() as $membership) {
             $this->membershipRepo->remove($membership);
         }
@@ -217,8 +228,24 @@ final readonly class ClientManager
         return $balance >= $price;
     }
 
-    public function block(Client $client): Client
+    public function restore(Client $client): Client
     {
+        $client->setDeletedAt(null);
+        $this->clientRepo->save();
+
+        return $client;
+    }
+
+    public function block(User $admin, Client $client): Client
+    {
+        if ($admin->getId() === $client->getId()) {
+            throw new AccessDeniedHttpException('You cannot block yourself');
+        }
+
+        if ($client->getBlockedAt()) {
+            throw new ConflictHttpException('User already blocked');
+        }
+
         $client->setBlockedAt(new DateTimeImmutable());
         $this->clientRepo->save();
         $this->refreshTokenRepo->removeAllByUser($client);
@@ -232,5 +259,12 @@ final readonly class ClientManager
         $this->clientRepo->save();
 
         return $client;
+    }
+
+    public function ensureNotBlocked(Client $client): void
+    {
+        if ($client->getBlockedAt()) {
+            throw new AccessDeniedHttpException("User is blocked");
+        }
     }
 }

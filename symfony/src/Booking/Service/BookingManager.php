@@ -49,6 +49,8 @@ final readonly class BookingManager
      */
     public function book(Client $client, BookingRequest $dto): Booking
     {
+        $this->clientManager->ensureNotBlocked($client);
+
         $trainer = $this->trainerRepo->find($dto->trainerId);
         $worktime = $this->worktimeRepo->findOneBy([
             'trainer' => $trainer,

@@ -164,7 +164,24 @@ final class ClientController extends AbstractController
         return new Response(status: Response::HTTP_NO_CONTENT);
     }
 
-    #[Route('/api/clients/{id}/block/', methods: ['PATCH'], format: 'json')]
+    #[Route('api/clients/{id}/restore/', methods: ['POST'], format: 'json')]
+    #[OA\Tag(name: "Admin: Client")]
+    #[IsGranted('ROLE_ADMIN')]
+    public function restore(
+        Client $client,
+        ClientManager $manager,
+        ClientMapperInterface $mapper,
+    ): OkResponse
+    {
+        $responseDto = $mapper->map($manager->restore($client));
+
+        return new OkResponse(
+            data: $responseDto,
+            status: Response::HTTP_OK,
+        );
+    }
+
+    #[Route('/api/clients/{id}/block/', methods: ['POST'], format: 'json')]
     #[OA\Tag(name: "Admin: Client")]
     #[IsGranted('ROLE_ADMIN')]
     public function block(
@@ -174,11 +191,7 @@ final class ClientController extends AbstractController
         ClientManager $manager,
     ): OkResponse
     {
-        if ($admin->getId() === $client->getId()) {
-            throw new \LogicException('You cannot block yourself');
-        }
-
-        $responseDto = $mapper->map($manager->block($client));
+        $responseDto = $mapper->map($manager->block($admin, $client));
 
         return new OkResponse(
             data: $responseDto,
@@ -186,7 +199,7 @@ final class ClientController extends AbstractController
         );
     }
 
-    #[Route('/api/clients/{id}/unblock/', methods: ['PATCH'], format: 'json')]
+    #[Route('/api/clients/{id}/unblock/', methods: ['POST'], format: 'json')]
     #[OA\Tag(name: "Admin: Client")]
     #[IsGranted('ROLE_ADMIN')]
     public function unblock(

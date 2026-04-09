@@ -32,6 +32,8 @@ final readonly class MembershipManager
      */
     public function create(Client $client, int $membershipPlanId): Membership
     {
+        $this->clientManager->ensureNotBlocked($client);
+
         $this->validateClientHasActiveMembership($client);
 
         $plan = $this->membershipPlanRepo->find($membershipPlanId);
