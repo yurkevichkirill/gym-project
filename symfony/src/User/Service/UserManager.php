@@ -26,6 +26,10 @@ final readonly class UserManager
             throw new UnauthorizedHttpException('Bearer', 'Invalid credentials');
         }
 
+        if ($user->getDeletedAt()) {
+            throw new UnauthorizedHttpException('Bearer', 'User is deleted');
+        }
+
         return $user;
     }
 }

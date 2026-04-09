@@ -35,13 +35,14 @@ class GetTypesTrainers
     ): array
     {
         $filter = [];
-        if($minPrice) {
+
+        if($minPrice !== null) {
             $filter['minPrice'] = $minPrice;
         }
-        if($maxPrice) {
+        if($maxPrice !== null) {
             $filter['maxPrice'] = $maxPrice;
         }
-        if($trainingType) {
+        if($trainingType !== null) {
             $filter['trainingType'] = $trainingType;
         }
 

@@ -45,8 +45,10 @@ final readonly class BookingsQuery
                 $field = self::SORT_MAP[$alias] ?? "b.$alias";
                 $qb->addOrderBy("$field", $order);
             }
+
             $qb->setFirstResult($offset)
                 ->setMaxResults($dto->limit);
+
             if (isset($dto->filter['client'])) {
                 $item->tag(["bookings_list_" . $dto->filter['client']->getId()]);
             } else {

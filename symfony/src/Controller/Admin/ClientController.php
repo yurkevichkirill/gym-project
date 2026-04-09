@@ -2,148 +2,204 @@
 
 namespace App\Controller\Admin;
 
+use App\Client\DTO\AdminUpdateClientRequest;
+use App\Client\DTO\CreateClientRequest;
+use App\Client\DTO\GetClients;
 use App\Client\Entity\Client;
-use App\Client\Repository\ClientRepository;
-use App\Client\Service\ClientServiceInterface;
+use App\Client\Mapper\ClientMapperInterface;
+use App\Client\Query\ClientQuery;
+use App\Client\Service\ClientManager;
+use App\Response\OkResponse;
+use App\User\Entity\User;
+use Doctrine\ORM\Exception\ORMException;
+use Doctrine\ORM\OptimisticLockException;
 use Nelmio\ApiDocBundle\Attribute\Model;
 use OpenApi\Attributes as OA;
+use Psr\Cache\InvalidArgumentException;
+use Psr\Container\ContainerExceptionInterface;
+use Psr\Container\NotFoundExceptionInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
-use Symfony\Component\Serializer\Normalizer\AbstractNormalizer;
-use Symfony\Component\Serializer\SerializerInterface;
-use Symfony\Component\Validator\Validator\ValidatorInterface;
-use Throwable;
 
 final class ClientController extends AbstractController
 {
-    #[Route('/api/clients', name: 'app_api_clients', methods: ['GET'], format: 'json')]
-    #[OA\Parameter(
-        name: 'sort',
-        in: 'query'
-    )]
+    /**
+     * @throws InvalidArgumentException
+     */
+    #[Route('/api/clients/', name: 'app_api_clients', methods: ['GET'], format: 'json')]
+    #[OA\Parameter(name: 'minAge', in: 'query', example: 18)]
+    #[OA\Parameter(name: 'maxAge', in: 'query', example: 18)]
+    #[OA\Parameter(name: 'minBalance', in: 'query', example: 0)]
+    #[OA\Parameter(name: 'maxBalance', in: 'query', example: 0)]
+    #[OA\Parameter(name: 'isDeleted', in: 'query', example: 'true')]
+    #[OA\Parameter(name: 'sort', in: 'query', example: 'age:ASC')]
+    #[OA\Parameter(name: 'page', in: 'query', example: 1)]
+    #[OA\Parameter(name: 'limit', in: 'query', example: 20)]
+    #[OA\Tag(name: "Admin: Client")]
     #[IsGranted('ROLE_ADMIN')]
-    public function getAll(ClientServiceInterface $clientService, Request $request): JsonResponse
+    public function getAll(
+        ClientMapperInterface $mapper,
+        Request $request,
+        ClientQuery $handler,
+    ): OkResponse
     {
-        try {
-            $sortRaw = $request->query->get('sort', 'createdAt:ASC');
-            $sort = [];
-            foreach (explode(',', $sortRaw) as $item) {
-                [$field, $order] = explode(':',  $item);
-                $sort[$field] = strtoupper($order);
+        $sortRaw = $request->query->get('sort', 'bookedAt:ASC');
+        $minAge = $request->query->get('minAge');
+        $maxAge = $request->query->get('maxAge');
+        $minBalance = $request->query->get('minBalance');
+        $maxBalance = $request->query->get('maxBalance');
+
+        if (!is_null($request->query->get('isDeleted'))) {
+            if ($request->query->get('isDeleted') === 'true') {
+                $isDeleted = true;
+            } else if ($request->query->get('isDeleted') === 'false') {
+                $isDeleted = false;
+            } else {
+                $isDeleted = null;
             }
-            $clients = $clientService->findBy($sort);
-        } catch (Throwable $e) {
-            return $this->json(['error' => $e->getMessage()], 400);
+        } else {
+            $isDeleted = null;
         }
 
-        if(empty($clients)) {
-            return $this->json(['error' => 'No clients found'], 404);
-        }
+        $page = (int) $request->query->get('page', 1);
+        $limit = (int) $request->query->get('limit', 20);
 
-        return $this->json($clients, 200, [], [
-            'groups' => ["public-client"]
-        ]);
+        $queryDto = new GetClients(
+            $sortRaw,
+            $minAge,
+            $maxAge,
+            $minBalance,
+            $maxBalance,
+            $isDeleted,
+            $page,
+            $limit,
+        );
+
+        $clients = $handler->handle($queryDto);
+
+        return new OkResponse(
+            array_map(fn($client) => $mapper->map($client), $clients),
+            $queryDto->page,
+            $queryDto->limit,
+            $handler->getTotal($queryDto->filter),
+            $queryDto->sort,
+            200
+        );
     }
 
-    #[Route('/api/clients/{id}', methods: ['GET'], format: 'json')]
+    #[Route('/api/clients/{id}/', methods: ['GET'], format: 'json')]
+    #[OA\Tag(name: "Admin: Client")]
     #[IsGranted('ROLE_ADMIN')]
-    public function get(Client $client): JsonResponse
+    public function get(
+        Client $client,
+        ClientMapperInterface $mapper,
+    ): OkResponse
     {
-        return $this->json($client, 200, [], [
-            'groups' => ["public-client"]
-        ]);
+        return new OkResponse(
+            data: $mapper->map($client),
+            status: 200,
+        );
     }
 
-    #[Route('/api/clients', methods: ['POST'], format: 'json')]
-    #[OA\RequestBody(content: new Model(type: Client::class, groups: ['create-update-client']))]
+    #[Route('/api/clients/', methods: ['POST'], format: 'json')]
+    #[OA\RequestBody(content: new Model(type: CreateClientRequest::class))]
+    #[OA\Tag(name: "Admin: Client")]
     #[IsGranted('ROLE_ADMIN')]
     public function create(
-        Request $request,
-        ClientRepository $repo,
-        SerializerInterface $serializer,
-        ValidatorInterface $validator
-    ): JsonResponse
+        #[MapRequestPayload] CreateClientRequest $requestDto,
+        ClientMapperInterface $mapper,
+        ClientManager $manager,
+    ): OkResponse
     {
-        $content = $request->getContent();
+        $responseDto = $mapper->map($manager->create($requestDto));
 
-        try {
-            $client = $serializer->deserialize($content, Client::class, "json");
-        } catch(Throwable $e) {
-            return $this->json(['error' => $e->getMessage()], 400);
-        }
-
-        $errors = $validator->validate($client);
-
-        if (count($errors) > 0) {
-            $errorMessages = [];
-            foreach ($errors as $error) {
-                $errorMessages[$error->getPropertyPath()][] = $error->getMessage();
-            }
-
-            return $this->json(['errors' => $errorMessages], 422);
-        }
-
-        try {
-            $repo->create($client);
-        } catch (Throwable $e) {
-            return $this->json(['error' => $e->getMessage()], 400);
-        }
-
-        return $this->json($client, 201, [], [
-            'groups' => ["public-client"]
-        ]);
+        return new OkResponse(
+            data: $responseDto,
+            status: 201,
+        );
     }
 
-    #[Route('api/clients/{id}', methods: ['PUT', 'PATCH'], format: 'json')]
-    #[OA\RequestBody(content: new Model(type: Client::class, groups: ['create-update-client']))]
+    #[Route('api/clients/{id}/', methods: ['PUT', 'PATCH'], format: 'json')]
+    #[OA\RequestBody(content: new Model(type: AdminUpdateClientRequest::class))]
+    #[OA\Tag(name: "Admin: Client")]
     #[IsGranted('ROLE_ADMIN')]
     public function update(
-        Request $request,
         Client $client,
-        SerializerInterface $serializer,
-        ClientRepository $repo,
-        ValidatorInterface $validator
-    ): JsonResponse
+        #[MapRequestPayload] AdminUpdateClientRequest $requestDto,
+        ClientMapperInterface $mapper,
+        ClientManager $manager,
+    ): OkResponse
     {
-        try {
-            $serializer->deserialize($request->getContent(), Client::class, 'json', [
-                AbstractNormalizer::OBJECT_TO_POPULATE => $client
-            ]);
+        $responseDto = $mapper->map($manager->adminUpdate($client, $requestDto));
 
-            $errors = $validator->validate($client);
-            if (count($errors) > 0) {
-                $errorMessages = [];
-                foreach ($errors as $error) {
-                    $errorMessages[$error->getPropertyPath()][] = $error->getMessage();
-                }
-
-                return $this->json(['errors' => $errorMessages], 422);
-            }
-
-            $repo->save();
-        } catch(Throwable $e) {
-            return $this->json(['error' => $e->getMessage()], 400);
-        }
-
-        return $this->json($client, 200, [], [
-            'groups' => ["public-client"]
-        ]);
+        return new OkResponse(
+            data: $responseDto,
+            status: Response::HTTP_OK,
+        );
     }
 
-    #[Route('api/clients/{id}', methods: ['DELETE'], format: 'json')]
+    /**
+     * @throws OptimisticLockException
+     * @throws NotFoundExceptionInterface
+     * @throws ORMException
+     * @throws ContainerExceptionInterface
+     */
+    #[Route('api/clients/{id}/', methods: ['DELETE'], format: 'json')]
+    #[OA\Tag(name: "Admin: Client")]
     #[IsGranted('ROLE_ADMIN')]
-    public function delete(ClientRepository $repo, Client $client): JsonResponse
+    public function delete(
+        Client $client,
+        ClientManager $manager,
+    ): Response
     {
-        try {
-            $repo->remove($client);
-        } catch(Throwable $e) {
-            return $this->json(['error' => $e->getMessage()], 400);
+        $manager->softDelete($client);
+        $this->container->get('security.token_storage')->setToken(null);
+        //clean cookies in frontend
+
+        return new Response(status: Response::HTTP_NO_CONTENT);
+    }
+
+    #[Route('/api/clients/{id}/block/', methods: ['PATCH'], format: 'json')]
+    #[OA\Tag(name: "Admin: Client")]
+    #[IsGranted('ROLE_ADMIN')]
+    public function block(
+        Client $client,
+        #[CurrentUser] User $admin,
+        ClientMapperInterface $mapper,
+        ClientManager $manager,
+    ): OkResponse
+    {
+        if ($admin->getId() === $client->getId()) {
+            throw new \LogicException('You cannot block yourself');
         }
 
-        return $this->json(null, 204);
+        $responseDto = $mapper->map($manager->block($client));
+
+        return new OkResponse(
+            data: $responseDto,
+            status: Response::HTTP_OK,
+        );
+    }
+
+    #[Route('/api/clients/{id}/unblock/', methods: ['PATCH'], format: 'json')]
+    #[OA\Tag(name: "Admin: Client")]
+    #[IsGranted('ROLE_ADMIN')]
+    public function unblock(
+        Client $client,
+        ClientMapperInterface $mapper,
+        ClientManager $manager,
+    ): OkResponse
+    {
+        $responseDto = $mapper->map($manager->unblock($client));
+
+        return new OkResponse(
+            data: $responseDto,
+            status: Response::HTTP_OK,
+        );
     }
 }

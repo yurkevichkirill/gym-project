@@ -45,7 +45,8 @@ final class ApiLoginController extends AbstractController
         $accessTokenCookie = Cookie::create(
             'access_token',
             $accessToken,
-            time() + 900,
+            //in prod set to 900
+            time() + 90000,
             '/',
             '.evogym.local',
             true,

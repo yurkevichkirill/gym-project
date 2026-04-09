@@ -2,12 +2,9 @@
 
 declare(strict_types=1);
 
-namespace App\Membership\DTO;
+namespace App\Client\DTO;
 
-use App\Client\Entity\Client;
-use App\MembershipPlan\Entity\MembershipPlan;
-
-class GetMemberships
+final readonly class GetClients
 {
     public array $sort;
     public array $filter;
@@ -15,42 +12,46 @@ class GetMemberships
     public int $limit;
 
     public function __construct(
-        Client $client,
         string $sortRaw = 'bookedAt:ASC',
-        ?MembershipPlan $membershipPlan = null,
-        ?string $status = null,
-        ?int $minVisits = null,
-        ?int $maxVisits = null,
+        ?int $minAge = null,
+        ?int $maxAge = null,
+        ?string $minBalance = null,
+        ?string $maxBalance = null,
+        ?bool $isDeleted = null,
         int $page = 1,
-        int $limit = 20
+        int $limit = 20,
     )
     {
         $this->sort = $this->parseSort($sortRaw);
-        $this->filter = $this->putFilter($client, $membershipPlan, $status, $minVisits, $maxVisits);
+        $this->filter = $this->putFilter($minAge, $maxAge, $minBalance, $maxBalance, $isDeleted);
         $this->page = $page;
         $this->limit = $limit;
     }
 
     private function putFilter (
-        Client $client,
-        ?MembershipPlan $membershipPlan = null,
-        ?string $status = null,
-        ?int $minVisits = null,
-        ?int $maxVisits = null,
+        ?int $minAge = null,
+        ?int $maxAge = null,
+        ?string $minBalance = null,
+        ?string $maxBalance = null,
+        ?bool $isDeleted = null,
     ): array
     {
-        $filter = ['client' => $client];
-        if($membershipPlan !== null) {
-            $filter['membershipPlan'] = $membershipPlan;
+        $filter = [];
+
+        if ($minAge !== null) {
+            $filter = ['minAge' => $minAge];
         }
-        if($status !== null) {
-            $filter['status'] = $status;
+        if ($maxAge !== null) {
+            $filter = ['maxAge' => $maxAge];
         }
-        if($minVisits !== null) {
-            $filter['minVisits'] = $minVisits;
+        if ($minBalance !== null) {
+            $filter['minBalance'] = $minBalance;
         }
-        if($maxVisits !== null) {
-            $filter['maxVisits'] = $maxVisits;
+        if ($maxBalance !== null) {
+            $filter['maxBalance'] = $maxBalance;
+        }
+        if ($isDeleted !== null) {
+            $filter['isDeleted'] = $isDeleted;
         }
 
         return $filter;
@@ -60,7 +61,7 @@ class GetMemberships
     {
         $sort = [];
         $allowedOrders = ['ASC', 'DESC'];
-        $allowedParams = ['startDate', 'endDate', 'status', 'visits', 'membershipPlanId'];
+        $allowedParams = ['firstName', 'lastName', 'balance', 'age', 'createdAt', 'updatedAt', 'deletedAt'];
 
         foreach (explode(',', $sortRaw) as $item) {
             $exploded = explode(':', $item);

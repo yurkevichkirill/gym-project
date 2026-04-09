@@ -6,6 +6,7 @@ namespace App\Client\Service;
 
 use App\Booking\Entity\Booking;
 use App\Booking\Repository\BookingRepository;
+use App\Client\DTO\AdminUpdateClientRequest;
 use App\Client\DTO\CreateClientRequest;
 use App\Client\DTO\UpdateClientRequest;
 use App\Client\Entity\Client;
@@ -16,7 +17,9 @@ use App\Membership\Repository\MembershipRepository;
 use App\Payment\Entity\Payment;
 use App\Payment\Enum\PaymentCategoryEnum;
 use App\Payment\Repository\PaymentRepository;
+use App\RefreshToken\Repository\RefreshTokenRepository;
 use App\Trainer\Entity\Trainer;
+use App\User\Entity\User;
 use DateInterval;
 use DateMalformedIntervalStringException;
 use DateMalformedStringException;
@@ -32,10 +35,12 @@ final readonly class ClientManager
         private BookingRepository $bookingRepo,
         private PaymentRepository $paymentRepo,
         private MembershipRepository $membershipRepo,
+        private RefreshTokenRepository $refreshTokenRepo,
+        private UserPasswordHasherInterface $passwordHasher,
     )
     {}
 
-    public function create(CreateClientRequest $dto, UserPasswordHasherInterface $passwordHasher): Client
+    public function create(CreateClientRequest $dto): Client
     {
         $client = new Client();
         $client->setFirstName($dto->firstName);
@@ -45,7 +50,7 @@ final readonly class ClientManager
         $client->setAge($dto->age);
 
         $plaintextPassword = $dto->password;
-        $hashedPassword = $passwordHasher->hashPassword(
+        $hashedPassword = $this->passwordHasher->hashPassword(
             $client,
             $plaintextPassword
         );
@@ -58,8 +63,44 @@ final readonly class ClientManager
 
     public function update(Client $client, UpdateClientRequest $requestDto): Client
     {
-        if ($requestDto->phone) {
+        if ($requestDto->phone !== null) {
             $client->setPhone($requestDto->phone);
+        }
+
+        $this->clientRepo->save();
+
+        return $client;
+    }
+
+    public function adminUpdate(Client $client, AdminUpdateClientRequest $requestDto): Client
+    {
+        if ($requestDto->firstName !== null) {
+            $client->setFirstName($requestDto->firstName);
+        }
+
+        if ($requestDto->lastName !== null) {
+            $client->setLastName($requestDto->lastName);
+        }
+
+        if ($requestDto->email !== null) {
+            $client->setEmail($requestDto->email);
+        }
+
+        if ($requestDto->phone !== null) {
+            $client->setPhone($requestDto->phone);
+        }
+
+        if ($requestDto->age !== null) {
+            $client->setAge($requestDto->age);
+        }
+
+        if ($requestDto->balance !== null) {
+            $client->setBalance($requestDto->balance);
+        }
+
+        if ($requestDto->password !== null) {
+            $hashed = $this->passwordHasher->hashPassword($client, $requestDto->password);
+            $client->setPassword($hashed);
         }
 
         $this->clientRepo->save();
@@ -174,5 +215,22 @@ final readonly class ClientManager
     private function hasClientEnoughMoney(float $balance, float $price): bool
     {
         return $balance >= $price;
+    }
+
+    public function block(Client $client): Client
+    {
+        $client->setBlockedAt(new DateTimeImmutable());
+        $this->clientRepo->save();
+        $this->refreshTokenRepo->removeAllByUser($client);
+
+        return $client;
+    }
+
+    public function unblock(Client $client): Client
+    {
+        $client->setBlockedAt(null);
+        $this->clientRepo->save();
+
+        return $client;
     }
 }

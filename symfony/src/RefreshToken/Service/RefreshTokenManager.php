@@ -12,6 +12,7 @@ use Doctrine\ORM\Exception\ORMException;
 use Doctrine\ORM\OptimisticLockException;
 use Lexik\Bundle\JWTAuthenticationBundle\Services\JWTTokenManagerInterface;
 use Random\RandomException;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\UnauthorizedHttpException;
 
 final readonly class RefreshTokenManager
@@ -55,6 +56,11 @@ final readonly class RefreshTokenManager
 
         $user = $tokenEntity->getUser();
 
+        if ($user->isBlocked()) {
+            $this->repo->removeAllByUser($user);
+            throw new AccessDeniedHttpException('User is blocked');
+        }
+
         $this->repo->remove($tokenEntity);
 
         $newRefreshToken = $this->generateRefreshToken();
@@ -75,6 +81,10 @@ final readonly class RefreshTokenManager
 
     public function generateAccessToken(User $user): string
     {
+        if ($user->getDeletedAt()) {
+            throw new AccessDeniedHttpException('User is deleted');
+        }
+
         return $this->jwtManager->create($user);
     }
 }

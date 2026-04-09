@@ -43,22 +43,22 @@ final readonly class GetBookings
     {
         $filter = [];
 
-        if ($client) {
+        if ($client !== null) {
             $filter = ['client' => $client];
         }
-        if ($trainer) {
+        if ($trainer !== null) {
             $filter['trainer'] = $trainer;
         }
-        if ($date) {
+        if ($date !== null) {
             $filter['date'] = $date;
         }
-        if ($durationMinutes) {
+        if ($durationMinutes !== null) {
             $filter['durationMinutes'] = $durationMinutes;
         }
-        if ($startTime) {
+        if ($startTime !== null) {
             $filter['startTime'] = $startTime;
         }
-        if ($status) {
+        if ($status !== null) {
             $filter['status'] = $status;
         }
 

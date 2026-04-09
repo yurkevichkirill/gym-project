@@ -3,6 +3,7 @@
 namespace App\RefreshToken\Repository;
 
 use App\RefreshToken\Entity\RefreshToken;
+use App\User\Entity\User;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\ORM\Exception\ORMException;
 use Doctrine\ORM\OptimisticLockException;
@@ -41,6 +42,16 @@ class RefreshTokenRepository extends ServiceEntityRepository
     {
         $this->getEntityManager()->remove($refreshToken);
         $this->save();
+    }
+
+    public function removeAllByUser(User $user): void
+    {
+        $this->createQueryBuilder('rt')
+            ->delete()
+            ->andWhere('rt.user = :user')
+            ->setParameter('user', $user)
+            ->getQuery()
+            ->execute();
     }
 
 //    /**
