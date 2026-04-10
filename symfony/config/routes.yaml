@@ -11,15 +11,15 @@ controllers:
     resource: routing.controllers
 
 login:
-    path: /api/login
+    path: /api/login/
     methods: ["POST"]
 
 app.swagger_ui:
-    path: /api/docs
+    path: /api/docs/
     methods: GET
     defaults: { _controller: nelmio_api_doc.controller.swagger_ui }
 
 app.swagger:
-    path: /api/doc.json
+    path: /api/doc.json/
     methods: GET
     defaults: { _controller: nelmio_api_doc.controller.swagger }

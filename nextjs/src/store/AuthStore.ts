@@ -44,7 +44,7 @@ export const authStore: AuthStore = {
         authStore.isLoading = true;
 
         try {
-            const res = await apiGet<MeResponse>('/me');
+            const res = await apiGet<MeResponse>('/me/');
 
             runInAction(() => {
                 authStore.user = res.data;

@@ -60,3 +60,5 @@
 docker/db/data
 
 certs/
+
+.codex
