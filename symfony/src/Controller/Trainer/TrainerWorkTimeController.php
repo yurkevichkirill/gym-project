@@ -36,7 +36,7 @@ final class TrainerWorkTimeController extends AbstractController
      */
 
     #[Route('/api/trainer/me/worktime/', methods: ['GET'], format: 'json')]
-    #[OA\Tag(name: "OurTrainer: WorkTime")]
+    #[OA\Tag(name: "Trainer: WorkTime")]
     #[OA\Parameter(name: 'date', in: 'query', example: '2026-03-10')]
     #[OA\Parameter(name: 'sort', in: 'query', example: 'date:ASC')]
     #[OA\Parameter(name: 'page', in: 'query', example: 1)]
@@ -74,7 +74,7 @@ final class TrainerWorkTimeController extends AbstractController
      */
     #[Route('/api/trainer/me/worktime/', methods: ['POST'], format: 'json')]
     #[OA\RequestBody(content: new Model(type: CreateWorkTimeRequest::class))]
-    #[OA\Tag(name: "OurTrainer: WorkTime")]
+    #[OA\Tag(name: "Trainer: WorkTime")]
     #[IsGranted('ROLE_TRAINER')]
     public function create(
         #[CurrentUser] Trainer                     $trainer,
@@ -86,7 +86,7 @@ final class TrainerWorkTimeController extends AbstractController
         $responseDto = $mapper->map($manager->create($trainer, $requestDto));
 
         return new OkResponse(
-            data:$responseDto,
+            data: $responseDto,
             status:201,
         );
     }
@@ -98,7 +98,7 @@ final class TrainerWorkTimeController extends AbstractController
      */
     #[Route('/api/worktime/{id}/', methods: ['PUT', 'PATCH'], format: 'json')]
     #[OA\RequestBody(content: new Model(type: UpdateWorkTimeRequest::class))]
-    #[OA\Tag(name: "OurTrainer: WorkTime")]
+    #[OA\Tag(name: "Trainer: WorkTime")]
     public function update(
         TrainerWorkTime $worktime,
         #[MapRequestPayload] UpdateWorkTimeRequest $requestDto,
@@ -121,7 +121,7 @@ final class TrainerWorkTimeController extends AbstractController
      * @throws ORMException
      */
     #[Route('/api/worktime/{id}/', methods: ['DELETE'], format: 'json')]
-    #[OA\Tag(name: "OurTrainer: WorkTime")]
+    #[OA\Tag(name: "Trainer: WorkTime")]
     public function remove(
         TrainerWorkTime $worktime,
         TrainerWorkTimeRepository $worktimeRepo

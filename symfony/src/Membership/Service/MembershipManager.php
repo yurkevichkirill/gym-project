@@ -7,7 +7,8 @@ namespace App\Membership\Service;
 use App\Client\Entity\Client;
 use App\Client\Service\ClientManager;
 use App\Exception\InvalidMembershipStatusException;
-use App\Exception\MembershipAlreadyActiveException;
+use App\Exception\MembershipActiveException;
+use App\Exception\NoActiveMembershipException;
 use App\Membership\DTO\UpdateMembershipRequest;
 use App\Membership\Entity\Membership;
 use App\Membership\Enum\MembershipStatusEnum;
@@ -34,7 +35,9 @@ final readonly class MembershipManager
     {
         $this->clientManager->ensureNotBlocked($client);
 
-        $this->validateClientHasActiveMembership($client);
+        if ($this->hasActiveMembership($client)) {
+            throw new MembershipActiveException("Client still has active membership");
+        }
 
         $plan = $this->membershipPlanRepo->find($membershipPlanId);
         $payment = $this->clientManager->pay($client, (float) $plan->getPrice());
@@ -48,16 +51,22 @@ final readonly class MembershipManager
         return $membership;
     }
 
-    private function validateClientHasActiveMembership($client): void
+    public function hasActiveMembership(Client $client): bool
     {
-        $membership = $this->membershipRepo->findOneBy([
+        $activeMembership = $this->membershipRepo->findOneBy([
             'client' => $client,
             'status' => MembershipStatusEnum::ACTIVE
         ]);
 
-        if ($membership) {
-            throw new MembershipAlreadyActiveException();
+        if (
+            !$activeMembership ||
+            $activeMembership->getPlan()->getDurationDays() !== null && $activeMembership->getVisits() >= $activeMembership->getPlan()->getSessionLimit() ||
+            new DateTimeImmutable() > $activeMembership->getEndDate()
+        ) {
+            return false;
         }
+
+        return true;
     }
 
     /**
@@ -119,5 +128,17 @@ final readonly class MembershipManager
     public function renew(Membership $membership): Membership
     {
         return $this->create($membership->getClient(), $membership->getPlan()->getId());
+    }
+
+    public function terminate(Membership $membership): Membership
+    {
+        if ($membership->getStatus() === MembershipStatusEnum::EXPIRED) {
+            throw new InvalidMembershipStatusException("Membership already expired");
+        }
+
+        $membership->setEndDate(new DateTimeImmutable());
+        $membership->setStatus(MembershipStatusEnum::EXPIRED);
+
+        return $membership;
     }
 }

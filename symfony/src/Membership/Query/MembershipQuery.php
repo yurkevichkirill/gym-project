@@ -45,7 +45,11 @@ class MembershipQuery
             $qb->setFirstResult($offset)
                 ->setMaxResults($dto->limit);
 
-            $item->tag(["memberships_list_" . $dto->filter['client']->getId()]);
+            if (isset($dto->filter['client'])) {
+                $item->tag(["memberships_list_" . $dto->filter['client']->getId()]);
+            } else {
+                $item->tag(["memberships_list_all"]);
+            }
 
             return $qb->getQuery()->getResult();
         });
@@ -95,17 +99,19 @@ class MembershipQuery
     private function generateCacheKey(GetMemberships $query): string
     {
         $params = [
-            'client' => $query->filter['client'],
             'sort' => $query->sort,
             'page' => $query->page,
             'limit' => $query->limit,
         ];
 
+        if(isset($query->filter['client'])) {
+            $params['client'] = $query->filter['client']->getId();
+        }
         if(isset($query->filter['status'])) {
             $params['status'] = $query->filter['status'];
         }
         if(isset($query->filter['membershipPlan'])) {
-            $params['membershipPlan'] = $query->filter['membershipPlan'];
+            $params['membershipPlan'] = $query->filter['membershipPlan']->getId();
         }
         if(isset($query->filter['minVisits'])) {
             $params['minVisits'] = $query->filter['minVisits'];

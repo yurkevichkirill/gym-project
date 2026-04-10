@@ -153,10 +153,9 @@ final class BookingController extends AbstractController
 
     #[Route('api/bookings/{id}/', methods: ['GET'], format: 'json')]
     #[OA\Tag(name: "Admin: Bookings")]
+    #[IsGranted('ROLE_ADMIN')]
     public function get(BookingAdminMapperInterface $mapper, Booking $booking): OkResponse
     {
-        $this->denyAccessUnlessGranted('BOOKING_VIEW', $booking);
-
         return new OkResponse(
             data: $mapper->map($booking),
             status: 200,

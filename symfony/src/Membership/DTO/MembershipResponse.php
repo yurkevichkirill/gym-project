@@ -34,7 +34,7 @@ final readonly class MembershipResponse
             status: $membership->getStatus(),
             visits: $membership->getVisits(),
             createdAt: $membership->getCreatedAt()->format(DATE_ATOM),
-            frozenAt: $membership->getFrozenAt()?->format("Y-m-d"),
+            frozenAt: $membership->getFrozenAt()?->format(DATE_ATOM),
             payment: PaymentResponse::fromEntity($membership->getPayment()),
         );
     }

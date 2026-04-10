@@ -5,7 +5,6 @@ namespace App\Controller\Client;
 use App\Client\Entity\Client;
 use App\Membership\DTO\CreateMembershipRequest;
 use App\Membership\DTO\GetMemberships;
-use App\Membership\DTO\UpdateMembershipRequest;
 use App\Membership\Entity\Membership;
 use App\Membership\Mapper\MembershipMapperInterface;
 use App\Membership\Query\MembershipQuery;
@@ -57,8 +56,8 @@ final class MembershipController extends AbstractController
         $limit = (int) $request->query->get('limit', 20);
 
         $queryDto = new GetMemberships(
-            $client,
             $sortRaw,
+            $client,
             $membershipPlan,
             $status,
             $minVisits,
@@ -79,7 +78,7 @@ final class MembershipController extends AbstractController
         );
     }
 
-    #[Route('/api/memberships/{id}/', methods: ['GET'], format: 'json')]
+    #[Route('/api/me/memberships/{id}/', methods: ['GET'], format: 'json')]
     #[OA\Tag(name: "Client: Membership")]
     public function get(
         Membership $membership,
@@ -121,19 +120,61 @@ final class MembershipController extends AbstractController
      * @throws OptimisticLockException
      * @throws ORMException
      */
-    #[Route('/api/memberships/{id}/', methods: ['PUT', 'PATCH'], format: 'json')]
-    #[OA\RequestBody(content: new Model(type: UpdateMembershipRequest::class))]
+    #[Route('/api/me/memberships/{id}/freeze/', methods: ['POST'], format: 'json')]
     #[OA\Tag(name: "Client: Membership")]
-    public function update(
+    public function freeze(
         Membership $membership,
-        #[MapRequestPayload] UpdateMembershipRequest $requestDto,
         MembershipMapperInterface $mapper,
         MembershipManager $manager,
     ): OkResponse
     {
         $this->denyAccessUnlessGranted("MEMBERSHIP_EDIT", $membership);
 
-        $responseDto = $mapper->map($manager->update($membership, $requestDto));
+        $responseDto = $mapper->map($manager->freeze($membership));
+
+        return new OkResponse(
+            data: $responseDto,
+            status: Response::HTTP_OK,
+        );
+    }
+
+    /**
+     * @throws OptimisticLockException
+     * @throws ORMException
+     */
+    #[Route('/api/me/memberships/{id}/unfreeze/', methods: ['POST'], format: 'json')]
+    #[OA\Tag(name: "Client: Membership")]
+    public function unfreeze(
+        Membership $membership,
+        MembershipMapperInterface $mapper,
+        MembershipManager $manager,
+    ): OkResponse
+    {
+        $this->denyAccessUnlessGranted("MEMBERSHIP_EDIT", $membership);
+
+        $responseDto = $mapper->map($manager->unfreeze($membership));
+
+        return new OkResponse(
+            data: $responseDto,
+            status: Response::HTTP_OK,
+        );
+    }
+
+    /**
+     * @throws OptimisticLockException
+     * @throws ORMException
+     */
+    #[Route('/api/me/memberships/{id}/renew/', methods: ['POST'], format: 'json')]
+    #[OA\Tag(name: "Client: Membership")]
+    public function renew(
+        Membership $membership,
+        MembershipMapperInterface $mapper,
+        MembershipManager $manager,
+    ): OkResponse
+    {
+        $this->denyAccessUnlessGranted("MEMBERSHIP_EDIT", $membership);
+
+        $responseDto = $mapper->map($manager->renew($membership));
 
         return new OkResponse(
             data: $responseDto,

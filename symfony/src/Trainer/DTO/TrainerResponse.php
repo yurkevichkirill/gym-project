@@ -16,8 +16,8 @@ final readonly class TrainerResponse
         public TrainingTypeResponseDto    $trainingType,
         public string $pricePerHour,
         public string $photoUrl,
-        public string $education,
-        public string $about,
+        public ?string $education,
+        public ?string $about,
     )
     {}
 

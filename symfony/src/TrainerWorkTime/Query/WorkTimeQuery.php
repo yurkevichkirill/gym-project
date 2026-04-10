@@ -54,13 +54,19 @@ final readonly class WorkTimeQuery
     private function createQuery(array $filter): QueryBuilder
     {
         $qb = $this->worktimeRepo->createQueryBuilder('w')
-            ->andWhere('w.trainer = :trainer')
-            ->setParameter('trainer', $filter['trainer'])
-            ->innerJoin('w.trainer', 't')
+            ->leftJoin('w.trainer', 'trainer')
+            ->addSelect('trainer')
             ->leftJoin('w.trainings', 'tr')
-            ->addSelect('tr');
+            ->addSelect('tr')
+            ->leftJoin('trainer.trainingType', 'type')
+            ->addSelect('type');
 
-        if(isset($filter['date'])) {
+        if (isset($filter['trainer'])) {
+            $qb->andWhere('trainer = :trainer')
+                ->setParameter('trainer', $filter['trainer']);
+        }
+
+        if (isset($filter['date'])) {
             $qb->andWhere('w.date = :date')
                 ->setParameter('date', $filter['date']);
         }
