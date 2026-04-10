@@ -14,6 +14,7 @@ use App\Exception\DateTimeAlreadyTakenException;
 use App\Exception\NoActiveMembershipException;
 use App\Membership\Enum\MembershipStatusEnum;
 use App\Membership\Repository\MembershipRepository;
+use App\Membership\Service\MembershipManager;
 use App\Trainer\Repository\TrainerRepository;
 use App\Trainer\Service\TrainerManager;
 use App\TrainerWorkTime\Entity\TrainerWorkTime;
@@ -21,6 +22,7 @@ use App\TrainerWorkTime\Repository\TrainerWorkTimeRepository;
 use App\TrainerWorkTime\Service\WorkTimeManager;
 use App\Training\Entity\Training;
 use App\Training\Repository\TrainingRepository;
+use DateInterval;
 use DateMalformedIntervalStringException;
 use DateMalformedStringException;
 use DateTimeImmutable;
@@ -33,11 +35,11 @@ final readonly class BookingManager
         private BookingRepository         $bookingRepo,
         private TrainingRepository        $trainingRepo,
         private TrainerWorkTimeRepository $worktimeRepo,
-        private MembershipRepository $membershipRepo,
         private TrainerManager            $trainerManager,
         private ClientManager             $clientManager,
         private WorkTimeManager           $worktimeManager,
         private TrainerRepository         $trainerRepo,
+        private MembershipManager         $membershipManager,
     )
     {}
 
@@ -59,7 +61,9 @@ final readonly class BookingManager
 
         $this->validateTrainingTimeAvailable($worktime, $dto->startTime, $dto->durationMinutes);
 
-        $this->validateActiveMembership($client);
+        if (!$this->membershipManager->hasActiveMembership($client)) {
+            throw new NoActiveMembershipException();
+        }
 
         $price = $this->trainerManager->countPrice($worktime->getTrainer(), $dto->durationMinutes);
         $payment = $this->clientManager->pay($client, $price, $worktime->getTrainer());
@@ -88,18 +92,6 @@ final readonly class BookingManager
         $this->clientManager->refund($client, $booking->getPayment());
 
         $this->bookingRepo->remove($booking);
-    }
-
-    private function validateActiveMembership(Client $client): void
-    {
-        $activeMembership = $this->membershipRepo->findOneBy([
-            'client' => $client,
-            'status' => MembershipStatusEnum::ACTIVE
-        ]);
-
-        if (!$activeMembership) {
-            throw new NoActiveMembershipException();
-        }
     }
 
     /**

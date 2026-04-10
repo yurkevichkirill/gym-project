@@ -16,7 +16,7 @@ use Doctrine\ORM\Mapping as ORM;
 class Trainer extends User
 {
     #[ORM\ManyToOne(targetEntity: TrainingType::class, inversedBy: 'trainers')]
-    #[ORM\JoinColumn(name: 'training_type_id', referencedColumnName: 'id', nullable: true, onDelete: 'SET NULL')]
+    #[ORM\JoinColumn(name: 'training_type_id', referencedColumnName: 'id', onDelete: 'SET NULL')]
     private ?TrainingType $trainingType = null;
 
     #[ORM\Column(type: Types::DECIMAL, precision: 10, scale: 2)]

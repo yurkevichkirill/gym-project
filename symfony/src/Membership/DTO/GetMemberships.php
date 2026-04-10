@@ -15,8 +15,8 @@ class GetMemberships
     public int $limit;
 
     public function __construct(
-        Client $client,
         string $sortRaw = 'bookedAt:ASC',
+        ?Client $client = null,
         ?MembershipPlan $membershipPlan = null,
         ?string $status = null,
         ?int $minVisits = null,
@@ -32,24 +32,28 @@ class GetMemberships
     }
 
     private function putFilter (
-        Client $client,
+        ?Client $client = null,
         ?MembershipPlan $membershipPlan = null,
         ?string $status = null,
         ?int $minVisits = null,
         ?int $maxVisits = null,
     ): array
     {
-        $filter = ['client' => $client];
-        if($membershipPlan !== null) {
+        $filter = [];
+
+        if ($client !== null) {
+            $filter = ['client' => $client];
+        }
+        if ($membershipPlan !== null) {
             $filter['membershipPlan'] = $membershipPlan;
         }
-        if($status !== null) {
+        if ($status !== null) {
             $filter['status'] = $status;
         }
-        if($minVisits !== null) {
+        if ($minVisits !== null) {
             $filter['minVisits'] = $minVisits;
         }
-        if($maxVisits !== null) {
+        if ($maxVisits !== null) {
             $filter['maxVisits'] = $maxVisits;
         }
 

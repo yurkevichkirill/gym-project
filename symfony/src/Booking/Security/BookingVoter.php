@@ -32,7 +32,6 @@ class BookingVoter extends Voter
     protected function voteOnAttribute(string $attribute, mixed $subject, TokenInterface $token, ?Vote $vote = null): bool
     {
         $user = $token->getUser();
-        if(in_array("ROLE_ADMIN", $user->getRoles(), true)) return true;
 
         if(!$user instanceof Client) return false;
 

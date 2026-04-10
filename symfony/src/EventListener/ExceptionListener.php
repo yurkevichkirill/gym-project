@@ -2,6 +2,7 @@
 
 namespace App\EventListener;
 
+use App\Exception\InvalidMembershipStatusException;
 use LogicException;
 use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -24,7 +25,7 @@ final class ExceptionListener
             $exception instanceof NotFoundHttpException => 404,
             $exception instanceof BadRequestHttpException  => 400,
             $exception instanceof LogicException => 422,
-            $exception instanceof ConflictHttpException => 409,
+            $exception instanceof ConflictHttpException, $exception instanceof InvalidMembershipStatusException => 409,
             $exception instanceof UnauthorizedHttpException => 401,
             $exception instanceof AccessDeniedHttpException => 403,
 
