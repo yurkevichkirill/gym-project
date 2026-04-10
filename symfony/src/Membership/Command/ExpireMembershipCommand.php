@@ -14,25 +14,23 @@ use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 
 #[AsCommand(name: 'app:membership:expire')]
-final class ExpireMembershipCommand extends Command
+final readonly class ExpireMembershipCommand
 {
     public function __construct(
-        private readonly MembershipExpirationService $service,
+        private MembershipExpirationService $service,
     )
-    {
-        parent::__construct();
-    }
+    {}
 
     /**
      * @throws OptimisticLockException
      * @throws ORMException
      */
-    protected  function execute(InputInterface $input, OutputInterface $output): int
+    public function __invoke(InputInterface $input, OutputInterface $output): int
     {
         $io = new SymfonyStyle($input, $output);
         $count = $this->service->expire();
         $io->success("Updated {$count} expired memberships");
 
-        return self::SUCCESS;
+        return Command::SUCCESS;
     }
 }

@@ -4,7 +4,7 @@ import {apiGet, apiPatch} from "@/lib/apiClient";
 import UserPersonalEditType from "@/types/user/user-edit.type";
 
 export const getMe = async (): Promise<UserPersonalType> => {
-    const data = await apiGet<ApiResponse<UserPersonalType>>('/me');
+    const data = await apiGet<ApiResponse<UserPersonalType>>('/me/');
 
     return data.data;
 }
