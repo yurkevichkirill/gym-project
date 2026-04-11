@@ -20,7 +20,7 @@ final class MembershipPlanController extends AbstractController
 {
     #[Route('/api/membership/plans/', methods: ['POST'], format: 'json')]
     #[OA\RequestBody(content: new Model(type: CreateMembershipPlanRequest::class))]
-    #[OA\Tag(name: "Admin: Membership Plan")]
+    #[OA\Tag(name: "Admin: MembershipPlan")]
     #[IsGranted('ROLE_ADMIN')]
     public function create(
         #[MapRequestPayload] CreateMembershipPlanRequest $requestDto,
@@ -38,7 +38,7 @@ final class MembershipPlanController extends AbstractController
 
     #[Route('/api/membership/plans/{id}/', methods: ['PATCH', 'PUT'], format: 'json')]
     #[OA\RequestBody(content: new Model(type: UpdateMembershipPlanRequest::class))]
-    #[OA\Tag(name: "Admin: Membership Plan")]
+    #[OA\Tag(name: "Admin: MembershipPlan")]
     #[IsGranted('ROLE_ADMIN')]
     public function update(
         #[MapRequestPayload] UpdateMembershipPlanRequest $requestDto,
@@ -56,7 +56,7 @@ final class MembershipPlanController extends AbstractController
     }
 
     #[Route('/api/membership/plans/{id}/', methods: ['DELETE'], format: 'json')]
-    #[OA\Tag(name: "Admin: Membership Plan")]
+    #[OA\Tag(name: "Admin: MembershipPlan")]
     #[IsGranted('ROLE_ADMIN')]
     public function remove(
         MembershipPlanManager $membershipPlanManager,

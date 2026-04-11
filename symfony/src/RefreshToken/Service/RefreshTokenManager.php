@@ -56,7 +56,7 @@ final readonly class RefreshTokenManager
 
         $user = $tokenEntity->getUser();
 
-        if ($user->isBlocked()) {
+        if ($user->isDeleted()) {
             $this->repo->removeAllByUser($user);
             throw new AccessDeniedHttpException('User is blocked');
         }

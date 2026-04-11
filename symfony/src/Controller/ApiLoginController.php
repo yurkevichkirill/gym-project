@@ -19,9 +19,6 @@ use OpenApi\Attributes as OA;
 
 final class ApiLoginController extends AbstractController
 {
-    /**
-     * @throws RandomException
-     */
     #[Route('/api/login/', name: 'app_api_login', methods: ['POST'])]
     #[OA\Tag(name: "Authorization")]
     #[OA\RequestBody(content: new Model(type: LoginUserRequest::class))]
