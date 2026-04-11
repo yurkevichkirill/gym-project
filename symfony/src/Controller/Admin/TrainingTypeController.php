@@ -2,14 +2,21 @@
 
 namespace App\Controller\Admin;
 
+use App\Response\OkResponse;
+use App\TrainingType\DTO\CreateTrainingTypeRequest;
+use App\TrainingType\DTO\UpdateTrainingTypeRequest;
 use App\TrainingType\Entity\TrainingType;
+use App\TrainingType\Mapper\TrainingTypeMapperInterface;
 use App\TrainingType\Repository\TrainingTypeRepository;
+use App\TrainingType\Service\TrainingTypeManager;
 use App\TrainingType\TrainingTypeServiceInterface;
 use Nelmio\ApiDocBundle\Attribute\Model;
 use OpenApi\Attributes as OA;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Component\Serializer\Normalizer\AbstractNormalizer;
@@ -19,89 +26,53 @@ use Throwable;
 
 final class TrainingTypeController extends AbstractController
 {
-    #[Route('api/training-types', methods: ['POST'], format: 'json')]
-    #[OA\RequestBody(content: new Model(type: TrainingType::class, groups: ['create-update-training-type']))]
+    #[Route('/api/training/types/', methods: ['POST'], format: 'json')]
+    #[OA\RequestBody(content: new Model(type: CreateTrainingTypeRequest::class))]
+    #[OA\Tag(name: "Admin: TrainingType")]
     #[IsGranted('ROLE_ADMIN')]
     public function create(
-        Request $request,
-        TrainingTypeRepository $repo,
-        SerializerInterface $serializer,
-        ValidatorInterface $validator
-    ): JsonResponse
+        #[MapRequestPayload] CreateTrainingTypeRequest $requestDto,
+        TrainingTypeManager $manager,
+        TrainingTypeMapperInterface $mapper,
+    ): OkResponse
     {
-        $json = $request->getContent();
-        try {
-            $trainingType = $serializer->deserialize($json, TrainingType::class, 'json');
-        } catch (Throwable $e) {
-            return $this->json(['error' => $e->getMessage()], 400);
-        }
+        $responseDto = $mapper->map($manager->create($requestDto));
 
-        $errors = $validator->validate($trainingType);
-        if (count($errors) > 0) {
-            $errorMessages = [];
-            foreach ($errors as $error) {
-                $errorMessages[$error->getPropertyPath()][] = $error->getMessage();
-            }
-
-            return $this->json(['errors' => $errorMessages], 422);
-        }
-
-        try {
-            $repo->create($trainingType);
-        } catch (Throwable $e) {
-            return $this->json(['error' => $e->getMessage()], 400);
-        }
-
-        return $this->json($trainingType, 201, [], [
-            'groups' => ['public-training-type']
-        ]);
+        return new OkResponse(
+            data: $responseDto,
+            status: 201,
+        );
     }
 
-    #[Route('api/training-types/{id}', methods: ['PATCH', 'PUT'], format: 'json')]
-    #[OA\RequestBody(content: new Model(type: TrainingType::class, groups: ['create-update-training-type']))]
+    #[Route('/api/training/types/{id}/', methods: ['PATCH', 'PUT'], format: 'json')]
+    #[OA\RequestBody(content: new Model(type: UpdateTrainingTypeRequest::class))]
+    #[OA\Tag(name: "Admin: TrainingType")]
     #[IsGranted('ROLE_ADMIN')]
     public function update(
+        #[MapRequestPayload] UpdateTrainingTypeRequest $requestDto,
         TrainingType $trainingType,
-        Request $request,
-        SerializerInterface $serializer,
-        TrainingTypeRepository $repo,
-        ValidatorInterface $validator
-    ): JsonResponse
+        TrainingTypeManager $manager,
+        TrainingTypeMapperInterface $mapper,
+    ): OkResponse
     {
-        try {
-            $serializer->deserialize($request->getContent(), TrainingType::class, 'json', [
-                AbstractNormalizer::OBJECT_TO_POPULATE => $trainingType
-            ]);
-            $repo->save();
-        } catch (Throwable $e) {
-            return $this->json(['error' => $e->getMessage()], 400);
-        }
+        $responseDto = $mapper->map($manager->update($requestDto, $trainingType));
 
-        $errors = $validator->validate($trainingType);
-        if (count($errors) > 0) {
-            $errorMessages = [];
-            foreach ($errors as $error) {
-                $errorMessages[$error->getPropertyPath()][] = $error->getMessage();
-            }
-
-            return $this->json(['errors' => $errorMessages], 422);
-        }
-
-        return $this->json($trainingType, 200, [], [
-            'groups' => ['public-training-type']
-        ]);
+        return new OkResponse(
+            data: $responseDto,
+            status: 201,
+        );
     }
 
-    #[Route('api/training-types/{id}', methods: ['DELETE'], format: 'json')]
+    #[Route('/api/training/types/{id}/', methods: ['DELETE'], format: 'json')]
+    #[OA\Tag(name: "Admin: TrainingType")]
     #[IsGranted('ROLE_ADMIN')]
-    public function delete(TrainingTypeRepository $repo, TrainingType $trainingType): JsonResponse
+    public function delete(
+        TrainingType $trainingType,
+        TrainingTypeManager $manager,
+    ): Response
     {
-        try {
-            $repo->remove($trainingType);
-        } catch (Throwable $e) {
-            return $this->json(['error' => $e->getMessage()], 400);
-        }
+        $manager->remove($trainingType);
 
-        return $this->json(null, 204);
+        return new Response(status: Response::HTTP_NO_CONTENT);
     }
 }
