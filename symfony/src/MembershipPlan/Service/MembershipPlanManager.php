@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace App\MembershipPlan\Service;
 
 use App\MembershipPlan\DTO\CreateMembershipPlanRequest;
+use App\MembershipPlan\DTO\UpdateMembershipPlanRequest;
 use App\MembershipPlan\Entity\MembershipPlan;
 use App\MembershipPlan\Repository\MembershipPlanRepository;
+use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Exception\ORMException;
 use Doctrine\ORM\OptimisticLockException;
 
@@ -14,13 +16,10 @@ final readonly class MembershipPlanManager
 {
     public function __construct(
         private MembershipPlanRepository $repo,
+        private EntityManagerInterface  $entityManager,
     )
     {}
 
-    /**
-     * @throws OptimisticLockException
-     * @throws ORMException
-     */
     public function create(CreateMembershipPlanRequest $dto): MembershipPlan
     {
         $membershipPlan = new MembershipPlan();
@@ -32,12 +31,35 @@ final readonly class MembershipPlanManager
 
         $this->repo->create($membershipPlan);
 
+        $this->entityManager->flush();
+
         return $membershipPlan;
     }
 
-    public function update(CreateMembershipPlanRequest $dto, MembershipPlan $membershipPlan): MembershipPlan
+    public function update(UpdateMembershipPlanRequest $requestDto, MembershipPlan $membershipPlan): MembershipPlan
     {
+        if ($requestDto->durationDays !== null) {
+            $membershipPlan->setDurationDays($requestDto->durationDays);
+        }
+        if ($requestDto->name !== null) {
+            $membershipPlan->setname($requestDto->name);
+        }
+        if ($requestDto->sessionLimit !== null) {
+            $membershipPlan->setSessionLimit($requestDto->sessionLimit);
+        }
+        if ($requestDto->price !== null) {
+            $membershipPlan->setPrice($requestDto->price);
+        }
 
+        $this->entityManager->flush();
+
+        return $membershipPlan;
     }
 
+    public function remove(MembershipPlan $membershipPlan): void
+    {
+        $this->repo->remove($membershipPlan);
+
+        $this->entityManager->flush();
+    }
 }

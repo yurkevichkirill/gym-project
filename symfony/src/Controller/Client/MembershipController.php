@@ -57,13 +57,13 @@ final class MembershipController extends AbstractController
 
         $queryDto = new GetMemberships(
             $sortRaw,
-            $client,
             $membershipPlan,
             $status,
             $minVisits,
             $maxVisits,
             $page,
             $limit,
+            $client,
         );
 
         $memberships = $handler->handle($queryDto);

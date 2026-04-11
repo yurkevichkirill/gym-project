@@ -66,14 +66,13 @@ final class BookingController extends AbstractController
 
         $queryDto = new GetBookings(
             $sortRaw,
-            null,
             $trainer,
             $date,
             $durationMinutes,
             $startTime,
             $status,
             $page,
-            $limit
+            $limit,
         );
 
         $bookings = $handler->handle($queryDto);
@@ -129,14 +128,14 @@ final class BookingController extends AbstractController
 
         $queryDto = new GetBookings(
             $sortRaw,
-            $client,
             $trainer,
             $date,
             $durationMinutes,
             $startTime,
             $status,
             $page,
-            $limit
+            $limit,
+            $client,
         );
 
         $bookings = $handler->handle($queryDto);

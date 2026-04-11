@@ -16,7 +16,6 @@ final readonly class GetBookings
 
     public function __construct(
         string $sortRaw = 'bookedAt:ASC',
-        ?Client $client = null,
         ?Trainer $trainer = null,
         ?string $date = null,
         ?int $durationMinutes = null,
@@ -24,6 +23,7 @@ final readonly class GetBookings
         ?string $status = null,
         int $page = 1,
         int $limit = 20,
+        ?Client $client = null,
     )
     {
         $this->sort = $this->parseSort($sortRaw);

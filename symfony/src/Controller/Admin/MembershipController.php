@@ -11,8 +11,6 @@ use App\Membership\Query\MembershipQuery;
 use App\Membership\Service\MembershipManager;
 use App\MembershipPlan\Repository\MembershipPlanRepository;
 use App\Response\OkResponse;
-use Doctrine\ORM\Exception\ORMException;
-use Doctrine\ORM\OptimisticLockException;
 use Nelmio\ApiDocBundle\Attribute\Model;
 use OpenApi\Attributes as OA;
 use Psr\Cache\InvalidArgumentException;
@@ -106,13 +104,13 @@ final class MembershipController extends AbstractController
 
         $queryDto = new GetMemberships(
             $sortRaw,
-            $client,
             $membershipPlan,
             $status,
             $minVisits,
             $maxVisits,
             $page,
             $limit,
+            $client,
         );
 
         $memberships = $handler->handle($queryDto);
@@ -211,7 +209,7 @@ final class MembershipController extends AbstractController
         );
     }
 
-    #[Route('api/memberships/{id}/terminate/', methods: ['POST'], format: 'json')]
+    #[Route('/api/memberships/{id}/terminate/', methods: ['POST'], format: 'json')]
     #[OA\Tag(name: "Admin: Membership")]
     #[IsGranted('ROLE_ADMIN')]
     public function terminate(

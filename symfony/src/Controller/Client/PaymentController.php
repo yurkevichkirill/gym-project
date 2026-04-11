@@ -50,14 +50,14 @@ final class PaymentController extends AbstractController
         $limit = (int) $request->query->get('limit', 20);
 
         $queryDto = new GetPayments(
-            $client,
             $sortRaw,
             $trainer,
             $minAmount,
             $maxAmount,
             $category,
             $page,
-            $limit
+            $limit,
+            $client,
         );
 
         $payments = $handler->handle($queryDto);
