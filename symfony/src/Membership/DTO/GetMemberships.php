@@ -16,13 +16,13 @@ class GetMemberships
 
     public function __construct(
         string $sortRaw = 'bookedAt:ASC',
-        ?Client $client = null,
         ?MembershipPlan $membershipPlan = null,
         ?string $status = null,
         ?int $minVisits = null,
         ?int $maxVisits = null,
         int $page = 1,
-        int $limit = 20
+        int $limit = 20,
+        ?Client $client = null,
     )
     {
         $this->sort = $this->parseSort($sortRaw);

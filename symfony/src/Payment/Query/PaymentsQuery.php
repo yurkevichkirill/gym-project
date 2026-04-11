@@ -40,8 +40,11 @@ final readonly class PaymentsQuery
             $qb->setFirstResult($offset)
                 ->setMaxResults($dto->limit);
 
-            $item->tag(['payments_list_' . $dto->filter['client']->getId()]);
-
+            if (isset($dto->filter['client'])) {
+                $item->tag(['payments_list_' . $dto->filter['client']->getId()]);
+            } else {
+                $item->tag(["payments_list_all"]);
+            }
             return $qb->getQuery()->getResult();
         });
     }
@@ -59,8 +62,10 @@ final readonly class PaymentsQuery
             ->leftJoin("t.trainingType", 'type')
             ->addSelect("type");
 
-        $qb->andWhere('p.client = :client')
-            ->setParameter('client', $filter['client']);
+        if (isset($filter['client'])) {
+            $qb->andWhere('p.client = :client')
+                ->setParameter('client', $filter['client']);
+        }
 
         if(isset($filter['trainer'])) {
             $qb->andWhere('p.trainer = :trainer')
@@ -93,18 +98,19 @@ final readonly class PaymentsQuery
             'limit' => $query->limit,
         ];
 
-        $params['client'] = $query->filter['client'];
-
-        if(isset($query->filter['trainer'])) {
+        if (isset($query->filter['client'])) {
+            $params['client'] = $query->filter['client'];
+        }
+        if (isset($query->filter['trainer'])) {
             $params['trainer'] = $query->filter['trainer'];
         }
-        if(isset($query->filter['minAmount'])) {
+        if (isset($query->filter['minAmount'])) {
             $params['minAmount'] = $query->filter['minAmount'];
         }
-        if(isset($query->filter['maxAmount'])) {
+        if (isset($query->filter['maxAmount'])) {
             $params['maxAmount'] = $query->filter['maxAmount'];
         }
-        if(isset($query->filter['category'])) {
+        if (isset($query->filter['category'])) {
             $params['category'] = $query->filter['category'];
         }
 

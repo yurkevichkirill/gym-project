@@ -9,7 +9,9 @@ use App\Booking\Entity\Booking;
 use App\Booking\Enum\BookingStatusEnum;
 use App\Booking\Repository\BookingRepository;
 use App\Client\Entity\Client;
+use App\Client\Service\AvailabilityService;
 use App\Client\Service\ClientManager;
+use App\Client\Service\PaymentService;
 use App\Exception\DateTimeAlreadyTakenException;
 use App\Exception\NoActiveMembershipException;
 use App\Membership\Enum\MembershipStatusEnum;
@@ -38,10 +40,11 @@ final readonly class BookingManager
         private TrainingRepository        $trainingRepo,
         private TrainerWorkTimeRepository $worktimeRepo,
         private TrainerManager            $trainerManager,
-        private ClientManager             $clientManager,
         private WorkTimeManager           $worktimeManager,
         private TrainerRepository         $trainerRepo,
         private MembershipManager         $membershipManager,
+        private AvailabilityService       $clientAvailableService,
+        private PaymentService            $paymentService,
         private EntityManagerInterface    $entityManager,
     )
     {}
@@ -51,7 +54,7 @@ final readonly class BookingManager
      */
     public function book(Client $client, BookingRequest $dto): Booking
     {
-        $this->clientManager->ensureNotBlocked($client);
+        $this->clientAvailableService->ensureNotBlocked($client);
 
         $trainer = $this->trainerRepo->find($dto->trainerId);
 
@@ -77,7 +80,7 @@ final readonly class BookingManager
                 throw new NoActiveMembershipException();
             }
 
-            $payment = $this->clientManager->pay($client, $price, $worktime->getTrainer());
+            $payment = $this->paymentService->pay($client, $price, $worktime->getTrainer());
 
             $training = new Training();
             $training->setDurationMinutes($dto->durationMinutes);
@@ -98,7 +101,7 @@ final readonly class BookingManager
     public function cancelBooking(Client $client, Booking $booking): void
     {
         $this->entityManager->wrapInTransaction(function () use ($client, $booking) {
-            $this->clientManager->refund($client, $booking->getPayment());
+            $this->paymentService->refund($client, $booking->getPayment());
             $this->bookingRepo->remove($booking);
         });
     }
