@@ -11,7 +11,6 @@ use App\Booking\Service\BookingManager;
 use App\Client\Entity\Client;
 use App\Response\OkResponse;
 use App\Trainer\Repository\TrainerRepository;
-use DateMalformedIntervalStringException;
 use DateMalformedStringException;
 use Doctrine\ORM\Exception\ORMException;
 use Doctrine\ORM\OptimisticLockException;
@@ -105,11 +104,9 @@ final class BookingController extends AbstractController
     }
 
     /**
-     * @throws OptimisticLockException
      * @throws DateMalformedStringException
-     * @throws ORMException|DateMalformedIntervalStringException
      */
-    #[Route('api/me/bookings/', methods: ['POST'], format: 'json')]
+    #[Route('/api/me/bookings/', methods: ['POST'], format: 'json')]
     #[OA\RequestBody(content: new Model(type: BookingRequest::class))]
     #[OA\Tag(name: "Client: Bookings")]
     #[IsGranted('ROLE_CLIENT')]
@@ -128,10 +125,6 @@ final class BookingController extends AbstractController
         );
     }
 
-    /**
-     * @throws OptimisticLockException
-     * @throws ORMException
-     */
     #[Route('/api/me/bookings/{id}/', methods: ['DELETE'], format: 'json')]
     #[OA\Tag(name: "Client: Bookings")]
     public function remove(

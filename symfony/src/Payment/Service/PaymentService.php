@@ -5,65 +5,68 @@ declare(strict_types=1);
 namespace App\Payment\Service;
 
 use App\Client\Entity\Client;
-use App\Client\Repository\ClientRepository;
+use App\Client\Service\AvailabilityService;
+use App\Exception\InsufficientFundsException;
 use App\Payment\Entity\Payment;
 use App\Payment\Enum\PaymentCategoryEnum;
-use App\Payment\Enum\PaymentStatusEnum;
 use App\Payment\Repository\PaymentRepository;
-use Psr\Cache\InvalidArgumentException;
-use Symfony\Component\Cache\CacheItem;
-use Symfony\Contracts\Cache\TagAwareCacheInterface;
+use App\Trainer\Entity\Trainer;
 
-readonly class PaymentService implements PaymentServiceInterface
+final readonly class PaymentService
 {
     public function __construct(
-        private ClientRepository $clientRepo,
         private PaymentRepository $paymentRepo,
-        private TagAwareCacheInterface $gymCache
+        private AvailabilityService $availabilityService,
     )
     {}
 
-    public function pay(Client $client, Payment $payment): void
+    public function pay(Client $client, float $price, ?Trainer $trainer = null): Payment
     {
-        $newBalance = $client->getBalance() - $payment->getAmount();
-        $client->setBalance((string) $newBalance);
+        $clientBalance = (float) $client->getBalance();
+        if (!$this->availabilityService->hasClientEnoughMoney($clientBalance, $price)) {
+            throw new InsufficientFundsException();
+        }
+
+        $payment = new Payment();
+        $payment->setClient($client);
+        $payment->setAmount((string) $price);
+        $payment->setIsRefund(false);
+        if ($trainer) {
+            $payment->setTrainer($trainer);
+            $payment->setCategory(PaymentCategoryEnum::TRAINER);
+
+            $trainerBalance = $trainer->getBalance();
+            $trainer->setBalance((string) ($trainerBalance + $price));
+        } else {
+            $payment->setCategory(PaymentCategoryEnum::MEMBERSHIP);
+        }
+        $this->paymentRepo->create($payment);
+
+        $client->setBalance((string) ($clientBalance - $price));
+
+        return $payment;
     }
 
-    /**
-     * @throws InvalidArgumentException
-     */
-    public function findBy(array $sort, ?int $clientId = null, ?PaymentCategoryEnum $category = null, ?PaymentStatusEnum $status = null): array
+    public function refund(Client $client, Payment $payment): void
     {
-        $cacheKey = $this->generateCacheKey($sort, $clientId, $category, $status);
+        $clientBalance = (float) $client->getBalance();
 
-        return $this->gymCache->get($cacheKey, static function (CacheItem $item) use ($sort, $clientId, $category, $status): array
-        {
-            $item->tag(['payments_list']);
+        $paymentRefund = new Payment();
+        $paymentRefund->setClient($client);
+        $paymentRefund->setAmount($payment->getAmount());
+        $paymentRefund->setIsRefund(true);
 
-            $criteria = [];
-            if($clientId) {
-                $client = $this->clientRepo->find($clientId);
-                $criteria['client'] = $client;
-            }
-            if($category) {
-                $criteria['category'] = $category;
-            }
-            if($status) {
-                $criteria['status'] = $status;
-            }
+        $trainer = $payment->getTrainer();
+        if ($trainer !== null) {
+            $paymentRefund->setTrainer($payment->getTrainer());
 
-            return $this->paymentRepo->findBy($criteria, $sort);
-        });
-    }
+            $trainerBalance = $trainer->getBalance();
+            $trainer->setBalance((string) ($trainerBalance - $payment->getAmount()));
+        }
+        $paymentRefund->setCategory($payment->getCategory());
 
-    public function generateCacheKey(array $sort, ?int $clientId, ?PaymentCategoryEnum $category, ?PaymentStatusEnum $status): string
-    {
-        $params = [
-            'sort' => $sort,
-            'category' => $category,
-            'status' => $status
-        ];
+        $this->paymentRepo->create($paymentRefund);
 
-        return 'payments_' . md5(serialize($params));
+        $client->setBalance((string) ($clientBalance + $payment->getAmount()));
     }
 }

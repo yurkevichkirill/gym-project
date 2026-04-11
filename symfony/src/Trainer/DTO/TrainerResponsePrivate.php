@@ -18,8 +18,9 @@ final readonly class TrainerResponsePrivate
         public TrainingTypeResponseDto $trainingType,
         public string $pricePerHour,
         public string $photoUrl,
-        public string $education,
-        public string $about,
+        public ?string $education,
+        public ?string $about,
+        public string $balance,
         public string $type,
     )
     {}
@@ -37,6 +38,7 @@ final readonly class TrainerResponsePrivate
             photoUrl: $trainer->getPhotoUrl(),
             education: $trainer->getEducation(),
             about: $trainer->getAbout(),
+            balance: $trainer->getBalance(),
             type: 'trainer',
         );
     }

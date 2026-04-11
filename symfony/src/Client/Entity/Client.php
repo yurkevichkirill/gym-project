@@ -20,12 +20,9 @@ use Gedmo\Mapping\Annotation as Gedmo;
 class Client extends User
 {
     #[ORM\Column]
-    #[Assert\Positive]
-    #[Groups(['public-client', 'create-update-client'])]
     private ?int $age = null;
 
     #[ORM\Column(type: Types::DECIMAL, precision: 10, scale: 2)]
-    #[Groups(['public-client', 'create-update-client'])]
     private ?string $balance = "0.00";
 
     /**

@@ -19,56 +19,13 @@ class TrainerRepository extends ServiceEntityRepository
         parent::__construct($registry, Trainer::class);
     }
 
-    /**
-     * @throws OptimisticLockException
-     * @throws ORMException
-     */
-    public function save(): void
-    {
-        $this->getEntityManager()->flush();
-    }
-
-    /**
-     * @throws OptimisticLockException
-     * @throws ORMException
-     */
     public function create(Trainer $trainer): void
     {
         $this->getEntityManager()->persist($trainer);
-        $this->save();
     }
 
-    /**
-     * @throws OptimisticLockException
-     * @throws ORMException
-     */
     public function remove(Trainer $trainer): void
     {
         $this->getEntityManager()->remove($trainer);
-        $this->save();
     }
-    //    /**
-    //     * @return OurTrainer[] Returns an array of OurTrainer objects
-    //     */
-    //    public function findByExampleField($value): array
-    //    {
-    //        return $this->createQueryBuilder('t')
-    //            ->andWhere('t.exampleField = :val')
-    //            ->setParameter('val', $value)
-    //            ->orderBy('t.id', 'ASC')
-    //            ->setMaxResults(10)
-    //            ->getQuery()
-    //            ->getResult()
-    //        ;
-    //    }
-
-    //    public function findOneBySomeField($value): ?OurTrainer
-    //    {
-    //        return $this->createQueryBuilder('t')
-    //            ->andWhere('t.exampleField = :val')
-    //            ->setParameter('val', $value)
-    //            ->getQuery()
-    //            ->getOneOrNullResult()
-    //        ;
-    //    }
 }

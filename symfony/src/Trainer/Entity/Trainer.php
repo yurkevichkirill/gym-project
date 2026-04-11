@@ -25,15 +25,15 @@ class Trainer extends User
     #[ORM\Column]
     private ?string $photoUrl = null;
 
-    #[ORM\Column]
+    #[ORM\Column(nullable: true)]
     private ?string $education = null;
 
-    #[ORM\Column]
+    #[ORM\Column(nullable: true)]
     private ?string $about = null;
 
-    /**
-     * @var Collection<int, TrainerWorkTime>
-     */
+    #[ORM\Column(type: Types::DECIMAL, precision: 10, scale: 2)]
+    private ?string $balance = "0.00";
+
     #[ORM\OneToMany(targetEntity: TrainerWorkTime::class, mappedBy: 'trainer', orphanRemoval: true)]
     private Collection $trainerWorkTime;
 
@@ -97,6 +97,18 @@ class Trainer extends User
     public function setPricePerHour(string $pricePerHour): static
     {
         $this->pricePerHour = $pricePerHour;
+
+        return $this;
+    }
+
+    public function getBalance(): ?string
+    {
+        return $this->balance;
+    }
+
+    public function setBalance(?string $balance): static
+    {
+        $this->balance = $balance;
 
         return $this;
     }

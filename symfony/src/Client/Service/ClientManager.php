@@ -11,7 +11,6 @@ use App\Client\DTO\UpdateClientRequest;
 use App\Client\Entity\Client;
 use App\Client\Repository\ClientRepository;
 use App\Membership\Repository\MembershipRepository;
-use App\Payment\Repository\PaymentRepository;
 use App\RefreshToken\Repository\RefreshTokenRepository;
 use App\User\Entity\User;
 use DateTimeImmutable;

@@ -2,15 +2,20 @@
 
 namespace App\Controller\Admin;
 
+use App\Response\OkResponse;
+use App\Trainer\DTO\CreateTrainerRequest;
 use App\Trainer\Entity\Trainer;
+use App\Trainer\Mapper\TrainerMapperInterface;
 use App\Trainer\Repository\TrainerRepository;
-use App\Trainer\Service\TrainerServiceInterface;
+use App\Trainer\Service\TrainerManager;
 use App\TrainingType\Repository\TrainingTypeRepository;
 use Nelmio\ApiDocBundle\Attribute\Model;
 use OpenApi\Attributes as OA;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Component\Serializer\Normalizer\AbstractNormalizer;
@@ -20,56 +25,24 @@ use Throwable;
 
 final class TrainerController extends AbstractController
 {
-    #[Route('api/trainers', methods: ['POST'], format: 'json')]
-    #[OA\RequestBody(content: new Model(type: Trainer::class, groups: ['create-update-trainer']))]
+    #[Route('/api/trainers/', methods: ['POST'], format: 'json')]
+    #[OA\RequestBody(content: new Model(type: CreateTrainerRequest::class))]
     #[IsGranted('ROLE_ADMIN')]
     public function create(
-        Request $request,
-        TrainerRepository $trainerRepo,
-        TrainingTypeRepository $trainingTypeRepo,
-        SerializerInterface $serializer,
-        ValidatorInterface $validator
-    ): JsonResponse
+        #[MapRequestPayload] CreateTrainerRequest $requestDto,
+        TrainerMapperInterface $mapper,
+        TrainerManager $manager,
+    ): OkResponse
     {
-        $data = json_decode($request->getContent(), true);
-        try {
-            $training_type = $trainingTypeRepo->find($data['trainingType']['id']);
-        } catch (Throwable $e) {
-            return $this->json(['error' => $e->getMessage()], 400);
-        }
-        if(is_null($training_type)) {
-            return $this->json(['error' => 'Training type not found'], 404);
-        }
+        $responseDto = $mapper->map($manager->create($requestDto), true);
 
-        try {
-            $trainer = $serializer->deserialize($request->getContent(), Trainer::class, 'json');
-        } catch (Throwable $e) {
-            return $this->json(['error' => $e->getMessage()], 400);
-        }
-        $trainer->setTrainingType($training_type);
-
-        $errors = $validator->validate($trainer);
-        if(count($errors) > 0) {
-            $errorMessages = [];
-            foreach ($errors as $error) {
-                $errorMessages[$error->getPropertyPath()][] = $error->getMessage();
-            }
-
-            return $this->json(['errors' => $errorMessages], 422);
-        }
-
-        try {
-            $trainerRepo->create($trainer);
-        } catch(Throwable $e) {
-            return $this->json(['error' => $e->getMessage()], 400);
-        }
-
-        return $this->json($trainer, 201, [], [
-            'groups' => ['public-trainer']
-        ]);
+        return new OkResponse(
+            data: $responseDto,
+            status: Response::HTTP_OK,
+        );
     }
 
-    #[Route('api/trainers/{id}', methods: ['PUT', 'PATCH'], format: 'json')]
+    #[Route('/api/trainers/{id}/', methods: ['PUT', 'PATCH'], format: 'json')]
     #[OA\RequestBody(content: new Model(type: Trainer::class, groups: ['create-update-trainer']))]
     #[IsGranted('ROLE_ADMIN')]
     public function update(
