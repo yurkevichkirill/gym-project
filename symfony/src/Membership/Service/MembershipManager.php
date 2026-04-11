@@ -6,13 +6,13 @@ namespace App\Membership\Service;
 
 use App\Client\Entity\Client;
 use App\Client\Service\AvailabilityService;
-use App\Client\Service\PaymentService;
 use App\Exception\InvalidMembershipStatusException;
 use App\Exception\MembershipActiveException;
 use App\Membership\Entity\Membership;
 use App\Membership\Enum\MembershipStatusEnum;
 use App\Membership\Repository\MembershipRepository;
 use App\MembershipPlan\Repository\MembershipPlanRepository;
+use App\Payment\Service\PaymentService;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;

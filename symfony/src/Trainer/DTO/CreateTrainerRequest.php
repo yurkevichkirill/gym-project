@@ -2,16 +2,13 @@
 
 declare(strict_types=1);
 
-namespace App\Client\DTO;
+namespace App\Trainer\DTO;
 
 use Symfony\Component\Validator\Constraints as Assert;
 
-readonly class CreateClientRequest
+final readonly class CreateTrainerRequest
 {
     public function __construct(
-        #[Assert\NotBlank]
-        #[Assert\Positive]
-        public int $age,
         #[Assert\NotBlank]
         public string $firstName,
         #[Assert\NotBlank]
@@ -22,6 +19,16 @@ readonly class CreateClientRequest
         public string $phone,
         #[Assert\NotBlank]
         public string $password,
+        #[Assert\NotBlank]
+        #[Assert\Positive]
+        public int $trainingTypeId,
+        #[Assert\NotBlank]
+        #[Assert\Positive]
+        public string $pricePerHour,
+        #[Assert\NotBlank]
+        public string $photoUrl,
+        public ?string $education,
+        public ?string $about,
     )
     {}
 }

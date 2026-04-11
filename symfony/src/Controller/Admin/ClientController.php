@@ -88,7 +88,7 @@ final class ClientController extends AbstractController
             $queryDto->limit,
             $handler->getTotal($queryDto->filter),
             $queryDto->sort,
-            200
+            Response::HTTP_OK
         );
     }
 
@@ -102,7 +102,7 @@ final class ClientController extends AbstractController
     {
         return new OkResponse(
             data: $mapper->map($client),
-            status: 200,
+            status: Response::HTTP_OK,
         );
     }
 
@@ -120,7 +120,7 @@ final class ClientController extends AbstractController
 
         return new OkResponse(
             data: $responseDto,
-            status: 201,
+            status: Response::HTTP_OK,
         );
     }
 

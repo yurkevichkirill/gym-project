@@ -25,29 +25,21 @@ class TrainerWorkTime
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['public-trainer-worktime'])]
     private ?int $id = null;
 
     #[ORM\ManyToOne(inversedBy: 'trainerWorkTime')]
     #[ORM\JoinColumn(nullable: false)]
-    #[Groups(['public-trainer-worktime', 'public-trainer-free-slots'])]
     private ?Trainer $trainer = null;
 
     #[ORM\Column(type: Types::DATE_IMMUTABLE)]
-    #[Groups(['public-trainer-worktime', 'public-trainer-free-slots', 'create-update-trainer-worktime', 'public-training'])]
-    #[Assert\NotBlank]
     #[Context([DateTimeNormalizer::FORMAT_KEY => "Y-m-d"])]
     private ?DateTimeImmutable $date = null;
 
     #[ORM\Column(type: Types::TIME_IMMUTABLE)]
-    #[Groups(['public-trainer-worktime', 'create-update-trainer-worktime'])]
-    #[Assert\NotBlank]
     #[Context([DateTimeNormalizer::FORMAT_KEY => "H:i"])]
     private ?DateTimeImmutable $startTime = null;
 
     #[ORM\Column(type: Types::TIME_IMMUTABLE)]
-    #[Groups(['public-trainer-worktime', 'create-update-trainer-worktime'])]
-    #[Assert\NotBlank]
     #[Context([DateTimeNormalizer::FORMAT_KEY => "H:i"])]
     private ?DateTimeImmutable $endTime = null;
 

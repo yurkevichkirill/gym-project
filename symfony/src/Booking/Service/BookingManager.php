@@ -6,17 +6,13 @@ namespace App\Booking\Service;
 
 use App\Booking\DTO\BookingRequest;
 use App\Booking\Entity\Booking;
-use App\Booking\Enum\BookingStatusEnum;
 use App\Booking\Repository\BookingRepository;
 use App\Client\Entity\Client;
 use App\Client\Service\AvailabilityService;
-use App\Client\Service\ClientManager;
-use App\Client\Service\PaymentService;
 use App\Exception\DateTimeAlreadyTakenException;
 use App\Exception\NoActiveMembershipException;
-use App\Membership\Enum\MembershipStatusEnum;
-use App\Membership\Repository\MembershipRepository;
 use App\Membership\Service\MembershipManager;
+use App\Payment\Service\PaymentService;
 use App\Trainer\Repository\TrainerRepository;
 use App\Trainer\Service\TrainerManager;
 use App\TrainerWorkTime\Entity\TrainerWorkTime;
@@ -24,13 +20,10 @@ use App\TrainerWorkTime\Repository\TrainerWorkTimeRepository;
 use App\TrainerWorkTime\Service\WorkTimeManager;
 use App\Training\Entity\Training;
 use App\Training\Repository\TrainingRepository;
-use DateInterval;
 use DateMalformedIntervalStringException;
 use DateMalformedStringException;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
-use Doctrine\ORM\Exception\ORMException;
-use Doctrine\ORM\OptimisticLockException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 final readonly class BookingManager
