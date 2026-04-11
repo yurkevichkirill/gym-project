@@ -21,33 +21,14 @@ class MembershipRepository extends ServiceEntityRepository
         parent::__construct($registry, Membership::class);
     }
 
-    /**
-     * @throws OptimisticLockException
-     * @throws ORMException
-     */
-    public function save(): void
-    {
-        $this->getEntityManager()->flush();
-    }
-
-    /**
-     * @throws OptimisticLockException
-     * @throws ORMException
-     */
     public function create(Membership $membership): void
     {
         $this->getEntityManager()->persist($membership);
-        $this->save();
     }
 
-    /**
-     * @throws OptimisticLockException
-     * @throws ORMException
-     */
     public function remove(Membership $membership): void
     {
         $this->getEntityManager()->remove($membership);
-        $this->save();
     }
 
     public function findExpired(DateTimeImmutable $curDate): array

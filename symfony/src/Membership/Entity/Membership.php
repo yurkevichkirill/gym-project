@@ -28,8 +28,17 @@ class Membership
     private ?Client $client = null;
 
     #[ORM\ManyToOne(inversedBy: 'memberships')]
-    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
+    #[ORM\JoinColumn(nullable: false, onDelete: 'SET NULL')]
     private ?MembershipPlan $plan = null;
+
+    #[ORM\Column]
+    private ?string $name;
+
+    #[ORM\Column]
+    private ?int $durationDays;
+
+    #[ORM\Column(nullable: true)]
+    private ?int $sessionLimit;
 
     #[ORM\OneToOne(targetEntity: Payment::class, inversedBy: 'membership', cascade: ['persist'])]
     #[ORM\JoinColumn(nullable: false, onDelete: 'SET NULL')]
@@ -107,6 +116,43 @@ class Membership
         return $this;
     }
 
+
+    public function getName(): ?string
+    {
+        return $this->name;
+    }
+
+    public function setName(?string $name): static
+    {
+        $this->name = $name;
+
+        return $this;
+    }
+
+    public function getDurationDays(): ?int
+    {
+        return $this->durationDays;
+    }
+
+    public function setDurationDays(?int $durationDays): static
+    {
+        $this->durationDays = $durationDays;
+
+        return $this;
+    }
+
+    public function getSessionLimit(): ?int
+    {
+        return $this->sessionLimit;
+    }
+
+    public function setSessionLimit(?int $sessionLimit): static
+    {
+        $this->sessionLimit = $sessionLimit;
+
+        return $this;
+    }
+
     public function getStartDate(): ?DateTimeImmutable
     {
         return $this->startDate;
@@ -139,7 +185,7 @@ class Membership
     {
         $this->createdAt = new DateTimeImmutable('');
         $this->startDate = $this->createdAt->add(new DateInterval('P1D'));
-        $this->endDate = $this->startDate->add(new DateInterval("P" . $this->plan->getDurationDays() . "D"));
+        $this->endDate = $this->startDate->add(new DateInterval("P" . $this->getDurationDays() . "D"));
         $this->status = MembershipStatusEnum::ACTIVE;
         $this->visits = 0;
 

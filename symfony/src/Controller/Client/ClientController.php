@@ -20,22 +20,6 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 final class ClientController extends AbstractController
 {
-//    #[Route('/api/me/', methods: ['GET'], format: 'json')]
-//    #[OA\Tag(name: "Client: Client")]
-//    #[IsGranted('ROLE_CLIENT')]
-//    public function get(
-//        #[CurrentUser] Client $client,
-//        ClientMapperInterface $mapper,
-//    ): OkResponse
-//    {
-//        $responseDto = $mapper->map($client);
-//
-//        return new OkResponse(
-//            data: $responseDto,
-//            status: Response::HTTP_OK,
-//        );
-//    }
-
     #[Route('/api/me/', methods: ['PUT', 'PATCH'], format: 'json')]
     #[OA\RequestBody(content: new Model(type: UpdateClientRequest::class))]
     #[OA\Tag(name: "Client: Client")]
@@ -55,10 +39,6 @@ final class ClientController extends AbstractController
         );
     }
 
-    /**
-     * @throws OptimisticLockException
-     * @throws ORMException
-     */
     #[Route('/api/me/', methods: ['DELETE'], format: 'json')]
     #[IsGranted('ROLE_CLIENT')]
     #[OA\Tag(name: "Client: Client")]

@@ -295,8 +295,9 @@ class AppFixtures extends Fixture
 //        $manager->getRepository(Trainer::class)->find(10)->setTrainingType($manager->getRepository(TrainingType::class)->find(4));
 //        $manager->getRepository(Trainer::class)->find(11)->setTrainingType($manager->getRepository(TrainingType::class)->find(5));
 //        $manager->getRepository(Trainer::class)->find(12)->setTrainingType($manager->getRepository(TrainingType::class)->find(6));
-        $manager->getRepository(Membership::class)->find(1)->setStartDate(new \DateTimeImmutable("2026-03-03"))->setEndDate(new \DateTimeImmutable("2026-04-06"));
+//        $manager->getRepository(Membership::class)->find(1)->setStartDate(new \DateTimeImmutable("2026-03-03"))->setEndDate(new \DateTimeImmutable("2026-04-06"));
 
+        $manager->getRepository(Client::class)->find(7)->setBalance("99999");
 
         $manager->flush();
     }

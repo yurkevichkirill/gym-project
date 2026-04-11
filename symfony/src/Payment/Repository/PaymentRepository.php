@@ -19,33 +19,14 @@ class PaymentRepository extends ServiceEntityRepository
         parent::__construct($registry, Payment::class);
     }
 
-    /**
-     * @throws OptimisticLockException
-     * @throws ORMException
-     */
-    public function save(): void
-    {
-        $this->getEntityManager()->flush();
-    }
-
-    /**
-     * @throws OptimisticLockException
-     * @throws ORMException
-     */
     public function create(Payment $payment): void
     {
         $this->getEntityManager()->persist($payment);
-        $this->save();
     }
 
-    /**
-     * @throws OptimisticLockException
-     * @throws ORMException
-     */
     public function remove(Payment $payment): void
     {
         $this->getEntityManager()->remove($payment);
-        $this->save();
     }
 
     //    /**

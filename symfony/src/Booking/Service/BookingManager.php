@@ -26,8 +26,10 @@ use DateInterval;
 use DateMalformedIntervalStringException;
 use DateMalformedStringException;
 use DateTimeImmutable;
+use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Exception\ORMException;
 use Doctrine\ORM\OptimisticLockException;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 final readonly class BookingManager
 {
@@ -40,58 +42,65 @@ final readonly class BookingManager
         private WorkTimeManager           $worktimeManager,
         private TrainerRepository         $trainerRepo,
         private MembershipManager         $membershipManager,
+        private EntityManagerInterface    $entityManager,
     )
     {}
 
     /**
-     * @throws OptimisticLockException
      * @throws DateMalformedStringException
-     * @throws ORMException
-     * @throws DateMalformedIntervalStringException|DateTimeAlreadyTakenException
      */
     public function book(Client $client, BookingRequest $dto): Booking
     {
         $this->clientManager->ensureNotBlocked($client);
 
         $trainer = $this->trainerRepo->find($dto->trainerId);
+
+        if (!$trainer) {
+            throw new NotFoundHttpException('Trainer not found');
+        }
+
         $worktime = $this->worktimeRepo->findOneBy([
             'trainer' => $trainer,
             'date' => new DateTimeImmutable($dto->date),
         ]);
 
-        $this->validateTrainingTimeAvailable($worktime, $dto->startTime, $dto->durationMinutes);
-
-        if (!$this->membershipManager->hasActiveMembership($client)) {
-            throw new NoActiveMembershipException();
+        if (!$worktime) {
+            throw new NotFoundHttpException('Worktime not found');
         }
 
         $price = $this->trainerManager->countPrice($worktime->getTrainer(), $dto->durationMinutes);
-        $payment = $this->clientManager->pay($client, $price, $worktime->getTrainer());
 
-        $training = new Training();
-        $training->setDurationMinutes($dto->durationMinutes);
-        $training->setStartTime(new DateTimeImmutable($dto->startTime));
-        $training->setTrainerWorkTime($worktime);
-        $this->trainingRepo->create($training);
+        return $this->entityManager->wrapInTransaction(function () use ($client, $price, $worktime, $dto) {
+            $this->validateTrainingTimeAvailable($worktime, $dto->startTime, $dto->durationMinutes);
 
-        $booking = new Booking();
-        $booking->setClient($client);
-        $booking->setTraining($training);
-        $booking->setPayment($payment);
-        $this->bookingRepo->create($booking);
+            if (!$this->membershipManager->hasActiveMembership($client)) {
+                throw new NoActiveMembershipException();
+            }
 
-        return $booking;
+            $payment = $this->clientManager->pay($client, $price, $worktime->getTrainer());
+
+            $training = new Training();
+            $training->setDurationMinutes($dto->durationMinutes);
+            $training->setStartTime(new DateTimeImmutable($dto->startTime));
+            $training->setTrainerWorkTime($worktime);
+            $this->trainingRepo->create($training);
+
+            $booking = new Booking();
+            $booking->setClient($client);
+            $booking->setTraining($training);
+            $booking->setPayment($payment);
+            $this->bookingRepo->create($booking);
+
+            return $booking;
+        });
     }
 
-    /**
-     * @throws OptimisticLockException
-     * @throws ORMException
-     */
     public function cancelBooking(Client $client, Booking $booking): void
     {
-        $this->clientManager->refund($client, $booking->getPayment());
-
-        $this->bookingRepo->remove($booking);
+        $this->entityManager->wrapInTransaction(function () use ($client, $booking) {
+            $this->clientManager->refund($client, $booking->getPayment());
+            $this->bookingRepo->remove($booking);
+        });
     }
 
     /**

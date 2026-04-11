@@ -5,50 +5,60 @@ declare(strict_types=1);
 namespace App\Membership\Service;
 
 use App\Client\Entity\Client;
-use App\Client\Service\ClientManager;
+use App\Client\Service\AvailabilityService;
+use App\Client\Service\PaymentService;
 use App\Exception\InvalidMembershipStatusException;
 use App\Exception\MembershipActiveException;
-use App\Exception\NoActiveMembershipException;
-use App\Membership\DTO\UpdateMembershipRequest;
 use App\Membership\Entity\Membership;
 use App\Membership\Enum\MembershipStatusEnum;
 use App\Membership\Repository\MembershipRepository;
 use App\MembershipPlan\Repository\MembershipPlanRepository;
 use DateTimeImmutable;
-use Doctrine\ORM\Exception\ORMException;
-use Doctrine\ORM\OptimisticLockException;
+use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 final readonly class MembershipManager
 {
     public function __construct(
         private MembershipRepository $membershipRepo,
         private MembershipPlanRepository $membershipPlanRepo,
-        private ClientManager $clientManager,
+        private EntityManagerInterface $entityManager,
+        private AvailabilityService $clientAvailabilityService,
+        private PaymentService $clientPaymentService,
     )
     {}
 
-    /**
-     * @throws OptimisticLockException
-     * @throws ORMException
-     */
     public function create(Client $client, int $membershipPlanId): Membership
     {
-        $this->clientManager->ensureNotBlocked($client);
-
-        if ($this->hasActiveMembership($client)) {
-            throw new MembershipActiveException("Client still has active membership");
-        }
+        $this->clientAvailabilityService->ensureNotBlocked($client);
 
         $plan = $this->membershipPlanRepo->find($membershipPlanId);
-        $payment = $this->clientManager->pay($client, (float) $plan->getPrice());
 
-        $membership = new Membership();
-        $membership->setClient($client);
-        $membership->setPlan($plan);
-        $membership->setPayment($payment);
-        $this->membershipRepo->create($membership);
+        if ($plan === null) {
+            throw new NotFoundHttpException('Membership plan not found');
+        }
 
-        return $membership;
+        return $this->entityManager->wrapInTransaction(function () use ($client, $plan) {
+            if ($this->hasActiveMembership($client)) {
+                throw new MembershipActiveException("Client still has active membership");
+            }
+
+            $payment = $this->clientPaymentService->pay($client, (float) $plan->getPrice());
+
+            $membership = new Membership();
+            $membership->setClient($client);
+            $membership->setPlan($plan);
+
+            $membership->setName($plan->getName());
+            $membership->setDurationDays($plan->getDurationDays());
+            $membership->setSessionLimit($plan->getSessionLimit());
+
+            $membership->setPayment($payment);
+
+            $this->membershipRepo->create($membership);
+
+            return $membership;
+        });
     }
 
     public function hasActiveMembership(Client $client): bool
@@ -60,7 +70,7 @@ final readonly class MembershipManager
 
         if (
             !$activeMembership ||
-            $activeMembership->getPlan()->getDurationDays() !== null && $activeMembership->getVisits() >= $activeMembership->getPlan()->getSessionLimit() ||
+            $activeMembership->getDurationDays() !== null && $activeMembership->getVisits() >= $activeMembership->getSessionLimit() ||
             new DateTimeImmutable() > $activeMembership->getEndDate()
         ) {
             return false;
@@ -69,26 +79,6 @@ final readonly class MembershipManager
         return true;
     }
 
-    /**
-     * @throws OptimisticLockException
-     * @throws ORMException
-     */
-    public function update(Membership $membership, UpdateMembershipRequest $requestDto): Membership
-    {
-        if ($membership->getStatus() === MembershipStatusEnum::EXPIRED && $requestDto->status === MembershipStatusEnum::ACTIVE) {
-            return $this->renew($membership);
-        }
-        return match ($requestDto->status) {
-            MembershipStatusEnum::FROZEN => $this->freeze($membership),
-            MembershipStatusEnum::ACTIVE => $this->unfreeze($membership),
-            MembershipStatusEnum::EXPIRED => throw new InvalidMembershipStatusException('Membership cannot be set to expired'),
-        };
-    }
-
-    /**
-     * @throws OptimisticLockException
-     * @throws ORMException
-     */
     public function freeze(Membership $membership): Membership
     {
         if ($membership->getStatus() != MembershipStatusEnum::ACTIVE) {
@@ -97,15 +87,12 @@ final readonly class MembershipManager
 
         $membership->setFrozenAt(new DateTimeImmutable());
         $membership->setStatus(MembershipStatusEnum::FROZEN);
-        $this->membershipRepo->save();
+
+        $this->entityManager->flush();
 
         return $membership;
     }
 
-    /**
-     * @throws OptimisticLockException
-     * @throws ORMException
-     */
     public function unfreeze(Membership $membership): Membership
     {
         if ($membership->getStatus() != MembershipStatusEnum::FROZEN) {
@@ -116,17 +103,18 @@ final readonly class MembershipManager
         $membership->setEndDate($membership->getEndDate()->add($dateInterval));
         $membership->setFrozenAt(null);
         $membership->setStatus(MembershipStatusEnum::ACTIVE);
-        $this->membershipRepo->save();
+
+        $this->entityManager->flush();
 
         return $membership;
     }
 
-    /**
-     * @throws OptimisticLockException
-     * @throws ORMException
-     */
     public function renew(Membership $membership): Membership
     {
+        if ($membership->getPlan() === null) {
+            throw new NotFoundHttpException("This membership type no longer exists");
+        }
+
         return $this->create($membership->getClient(), $membership->getPlan()->getId());
     }
 
@@ -138,6 +126,8 @@ final readonly class MembershipManager
 
         $membership->setEndDate(new DateTimeImmutable());
         $membership->setStatus(MembershipStatusEnum::EXPIRED);
+
+        $this->entityManager->flush();
 
         return $membership;
     }

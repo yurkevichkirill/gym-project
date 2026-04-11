@@ -18,21 +18,14 @@ class BookingRepository extends ServiceEntityRepository
         parent::__construct($registry, Booking::class);
     }
 
-    public function save(): void
-    {
-        $this->getEntityManager()->flush();
-    }
-
     public function create(Booking $booking): void
     {
         $this->getEntityManager()->persist($booking);
-        $this->save();
     }
 
     public function remove(Booking $booking): void
     {
         $this->getEntityManager()->remove($booking);
-        $this->save();
     }
 
     public function getClientBookingsByDate(Client $client, DateTimeImmutable $date): array
