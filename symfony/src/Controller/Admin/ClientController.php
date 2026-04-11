@@ -135,7 +135,7 @@ final class ClientController extends AbstractController
         ClientManager $manager,
     ): OkResponse
     {
-        $responseDto = $mapper->map($manager->adminUpdate($client, $requestDto));
+        $responseDto = $mapper->map($manager->updateByAdmin($client, $requestDto));
 
         return new OkResponse(
             data: $responseDto,

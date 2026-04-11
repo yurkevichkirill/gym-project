@@ -13,6 +13,9 @@ final readonly class MembershipResponse
 {
     public function __construct(
         public int $id,
+        public string $name,
+        public int $durationDays,
+        public int $sessionLimit,
         public MembershipPlanResponse $membershipPlan,
         public string $startDate,
         public string $endDate,
@@ -28,6 +31,9 @@ final readonly class MembershipResponse
     {
         return new self(
             id: $membership->getId(),
+            name: $membership->getName(),
+            durationDays: $membership->getDurationDays(),
+            sessionLimit: $membership->getSessionLimit(),
             membershipPlan: MembershipPlanResponse::fromEntity($membership->getPlan()),
             startDate: $membership->getStartDate()->format("Y-m-d"),
             endDate: $membership->getEndDate()->format("Y-m-d"),

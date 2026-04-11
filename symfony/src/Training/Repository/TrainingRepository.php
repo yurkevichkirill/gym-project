@@ -20,33 +20,14 @@ class TrainingRepository extends ServiceEntityRepository
         parent::__construct($registry, Training::class);
     }
 
-    /**
-     * @throws OptimisticLockException
-     * @throws ORMException
-     */
-    public function save(): void
-    {
-        $this->getEntityManager()->flush();
-    }
-
-    /**
-     * @throws OptimisticLockException
-     * @throws ORMException
-     */
     public function create(Training $training): void
     {
         $this->getEntityManager()->persist($training);
-        $this->save();
     }
 
-    /**
-     * @throws OptimisticLockException
-     * @throws ORMException
-     */
     public function remove(Training $training): void
     {
         $this->getEntityManager()->remove($training);
-        $this->save();
     }
 
     public function countByTrainer(Trainer $trainer): int

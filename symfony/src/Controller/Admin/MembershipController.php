@@ -3,14 +3,11 @@
 namespace App\Controller\Admin;
 
 use App\Client\Entity\Client;
-use App\Client\Repository\ClientRepository;
 use App\Membership\DTO\CreateMembershipRequest;
 use App\Membership\DTO\GetMemberships;
-use App\Membership\DTO\UpdateMembershipRequest;
 use App\Membership\Entity\Membership;
 use App\Membership\Mapper\MembershipMapperInterface;
 use App\Membership\Query\MembershipQuery;
-use App\Membership\Repository\MembershipRepository;
 use App\Membership\Service\MembershipManager;
 use App\MembershipPlan\Repository\MembershipPlanRepository;
 use App\Response\OkResponse;
@@ -20,18 +17,11 @@ use Nelmio\ApiDocBundle\Attribute\Model;
 use OpenApi\Attributes as OA;
 use Psr\Cache\InvalidArgumentException;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
 use Symfony\Component\Routing\Attribute\Route;
-use Symfony\Component\Security\Http\Attribute\CurrentUser;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
-use Symfony\Component\Serializer\Normalizer\AbstractNormalizer;
-use Symfony\Component\Serializer\Normalizer\DateTimeNormalizer;
-use Symfony\Component\Serializer\SerializerInterface;
-use Symfony\Component\Validator\Validator\ValidatorInterface;
-use Throwable;
 
 final class MembershipController extends AbstractController
 {
@@ -151,10 +141,6 @@ final class MembershipController extends AbstractController
         );
     }
 
-    /**
-     * @throws OptimisticLockException
-     * @throws ORMException
-     */
     #[Route('/api/clients/{id}/membership/', methods: ['POST'], format: 'json')]
     #[OA\RequestBody(content: new Model(type: CreateMembershipRequest::class))]
     #[OA\Tag(name: "Admin: Membership")]
@@ -174,10 +160,6 @@ final class MembershipController extends AbstractController
         );
     }
 
-    /**
-     * @throws OptimisticLockException
-     * @throws ORMException
-     */
     #[Route('/api/memberships/{id}/freeze/', methods: ['POST'], format: 'json')]
     #[OA\Tag(name: "Admin: Membership")]
     #[IsGranted('ROLE_ADMIN')]
@@ -195,10 +177,6 @@ final class MembershipController extends AbstractController
         );
     }
 
-    /**
-     * @throws OptimisticLockException
-     * @throws ORMException
-     */
     #[Route('/api/memberships/{id}/unfreeze/', methods: ['POST'], format: 'json')]
     #[OA\Tag(name: "Admin: Membership")]
     #[IsGranted('ROLE_ADMIN')]
@@ -216,10 +194,6 @@ final class MembershipController extends AbstractController
         );
     }
 
-    /**
-     * @throws OptimisticLockException
-     * @throws ORMException
-     */
     #[Route('/api/memberships/{id}/renew/', methods: ['POST'], format: 'json')]
     #[OA\Tag(name: "Admin: Membership")]
     #[IsGranted('ROLE_ADMIN')]
