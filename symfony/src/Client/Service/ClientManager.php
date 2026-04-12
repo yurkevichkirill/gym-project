@@ -4,13 +4,12 @@ declare(strict_types=1);
 
 namespace App\Client\Service;
 
-use App\Booking\Repository\BookingRepository;
+use App\Admin\Entity\Admin;
 use App\Client\DTO\AdminUpdateClientRequest;
 use App\Client\DTO\CreateClientRequest;
 use App\Client\DTO\UpdateClientRequest;
 use App\Client\Entity\Client;
 use App\Client\Repository\ClientRepository;
-use App\Membership\Repository\MembershipRepository;
 use App\RefreshToken\Repository\RefreshTokenRepository;
 use App\User\Entity\User;
 use DateTimeImmutable;
@@ -23,8 +22,6 @@ final readonly class ClientManager
 {
     public function __construct(
         private ClientRepository $clientRepo,
-        private BookingRepository $bookingRepo,
-        private MembershipRepository $membershipRepo,
         private RefreshTokenRepository $refreshTokenRepo,
         private UserPasswordHasherInterface $passwordHasher,
         private AvailabilityService $availabilityService,
@@ -104,7 +101,7 @@ final readonly class ClientManager
         return $client;
     }
 
-    public function softDelete(Client $client, ?User $admin = null): void
+    public function softDelete(Client $client, ?Admin $admin = null): void
     {
         if ($admin !== null && $admin->getId() === $client->getId()) {
             throw new AccessDeniedHttpException('You cannot delete yourself');
@@ -114,18 +111,11 @@ final readonly class ClientManager
             throw new ConflictHttpException("Client already deleted");
         }
 
-        foreach ($client->getMemberships() as $membership) {
-            $this->membershipRepo->remove($membership);
-        }
-        foreach ($client->getBookings() as $booking) {
-            $this->bookingRepo->remove($booking);
-        }
+        $this->entityManager->wrapInTransaction(function () use ($client) {
+            $this->clientRepo->remove($client);
 
-        $this->clientRepo->remove($client);
-
-        $this->refreshTokenRepo->removeAllByUser($client);
-
-        $this->entityManager->flush();
+            $this->refreshTokenRepo->removeAllByUser($client);
+        });
     }
 
     public function restore(Client $client): Client
@@ -137,14 +127,14 @@ final readonly class ClientManager
         return $client;
     }
 
-    public function block(User $admin, Client $client): Client
+    public function block(Admin $admin, Client $client): Client
     {
         if ($admin->getId() === $client->getId()) {
             throw new AccessDeniedHttpException('You cannot block yourself');
         }
 
         if ($client->getBlockedAt()) {
-            throw new ConflictHttpException('User already blocked');
+            throw new ConflictHttpException('Client already blocked');
         }
 
         $client->setBlockedAt(new DateTimeImmutable());

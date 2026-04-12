@@ -10,5 +10,5 @@ use App\Trainer\Entity\Trainer;
 
 interface TrainerMapperInterface
 {
-    public function map(Trainer $trainer): TrainerResponse|TrainerResponsePrivate;
+    public function map(Trainer $trainer, bool $private = false): TrainerResponse|TrainerResponsePrivate;
 }

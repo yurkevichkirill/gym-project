@@ -2,6 +2,7 @@
 
 namespace App\Controller\Admin;
 
+use App\Admin\Entity\Admin;
 use App\Client\DTO\AdminUpdateClientRequest;
 use App\Client\DTO\CreateClientRequest;
 use App\Client\DTO\GetClients;
@@ -124,7 +125,7 @@ final class ClientController extends AbstractController
         );
     }
 
-    #[Route('api/clients/{id}/', methods: ['PUT', 'PATCH'], format: 'json')]
+    #[Route('/api/clients/{id}/', methods: ['PUT', 'PATCH'], format: 'json')]
     #[OA\RequestBody(content: new Model(type: AdminUpdateClientRequest::class))]
     #[OA\Tag(name: "Admin: Client")]
     #[IsGranted('ROLE_ADMIN')]
@@ -149,22 +150,23 @@ final class ClientController extends AbstractController
      * @throws ORMException
      * @throws ContainerExceptionInterface
      */
-    #[Route('api/clients/{id}/', methods: ['DELETE'], format: 'json')]
+    #[Route('/api/clients/{id}/', methods: ['DELETE'], format: 'json')]
     #[OA\Tag(name: "Admin: Client")]
     #[IsGranted('ROLE_ADMIN')]
     public function delete(
+        #[CurrentUser] Admin $admin,
         Client $client,
         ClientManager $manager,
     ): Response
     {
-        $manager->softDelete($client);
+        $manager->softDelete($client, $admin);
         $this->container->get('security.token_storage')->setToken(null);
         //clean cookies in frontend
 
         return new Response(status: Response::HTTP_NO_CONTENT);
     }
 
-    #[Route('api/clients/{id}/restore/', methods: ['POST'], format: 'json')]
+    #[Route('/api/clients/{id}/restore/', methods: ['POST'], format: 'json')]
     #[OA\Tag(name: "Admin: Client")]
     #[IsGranted('ROLE_ADMIN')]
     public function restore(
@@ -186,7 +188,7 @@ final class ClientController extends AbstractController
     #[IsGranted('ROLE_ADMIN')]
     public function block(
         Client $client,
-        #[CurrentUser] User $admin,
+        #[CurrentUser] Admin $admin,
         ClientMapperInterface $mapper,
         ClientManager $manager,
     ): OkResponse
