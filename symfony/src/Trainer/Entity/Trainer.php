@@ -11,8 +11,10 @@ use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
+use Gedmo\Mapping\Annotation as Gedmo;
 
 #[ORM\Entity(repositoryClass: TrainerRepository::class)]
+#[Gedmo\SoftDeleteable]
 class Trainer extends User
 {
     #[ORM\ManyToOne(targetEntity: TrainingType::class, inversedBy: 'trainers')]

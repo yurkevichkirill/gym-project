@@ -21,6 +21,10 @@ final readonly class TrainerResponsePrivate
         public ?string $education,
         public ?string $about,
         public string $balance,
+        public string $createdAt,
+        public string $deletedAt,
+        public string $updatedAt,
+        public string $blockedAt,
         public string $type,
     )
     {}
@@ -39,6 +43,10 @@ final readonly class TrainerResponsePrivate
             education: $trainer->getEducation(),
             about: $trainer->getAbout(),
             balance: $trainer->getBalance(),
+            createdAt: $trainer->getCreatedAt()?->format(DATE_ATOM) ?? '',
+            deletedAt: $trainer->getDeletedAt()?->format(DATE_ATOM) ?? '',
+            updatedAt: $trainer->getUpdatedAt()?->format(DATE_ATOM) ?? '',
+            blockedAt: $trainer->getBlockedAt()?->format(DATE_ATOM) ?? '',
             type: 'trainer',
         );
     }
