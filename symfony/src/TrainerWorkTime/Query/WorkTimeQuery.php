@@ -40,7 +40,11 @@ final readonly class WorkTimeQuery
             $qb->setFirstResult($offset)
                 ->setMaxResults($dto->limit);
 
-            $item->tag(['trainer_worktimes_list_' . $dto->filter['trainer']->getId()]);
+            if (isset($dto->filter['client'])) {
+                $item->tag(['trainer_worktimes_list_' . $dto->filter['trainer']->getId()]);
+            } else {
+                $item->tag(["trainer_worktimes_list_all"]);
+            }
 
             return $qb->getQuery()->getResult();
         });
@@ -77,12 +81,16 @@ final readonly class WorkTimeQuery
     private function generateCacheKey(GetTrainerWorkTime $query): string
     {
         $params = [
-            'trainer' => $query->filter['trainer'],
             'sort' => $query->sort,
             'page' => $query->page,
             'limit' => $query->limit,
         ];
-        if(isset($query->filter['date'])) {
+
+        if (isset($query->filter['trainer'])) {
+            $params['trainer'] = $query->filter['trainer'];
+        }
+
+        if (isset($query->filter['date'])) {
             $params['date'] = $query->filter['date'];
         }
 

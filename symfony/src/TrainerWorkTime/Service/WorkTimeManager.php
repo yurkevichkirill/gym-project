@@ -10,15 +10,18 @@ use App\TrainerWorkTime\DTO\CreateWorkTimeRequest;
 use App\TrainerWorkTime\DTO\UpdateWorkTimeRequest;
 use App\TrainerWorkTime\Entity\TrainerWorkTime;
 use App\TrainerWorkTime\Repository\TrainerWorkTimeRepository;
-use DateInterval;
+use App\User\Service\AvailabilityService;
 use DateMalformedIntervalStringException;
 use DateMalformedStringException;
 use DateTimeImmutable;
+use Doctrine\ORM\EntityManagerInterface;
 
-class WorkTimeManager
+final readonly class WorkTimeManager
 {
     public function __construct(
         private TrainerWorkTimeRepository $worktimeRepo,
+        private AvailabilityService $userAvailabilityService,
+        private EntityManagerInterface $entityManager,
     )
     {}
 
@@ -27,6 +30,8 @@ class WorkTimeManager
      */
     public function create(Trainer $trainer, CreateWorkTimeRequest $requestDto): TrainerWorkTime
     {
+        $this->userAvailabilityService->ensureNotBlocked($trainer);
+
         $date = new DateTimeImmutable($requestDto->date);
         $count = count($this->worktimeRepo->findBy([
             'trainer' => $trainer,
@@ -42,7 +47,10 @@ class WorkTimeManager
         $worktime->setStartTime(new DateTimeImmutable($requestDto->startTime));
         $worktime->setEndTime(new DateTimeImmutable($requestDto->endTime));
         $worktime->setDate($date);
+
         $this->worktimeRepo->create($worktime);
+
+        $this->entityManager->flush();
 
         return $worktime;
     }
@@ -52,8 +60,12 @@ class WorkTimeManager
      * @throws DateTimeAlreadyTakenException
      * @throws DateMalformedIntervalStringException
      */
-    public function update(TrainerWorkTime $worktime, UpdateWorkTimeRequest $dto): TrainerWorkTime
+    public function update(TrainerWorkTime $worktime, UpdateWorkTimeRequest $dto, $byAdmin = false): TrainerWorkTime
     {
+        if (!$byAdmin) {
+            $this->userAvailabilityService->ensureNotBlocked($worktime->getTrainer());
+        }
+
         $newStartTime = $dto->startTime ?? $worktime->getStartTime()->format("H:i:s");
         $newEndTime = $dto->endTime ?? $worktime->getEndTime()->format("H:i:s");
         $freeSlots = $worktime->getFreeSlots();
@@ -75,63 +87,22 @@ class WorkTimeManager
 
         $worktime->setStartTime(new DateTimeImmutable($newStartTime));
         $worktime->setEndTime(new DateTimeImmutable($newEndTime));
-        $this->worktimeRepo->save();
+
+        $this->entityManager->flush();
 
         return $worktime;
     }
 
-    /**
-     * @throws DateMalformedIntervalStringException
-     * @throws DateMalformedStringException
-     */
-    public function isTimeAvailable(TrainerWorkTime $worktime, string $startTime, int $durationMinutes, ?string $oldStartTime = null, ?int $oldDurationMinutes = null): bool
+    public function remove(TrainerWorkTime $worktime): void
     {
-        $endTime = new DateTimeImmutable($startTime)
-            ->add(new DateInterval('PT' . $durationMinutes . 'M'))
-            ->format('H:i:s');
-        $freeSlots = $worktime->getFreeSlots();
-        if ($oldDurationMinutes && $oldStartTime) {
-            $freeSlots = $this->getFreeSlotsExcept($freeSlots, $oldStartTime, $oldDurationMinutes);
+        $trainings = $worktime->getTrainings();
+
+        if (count($trainings) > 0) {
+            throw new DateTimeAlreadyTakenException("This date already taken");
         }
 
-        return array_any($freeSlots, fn($slot) => $startTime >= $slot['start'] && $endTime <= $slot['end']);
+        $this->worktimeRepo->remove($worktime);
+
+        $this->entityManager->flush();
     }
-
-    /**
-     * @throws DateMalformedStringException
-     * @throws DateMalformedIntervalStringException
-     */
-    private function getFreeSlotsExcept(array $freeSlots, string $oldStartTime, int $oldDurationMinutes): array
-    {
-        $excludeSlot = [
-            'start' => $oldStartTime,
-            'end' => new DateTimeImmutable($oldStartTime)
-                ->add(new DateInterval('PT' . $oldDurationMinutes . 'M'))
-                ->format('H:i:s')
-        ];
-
-        $allSlots = array_merge($freeSlots, [$excludeSlot]);
-        usort($allSlots, fn($s1, $s2) => $s1['start'] <=> $s2['start']);
-        return $this->mergeOverlappingSlots($allSlots);
-    }
-
-    private function mergeOverlappingSlots(array $slots): array
-    {
-        if (empty($slots)) return [];
-
-        $merged = [$slots[0]];
-
-        foreach ($slots as $slot) {
-            $last = &$merged[count($merged) - 1];
-
-            if ($slot['start'] <= $last['end']) {
-                $last['end'] = max($last['end'], $slot['end']);
-            } else {
-                $merged[] = $slot;
-            }
-        }
-
-        return $merged;
-    }
-
 }

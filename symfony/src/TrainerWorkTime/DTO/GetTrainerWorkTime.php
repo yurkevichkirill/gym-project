@@ -14,11 +14,11 @@ final readonly class GetTrainerWorkTime
     public int $limit;
 
     public function __construct(
-        Trainer $trainer,
-        ?string $date = null,
         string $sortRaw = 'date:ASC',
+        ?string $date = null,
         int $page = 1,
-        int $limit = 20
+        int $limit = 20,
+        ?Trainer $trainer = null,
     )
     {
         $this->sort = $this->parseSort($sortRaw);
@@ -28,12 +28,16 @@ final readonly class GetTrainerWorkTime
     }
 
     private function putFilter (
-        Trainer $trainer,
+        ?Trainer $trainer,
         ?string $date,
     ): array
     {
-        $filter = ['trainer' => $trainer];
-        if($date !== null) {
+        $filter = [];
+
+        if ($trainer !== null) {
+            $filter['trainer'] = $trainer;
+        }
+        if ($date !== null) {
             $filter['date'] = $date;
         }
 

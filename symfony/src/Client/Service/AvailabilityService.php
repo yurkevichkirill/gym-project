@@ -57,11 +57,4 @@ final readonly class AvailabilityService
     {
         return $balance >= $price;
     }
-
-    public function ensureNotBlocked(Client $client): void
-    {
-        if ($client->getBlockedAt()) {
-            throw new AccessDeniedHttpException("User is blocked");
-        }
-    }
 }

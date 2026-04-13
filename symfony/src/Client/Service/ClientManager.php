@@ -11,7 +11,7 @@ use App\Client\DTO\UpdateClientRequest;
 use App\Client\Entity\Client;
 use App\Client\Repository\ClientRepository;
 use App\RefreshToken\Repository\RefreshTokenRepository;
-use App\User\Entity\User;
+use App\User\Service\AvailabilityService;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
@@ -24,7 +24,7 @@ final readonly class ClientManager
         private ClientRepository $clientRepo,
         private RefreshTokenRepository $refreshTokenRepo,
         private UserPasswordHasherInterface $passwordHasher,
-        private AvailabilityService $availabilityService,
+        private AvailabilityService $userAvailabilityService,
         private EntityManagerInterface $entityManager,
     )
     {}
@@ -54,7 +54,7 @@ final readonly class ClientManager
 
     public function update(Client $client, UpdateClientRequest $requestDto): Client
     {
-        $this->availabilityService->ensureNotBlocked($client);
+        $this->userAvailabilityService->ensureNotBlocked($client);
 
         if ($requestDto->phone !== null) {
             $client->setPhone($requestDto->phone);

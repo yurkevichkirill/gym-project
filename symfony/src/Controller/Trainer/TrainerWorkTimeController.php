@@ -13,11 +13,9 @@ use App\TrainerWorkTime\DTO\UpdateWorkTimeRequest;
 use App\TrainerWorkTime\Entity\TrainerWorkTime;
 use App\TrainerWorkTime\Mapper\WorkTimeMapperInterface;
 use App\TrainerWorkTime\Query\WorkTimeQuery;
-use App\TrainerWorkTime\Repository\TrainerWorkTimeRepository;
 use App\TrainerWorkTime\Service\WorkTimeManager;
+use DateMalformedIntervalStringException;
 use DateMalformedStringException;
-use Doctrine\ORM\Exception\ORMException;
-use Doctrine\ORM\OptimisticLockException;
 use Nelmio\ApiDocBundle\Attribute\Model;
 use Psr\Cache\InvalidArgumentException;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -34,7 +32,6 @@ final class TrainerWorkTimeController extends AbstractController
     /**
      * @throws InvalidArgumentException
      */
-
     #[Route('/api/trainer/me/worktime/', methods: ['GET'], format: 'json')]
     #[OA\Tag(name: "Trainer: WorkTime")]
     #[OA\Parameter(name: 'date', in: 'query', example: '2026-03-10')]
@@ -54,7 +51,7 @@ final class TrainerWorkTimeController extends AbstractController
         $page = (int) $request->query->get('page', 1);
         $limit = (int) $request->query->get('limit', 20);
 
-        $queryDto = new GetTrainerWorkTime($trainer, $date, $sortRaw, $page, $limit);
+        $queryDto = new GetTrainerWorkTime($sortRaw, $date, $page, $limit, $trainer);
 
         $worktimes = $handler->handle($queryDto);
 
@@ -64,7 +61,7 @@ final class TrainerWorkTimeController extends AbstractController
             $limit,
             $handler->getTotal($queryDto->filter),
             $queryDto->sort,
-            200,
+            Response::HTTP_OK,
         );
     }
 
@@ -87,13 +84,13 @@ final class TrainerWorkTimeController extends AbstractController
 
         return new OkResponse(
             data: $responseDto,
-            status:201,
+            status:Response::HTTP_CREATED,
         );
     }
 
     /**
      * @throws DateMalformedStringException
-     * @throws \DateMalformedIntervalStringException
+     * @throws DateMalformedIntervalStringException
      * @throws DateTimeAlreadyTakenException
      */
     #[Route('/api/worktime/{id}/', methods: ['PUT', 'PATCH'], format: 'json')]
@@ -112,23 +109,19 @@ final class TrainerWorkTimeController extends AbstractController
 
         return new OkResponse(
             data: $responseDto,
-            status: 200,
+            status: Response::HTTP_OK,
         );
     }
 
-    /**
-     * @throws OptimisticLockException
-     * @throws ORMException
-     */
     #[Route('/api/worktime/{id}/', methods: ['DELETE'], format: 'json')]
     #[OA\Tag(name: "Trainer: WorkTime")]
     public function remove(
         TrainerWorkTime $worktime,
-        TrainerWorkTimeRepository $worktimeRepo
+        WorkTimeManager $manager,
     ): Response
     {
         $this->denyAccessUnlessGranted("WORKTIME_REMOVE", $worktime);
-        $worktimeRepo->remove($worktime);
+        $manager->remove($worktime);
 
         return new Response(status: Response::HTTP_NO_CONTENT);
     }
