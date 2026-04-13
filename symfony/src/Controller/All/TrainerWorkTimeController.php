@@ -13,11 +13,47 @@ use OpenApi\Attributes as OA;
 use Psr\Cache\InvalidArgumentException;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Attribute\Cache;
 use Symfony\Component\Routing\Attribute\Route;
 
 final class TrainerWorkTimeController extends AbstractController
 {
+    /**
+     * @throws InvalidArgumentException
+     */
+    #[Route('/api/worktime/', methods: ['GET'], format: 'json')]
+    #[Cache(public: true)]
+    #[OA\Parameter(name: 'date', in: 'query', example: '10-03-2026')]
+    #[OA\Parameter(name: 'sort', in: 'query', example: 'date:ASC')]
+    #[OA\Parameter(name: 'page', in: 'query', example: 1)]
+    #[OA\Parameter(name: 'limit', in: 'query', example: 20)]
+    #[OA\Tag(name: "All: WorkTime")]
+    public function getAll(
+        Request $request,
+        WorkTimeMapperInterface $mapper,
+        WorkTimeQuery $handler,
+    ): OkResponse
+    {
+        $sortRaw = $request->query->get('sort', 'date:ASC');
+        $date = $request->query->get('date');
+        $page = (int) $request->query->get('page', 1);
+        $limit = (int) $request->query->get('limit', 20);
+
+        $queryDto = new GetTrainerWorkTime($sortRaw, $date, $page, $limit);
+
+        $worktimes = $handler->handle($queryDto);
+
+        return new OkResponse(
+            array_map(fn ($worktime) => $mapper->map($worktime), $worktimes),
+            $page,
+            $limit,
+            $handler->getTotal($queryDto->filter),
+            $queryDto->sort,
+            Response::HTTP_OK,
+        );
+    }
+
     /**
      * @throws InvalidArgumentException
      */
@@ -28,7 +64,7 @@ final class TrainerWorkTimeController extends AbstractController
     #[OA\Parameter(name: 'page', in: 'query', example: 1)]
     #[OA\Parameter(name: 'limit', in: 'query', example: 20)]
     #[OA\Tag(name: "All: WorkTime")]
-    public function getAll(
+    public function getAllByTrainer(
         Request $request,
         WorkTimeMapperInterface $mapper,
         WorkTimeQuery $handler,
@@ -42,7 +78,7 @@ final class TrainerWorkTimeController extends AbstractController
         $page = (int) $request->query->get('page', 1);
         $limit = (int) $request->query->get('limit', 20);
 
-        $queryDto = new GetTrainerWorkTime($trainer, $date, $sortRaw, $page, $limit);
+        $queryDto = new GetTrainerWorkTime($sortRaw, $date, $page, $limit, $trainer);
 
         $worktimes = $handler->handle($queryDto);
 
@@ -52,7 +88,7 @@ final class TrainerWorkTimeController extends AbstractController
             $limit,
             $handler->getTotal($queryDto->filter),
             $queryDto->sort,
-            200,
+            Response::HTTP_OK,
         );
     }
 
@@ -65,7 +101,7 @@ final class TrainerWorkTimeController extends AbstractController
     {
         return new OkResponse(
             $mapper->map($worktime),
-            200,
+            Response::HTTP_OK,
         );
     }
 }

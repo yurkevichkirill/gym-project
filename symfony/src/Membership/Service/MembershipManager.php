@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Membership\Service;
 
 use App\Client\Entity\Client;
-use App\Client\Service\AvailabilityService;
+use App\User\Service\AvailabilityService;
 use App\Exception\InvalidMembershipStatusException;
 use App\Exception\MembershipActiveException;
 use App\Membership\Entity\Membership;
@@ -23,14 +23,14 @@ final readonly class MembershipManager
         private MembershipRepository $membershipRepo,
         private MembershipPlanRepository $membershipPlanRepo,
         private EntityManagerInterface $entityManager,
-        private AvailabilityService $clientAvailabilityService,
+        private AvailabilityService $userAvailabilityService,
         private PaymentService $clientPaymentService,
     )
     {}
 
     public function create(Client $client, int $membershipPlanId): Membership
     {
-        $this->clientAvailabilityService->ensureNotBlocked($client);
+        $this->userAvailabilityService->ensureNotBlocked($client);
 
         $plan = $this->membershipPlanRepo->find($membershipPlanId);
 

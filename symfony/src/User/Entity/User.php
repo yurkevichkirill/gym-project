@@ -108,7 +108,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
      */
     public function getRoles(): array
     {
-        if ($this->getDeletedAt() !== null || $this->getBlockedAt()) {
+        if ($this->getDeletedAt() !== null) {
             return [];
         }
         $roles = $this->roles;

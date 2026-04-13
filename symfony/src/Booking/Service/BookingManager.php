@@ -8,7 +8,6 @@ use App\Booking\DTO\BookingRequest;
 use App\Booking\Entity\Booking;
 use App\Booking\Repository\BookingRepository;
 use App\Client\Entity\Client;
-use App\Client\Service\AvailabilityService;
 use App\Exception\DateTimeAlreadyTakenException;
 use App\Exception\NoActiveMembershipException;
 use App\Membership\Service\MembershipManager;
@@ -17,9 +16,10 @@ use App\Trainer\Repository\TrainerRepository;
 use App\Trainer\Service\TrainerManager;
 use App\TrainerWorkTime\Entity\TrainerWorkTime;
 use App\TrainerWorkTime\Repository\TrainerWorkTimeRepository;
-use App\TrainerWorkTime\Service\WorkTimeManager;
 use App\Training\Entity\Training;
 use App\Training\Repository\TrainingRepository;
+use App\User\Service\AvailabilityService as UserAvailabilityService;
+use App\TrainerWorkTime\Service\AvailabilityService as WorktimeAvailabilityService;
 use DateMalformedIntervalStringException;
 use DateMalformedStringException;
 use DateTimeImmutable;
@@ -33,10 +33,10 @@ final readonly class BookingManager
         private TrainingRepository        $trainingRepo,
         private TrainerWorkTimeRepository $worktimeRepo,
         private TrainerManager            $trainerManager,
-        private WorkTimeManager           $worktimeManager,
         private TrainerRepository         $trainerRepo,
         private MembershipManager         $membershipManager,
-        private AvailabilityService       $clientAvailableService,
+        private UserAvailabilityService   $userAvailabilityService,
+        private WorktimeAvailabilityService $worktimeAvailabilityService,
         private PaymentService            $paymentService,
         private EntityManagerInterface    $entityManager,
     )
@@ -47,7 +47,7 @@ final readonly class BookingManager
      */
     public function book(Client $client, BookingRequest $dto): Booking
     {
-        $this->clientAvailableService->ensureNotBlocked($client);
+        $this->userAvailabilityService->ensureNotBlocked($client);
 
         $trainer = $this->trainerRepo->find($dto->trainerId);
 
@@ -105,7 +105,7 @@ final readonly class BookingManager
      */
     private function validateTrainingTimeAvailable(TrainerWorkTime $worktime, string $startTime, int $durationMinutes): void
     {
-        if (!$this->worktimeManager->isTimeAvailable($worktime, $startTime, $durationMinutes)) {
+        if (!$this->worktimeAvailabilityService->isTimeAvailable($worktime, $startTime, $durationMinutes)) {
             throw new DateTimeAlreadyTakenException();
         }
     }

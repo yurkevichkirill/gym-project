@@ -11,6 +11,7 @@ use App\Booking\Service\BookingManager;
 use App\Client\Entity\Client;
 use App\Response\OkResponse;
 use App\Trainer\Repository\TrainerRepository;
+use DateMalformedStringException;
 use Doctrine\ORM\Exception\ORMException;
 use Doctrine\ORM\OptimisticLockException;
 use Nelmio\ApiDocBundle\Attribute\Model;
@@ -162,17 +163,14 @@ final class BookingController extends AbstractController
     }
 
     /**
-     * @throws \DateMalformedStringException
-     * @throws OptimisticLockException
-     * @throws ORMException
-     * @throws \DateMalformedIntervalStringException
+     * @throws DateMalformedStringException
      */
     #[Route('api/clients/{id}/bookings/', methods: ['POST'], format: 'json')]
     #[OA\RequestBody(content: new Model(type: BookingRequest::class))]
     #[OA\Tag(name: "Admin: Bookings")]
     #[IsGranted('ROLE_ADMIN')]
     public function create(
-        BookingAdminMapperInterface              $mapper,
+        BookingAdminMapperInterface         $mapper,
         Client                              $client,
         #[MapRequestPayload] BookingRequest $requestDto,
         BookingManager                      $manager
@@ -186,10 +184,6 @@ final class BookingController extends AbstractController
         );
     }
 
-    /**
-     * @throws OptimisticLockException
-     * @throws ORMException
-     */
     #[Route('api/bookings/{id}/', methods: ['DELETE'], format: 'json')]
     #[OA\Tag(name: "Admin: Bookings")]
     public function remove(

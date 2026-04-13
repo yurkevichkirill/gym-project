@@ -4,28 +4,29 @@ declare(strict_types=1);
 
 namespace App\Training\Service;
 
-use App\Booking\Repository\BookingRepository;
-use App\Client\Service\ClientManager;
 use App\Exception\DateRescheduledException;
 use App\TrainerWorkTime\Repository\TrainerWorkTimeRepository;
-use App\TrainerWorkTime\Service\WorkTimeManager;
 use App\Training\DTO\TrainingRequest;
 use App\Training\Entity\Training;
+use App\Client\Service\AvailabilityService as ClientAvailabilityService;
+use App\TrainerWorkTime\Service\AvailabilityService as WorktimeAvailabilityService;
 use App\Training\Repository\TrainingRepository;
 use DateInterval;
 use DateMalformedIntervalStringException;
 use DateMalformedStringException;
 use DateTimeImmutable;
+use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
-class TrainingManager
+final readonly class TrainingManager
 {
     const int MIN_DAY_CHANGE = 1;
     public function __construct(
         private TrainingRepository $trainingRepo,
         private TrainerWorkTimeRepository $worktimeRepo,
-        private ClientManager $clientManager,
-        private WorkTimeManager $worktimeManager,
+        private ClientAvailabilityService $clientAvailabilityService,
+        private WorktimeAvailabilityService $worktimeAvailabilityService,
+        private EntityManagerInterface $entityManager,
     )
     {}
 
@@ -45,10 +46,10 @@ class TrainingManager
 
         if ($newDate->format('Y-m-d') === $training->getTrainerWorkTime()->getDate()->format("Y-m-d")) {
             $worktime = $training->getTrainerWorkTime();
-            if(!$this->worktimeManager->isTimeAvailable($worktime, $newStartTime, $newDurationMinutes, $oldStartTime, $oldDurationMinutes)) {
+            if(!$this->worktimeAvailabilityService->isTimeAvailable($worktime, $newStartTime, $newDurationMinutes, $oldStartTime, $oldDurationMinutes)) {
                 throw new DateRescheduledException("OurTrainer doesn't work at this time");
             }
-            if(!$this->clientManager->isClientAvailableInDate($client, $newDate, $newStartTime, $newDurationMinutes, $oldStartTime)) {
+            if(!$this->clientAvailabilityService->isClientAvailableInDate($client, $newDate, $newStartTime, $newDurationMinutes, $oldStartTime)) {
                 throw new DateRescheduledException("Client already have training at this time");
             }
 
@@ -65,17 +66,17 @@ class TrainingManager
             }
 
             $training->setTrainerWorkTime($newWorktime);
-            if(!$this->worktimeManager->isTimeAvailable($newWorktime, $newStartTime, $newDurationMinutes, $oldStartTime, $oldDurationMinutes)) {
+            if (!$this->worktimeAvailabilityService->isTimeAvailable($newWorktime, $newStartTime, $newDurationMinutes, $oldStartTime, $oldDurationMinutes)) {
                 throw new DateRescheduledException("OurTrainer doesn't work at this time");
             }
-            if(!$this->clientManager->isClientAvailableInDate($client, $newDate, $newStartTime, $newDurationMinutes,  $oldStartTime)) {
+            if (!$this->clientAvailabilityService->isClientAvailableInDate($client, $newDate, $newStartTime, $newDurationMinutes,  $oldStartTime)) {
                 throw new DateRescheduledException("Client already have training at this time");
             }
 
             $training->setStartTime(new DateTimeImmutable($newStartTime));
             $training->setDurationMinutes($newDurationMinutes);
 
-            $this->trainingRepo->save();
+            $this->entityManager->flush();
         }
 
         return $training;

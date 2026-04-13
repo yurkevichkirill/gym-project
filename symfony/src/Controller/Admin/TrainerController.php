@@ -10,7 +10,6 @@ use App\Trainer\DTO\GetTypesTrainers;
 use App\Trainer\Entity\Trainer;
 use App\Trainer\Mapper\TrainerMapperInterface;
 use App\Trainer\Query\TrainersQuery;
-use App\Trainer\Repository\TrainerRepository;
 use App\Trainer\Service\TrainerManager;
 use App\TrainingType\Repository\TrainingTypeRepository;
 use InvalidArgumentException;
@@ -19,17 +18,12 @@ use OpenApi\Attributes as OA;
 use Psr\Container\ContainerExceptionInterface;
 use Psr\Container\NotFoundExceptionInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
-use Symfony\Component\Serializer\Normalizer\AbstractNormalizer;
-use Symfony\Component\Serializer\SerializerInterface;
-use Symfony\Component\Validator\Validator\ValidatorInterface;
-use Throwable;
 
 final class TrainerController extends AbstractController
 {

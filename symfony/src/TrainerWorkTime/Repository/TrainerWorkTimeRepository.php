@@ -16,13 +16,13 @@ class TrainerWorkTimeRepository extends ServiceEntityRepository
         parent::__construct($registry, TrainerWorkTime::class);
     }
 
-    public function create(TrainerWorkTime $trainerAvailability): void
+    public function create(TrainerWorkTime $trainerWorktime): void
     {
-        $this->getEntityManager()->persist($trainerAvailability);
+        $this->getEntityManager()->persist($trainerWorktime);
     }
 
-    public function remove(TrainerWorkTime $trainerAvailability): void
+    public function remove(TrainerWorkTime $trainerWorktime): void
     {
-        $this->getEntityManager()->remove($trainerAvailability);
+        $this->getEntityManager()->remove($trainerWorktime);
     }
 }
