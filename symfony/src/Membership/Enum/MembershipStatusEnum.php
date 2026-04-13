@@ -9,4 +9,5 @@ enum MembershipStatusEnum: string
     case ACTIVE = 'active';
     case EXPIRED = 'expired';
     case FROZEN = 'frozen';
+    case PENDING = 'pending';
 }

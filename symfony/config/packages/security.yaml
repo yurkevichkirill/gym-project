@@ -23,6 +23,7 @@ security:
         - { path: ^/api/trainers, methods: [ GET ], roles: PUBLIC_ACCESS }
         - { path: ^/api/trainers/[ ^/ ]+/worktime, methods: [ GET ], roles: PUBLIC_ACCESS }
         - { path: ^/api/training/types, methods: [ GET ], roles: PUBLIC_ACCESS }
+        - { path: ^/api/webhooks/stripe, methods: [ POST ], roles: PUBLIC_ACCESS }
 
     role_hierarchy:
         ROLE_ADMIN:    [ROLE_CLIENT, ROLE_ADMIN]

@@ -12,6 +12,7 @@ use App\Membership\Entity\Membership;
 use App\Membership\Enum\MembershipStatusEnum;
 use App\Membership\Repository\MembershipRepository;
 use App\MembershipPlan\Repository\MembershipPlanRepository;
+use App\Payment\Enum\PaymentCategoryEnum;
 use App\Payment\Service\PaymentService;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
@@ -46,7 +47,11 @@ final readonly class MembershipManager
                 throw new MembershipActiveException("Client still has active membership");
             }
 
-            $payment = $this->clientPaymentService->pay($client, (float) $plan->getPrice());
+            $payment = $this->clientPaymentService->createPayment(
+                client: $client,
+                amount: (int) round((float) $plan->getPrice()),
+                category: PaymentCategoryEnum::MEMBERSHIP,
+            );
 
             $membership = new Membership();
             $membership->setClient($client);
@@ -59,6 +64,8 @@ final readonly class MembershipManager
             $membership->setPayment($payment);
 
             $this->membershipRepo->create($membership);
+
+            $this->entityManager->flush();
 
             return $membership;
         });

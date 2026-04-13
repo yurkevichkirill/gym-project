@@ -8,4 +8,7 @@ enum BookingStatusEnum: string
 {
     case SCHEDULED = 'scheduled';
     case COMPLETED = 'completed';
+    case PENDING = 'pending';
+    case CONFIRMED = 'confirmed';
+    case CANCELED = 'canceled';
 }

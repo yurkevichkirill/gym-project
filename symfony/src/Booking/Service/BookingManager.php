@@ -10,8 +10,9 @@ use App\Booking\Repository\BookingRepository;
 use App\Client\Entity\Client;
 use App\Exception\DateTimeAlreadyTakenException;
 use App\Exception\NoActiveMembershipException;
-use App\Membership\Service\MembershipManager;
 use App\Membership\Service\VisitingService;
+use App\Payment\Enum\PaymentCategoryEnum;
+use App\Payment\Enum\PaymentStatusEnum;
 use App\Payment\Service\PaymentService;
 use App\Trainer\Repository\TrainerRepository;
 use App\Trainer\Service\TrainerManager;
@@ -25,6 +26,7 @@ use DateMalformedIntervalStringException;
 use DateMalformedStringException;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
+use Stripe\Exception\ApiErrorException;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
@@ -75,14 +77,19 @@ final readonly class BookingManager
 
         $price = $this->trainerManager->countPrice($worktime->getTrainer(), $dto->durationMinutes);
 
-        return $this->entityManager->wrapInTransaction(function () use ($client, $price, $worktime, $dto) {
+        return $this->entityManager->wrapInTransaction(function () use ($client, $price, $worktime, $dto, $trainer) {
             $this->validateTrainingTimeAvailable($worktime, $dto->startTime, $dto->durationMinutes);
 
             if (!$this->visitingService->hasActiveMembership($client)) {
                 throw new NoActiveMembershipException();
             }
 
-            $payment = $this->paymentService->pay($client, $price, $worktime->getTrainer());
+            $payment = $this->paymentService->createPayment(
+                $client,
+                $price,
+                PaymentCategoryEnum::TRAINER,
+                $trainer
+            );
 
             $training = new Training();
             $training->setDurationMinutes($dto->durationMinutes);
@@ -100,11 +107,19 @@ final readonly class BookingManager
         });
     }
 
-    public function cancelBooking(Client $client, Booking $booking): void
+    public function cancelBooking(Booking $booking): void
     {
-        $this->entityManager->wrapInTransaction(function () use ($client, $booking) {
-            $this->paymentService->refund($client, $booking->getPayment());
-            $this->bookingRepo->remove($booking);
+        $this->entityManager->wrapInTransaction(function () use ($booking) {
+
+            $payment = $booking->getPayment();
+
+            if ($payment->getStatus() === PaymentStatusEnum::SUCCEEDED) {
+                $this->paymentService->refundPaymentViaStripe($payment);
+            } else {
+                $this->paymentService->cancelPaymentWithStripeIntent($payment);
+            }
+
+            $booking->cancel();
         });
     }
 

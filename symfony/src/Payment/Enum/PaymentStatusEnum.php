@@ -6,7 +6,9 @@ namespace App\Payment\Enum;
 
 enum PaymentStatusEnum: string
 {
-    case PAID = 'paid';
+    case SUCCEEDED = 'succeeded';
     case PENDING = 'pending';
-    case CANCELLED = 'cancelled';
+    case FAILED = 'failed';
+    case REFUNDED = 'refunded';
+    case CANCELED = 'canceled';
 }

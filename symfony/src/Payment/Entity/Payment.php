@@ -3,9 +3,11 @@
 namespace App\Payment\Entity;
 
 use App\Booking\Entity\Booking;
+use App\Booking\Enum\BookingStatusEnum;
 use App\Client\Entity\Client;
 use App\Membership\Entity\Membership;
 use App\Payment\Enum\PaymentCategoryEnum;
+use App\Payment\Enum\PaymentStatusEnum;
 use App\Payment\Repository\PaymentRepository;
 use App\Trainer\Entity\Trainer;
 use DateTimeImmutable;
@@ -50,14 +52,31 @@ class Payment
     #[ORM\Column(length: 200, nullable: true)]
     private ?string $trainerFullName = null;
 
-    #[ORM\Column(type: Types::DECIMAL, precision: 10, scale: 2)]
-    private ?string $amount = null;
+    #[ORM\Column]
+    private ?int $amount = null;
 
     #[ORM\Column(type: Types::ENUM)]
     private ?PaymentCategoryEnum $category = null;
 
     #[ORM\Column(nullable: true)]
-    private ?\DateTimeImmutable $paidAt = null;
+    private ?DateTimeImmutable $paidAt = null;
+
+    #[ORM\Column(nullable: true)]
+    private ?DateTimeImmutable $createdAt = null;
+
+    #[ORM\Column(length: 255, nullable: true, unique: true)]
+    private ?string $stripePaymentIntentId = null;
+
+    #[ORM\Column(length: 10)]
+    private string $currency = 'usd';
+
+    #[ORM\Column(
+        type: Types::ENUM,
+    )]
+    private PaymentStatusEnum $status;
+
+    #[ORM\Column(nullable: true)]
+    private ?DateTimeImmutable $confirmedAt = null;
 
     public function getId(): ?int
     {
@@ -84,19 +103,19 @@ class Payment
     public function setTrainer(?Trainer $trainer): static
     {
         $this->trainer = $trainer;
-        if (!$trainer) {
+        if ($trainer) {
             $this->trainerFullName = $trainer->getFirstName() . " " . $trainer->getLastName();
         }
 
         return $this;
     }
 
-    public function getAmount(): ?string
+    public function getAmount(): ?int
     {
         return $this->amount;
     }
 
-    public function setAmount(string $amount): static
+    public function setAmount(int $amount): static
     {
         $this->amount = $amount;
 
@@ -151,12 +170,12 @@ class Payment
         return $this;
     }
 
-    public function getPaidAt(): ?\DateTimeImmutable
+    public function getPaidAt(): ?DateTimeImmutable
     {
         return $this->paidAt;
     }
 
-    public function setPaidAt(\DateTimeImmutable $paidAt): static
+    public function setPaidAt(DateTimeImmutable $paidAt): static
     {
         $this->paidAt = $paidAt;
 
@@ -166,7 +185,11 @@ class Payment
     #[ORM\PrePersist]
     public function initializeDefaults(): void
     {
-        $this->paidAt = new DateTimeImmutable();
+        $this->createdAt = new DateTimeImmutable();
+
+        if ($this->status === null) {
+            $this->status = PaymentStatusEnum::PENDING;
+        }
     }
 
     public function getClientFullName(): ?string
@@ -189,8 +212,68 @@ class Payment
         return $this->trainer;
     }
 
+    public function getStripePaymentIntentId(): ?string
+    {
+        return $this->stripePaymentIntentId;
+    }
+
+    public function setStripePaymentIntentId(?string $stripePaymentIntentId): static
+    {
+        $this->stripePaymentIntentId = $stripePaymentIntentId;
+
+        return $this;
+    }
+
+    public function getStatus(): ?PaymentStatusEnum
+    {
+        return $this->status;
+    }
+
+    public function setStatus(PaymentStatusEnum $status): static
+    {
+        $this->status = $status;
+
+        return $this;
+    }
+
+    public function getConfirmedAt(): ?DateTimeImmutable
+    {
+        return $this->confirmedAt;
+    }
+
+    public function setConfirmedAt(?DateTimeImmutable $confirmedAt): static
+    {
+        $this->confirmedAt = $confirmedAt;
+
+        return $this;
+    }
+
+    public function getCreatedAt(): ?DateTimeImmutable
+    {
+        return $this->createdAt;
+    }
+
+    public function setCreatedAt(?DateTimeImmutable $createdAt): static
+    {
+        $this->createdAt = $createdAt;
+
+        return $this;
+    }
+
     public function getTrainerFullName(): ?string
     {
         return $this->trainerFullName;
+    }
+
+    public function getCurrency(): string
+    {
+        return $this->currency;
+    }
+
+    public function setCurrency(string $currency): static
+    {
+        $this->currency = $currency;
+
+        return $this;
     }
 }

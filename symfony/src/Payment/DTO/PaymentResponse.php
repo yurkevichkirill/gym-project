@@ -24,7 +24,7 @@ final readonly class PaymentResponse
         return new self(
             id: $payment->getId(),
             trainer: $payment->getTrainer() ? TrainerResponse::fromEntity($payment->getTrainer()) : null,
-            amount: $payment->getAmount(),
+            amount: (string) $payment->getAmount(),
             category: $payment->getCategory(),
             isRefund: $payment->getIsRefund(),
         );

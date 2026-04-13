@@ -32,26 +32,26 @@ class Membership
     private ?MembershipPlan $plan = null;
 
     #[ORM\Column]
-    private ?string $name;
+    private string $name;
 
     #[ORM\Column]
-    private ?int $durationDays;
+    private int $durationDays;
 
     #[ORM\Column(nullable: true)]
     private ?int $sessionLimit;
 
     #[ORM\OneToOne(targetEntity: Payment::class, inversedBy: 'membership', cascade: ['persist'])]
-    #[ORM\JoinColumn(nullable: false, onDelete: 'SET NULL')]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
     private ?Payment $payment = null;
 
-    #[ORM\Column(type: Types::DATE_IMMUTABLE)]
+    #[ORM\Column(type: Types::DATE_IMMUTABLE, nullable: true)]
     private ?DateTimeImmutable $startDate = null;
 
-    #[ORM\Column(type: Types::DATE_IMMUTABLE)]
+    #[ORM\Column(type: Types::DATE_IMMUTABLE, nullable: true)]
     private ?DateTimeImmutable $endDate = null;
 
-    #[ORM\Column(type: Types::ENUM, options: ['default' => MembershipStatusEnum::ACTIVE])]
-    private ?MembershipStatusEnum $status = null;
+    #[ORM\Column(type: Types::ENUM)]
+    private MembershipStatusEnum $status;
 
     #[ORM\Column(options: ['default' => 0])]
     #[Assert\GreaterThanOrEqual(0)]
@@ -177,16 +177,21 @@ class Membership
         return $this;
     }
 
-    /**
-     * @throws DateMalformedIntervalStringException
-     */
+    public function activate(): void
+    {
+        $this->status = MembershipStatusEnum::ACTIVE;
+
+        $this->startDate = new DateTimeImmutable();
+        $this->endDate = $this->startDate->add(
+            new DateInterval("P{$this->durationDays}D")
+        );
+    }
+
     #[ORM\PrePersist]
     public function initializeDefaults(): static
     {
         $this->createdAt = new DateTimeImmutable('');
-        $this->startDate = $this->createdAt->add(new DateInterval('P1D'));
-        $this->endDate = $this->startDate->add(new DateInterval("P" . $this->getDurationDays() . "D"));
-        $this->status = MembershipStatusEnum::ACTIVE;
+        $this->status = MembershipStatusEnum::PENDING;
         $this->visits = 0;
 
         return $this;

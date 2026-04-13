@@ -5,68 +5,181 @@ declare(strict_types=1);
 namespace App\Payment\Service;
 
 use App\Client\Entity\Client;
-use App\Client\Service\AvailabilityService;
-use App\Exception\InsufficientFundsException;
 use App\Payment\Entity\Payment;
 use App\Payment\Enum\PaymentCategoryEnum;
+use App\Payment\Enum\PaymentStatusEnum;
 use App\Payment\Repository\PaymentRepository;
 use App\Trainer\Entity\Trainer;
+use DateTimeImmutable;
+use Doctrine\ORM\EntityManagerInterface;
+use LogicException;
+use Stripe\Exception\ApiErrorException;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 final readonly class PaymentService
 {
     public function __construct(
         private PaymentRepository $paymentRepo,
-        private AvailabilityService $availabilityService,
-    )
-    {}
+        private StripeService $stripeService,
+        private EntityManagerInterface $em,
+    ) {}
 
-    public function pay(Client $client, float $price, ?Trainer $trainer = null): Payment
-    {
-        $clientBalance = (float) $client->getBalance();
-        if (!$this->availabilityService->hasClientEnoughMoney($clientBalance, $price)) {
-            throw new InsufficientFundsException();
-        }
-
+    public function createPayment(
+        Client $client,
+        int $amount,
+        PaymentCategoryEnum $category,
+        ?Trainer $trainer = null
+    ): Payment {
         $payment = new Payment();
         $payment->setClient($client);
-        $payment->setAmount((string) $price);
+        $payment->setAmount($amount);
         $payment->setIsRefund(false);
+        $payment->setCategory($category);
+        $payment->setStatus(PaymentStatusEnum::PENDING);
+
         if ($trainer) {
             $payment->setTrainer($trainer);
-            $payment->setCategory(PaymentCategoryEnum::TRAINER);
-
-            $trainerBalance = $trainer->getBalance();
-            $trainer->setBalance((string) ($trainerBalance + $price));
-        } else {
-            $payment->setCategory(PaymentCategoryEnum::MEMBERSHIP);
         }
-        $this->paymentRepo->create($payment);
 
-        $client->setBalance((string) ($clientBalance - $price));
+        $this->paymentRepo->create($payment);
 
         return $payment;
     }
 
-    public function refund(Client $client, Payment $payment): void
+    public function confirmPayment(Payment $payment): void
     {
-        $clientBalance = (float) $client->getBalance();
-
-        $paymentRefund = new Payment();
-        $paymentRefund->setClient($client);
-        $paymentRefund->setAmount($payment->getAmount());
-        $paymentRefund->setIsRefund(true);
-
-        $trainer = $payment->getTrainer();
-        if ($trainer !== null) {
-            $paymentRefund->setTrainer($payment->getTrainer());
-
-            $trainerBalance = $trainer->getBalance();
-            $trainer->setBalance((string) ($trainerBalance - $payment->getAmount()));
+        if ($payment->getStatus() === PaymentStatusEnum::SUCCEEDED) {
+            return;
         }
-        $paymentRefund->setCategory($payment->getCategory());
 
-        $this->paymentRepo->create($paymentRefund);
+        $client = $payment->getClient();
+        $amount = $payment->getAmount();
+        if ($amount === null) {
+            throw new LogicException('Payment amount is not set');
+        }
 
-        $client->setBalance((string) ($clientBalance + $payment->getAmount()));
+        $client?->setBalance((string)((int)$client->getBalance() - $amount));
+
+        if ($payment->getTrainer()) {
+            $trainer = $payment->getTrainer();
+            $trainer->setBalance($trainer->getBalance() + $amount);
+        }
+
+        $payment->setStatus(PaymentStatusEnum::SUCCEEDED);
+        $payment->setConfirmedAt(new DateTimeImmutable());
+        $payment->setPaidAt(new DateTimeImmutable());
+
+        $payment->getBooking()?->confirm();
+
+        $payment->getMembership()?->activate();
+
+        $this->em->flush();
+    }
+
+    public function confirmPaymentByStripeIntentId(string $intentId): void
+    {
+        $payment = $this->paymentRepo->findOneByStripePaymentIntentId($intentId);
+        if ($payment === null) {
+            throw new NotFoundHttpException('Payment for Stripe intent was not found');
+        }
+
+        $this->confirmPayment($payment);
+    }
+
+    public function failPayment(Payment $payment): void
+    {
+        if ($payment->getStatus() !== PaymentStatusEnum::PENDING) {
+            return;
+        }
+
+        $payment->setStatus(PaymentStatusEnum::FAILED);
+
+        $payment->getBooking()?->cancel();
+
+        $this->em->flush();
+    }
+
+    public function failPaymentByStripeIntentId(string $intentId): void
+    {
+        $payment = $this->paymentRepo->findOneByStripePaymentIntentId($intentId);
+        if ($payment === null) {
+            throw new NotFoundHttpException('Payment for Stripe intent was not found');
+        }
+
+        $this->failPayment($payment);
+    }
+
+    public function refundPayment(Payment $payment): void
+    {
+        if ($payment->getStatus() === PaymentStatusEnum::REFUNDED) {
+            return;
+        }
+
+        if ($payment->getStatus() !== PaymentStatusEnum::SUCCEEDED) {
+            throw new LogicException('Cannot refund unpaid payment');
+        }
+
+        $client = $payment->getClient();
+        $amount = $payment->getAmount();
+        if ($amount === null) {
+            throw new LogicException('Payment amount is not set');
+        }
+
+        $client?->setBalance((string)((int)$client->getBalance() + $amount));
+
+        if ($payment->getTrainer()) {
+            $trainer = $payment->getTrainer();
+            $trainer->setBalance($trainer->getBalance() - $amount);
+        }
+
+        $payment->setIsRefund(true);
+        $payment->setStatus(PaymentStatusEnum::REFUNDED);
+
+        $this->em->flush();
+    }
+
+    public function refundPaymentByStripeIntentId(string $intentId): void
+    {
+        $payment = $this->paymentRepo->findOneByStripePaymentIntentId($intentId);
+        if ($payment === null) {
+            throw new NotFoundHttpException('Payment for Stripe intent was not found');
+        }
+
+        $this->refundPayment($payment);
+    }
+
+    /**
+     * @throws ApiErrorException
+     */
+    public function refundPaymentViaStripe(Payment $payment): void
+    {
+        $this->stripeService->refund($payment);
+        $this->refundPayment($payment);
+    }
+
+    public function cancelPayment(Payment $payment): void
+    {
+        if ($payment->getStatus() !== PaymentStatusEnum::PENDING) {
+            return;
+        }
+
+        $payment->setStatus(PaymentStatusEnum::CANCELED);
+
+        $payment->getBooking()?->cancel();
+
+        $this->em->flush();
+    }
+
+    /**
+     * @throws ApiErrorException
+     */
+    public function cancelPaymentWithStripeIntent(Payment $payment): void
+    {
+        if ($payment->getStatus() !== PaymentStatusEnum::PENDING) {
+            return;
+        }
+
+        $this->stripeService->cancelPaymentIntent($payment);
+        $this->cancelPayment($payment);
     }
 }
