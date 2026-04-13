@@ -33,3 +33,11 @@ services:
             - { name: doctrine.event_listener, event: 'loadClassMetadata' }
         calls:
             - [ setAnnotationReader, ['@Gedmo\Mapping\Driver\AttributeReader'] ]
+
+    App\Payment\Service\StripeService:
+        arguments:
+            $stripeSecretKey: '%env(STRIPE_SECRET_KEY)%'
+
+    App\Payment\Service\StripeWebhookService:
+        arguments:
+            $webhookSecret: '%env(STRIPE_WEBHOOK_SECRET)%'

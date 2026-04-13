@@ -112,10 +112,6 @@ final class MembershipController extends AbstractController
         );
     }
 
-    /**
-     * @throws OptimisticLockException
-     * @throws ORMException
-     */
     #[Route('/api/me/memberships/{id}/freeze/', methods: ['POST'], format: 'json')]
     #[OA\Tag(name: "Client: Membership")]
     public function freeze(

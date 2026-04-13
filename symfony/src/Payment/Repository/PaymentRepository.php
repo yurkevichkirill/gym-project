@@ -29,6 +29,13 @@ class PaymentRepository extends ServiceEntityRepository
         $this->getEntityManager()->remove($payment);
     }
 
+    public function findOneByStripePaymentIntentId(string $intentId): ?Payment
+    {
+        return $this->findOneBy([
+            'stripePaymentIntentId' => $intentId,
+        ]);
+    }
+
     //    /**
     //     * @return Payment[] Returns an array of Payment objects
     //     */

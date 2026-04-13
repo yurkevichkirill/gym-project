@@ -177,9 +177,9 @@ final readonly class TrainerManager
         return $trainer;
     }
 
-    public function countPrice(Trainer $trainer, int $durationMinutes): float
+    public function countPrice(Trainer $trainer, int $durationMinutes): int
     {
-        $pricePerHour = (float) $trainer->getPricePerHour();
+        $pricePerHour = (int) $trainer->getPricePerHour();
 
         return $durationMinutes / self::MIN_DURATION * $pricePerHour / self::TRAINER_PRICE_DIVIDER;
     }

@@ -33,8 +33,8 @@ class Trainer extends User
     #[ORM\Column(nullable: true)]
     private ?string $about = null;
 
-    #[ORM\Column(type: Types::DECIMAL, precision: 10, scale: 2)]
-    private ?string $balance = "0.00";
+    #[ORM\Column]
+    private int $balance = 0;
 
     #[ORM\OneToMany(targetEntity: TrainerWorkTime::class, mappedBy: 'trainer', orphanRemoval: true)]
     private Collection $trainerWorkTime;
@@ -103,12 +103,12 @@ class Trainer extends User
         return $this;
     }
 
-    public function getBalance(): ?string
+    public function getBalance(): int
     {
         return $this->balance;
     }
 
-    public function setBalance(?string $balance): static
+    public function setBalance(int $balance): static
     {
         $this->balance = $balance;
 

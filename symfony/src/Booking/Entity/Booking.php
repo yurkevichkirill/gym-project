@@ -123,11 +123,21 @@ class Booking
         return $this;
     }
 
+    public function confirm(): void
+    {
+        $this->status = BookingStatusEnum::CONFIRMED;
+    }
+
+    public function cancel(): void
+    {
+        $this->status = BookingStatusEnum::CANCELED;
+    }
+
     #[ORM\PrePersist]
     public function initializeDefaults(): static
     {
         $this->bookedAt = new DateTimeImmutable();
-        $this->status = BookingStatusEnum::SCHEDULED;
+        $this->status = BookingStatusEnum::PENDING;
 
         return $this;
     }

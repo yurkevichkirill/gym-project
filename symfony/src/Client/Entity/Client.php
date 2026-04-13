@@ -20,8 +20,8 @@ class Client extends User
     #[ORM\Column]
     private ?int $age = null;
 
-    #[ORM\Column(type: Types::DECIMAL, precision: 10, scale: 2)]
-    private ?string $balance = "0.00";
+    #[ORM\Column]
+    private int $balance = 0;
 
     /**
      * @var Collection<int, Booking>

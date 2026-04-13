@@ -276,13 +276,17 @@ class AppFixtures extends Fixture
 //            $manager->remove($manager->getRepository(Booking::class)->find($item->getId()));
 //        }
 //
-//        foreach ($manager->getRepository(Membership::class)->findAll() as $item) {
-//            $manager->remove($manager->getRepository(Membership::class)->find($item->getId()));
-//        }
-//
-//        foreach ($manager->getRepository(Payment::class)->findAll() as $item) {
-//            $manager->remove($manager->getRepository(Payment::class)->find($item->getId()));
-//        }
+        foreach ($manager->getRepository(Membership::class)->findAll() as $item) {
+            $manager->remove($manager->getRepository(Membership::class)->find($item->getId()));
+        }
+
+        foreach ($manager->getRepository(Booking::class)->findAll() as $item) {
+            $manager->remove($manager->getRepository(Booking::class)->find($item->getId()));
+        }
+
+        foreach ($manager->getRepository(Payment::class)->findAll() as $item) {
+            $manager->remove($manager->getRepository(Payment::class)->find($item->getId()));
+        }
 //        $manager->remove($manager->getRepository(Booking::class)->find(12));
 
 //        $manager->getRepository(Client::class)->find(5)->setBalance(1000);
@@ -306,27 +310,27 @@ class AppFixtures extends Fixture
 
 //        $manager->getRepository(Membership::class)->find(5)->setVisits(47);
 
-        $training = new Training();
-        $training->setTrainerWorkTime($manager->getRepository(TrainerWorkTime::class)->find(8));
-        $training->setStartTime(new \DateTimeImmutable("12:00:00"));
-        $training->setDurationMinutes(120);
-        $manager->persist($training);
-
-        $payment = new Payment();
-        $payment->setClient($manager->getRepository(Client::class)->find(7));
-        $payment->setTrainer($manager->getRepository(Trainer::class)->find(9));
-        $payment->setIsRefund(false);
-        $payment->setAmount(5);
-        $payment->setCategory(PaymentCategoryEnum::TRAINER);
-        $manager->persist($payment);
-
-
-        $booking = new Booking();
-        $booking->setStatus(BookingStatusEnum::SCHEDULED);
-        $booking->setClient($manager->getRepository(Client::class)->find(7));
-        $booking->setTraining($training);
-        $booking->setPayment($payment);
-        $manager->persist($booking);
+//        $training = new Training();
+//        $training->setTrainerWorkTime($manager->getRepository(TrainerWorkTime::class)->find(8));
+//        $training->setStartTime(new \DateTimeImmutable("12:00:00"));
+//        $training->setDurationMinutes(120);
+//        $manager->persist($training);
+//
+//        $payment = new Payment();
+//        $payment->setClient($manager->getRepository(Client::class)->find(7));
+//        $payment->setTrainer($manager->getRepository(Trainer::class)->find(9));
+//        $payment->setIsRefund(false);
+//        $payment->setAmount(5);
+//        $payment->setCategory(PaymentCategoryEnum::TRAINER);
+//        $manager->persist($payment);
+//
+//
+//        $booking = new Booking();
+//        $booking->setStatus(BookingStatusEnum::SCHEDULED);
+//        $booking->setClient($manager->getRepository(Client::class)->find(7));
+//        $booking->setTraining($training);
+//        $booking->setPayment($payment);
+//        $manager->persist($booking);
 
         $manager->flush();
     }
