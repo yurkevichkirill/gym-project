@@ -15,6 +15,8 @@ use App\MembershipPlan\Repository\MembershipPlanRepository;
 use App\Payment\Service\PaymentService;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\Exception\ORMException;
+use Doctrine\ORM\OptimisticLockException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 final readonly class MembershipManager
@@ -24,6 +26,7 @@ final readonly class MembershipManager
         private MembershipPlanRepository $membershipPlanRepo,
         private EntityManagerInterface $entityManager,
         private AvailabilityService $userAvailabilityService,
+        private VisitingService $visitingService,
         private PaymentService $clientPaymentService,
     )
     {}
@@ -39,7 +42,7 @@ final readonly class MembershipManager
         }
 
         return $this->entityManager->wrapInTransaction(function () use ($client, $plan) {
-            if ($this->hasActiveMembership($client)) {
+            if ($this->visitingService->hasActiveMembership($client)) {
                 throw new MembershipActiveException("Client still has active membership");
             }
 
@@ -59,24 +62,6 @@ final readonly class MembershipManager
 
             return $membership;
         });
-    }
-
-    public function hasActiveMembership(Client $client): bool
-    {
-        $activeMembership = $this->membershipRepo->findOneBy([
-            'client' => $client,
-            'status' => MembershipStatusEnum::ACTIVE
-        ]);
-
-        if (
-            !$activeMembership ||
-            $activeMembership->getDurationDays() !== null && $activeMembership->getVisits() >= $activeMembership->getSessionLimit() ||
-            new DateTimeImmutable() > $activeMembership->getEndDate()
-        ) {
-            return false;
-        }
-
-        return true;
     }
 
     public function freeze(Membership $membership): Membership
@@ -130,5 +115,25 @@ final readonly class MembershipManager
         $this->entityManager->flush();
 
         return $membership;
+    }
+
+    /**
+     * @throws OptimisticLockException
+     * @throws ORMException
+     */
+    public function expire(): int
+    {
+        $curDate = new DateTimeImmutable();
+        $expiredMemberships = $this->membershipRepo->findExpired($curDate);
+
+        foreach ($expiredMemberships as $membership) {
+            if ($membership->getStatus() === MembershipStatusEnum::ACTIVE && $membership->getEndDate() <= $curDate) {
+                $membership->setStatus(MembershipStatusEnum::EXPIRED);
+            }
+        }
+
+        $this->entityManager->flush();
+
+        return count($expiredMemberships);
     }
 }

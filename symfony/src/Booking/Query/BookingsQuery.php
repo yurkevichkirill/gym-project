@@ -67,11 +67,11 @@ final readonly class BookingsQuery
     private function createQuery(array $filter, bool $isCount = false): QueryBuilder
     {
         $qb = $this->bookingRepo->createQueryBuilder('b')
-            ->leftJoin("b.payment", 'p')
+            ->innerJoin("b.payment", 'p')
             ->addSelect('p')
-            ->leftJoin("p.trainer", "trainer")
+            ->innerJoin("p.trainer", "trainer")
             ->addSelect("trainer")
-            ->leftJoin("trainer.trainingType", 'type')
+            ->innerJoin("trainer.trainingType", 'type')
             ->addSelect("type");
 
         if (!$isCount) {

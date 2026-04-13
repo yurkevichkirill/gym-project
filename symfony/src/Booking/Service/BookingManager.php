@@ -11,6 +11,7 @@ use App\Client\Entity\Client;
 use App\Exception\DateTimeAlreadyTakenException;
 use App\Exception\NoActiveMembershipException;
 use App\Membership\Service\MembershipManager;
+use App\Membership\Service\VisitingService;
 use App\Payment\Service\PaymentService;
 use App\Trainer\Repository\TrainerRepository;
 use App\Trainer\Service\TrainerManager;
@@ -24,6 +25,7 @@ use DateMalformedIntervalStringException;
 use DateMalformedStringException;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 final readonly class BookingManager
@@ -34,7 +36,7 @@ final readonly class BookingManager
         private TrainerWorkTimeRepository $worktimeRepo,
         private TrainerManager            $trainerManager,
         private TrainerRepository         $trainerRepo,
-        private MembershipManager         $membershipManager,
+        private VisitingService           $visitingService,
         private UserAvailabilityService   $userAvailabilityService,
         private WorktimeAvailabilityService $worktimeAvailabilityService,
         private PaymentService            $paymentService,
@@ -64,12 +66,19 @@ final readonly class BookingManager
             throw new NotFoundHttpException('Worktime not found');
         }
 
+        $bookingDateTime = new DateTimeImmutable($dto->date . ' ' . $dto->startTime);
+        $now = new DateTimeImmutable();
+
+        if ($bookingDateTime <= $now) {
+            throw new BadRequestHttpException('Cannot book training in the past');
+        }
+
         $price = $this->trainerManager->countPrice($worktime->getTrainer(), $dto->durationMinutes);
 
         return $this->entityManager->wrapInTransaction(function () use ($client, $price, $worktime, $dto) {
             $this->validateTrainingTimeAvailable($worktime, $dto->startTime, $dto->durationMinutes);
 
-            if (!$this->membershipManager->hasActiveMembership($client)) {
+            if (!$this->visitingService->hasActiveMembership($client)) {
                 throw new NoActiveMembershipException();
             }
 

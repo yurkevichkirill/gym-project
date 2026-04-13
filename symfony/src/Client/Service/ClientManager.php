@@ -10,6 +10,10 @@ use App\Client\DTO\CreateClientRequest;
 use App\Client\DTO\UpdateClientRequest;
 use App\Client\Entity\Client;
 use App\Client\Repository\ClientRepository;
+use App\Exception\NoActiveMembershipException;
+use App\Membership\Entity\Membership;
+use App\Membership\Service\MembershipManager;
+use App\Membership\Service\VisitingService;
 use App\RefreshToken\Repository\RefreshTokenRepository;
 use App\User\Service\AvailabilityService;
 use DateTimeImmutable;
@@ -25,6 +29,7 @@ final readonly class ClientManager
         private RefreshTokenRepository $refreshTokenRepo,
         private UserPasswordHasherInterface $passwordHasher,
         private AvailabilityService $userAvailabilityService,
+        private VisitingService $visitingService,
         private EntityManagerInterface $entityManager,
     )
     {}
@@ -150,5 +155,20 @@ final readonly class ClientManager
         $this->entityManager->flush();
 
         return $client;
+    }
+
+    public function visit(Client $client): Membership
+    {
+        $this->userAvailabilityService->ensureNotBlocked($client);
+
+        if (!$this->visitingService->hasActiveMembership($client)) {
+            throw new NoActiveMembershipException();
+        }
+
+        $membership = $this->visitingService->visit($client);
+
+        $this->entityManager->flush();
+
+        return $membership;
     }
 }
