@@ -4,7 +4,8 @@ declare(strict_types=1);
 
 namespace App\Membership\Command;
 
-use App\Membership\Service\MembershipExpirationService;
+use App\Membership\Service\MembershipManager;
+use App\Membership\Service\VisitingService;
 use Doctrine\ORM\Exception\ORMException;
 use Doctrine\ORM\OptimisticLockException;
 use Symfony\Component\Console\Attribute\AsCommand;
@@ -17,7 +18,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 final readonly class ExpireMembershipCommand
 {
     public function __construct(
-        private MembershipExpirationService $service,
+        private MembershipManager $manager,
     )
     {}
 
@@ -28,7 +29,7 @@ final readonly class ExpireMembershipCommand
     public function __invoke(InputInterface $input, OutputInterface $output): int
     {
         $io = new SymfonyStyle($input, $output);
-        $count = $this->service->expire();
+        $count = $this->manager->expire();
         $io->success("Updated {$count} expired memberships");
 
         return Command::SUCCESS;

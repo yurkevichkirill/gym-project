@@ -6,9 +6,8 @@ use App\Client\DTO\UpdateClientRequest;
 use App\Client\Entity\Client;
 use App\Client\Mapper\ClientMapperInterface;
 use App\Client\Service\ClientManager;
+use App\Membership\Mapper\MembershipMapperInterface;
 use App\Response\OkResponse;
-use Doctrine\ORM\Exception\ORMException;
-use Doctrine\ORM\OptimisticLockException;
 use Nelmio\ApiDocBundle\Attribute\Model;
 use OpenApi\Attributes as OA;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -20,6 +19,21 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 final class ClientController extends AbstractController
 {
+    #[Route('/api/me/', methods: ['GET'], format: 'json')]
+    #[OA\Tag(name: "Client: Client")]
+    public function get(
+        #[CurrentUser] Client $client,
+        ClientMapperInterface $clientMapper,
+    ): OkResponse
+    {
+        $responseDto = $clientMapper->map($client);
+
+        return new OkResponse(
+            data: $responseDto,
+            status: Response::HTTP_OK,
+        );
+    }
+
     #[Route('/api/me/', methods: ['PUT', 'PATCH'], format: 'json')]
     #[OA\RequestBody(content: new Model(type: UpdateClientRequest::class))]
     #[OA\Tag(name: "Client: Client")]
@@ -65,5 +79,22 @@ final class ClientController extends AbstractController
         );
 
         return $response;
+    }
+
+    #[Route('/api/me/visit/', methods: ['POST'], format: 'json')]
+    #[OA\Tag(name: "Client: Client")]
+    #[IsGranted('ROLE_CLIENT')]
+    public function visit(
+        #[CurrentUser] Client $client,
+        MembershipMapperInterface $mapper,
+        ClientManager $manager,
+    ): OkResponse
+    {
+        $responseDto = $mapper->map($manager->visit($client));
+
+        return new OkResponse(
+            data: $responseDto,
+            status: Response::HTTP_OK,
+        );
     }
 }

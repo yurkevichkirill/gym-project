@@ -42,6 +42,14 @@ class MembershipRepository extends ServiceEntityRepository
             ->getResult();
     }
 
+    public function findActive(Client $client): Membership | null
+    {
+        return $this->findOneBy([
+            'client' => $client,
+            'status' => MembershipStatusEnum::ACTIVE
+        ]);
+    }
+
     //    /**
     //     * @return Membership[] Returns an array of Membership objects
     //     */

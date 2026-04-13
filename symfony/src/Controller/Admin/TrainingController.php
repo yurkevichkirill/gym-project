@@ -2,185 +2,169 @@
 
 namespace App\Controller\Admin;
 
-use App\Trainer\Repository\TrainerRepository;
+use App\Client\Repository\ClientRepository;
+use App\Response\OkResponse;
+use App\Trainer\Entity\Trainer;
+use App\Training\DTO\GetTrainings;
+use App\Training\DTO\TrainingRequest;
 use App\Training\Entity\Training;
+use App\Training\Mapper\TrainingMapperInterface;
+use App\Training\Query\TrainingsQuery;
 use App\Training\Repository\TrainingRepository;
-use App\Training\Service\TrainingServiceInterface;
-use DateTimeImmutable;
+use App\Training\Service\TrainingManager;
+use DateMalformedIntervalStringException;
+use DateMalformedStringException;
 use Nelmio\ApiDocBundle\Attribute\Model;
 use OpenApi\Attributes as OA;
+use Psr\Cache\InvalidArgumentException;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
-use Symfony\Component\Serializer\Normalizer\AbstractNormalizer;
-use Symfony\Component\Serializer\SerializerInterface;
-use Symfony\Component\Validator\Validator\ValidatorInterface;
-use Throwable;
 
-//change endpoints
 final class TrainingController extends AbstractController
 {
-    #[Route('api/trainers/{id}/trainings', methods: ['GET'], format: 'json')]
-    #[OA\Parameter(
-        name: 'date',
-        in: 'query'
-    )]
-    #[OA\Parameter(
-        name: 'sort',
-        in: 'query'
-    )]
+    /**
+     * @throws InvalidArgumentException
+     */
+    #[Route('/api/trainings/', methods: ['GET'], format: 'json')]
+    #[OA\Parameter(name: 'clientId', in: 'query', example: 6)]
+    #[OA\Parameter(name: 'status', in: 'query', example: 'scheduled')]
+    #[OA\Parameter(name: 'date', in: 'query', example: '2026-03-10')]
+    #[OA\Parameter(name: 'startTime', in: 'query', example: '15:00:00')]
+    #[OA\Parameter(name: 'durationMinutes', in: 'query', example: 90)]
+    #[OA\Parameter(name: 'sort', in: 'query', example: 'bookedAt:ASC')]
+    #[OA\Parameter(name: 'page', in: 'query', example: 1)]
+    #[OA\Parameter(name: 'limit', in: 'query', example: 20)]
+    #[OA\Tag(name: "Admin: Trainer")]
     #[IsGranted('ROLE_ADMIN')]
-    public function getAll(int $id, Request $request, TrainingServiceInterface $trainingService): JsonResponse
+    public function getAll(
+        TrainingMapperInterface $mapper,
+        TrainingsQuery   $handler,
+        Request               $request,
+        ClientRepository $clientRepo,
+    ): OkResponse
     {
-        try {
-            $sortRaw = $request->query->get('sort', 'startTime:ASC');
-            $sort = [];
-            foreach (explode(',', $sortRaw) as $item) {
-                [$field, $order] = explode(':',  $item);
-                $sort[$field] = strtoupper($order);
-            }
-            $date = $request->query->get('date') ? new DateTimeImmutable($request->query->get('date')) : null;
-            $trainings = $trainingService->findBy($id, $sort, $date);
-        } catch (Throwable $e) {
-            return $this->json(['error' => $e->getMessage()], 400);
-        }
+        $sortRaw = $request->query->get('sort', 'bookedAt:ASC');
+        $client = $clientRepo->find((int) $request->query->get('clientId'));
+        $date = $request->query->get('date');
+        $durationMinutes = $request->query->get('durationMinutes') ? (int) $request->query->get('durationMinutes') : null;
+        $startTime = $request->query->get('startTime');
+        $status = $request->query->get('status');
+        $page = (int) $request->query->get('page', 1);
+        $limit = (int) $request->query->get('limit', 20);
 
-        if(empty($trainings)) {
-            return $this->json(['error' => 'No trainings found'], 404);
-        }
+        $queryDto = new GetTrainings($sortRaw, $client, $date, $durationMinutes, $startTime, $status, $page, $limit);
 
-        return $this->json($trainings, 200, [], [
-            'datetime_format' => 'H:i',
-            'groups' => ['public-training']
-        ]);
+        $trainings = $handler->handle($queryDto);
+
+        return new OkResponse(
+            array_map(fn ($training) => $mapper->map($training), $trainings),
+            $queryDto->page,
+            $queryDto->limit,
+            $handler->getTotal($queryDto->filter),
+            $queryDto->sort,
+            200,
+        );
     }
 
-//    #[Route('api/trainings/{id}', methods: ['GET'], format: 'json')]
-//    #[IsGranted('ROLE_ADMIN')]
-//    public function get(
-//        TrainingRepository $trainingRepo,
-//        int $id
-//    ): JsonResponse
-//    {
-//        $training = $trainingRepo->find($id);
-//        if(empty($training)) {
-//            return $this->json(['error' => 'Training not found'], 404);
-//        }
-//
-//        return $this->json($training, 200, [], [
-//            'datetime_format' => 'H:i',
-//            'groups' => ['public-training']
-//        ]);
-//    }
-
-    #[Route('api/trainers/{id}/trainings', methods: ['POST'], format: 'json')]
-    #[OA\RequestBody(content: new Model(type: Training::class, groups: ['create-update-training']))]
+    /**
+     * @throws InvalidArgumentException
+     */
+    #[Route('/api/trainers/{id}/trainings/', methods: ['GET'], format: 'json')]
+    #[OA\Parameter(name: 'clientId', in: 'query', example: 6)]
+    #[OA\Parameter(name: 'status', in: 'query', example: 'scheduled')]
+    #[OA\Parameter(name: 'date', in: 'query', example: '2026-03-10')]
+    #[OA\Parameter(name: 'startTime', in: 'query', example: '15:00:00')]
+    #[OA\Parameter(name: 'durationMinutes', in: 'query', example: 90)]
+    #[OA\Parameter(name: 'sort', in: 'query', example: 'bookedAt:ASC')]
+    #[OA\Parameter(name: 'page', in: 'query', example: 1)]
+    #[OA\Parameter(name: 'limit', in: 'query', example: 20)]
+    #[OA\Tag(name: "Admin: Trainer")]
     #[IsGranted('ROLE_ADMIN')]
-    public function create(
-        int $id,
-        TrainingRepository $trainingRepo,
-        TrainerRepository $trainerRepo,
-        Request $request,
-        SerializerInterface $serializer,
-        ValidatorInterface $validator
-    ): JsonResponse
+    public function getAllByTrainer(
+        TrainingMapperInterface $mapper,
+        Trainer $trainer,
+        TrainingsQuery   $handler,
+        Request               $request,
+        ClientRepository $clientRepo,
+    ): OkResponse
     {
-        try {
-            $training = $serializer->deserialize($request->getContent(), Training::class, 'json');
-        } catch(Throwable $e) {
-            return $this->json(['error' => $e->getMessage()], 400);
-        }
+        $sortRaw = $request->query->get('sort', 'bookedAt:ASC');
+        $client = $clientRepo->find((int) $request->query->get('clientId'));
+        $date = $request->query->get('date');
+        $durationMinutes = $request->query->get('durationMinutes') ? (int) $request->query->get('durationMinutes') : null;
+        $startTime = $request->query->get('startTime');
+        $status = $request->query->get('status');
+        $page = (int) $request->query->get('page', 1);
+        $limit = (int) $request->query->get('limit', 20);
 
-        $trainer = $trainerRepo->find($id);
-        if(is_null($trainer)) {
-            return $this->json(['error' => 'OurTrainer not found'], 404);
-        }
+        $queryDto = new GetTrainings($sortRaw, $client, $date, $durationMinutes, $startTime, $status, $page, $limit, $trainer);
 
-        $training->setTrainer($trainer);
+        $trainings = $handler->handle($queryDto);
 
-        $errors = $validator->validate($training);
-        if (count($errors) > 0) {
-            $errorMessages = [];
-            foreach ($errors as $error) {
-                $errorMessages[$error->getPropertyPath()][] = $error->getMessage();
-            }
-
-            return $this->json(['errors' => $errorMessages], 422);
-        }
-
-        try {
-            $trainingRepo->create($training);
-        } catch (Throwable $e) {
-            return $this->json(['error' => $e->getMessage()], 400);
-        }
-
-        return $this->json($training, 201, [], [
-            'datetime_format' => 'H:i',
-            'groups' => ['public-training']
-        ]);
+        return new OkResponse(
+            array_map(fn ($training) => $mapper->map($training), $trainings),
+            $queryDto->page,
+            $queryDto->limit,
+            $handler->getTotal($queryDto->filter),
+            $queryDto->sort,
+            200,
+        );
     }
 
-//    #[Route('api/trainings/{id}', methods: ['PUT', 'PATCH'], format: 'json')]
-//    #[OA\RequestBody(content: new Model(type: Training::class, groups: ['create-update-training']))]
-//    #[IsGranted('ROLE_ADMIN')]
-//    public function update(
-//        int $id,
-//        TrainingRepository $trainingRepo,
-//        Request $request,
-//        SerializerInterface $serializer,
-//        ValidatorInterface $validator
-//    ): JsonResponse
-//    {
-//        $training = $trainingRepo->find($id);
-//        if(empty($training)) {
-//            return $this->json(['error' => 'Training not found'], 404);
-//        }
-//
-//        try {
-//            $serializer->deserialize($request->getContent(), Training::class, 'json', [
-//                AbstractNormalizer::OBJECT_TO_POPULATE => $training
-//            ]);
-//            $trainingRepo->save();
-//        } catch(Throwable $e) {
-//            return $this->json(['error' => $e->getMessage()], 400);
-//        }
-//
-//        $errors = $validator->validate($training);
-//        if (count($errors) > 0) {
-//            $errorMessages = [];
-//            foreach ($errors as $error) {
-//                $errorMessages[$error->getPropertyPath()][] = $error->getMessage();
-//            }
-//
-//            return $this->json(['errors' => $errorMessages], 422);
-//        }
-//
-//        return $this->json($training, 200, [], [
-//            'datetime_format' => 'H:i',
-//            'groups' => ['public-training']
-//        ]);
-//    }
+    /**
+     * @throws DateMalformedStringException
+     * @throws DateMalformedIntervalStringException
+     */
+    #[Route('/api/admin/trainings/{id}/', methods: ['PUT', 'PATCH'], format: 'json')]
+    #[OA\RequestBody(content: new Model(type: TrainingRequest::class))]
+    #[OA\Tag(name: "Admin: Training")]
+    #[IsGranted('ROLE_ADMIN')]
+    public function update(
+        Training $training,
+        #[MapRequestPayload] TrainingRequest $requestDto,
+        TrainingMapperInterface $mapper,
+        TrainingManager $manager,
+    ): OkResponse
+    {
+        $responseDto = $mapper->map($manager->update($training, $requestDto));
 
-//    #[Route('api/trainings/{id}', methods: ['DELETE'], format: 'json')]
-//    #[IsGranted('ROLE_ADMIN')]
-//    public function delete(
-//        int $id,
-//        TrainingRepository $trainingRepo,
-//    ): JsonResponse
-//    {
-//        $training = $trainingRepo->find($id);
-//        if(empty($training)) {
-//            return $this->json(['error' => 'Training not found'], 404);
-//        }
-//
-//        try {
-//            $trainingRepo->remove($training);
-//        } catch(Throwable $e) {
-//            return $this->json(['error' => $e->getMessage()], 400);
-//        }
-//
-//        return $this->json(null, 204);
-//    }
+        return new OkResponse(
+            data: $responseDto,
+            status: 200,
+        );
+    }
+
+    #[Route('/api/admin/trainings/{id}/', methods: ['DELETE'], format: 'json')]
+    #[OA\Tag(name: "Admin: Training")]
+    #[IsGranted('ROLE_ADMIN')]
+    public function delete(
+        Training $training,
+        TrainingManager $trainingManager,
+    ): Response
+    {
+        $trainingManager->remove($training);
+
+        return new Response(status: 204);
+    }
+
+    #[Route('/api/admin/trainings/{id}/complete/', methods: ['POST'], format: 'json')]
+    #[OA\Tag(name: "Admin: Training")]
+    #[IsGranted('ROLE_ADMIN')]
+    public function complete(
+        Training $training,
+        TrainingMapperInterface $mapper,
+        TrainingManager $manager,
+    ): OkResponse
+    {
+        $responseDto = $mapper->map($manager->complete($training));
+
+        return new OkResponse(
+            data: $responseDto,
+            status: 200,
+        );
+    }
 }

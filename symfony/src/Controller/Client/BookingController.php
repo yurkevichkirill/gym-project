@@ -62,7 +62,7 @@ final class BookingController extends AbstractController
         }
         $status = $request->query->get('status');
         $date = $request->query->get('date');
-        $durationMinutes = $request->query->get('durationMinutes') ? (int) $request->query->get('durationMinutes') : null;
+        $durationMinutes = $request->query->get('durationMinutes') !== null ? (int) $request->query->get('durationMinutes') : null;
         $startTime = $request->query->get('startTime');
         $page = (int) $request->query->get('page', 1);
         $limit = (int) $request->query->get('limit', 20);

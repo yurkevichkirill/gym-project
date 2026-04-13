@@ -15,6 +15,7 @@ use DateMalformedIntervalStringException;
 use DateMalformedStringException;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 
 final readonly class WorkTimeManager
 {
@@ -33,13 +34,21 @@ final readonly class WorkTimeManager
         $this->userAvailabilityService->ensureNotBlocked($trainer);
 
         $date = new DateTimeImmutable($requestDto->date);
+
+        $bookingDateTime = new DateTimeImmutable($requestDto->date . ' ' . $requestDto->startTime);
+        $now = new DateTimeImmutable();
+
+        if ($bookingDateTime <= $now) {
+            throw new BadRequestHttpException('Cannot create worktime in the past');
+        }
+
         $count = count($this->worktimeRepo->findBy([
             'trainer' => $trainer,
             'date' => $date,
         ]));
 
         if($count > 0) {
-            throw new DateTimeAlreadyTakenException("OurTrainer already have worktime in this date");
+            throw new DateTimeAlreadyTakenException("Trainer already have worktime in this date");
         }
 
         $worktime = new TrainerWorkTime();

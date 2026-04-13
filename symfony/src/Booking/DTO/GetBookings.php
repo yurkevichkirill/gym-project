@@ -27,7 +27,7 @@ final readonly class GetBookings
     )
     {
         $this->sort = $this->parseSort($sortRaw);
-        $this->filter = $this->putFilter($client, $trainer, $date, (int) $durationMinutes, $startTime, $status);
+        $this->filter = $this->putFilter($client, $trainer, $date, $durationMinutes, $startTime, $status);
         $this->page = $page;
         $this->limit = $limit;
     }

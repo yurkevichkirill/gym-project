@@ -15,8 +15,6 @@ use App\Training\Repository\TrainingRepository;
 use App\Training\Service\TrainingManager;
 use DateMalformedIntervalStringException;
 use DateMalformedStringException;
-use Doctrine\ORM\Exception\ORMException;
-use Doctrine\ORM\OptimisticLockException;
 use Nelmio\ApiDocBundle\Attribute\Model;
 use OpenApi\Attributes as OA;
 use Psr\Cache\InvalidArgumentException;
@@ -42,7 +40,7 @@ final class TrainingController extends AbstractController
     #[OA\Parameter(name: 'sort', in: 'query', example: 'bookedAt:ASC')]
     #[OA\Parameter(name: 'page', in: 'query', example: 1)]
     #[OA\Parameter(name: 'limit', in: 'query', example: 20)]
-    #[OA\Tag(name: "OurTrainer: Training")]
+    #[OA\Tag(name: "Trainer: Training")]
     #[IsGranted('ROLE_TRAINER')]
     public function getAll(
         TrainingMapperInterface $mapper,
@@ -61,7 +59,8 @@ final class TrainingController extends AbstractController
         $page = (int) $request->query->get('page', 1);
         $limit = (int) $request->query->get('limit', 20);
 
-        $queryDto = new GetTrainings($trainer, $sortRaw, $client, $date, $durationMinutes, $startTime, $status, $page, $limit);
+        $queryDto = new GetTrainings($sortRaw, $client, $date, $durationMinutes, $startTime, $status, $page, $limit, $trainer);
+
         $trainings = $handler->handle($queryDto);
 
         return new OkResponse(
@@ -114,20 +113,34 @@ final class TrainingController extends AbstractController
         );
     }
 
-    /**
-     * @throws OptimisticLockException
-     * @throws ORMException
-     */
     #[Route('/api/trainings/{id}/', methods: ['DELETE'], format: 'json')]
     #[OA\Tag(name: "Trainer: Training")]
     public function delete(
         Training $training,
-        TrainingRepository $trainingRepo,
+        TrainingManager $trainingManager,
     ): Response
     {
         $this->denyAccessUnlessGranted("TRAINING_REMOVE", $training);
-        $trainingRepo->remove($training);
+        $trainingManager->remove($training);
 
         return new Response(status: 204);
+    }
+
+    #[Route('/api/trainings/{id}/complete/', methods: ['POST'], format: 'json')]
+    #[OA\Tag(name: "Trainer: Training")]
+    public function complete(
+        Training $training,
+        TrainingMapperInterface $mapper,
+        TrainingManager $manager,
+    ): OkResponse
+    {
+        $this->denyAccessUnlessGranted("TRAINING_EDIT", $training);
+
+        $responseDto = $mapper->map($manager->complete($training));
+
+        return new OkResponse(
+            data: $responseDto,
+            status: 200,
+        );
     }
 }

@@ -217,4 +217,21 @@ final class ClientController extends AbstractController
             status: Response::HTTP_OK,
         );
     }
+
+    #[Route('/api/clients/{id}/visit/', methods: ['POST'], format: 'json')]
+    #[OA\Tag(name: "Admin: Client")]
+    #[IsGranted('ROLE_ADMIN')]
+    public function visit(
+        Client $client,
+        ClientMapperInterface $mapper,
+        ClientManager $manager,
+    ): OkResponse
+    {
+        $responseDto = $mapper->map($manager->visit($client));
+
+        return new OkResponse(
+            data: $responseDto,
+            status: Response::HTTP_OK,
+        );
+    }
 }

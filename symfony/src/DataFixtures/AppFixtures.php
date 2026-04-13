@@ -4,6 +4,7 @@ namespace App\DataFixtures;
 
 use App\Admin\Entity\Admin;
 use App\Booking\Entity\Booking;
+use App\Booking\Enum\BookingStatusEnum;
 use App\Client\Entity\Client;
 use App\Membership\Entity\Membership;
 use App\MembershipPlan\Entity\MembershipPlan;
@@ -298,10 +299,35 @@ class AppFixtures extends Fixture
 //        $manager->getRepository(Membership::class)->find(1)->setStartDate(new \DateTimeImmutable("2026-03-03"))->setEndDate(new \DateTimeImmutable("2026-04-06"));
 
 //        $manager->getRepository(Client::class)->find(7)->setBalance("99999");
-        $manager->getRepository(Trainer::class)->find(9)->setBalance("0");
-        $manager->getRepository(Trainer::class)->find(10)->setBalance("0");
-        $manager->getRepository(Trainer::class)->find(11)->setBalance("0");
-        $manager->getRepository(Trainer::class)->find(12)->setBalance("0");
+//        $manager->getRepository(Trainer::class)->find(9)->setBalance("0");
+//        $manager->getRepository(Trainer::class)->find(10)->setBalance("0");
+//        $manager->getRepository(Trainer::class)->find(11)->setBalance("0");
+//        $manager->getRepository(Trainer::class)->find(12)->setBalance("0");
+
+//        $manager->getRepository(Membership::class)->find(5)->setVisits(47);
+
+        $training = new Training();
+        $training->setTrainerWorkTime($manager->getRepository(TrainerWorkTime::class)->find(8));
+        $training->setStartTime(new \DateTimeImmutable("12:00:00"));
+        $training->setDurationMinutes(120);
+        $manager->persist($training);
+
+        $payment = new Payment();
+        $payment->setClient($manager->getRepository(Client::class)->find(7));
+        $payment->setTrainer($manager->getRepository(Trainer::class)->find(9));
+        $payment->setIsRefund(false);
+        $payment->setAmount(5);
+        $payment->setCategory(PaymentCategoryEnum::TRAINER);
+        $manager->persist($payment);
+
+
+        $booking = new Booking();
+        $booking->setStatus(BookingStatusEnum::SCHEDULED);
+        $booking->setClient($manager->getRepository(Client::class)->find(7));
+        $booking->setTraining($training);
+        $booking->setPayment($payment);
+        $manager->persist($booking);
+
         $manager->flush();
     }
 }

@@ -15,7 +15,6 @@ final readonly class GetTrainings
     public int $limit;
 
     public function __construct(
-        Trainer $trainer,
         string $sortRaw = 'bookedAt:ASC',
         ?Client $client = null,
         ?string $date = null,
@@ -23,17 +22,18 @@ final readonly class GetTrainings
         ?string $startTime = null,
         ?string $status = null,
         int $page = 1,
-        int $limit = 20
+        int $limit = 20,
+        ?Trainer $trainer = null,
     )
     {
         $this->sort = $this->parseSort($sortRaw);
-        $this->filter = $this->putFilter($trainer, $client, $date, (int) $durationMinutes, $startTime, $status);
+        $this->filter = $this->putFilter($trainer, $client, $date, $durationMinutes, $startTime, $status);
         $this->page = $page;
         $this->limit = $limit;
     }
 
     private function putFilter (
-        Trainer $trainer,
+        ?Trainer $trainer,
         ?Client $client,
         ?string $date = null,
         ?int $durationMinutes = null,
@@ -41,20 +41,24 @@ final readonly class GetTrainings
         ?string $status = null,
     ): array
     {
-        $filter = ['trainer' => $trainer];
-        if($client !== null) {
+        $filter = [];
+
+        if ($trainer !== null) {
+            $filter = ['trainer' => $trainer];
+        }
+        if ($client !== null) {
             $filter['client'] = $client;
         }
-        if($date !== null) {
+        if ($date !== null) {
             $filter['date'] = $date;
         }
-        if($durationMinutes !== null) {
+        if ($durationMinutes !== null) {
             $filter['durationMinutes'] = $durationMinutes;
         }
-        if($startTime !== null) {
+        if ($startTime !== null) {
             $filter['startTime'] = $startTime;
         }
-        if($status !== null) {
+        if ($status !== null) {
             $filter['status'] = $status;
         }
 
