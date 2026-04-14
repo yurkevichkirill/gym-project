@@ -4,6 +4,8 @@ namespace App\Payment\Repository;
 
 use App\Client\Entity\Client;
 use App\Payment\Entity\Payment;
+use App\Payment\Enum\PaymentStatusEnum;
+use DateTimeImmutable;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\ORM\Exception\ORMException;
 use Doctrine\ORM\OptimisticLockException;
@@ -36,28 +38,15 @@ class PaymentRepository extends ServiceEntityRepository
         ]);
     }
 
-    //    /**
-    //     * @return Payment[] Returns an array of Payment objects
-    //     */
-    //    public function findByExampleField($value): array
-    //    {
-    //        return $this->createQueryBuilder('p')
-    //            ->andWhere('p.exampleField = :val')
-    //            ->setParameter('val', $value)
-    //            ->orderBy('p.id', 'ASC')
-    //            ->setMaxResults(10)
-    //            ->getQuery()
-    //            ->getResult()
-    //        ;
-    //    }
-
-    //    public function findOneBySomeField($value): ?Payment
-    //    {
-    //        return $this->createQueryBuilder('p')
-    //            ->andWhere('p.exampleField = :val')
-    //            ->setParameter('val', $value)
-    //            ->getQuery()
-    //            ->getOneOrNullResult()
-    //        ;
-    //    }
+    public function findExpiredPending(): array
+    {
+        return $this->createQueryBuilder('p')
+            ->where('p.status = :status')
+            ->andWhere('p.expiresAt IS NOT NULL')
+            ->andWhere('p.expiresAt < :now')
+            ->setParameter('status', PaymentStatusEnum::PENDING)
+            ->setParameter('now', new DateTimeImmutable())
+            ->getQuery()
+            ->getResult();
+    }
 }

@@ -70,13 +70,14 @@ class Payment
     #[ORM\Column(length: 10)]
     private string $currency = 'usd';
 
-    #[ORM\Column(
-        type: Types::ENUM,
-    )]
+    #[ORM\Column(type: Types::ENUM)]
     private PaymentStatusEnum $status;
 
     #[ORM\Column(nullable: true)]
     private ?DateTimeImmutable $confirmedAt = null;
+
+    #[ORM\Column(nullable: true)]
+    private ?DateTimeImmutable $expiresAt = null;
 
     public function getId(): ?int
     {
@@ -273,6 +274,18 @@ class Payment
     public function setCurrency(string $currency): static
     {
         $this->currency = $currency;
+
+        return $this;
+    }
+
+    public function getExpiresAt(): ?DateTimeImmutable
+    {
+        return $this->expiresAt;
+    }
+
+    public function setExpiresAt(?DateTimeImmutable $expiresAt): static
+    {
+        $this->expiresAt = $expiresAt;
 
         return $this;
     }

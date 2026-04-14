@@ -10,6 +10,7 @@ use App\Payment\Enum\PaymentCategoryEnum;
 use App\Payment\Enum\PaymentStatusEnum;
 use App\Payment\Repository\PaymentRepository;
 use App\Trainer\Entity\Trainer;
+use DateMalformedStringException;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use LogicException;
@@ -24,6 +25,9 @@ final readonly class PaymentService
         private EntityManagerInterface $em,
     ) {}
 
+    /**
+     * @throws DateMalformedStringException
+     */
     public function createPayment(
         Client $client,
         int $amount,
@@ -36,6 +40,9 @@ final readonly class PaymentService
         $payment->setIsRefund(false);
         $payment->setCategory($category);
         $payment->setStatus(PaymentStatusEnum::PENDING);
+        $payment->setExpiresAt(
+            new DateTimeImmutable()->modify('+2 minutes')
+        );
 
         if ($trainer) {
             $payment->setTrainer($trainer);
@@ -48,7 +55,7 @@ final readonly class PaymentService
 
     public function confirmPayment(Payment $payment): void
     {
-        if ($payment->getStatus() === PaymentStatusEnum::SUCCEEDED) {
+        if ($payment->getStatus() !== PaymentStatusEnum::PENDING) {
             return;
         }
 
@@ -68,6 +75,7 @@ final readonly class PaymentService
         $payment->setStatus(PaymentStatusEnum::SUCCEEDED);
         $payment->setConfirmedAt(new DateTimeImmutable());
         $payment->setPaidAt(new DateTimeImmutable());
+        $payment->setExpiresAt(null);
 
         $payment->getBooking()?->confirm();
 
@@ -181,5 +189,14 @@ final readonly class PaymentService
 
         $this->stripeService->cancelPaymentIntent($payment);
         $this->cancelPayment($payment);
+    }
+
+    public function cancelExpiredPayments(): void
+    {
+        $payments = $this->paymentRepo->findExpiredPending();
+
+        foreach ($payments as $payment) {
+            $this->cancelPayment($payment);
+        }
     }
 }
