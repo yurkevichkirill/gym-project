@@ -9,7 +9,6 @@ use App\TrainingType\Entity\TrainingType;
 use App\User\Entity\User;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
-use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Gedmo\Mapping\Annotation as Gedmo;
 
@@ -19,13 +18,13 @@ class Trainer extends User
 {
     #[ORM\ManyToOne(targetEntity: TrainingType::class, inversedBy: 'trainers')]
     #[ORM\JoinColumn(name: 'training_type_id', referencedColumnName: 'id', onDelete: 'SET NULL')]
-    private ?TrainingType $trainingType = null;
-
-    #[ORM\Column(type: Types::DECIMAL, precision: 10, scale: 2)]
-    private ?string $pricePerHour = null;
+    private TrainingType $trainingType;
 
     #[ORM\Column]
-    private ?string $photoUrl = null;
+    private int $pricePerHour;
+
+    #[ORM\Column]
+    private string $photoUrl;
 
     #[ORM\Column(nullable: true)]
     private ?string $education = null;
@@ -81,7 +80,7 @@ class Trainer extends User
         return $this;
     }
 
-    public function getPricePerHour(): ?string
+    public function getPricePerHour(): int
     {
         return $this->pricePerHour;
     }
@@ -96,7 +95,7 @@ class Trainer extends User
         $this->photoUrl = $photoUrl;
     }
 
-    public function setPricePerHour(string $pricePerHour): static
+    public function setPricePerHour(int $pricePerHour): static
     {
         $this->pricePerHour = $pricePerHour;
 

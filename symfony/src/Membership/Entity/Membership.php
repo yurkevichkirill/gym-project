@@ -50,7 +50,7 @@ class Membership
     #[ORM\Column(type: Types::DATE_IMMUTABLE, nullable: true)]
     private ?DateTimeImmutable $endDate = null;
 
-    #[ORM\Column(type: Types::ENUM)]
+    #[ORM\Column(type: Types::ENUM, length: 50)]
     private MembershipStatusEnum $status;
 
     #[ORM\Column(options: ['default' => 0])]
@@ -231,5 +231,10 @@ class Membership
         $this->createdAt = $createdAt;
 
         return $this;
+    }
+
+    public function cancel(MembershipStatusEnum $reason): void
+    {
+        $this->status = $reason;
     }
 }

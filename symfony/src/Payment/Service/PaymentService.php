@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Payment\Service;
 
+use App\Booking\Enum\BookingStatusEnum;
 use App\Client\Entity\Client;
+use App\Membership\Enum\MembershipStatusEnum;
 use App\Payment\Entity\Payment;
 use App\Payment\Enum\PaymentCategoryEnum;
 use App\Payment\Enum\PaymentStatusEnum;
@@ -41,7 +43,7 @@ final readonly class PaymentService
         $payment->setCategory($category);
         $payment->setStatus(PaymentStatusEnum::PENDING);
         $payment->setExpiresAt(
-            new DateTimeImmutable()->modify('+2 minutes')
+            new DateTimeImmutable()->modify('+15 minutes')
         );
 
         if ($trainer) {
@@ -74,7 +76,6 @@ final readonly class PaymentService
 
         $payment->setStatus(PaymentStatusEnum::SUCCEEDED);
         $payment->setConfirmedAt(new DateTimeImmutable());
-        $payment->setPaidAt(new DateTimeImmutable());
         $payment->setExpiresAt(null);
 
         $payment->getBooking()?->confirm();
@@ -102,7 +103,8 @@ final readonly class PaymentService
 
         $payment->setStatus(PaymentStatusEnum::FAILED);
 
-        $payment->getBooking()?->cancel();
+        $payment->getBooking()?->cancel(BookingStatusEnum::CANCELED_PAYMENT_FAILED);
+        $payment->getMembership()?->cancel(MembershipStatusEnum::CANCELED_PAYMENT_FAILED);
 
         $this->em->flush();
     }
@@ -173,7 +175,8 @@ final readonly class PaymentService
 
         $payment->setStatus(PaymentStatusEnum::CANCELED);
 
-        $payment->getBooking()?->cancel();
+        $payment->getBooking()?->cancel(BookingStatusEnum::CANCELED_PAYMENT_FAILED);
+        $payment->getMembership()?->cancel(MembershipStatusEnum::CANCELED_PAYMENT_FAILED);
 
         $this->em->flush();
     }

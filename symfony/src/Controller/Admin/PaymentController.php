@@ -3,12 +3,11 @@
 namespace App\Controller\Admin;
 
 use App\Client\Entity\Client;
-use App\Payment\DTO\GetPayments;
 use App\Payment\Entity\Payment;
+use App\Payment\Factory\GetPaymentsFactory;
 use App\Payment\Mapper\PaymentMapperInterface;
 use App\Payment\Query\PaymentsQuery;
 use App\Response\OkResponse;
-use App\Trainer\Repository\TrainerRepository;
 use OpenApi\Attributes as OA;
 use Psr\Cache\InvalidArgumentException;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -24,9 +23,13 @@ final class PaymentController extends AbstractController
      */
     #[Route('/api/payments/', methods: ['GET'], format: 'json')]
     #[OA\Parameter(name: 'trainerId', in: 'query', example: 6)]
-    #[OA\Parameter(name: 'minAmount', in: 'query', example: 20)]
-    #[OA\Parameter(name: 'maxAmount', in: 'query', example: 100)]
-    #[OA\Parameter(name: 'category', in: 'query', example: 'membership')]
+    #[OA\Parameter(name: 'clientId', in: 'query', example: 6)]
+    #[OA\Parameter(name: 'minAmount', in: 'query', example: 2000)]
+    #[OA\Parameter(name: 'maxAmount', in: 'query', example: 10000)]
+    #[OA\Parameter(name: 'isRefund', in: 'query', example: false)]
+    #[OA\Parameter(name: 'status', in: 'query', example: "succeeded")]
+    #[OA\Parameter(name: 'minCreateAt', in: 'query', example: "2026-01-01")]
+    #[OA\Parameter(name: 'maxCreateAt', in: 'query', example: "2026-01-01")]
     #[OA\Parameter(name: 'sort', in: 'query', example: 'paidAt:ASC')]
     #[OA\Parameter(name: 'page', in: 'query', example: 1)]
     #[OA\Parameter(name: 'limit', in: 'query', example: 20)]
@@ -36,33 +39,19 @@ final class PaymentController extends AbstractController
         Request $request,
         PaymentMapperInterface $mapper,
         PaymentsQuery $handler,
-        TrainerRepository $trainerRepo,
+        GetPaymentsFactory $factory,
     ): OkResponse
     {
-        $sortRaw = $request->query->get('sort', 'paidAt:ASC');
-        $trainer = $trainerRepo->find((int) $request->query->get('trainerId'));
-        $category = $request->query->get('category');
-        $minAmount = $request->query->get('minAmount');
-        $maxAmount = $request->query->get('maxAmount');
-        $page = (int) $request->query->get('page', 1);
-        $limit = (int) $request->query->get('limit', 20);
-
-        $queryDto = new GetPayments(
-            $sortRaw,
-            $trainer,
-            $minAmount,
-            $maxAmount,
-            $category,
-            $page,
-            $limit,
+        $queryDto = $factory->fromRequest(
+            request: $request,
         );
 
         $payments = $handler->handle($queryDto);
 
         return new OkResponse(
             array_map(fn ($payment) => $mapper->map($payment), $payments),
-            $page,
-            $limit,
+            $queryDto->page,
+            $queryDto->limit,
             $handler->getTotal($queryDto->filter),
             $queryDto->sort,
             Response::HTTP_OK,
@@ -87,34 +76,20 @@ final class PaymentController extends AbstractController
         Request $request,
         PaymentMapperInterface $mapper,
         PaymentsQuery $handler,
-        TrainerRepository $trainerRepo,
+        GetPaymentsFactory $factory,
     ): OkResponse
     {
-        $sortRaw = $request->query->get('sort', 'paidAt:ASC');
-        $trainer = $trainerRepo->find((int) $request->query->get('trainerId'));
-        $category = $request->query->get('category');
-        $minAmount = $request->query->get('minAmount');
-        $maxAmount = $request->query->get('maxAmount');
-        $page = (int) $request->query->get('page', 1);
-        $limit = (int) $request->query->get('limit', 20);
-
-        $queryDto = new GetPayments(
-            $sortRaw,
-            $trainer,
-            $minAmount,
-            $maxAmount,
-            $category,
-            $page,
-            $limit,
-            $client,
+        $queryDto = $factory->fromRequest(
+            request: $request,
+            client: $client,
         );
 
         $payments = $handler->handle($queryDto);
 
         return new OkResponse(
             array_map(fn ($payment) => $mapper->map($payment), $payments),
-            $page,
-            $limit,
+            $queryDto->page,
+            $queryDto->limit,
             $handler->getTotal($queryDto->filter),
             $queryDto->sort,
             Response::HTTP_OK,

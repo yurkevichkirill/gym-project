@@ -32,7 +32,8 @@ class Booking
     #[ORM\OneToOne(
         targetEntity: Training::class,
         inversedBy: 'booking',
-        cascade: ['persist', 'remove']
+        cascade: ['persist'],
+        orphanRemoval: true
     )]
     #[ORM\JoinColumn(nullable: true)]
     private ?Training $training = null;
@@ -46,7 +47,8 @@ class Booking
 
     #[ORM\Column(
         type: Types::ENUM,
-        options: ['default' => BookingStatusEnum::SCHEDULED]
+        length: 50,
+        options: ['default' => BookingStatusEnum::SCHEDULED],
     )]
     private ?BookingStatusEnum $status = null;
 
@@ -128,9 +130,13 @@ class Booking
         $this->status = BookingStatusEnum::CONFIRMED;
     }
 
-    public function cancel(): void
+    public function cancel(BookingStatusEnum $reason): void
     {
-        $this->status = BookingStatusEnum::CANCELED;
+        $this->status = $reason;
+
+        if ($this->training) {
+            $this->training = null;
+        }
     }
 
     #[ORM\PrePersist]

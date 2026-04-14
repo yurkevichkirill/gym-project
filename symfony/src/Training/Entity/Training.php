@@ -36,7 +36,7 @@ class Training
     #[Assert\GreaterThanOrEqual(60)]
     private ?int $durationMinutes = null;
 
-    #[ORM\OneToOne(targetEntity: Booking::class, mappedBy: 'training', cascade: ['persist', 'remove'])]
+    #[ORM\OneToOne(targetEntity: Booking::class, mappedBy: 'training', cascade: ['persist'])]
     private ?Booking $booking = null;
 
     public function getBooking(): ?Booking

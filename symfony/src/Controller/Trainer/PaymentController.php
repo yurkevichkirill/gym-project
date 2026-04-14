@@ -1,32 +1,31 @@
 <?php
 
-namespace App\Controller\Client;
+declare(strict_types=1);
 
-use App\Client\Entity\Client;
-use App\Payment\DTO\GetPayments;
+namespace App\Controller\Trainer;
+
 use App\Payment\Entity\Payment;
 use App\Payment\Factory\GetPaymentsFactory;
 use App\Payment\Mapper\PaymentMapperInterface;
 use App\Payment\Query\PaymentsQuery;
 use App\Response\OkResponse;
-use App\Trainer\Repository\TrainerRepository;
-use OpenApi\Attributes as OA;
+use App\Trainer\Entity\Trainer;
 use Psr\Cache\InvalidArgumentException;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
+use OpenApi\Attributes as OA;
 
-final class PaymentController extends AbstractController
+class PaymentController extends AbstractController
 {
     /**
      * @throws InvalidArgumentException
      */
-    #[Route('/api/me/payments/', methods: ['GET'], format: 'json')]
-    #[OA\Parameter(name: 'trainerId', in: 'query', example: 6)]
+    #[Route('/api/trainer/payments/', methods: ['GET'], format: 'json')]
+    #[OA\Parameter(name: 'clientId', in: 'query', example: 6)]
     #[OA\Parameter(name: 'minAmount', in: 'query', example: 2000)]
     #[OA\Parameter(name: 'maxAmount', in: 'query', example: 10000)]
     #[OA\Parameter(name: 'isRefund', in: 'query', example: false)]
@@ -36,20 +35,17 @@ final class PaymentController extends AbstractController
     #[OA\Parameter(name: 'sort', in: 'query', example: 'paidAt:ASC')]
     #[OA\Parameter(name: 'page', in: 'query', example: 1)]
     #[OA\Parameter(name: 'limit', in: 'query', example: 20)]
-    #[OA\Tag(name: "Client: Payments")]
-    #[IsGranted('ROLE_CLIENT')]
+    #[OA\Tag(name: "Trainer: Payments")]
+    #[IsGranted('ROLE_TRAINER')]
     public function getAll(
-        #[CurrentUser] Client $client,
+        #[CurrentUser] Trainer $trainer,
         Request $request,
         PaymentMapperInterface $mapper,
         GetPaymentsFactory $factory,
         PaymentsQuery $handler,
     ): OkResponse
     {
-        $queryDto = $factory->fromRequest(
-            request: $request,
-            client: $client,
-        );
+        $queryDto = $factory->fromRequest($request, $trainer);
 
         $payments = $handler->handle($queryDto);
 
@@ -63,8 +59,8 @@ final class PaymentController extends AbstractController
         );
     }
 
-    #[Route('/api/me/payments/{id}/', methods: ['GET'], format: 'json')]
-    #[OA\Tag(name: "Client: Payments")]
+    #[Route('/api/trainer/payments/{id}/', methods: ['GET'], format: 'json')]
+    #[OA\Tag(name: "Trainer: Payments")]
     public function get(
         Payment $payment,
         PaymentMapperInterface $mapper,

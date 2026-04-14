@@ -5,6 +5,7 @@ namespace App\Controller\Admin;
 use App\Booking\DTO\BookingRequest;
 use App\Booking\DTO\GetBookings;
 use App\Booking\Entity\Booking;
+use App\Booking\Enum\BookingStatusEnum;
 use App\Booking\Mapper\BookingAdminMapperInterface;
 use App\Booking\Query\BookingsQuery;
 use App\Booking\Service\BookingManager;
@@ -193,8 +194,7 @@ final class BookingController extends AbstractController
     {
         $this->denyAccessUnlessGranted("BOOKING_REMOVE", $booking);
 
-        $client = $booking->getClient();
-        $manager->cancelBooking($client, $booking);
+        $manager->cancelBooking($booking, BookingStatusEnum::CANCELED_BY_SYSTEM);
 
         return new Response(
             status: 204

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Payment\Service;
 
+use App\Payment\Repository\PaymentRepository;
+use DateTimeImmutable;
 use Psr\Log\LoggerInterface;
 use Stripe\Event;
 use Stripe\Exception\SignatureVerificationException;
@@ -17,6 +19,7 @@ final readonly class StripeWebhookService
     public function __construct(
         private string $webhookSecret,
         private PaymentService $paymentService,
+        private PaymentRepository $paymentRepo,
         private LoggerInterface $logger,
     ) {}
 
@@ -47,6 +50,8 @@ final readonly class StripeWebhookService
             switch ($event->type) {
                 case 'payment_intent.succeeded':
                     if ($paymentIntentId !== '') {
+                        $payment = $this->paymentRepo->findOneByStripePaymentIntentId($paymentIntentId);
+                        $payment->setPaidAt(new DateTimeImmutable());
                         $this->paymentService->confirmPaymentByStripeIntentId($paymentIntentId);
                     }
                     break;
