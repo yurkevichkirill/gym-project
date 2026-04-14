@@ -5,6 +5,7 @@ namespace App\Controller\Client;
 use App\Booking\DTO\BookingRequest;
 use App\Booking\DTO\GetBookings;
 use App\Booking\Entity\Booking;
+use App\Booking\Enum\BookingStatusEnum;
 use App\Booking\Mapper\BookingMapperInterface;
 use App\Booking\Query\BookingsQuery;
 use App\Booking\Service\BookingManager;
@@ -12,8 +13,6 @@ use App\Client\Entity\Client;
 use App\Response\OkResponse;
 use App\Trainer\Repository\TrainerRepository;
 use DateMalformedStringException;
-use Doctrine\ORM\Exception\ORMException;
-use Doctrine\ORM\OptimisticLockException;
 use Nelmio\ApiDocBundle\Attribute\Model;
 use OpenApi\Attributes as OA;
 use Psr\Cache\InvalidArgumentException;
@@ -134,7 +133,7 @@ final class BookingController extends AbstractController
     {
         $this->denyAccessUnlessGranted("BOOKING_REMOVE", $booking);
 
-        $manager->cancelBooking($booking);
+        $manager->cancelBooking($booking, BookingStatusEnum::CANCELED_BY_CLIENT);
 
         return new Response(
             status: 204

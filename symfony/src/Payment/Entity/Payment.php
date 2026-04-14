@@ -70,7 +70,7 @@ class Payment
     #[ORM\Column(length: 10)]
     private string $currency = 'usd';
 
-    #[ORM\Column(type: Types::ENUM)]
+    #[ORM\Column(type: Types::ENUM, length: 50)]
     private PaymentStatusEnum $status;
 
     #[ORM\Column(nullable: true)]

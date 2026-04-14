@@ -6,6 +6,7 @@ namespace App\Booking\Service;
 
 use App\Booking\DTO\BookingRequest;
 use App\Booking\Entity\Booking;
+use App\Booking\Enum\BookingStatusEnum;
 use App\Booking\Repository\BookingRepository;
 use App\Client\Entity\Client;
 use App\Exception\DateTimeAlreadyTakenException;
@@ -107,9 +108,9 @@ final readonly class BookingManager
         });
     }
 
-    public function cancelBooking(Booking $booking): void
+    public function cancelBooking(Booking $booking, BookingStatusEnum $reason): void
     {
-        $this->entityManager->wrapInTransaction(function () use ($booking) {
+        $this->entityManager->wrapInTransaction(function () use ($booking, $reason) {
 
             $payment = $booking->getPayment();
 
@@ -119,7 +120,7 @@ final readonly class BookingManager
                 $this->paymentService->cancelPaymentWithStripeIntent($payment);
             }
 
-            $booking->cancel();
+            $booking->cancel($reason);
         });
     }
 

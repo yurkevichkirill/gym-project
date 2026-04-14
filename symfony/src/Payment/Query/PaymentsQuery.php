@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Payment\Query;
 
 use App\Payment\DTO\GetPayments;
+use App\Payment\DTO\PaymentFilter;
 use App\Payment\Repository\PaymentRepository;
 use Doctrine\ORM\QueryBuilder;
 use Psr\Cache\InvalidArgumentException;
@@ -26,8 +27,7 @@ final readonly class PaymentsQuery
     {
         $cacheKey = $this->generateCacheKey($dto);
 
-        return $this->gymCache->get($cacheKey, function (CacheItem $item) use ($dto): array
-        {
+        return $this->gymCache->get($cacheKey, function (CacheItem $item) use ($dto): array {
             $item->expiresAfter(3600);
 
             $qb = $this->createQuery($dto->filter);
@@ -37,24 +37,29 @@ final readonly class PaymentsQuery
             foreach ($dto->sort as $field => $order) {
                 $qb->addOrderBy("p.$field", $order);
             }
+
             $qb->setFirstResult($offset)
                 ->setMaxResults($dto->limit);
 
-            if (isset($dto->filter['client'])) {
-                $item->tag(['payments_list_' . $dto->filter['client']->getId()]);
+            if ($dto->filter->client) {
+                $item->tag(['payments_list_' . $dto->filter->client->getId()]);
             } else {
-                $item->tag(["payments_list_all"]);
+                $item->tag(['payments_list_all']);
             }
+
             return $qb->getQuery()->getResult();
         });
     }
 
-    public function getTotal(array $filter): int
+    public function getTotal(PaymentFilter $filter): int
     {
-        return $this->createQuery($filter)->select("COUNT(p.id)")->getQuery()->getSingleScalarResult();
+        return (int) $this->createQuery($filter)
+            ->select("COUNT(p.id)")
+            ->getQuery()
+            ->getSingleScalarResult();
     }
 
-    private function createQuery(array $filter): QueryBuilder
+    private function createQuery(PaymentFilter $filter): QueryBuilder
     {
         $qb = $this->paymentRepo->createQueryBuilder('p')
             ->leftJoin("p.trainer", "t")
@@ -62,29 +67,44 @@ final readonly class PaymentsQuery
             ->leftJoin("t.trainingType", 'type')
             ->addSelect("type");
 
-        if (isset($filter['client'])) {
+        if ($filter->client) {
             $qb->andWhere('p.client = :client')
-                ->setParameter('client', $filter['client']);
+                ->setParameter('client', $filter->client);
         }
 
-        if(isset($filter['trainer'])) {
+        if ($filter->trainer) {
             $qb->andWhere('p.trainer = :trainer')
-                ->setParameter('trainer', $filter['trainer']);
+                ->setParameter('trainer', $filter->trainer);
         }
 
-        if(isset($filter['minAmount'])) {
+        if ($filter->minAmount !== null) {
             $qb->andWhere('p.amount >= :minAmount')
-                ->setParameter('minAmount', $filter['minAmount']);
+                ->setParameter('minAmount', $filter->minAmount);
         }
 
-        if(isset($filter['maxAmount'])) {
+        if ($filter->maxAmount !== null) {
             $qb->andWhere('p.amount <= :maxAmount')
-                ->setParameter('maxAmount', $filter['maxAmount']);
+                ->setParameter('maxAmount', $filter->maxAmount);
         }
 
-        if(isset($filter['category'])) {
-            $qb->andWhere('p.category = :category')
-                ->setParameter('category', $filter['category']);
+        if ($filter->isRefund !== null) {
+            $qb->andWhere('p.isRefund = :isRefund')
+                ->setParameter('isRefund', $filter->isRefund);
+        }
+
+        if ($filter->status) {
+            $qb->andWhere('p.status = :status')
+                ->setParameter('status', $filter->status);
+        }
+
+        if ($filter->minCreatedAt) {
+            $qb->andWhere('p.createdAt >= :minCreatedAt')
+                ->setParameter('minCreatedAt', $filter->minCreatedAt);
+        }
+
+        if ($filter->maxCreatedAt) {
+            $qb->andWhere('p.createdAt <= :maxCreatedAt')
+                ->setParameter('maxCreatedAt', $filter->maxCreatedAt);
         }
 
         return $qb;
@@ -92,28 +112,22 @@ final readonly class PaymentsQuery
 
     private function generateCacheKey(GetPayments $query): string
     {
+        $f = $query->filter;
+
         $params = [
             'sort' => $query->sort,
             'page' => $query->page,
             'limit' => $query->limit,
+            'clientId' => $f->client?->getId(),
+            'trainerId' => $f->trainer?->getId(),
+            'minAmount' => $f->minAmount,
+            'maxAmount' => $f->maxAmount,
+            'isRefund' => $f->isRefund,
+            'status' => $f->status?->value,
+            'minCreatedAt' => $f->minCreatedAt?->format('Y-m-d'),
+            'maxCreatedAt' => $f->maxCreatedAt?->format('Y-m-d'),
         ];
 
-        if (isset($query->filter['client'])) {
-            $params['client'] = $query->filter['client'];
-        }
-        if (isset($query->filter['trainer'])) {
-            $params['trainer'] = $query->filter['trainer'];
-        }
-        if (isset($query->filter['minAmount'])) {
-            $params['minAmount'] = $query->filter['minAmount'];
-        }
-        if (isset($query->filter['maxAmount'])) {
-            $params['maxAmount'] = $query->filter['maxAmount'];
-        }
-        if (isset($query->filter['category'])) {
-            $params['category'] = $query->filter['category'];
-        }
-
-        return 'payments_' . md5(serialize($params));
+        return 'payments_' . md5(json_encode($params));
     }
 }

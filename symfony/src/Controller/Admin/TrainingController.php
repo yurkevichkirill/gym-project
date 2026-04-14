@@ -146,7 +146,7 @@ final class TrainingController extends AbstractController
         TrainingManager $trainingManager,
     ): Response
     {
-        $trainingManager->remove($training);
+        $trainingManager->remove($training, true);
 
         return new Response(status: 204);
     }

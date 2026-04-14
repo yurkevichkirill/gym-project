@@ -27,7 +27,6 @@ final readonly class TrainingManager
 {
     const int MIN_DAY_CHANGE = 1;
     public function __construct(
-        private TrainingRepository $trainingRepo,
         private TrainerWorkTimeRepository $worktimeRepo,
         private ClientAvailabilityService $clientAvailabilityService,
         private WorktimeAvailabilityService $worktimeAvailabilityService,
@@ -111,9 +110,14 @@ final readonly class TrainingManager
         return $training;
     }
 
-    public function remove(Training $training): void
+    public function remove(Training $training, bool $isAdmin = false): void
     {
-        $this->trainingRepo->remove($training);
+        $booking = $training->getBooking();
+        if ($isAdmin) {
+            $booking->cancel(BookingStatusEnum::CANCELED_BY_SYSTEM);
+        } else {
+            $booking->cancel(BookingStatusEnum::CANCELED_BY_TRAINER);
+        }
 
         $this->entityManager->flush();
     }
