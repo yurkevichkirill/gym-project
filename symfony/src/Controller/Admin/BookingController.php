@@ -6,6 +6,7 @@ use App\Booking\DTO\BookingRequest;
 use App\Booking\DTO\GetBookings;
 use App\Booking\Entity\Booking;
 use App\Booking\Enum\BookingStatusEnum;
+use App\Booking\Factory\GetBookingsFactory;
 use App\Booking\Mapper\BookingAdminMapperInterface;
 use App\Booking\Query\BookingsQuery;
 use App\Booking\Service\BookingManager;
@@ -46,46 +47,22 @@ final class BookingController extends AbstractController
         BookingAdminMapperInterface $mapper,
         BookingsQuery          $handler,
         Request                $request,
-        TrainerRepository      $trainerRepo,
+        GetBookingsFactory     $factory,
     ): OkResponse
     {
-        $sortRaw = $request->query->get('sort', 'bookedAt:ASC');
-        if ($request->query->get('trainerId')) {
-            $trainer = $trainerRepo->find((int) $request->query->get('trainerId'));
-
-            if (is_null($trainer)) {
-                throw new NotFoundHttpException("Trainer not found");
-            }
-        } else {
-            $trainer = null;
-        }
-        $status = $request->query->get('status');
-        $date = $request->query->get('date');
-        $durationMinutes = $request->query->get('durationMinutes') ? (int) $request->query->get('durationMinutes') : null;
-        $startTime = $request->query->get('startTime');
-        $page = (int) $request->query->get('page', 1);
-        $limit = (int) $request->query->get('limit', 20);
-
-        $queryDto = new GetBookings(
-            $sortRaw,
-            $trainer,
-            $date,
-            $durationMinutes,
-            $startTime,
-            $status,
-            $page,
-            $limit,
+        $dto = $factory->fromRequest(
+            request: $request,
         );
 
-        $bookings = $handler->handle($queryDto);
+        $bookings = $handler->handle($dto);
 
         return new OkResponse(
             array_map(fn($booking) => $mapper->map($booking), $bookings),
-            $queryDto->page,
-            $queryDto->limit,
-            $handler->getTotal($queryDto->filter),
-            $queryDto->sort,
-            200
+            $dto->page,
+            $dto->limit,
+            $handler->getTotal($dto->filter),
+            $dto->sort,
+            Response::HTTP_OK
         );
     }
 
@@ -108,47 +85,23 @@ final class BookingController extends AbstractController
         Client                 $client,
         BookingsQuery          $handler,
         Request                $request,
-        TrainerRepository      $trainerRepo,
+        GetBookingsFactory     $factory,
     ): OkResponse
     {
-        $sortRaw = $request->query->get('sort', 'bookedAt:ASC');
-        if ($request->query->get('trainerId')) {
-            $trainer = $trainerRepo->find((int) $request->query->get('trainerId'));
-
-            if (is_null($trainer)) {
-                throw new NotFoundHttpException("Trainer not found");
-            }
-        } else {
-            $trainer = null;
-        }
-        $status = $request->query->get('status');
-        $date = $request->query->get('date');
-        $durationMinutes = $request->query->get('durationMinutes') ? (int) $request->query->get('durationMinutes') : null;
-        $startTime = $request->query->get('startTime');
-        $page = (int) $request->query->get('page', 1);
-        $limit = (int) $request->query->get('limit', 20);
-
-        $queryDto = new GetBookings(
-            $sortRaw,
-            $trainer,
-            $date,
-            $durationMinutes,
-            $startTime,
-            $status,
-            $page,
-            $limit,
-            $client,
+        $dto = $factory->fromRequest(
+            request: $request,
+            client: $client,
         );
 
-        $bookings = $handler->handle($queryDto);
+        $bookings = $handler->handle($dto);
 
         return new OkResponse(
             array_map(fn($booking) => $mapper->map($booking), $bookings),
-            $queryDto->page,
-            $queryDto->limit,
-            $handler->getTotal($queryDto->filter),
-            $queryDto->sort,
-            200
+            $dto->page,
+            $dto->limit,
+            $handler->getTotal($dto->filter),
+            $dto->sort,
+            Response::HTTP_OK
         );
     }
 
@@ -159,7 +112,7 @@ final class BookingController extends AbstractController
     {
         return new OkResponse(
             data: $mapper->map($booking),
-            status: 200,
+            status: Response::HTTP_OK,
         );
     }
 
@@ -181,7 +134,7 @@ final class BookingController extends AbstractController
 
         return new OkResponse(
             data: $responseDto,
-            status: 201,
+            status: Response::HTTP_CREATED,
         );
     }
 
@@ -197,7 +150,7 @@ final class BookingController extends AbstractController
         $manager->cancelBooking($booking, BookingStatusEnum::CANCELED_BY_SYSTEM);
 
         return new Response(
-            status: 204
+            status: Response::HTTP_NO_CONTENT
         );
     }
 }

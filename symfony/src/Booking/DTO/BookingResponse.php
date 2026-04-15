@@ -13,7 +13,7 @@ readonly class BookingResponse
     public function __construct(
         public int $id,
         public int $trainerId,
-        public string $bookedAt,
+        public ?string $bookedAt,
         public string $date,
         public int $durationMinutes,
         public string $startTime,
