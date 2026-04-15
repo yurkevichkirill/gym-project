@@ -5,6 +5,7 @@ namespace App\Controller\All;
 use App\Response\OkResponse;
 use App\Trainer\DTO\GetTrainers;
 use App\Trainer\Entity\Trainer;
+use App\Trainer\Factory\GetTrainersFactory;
 use App\Trainer\Mapper\TrainerMapperInterface;
 use App\Trainer\Query\TrainersQuery;
 use App\TrainingType\Repository\TrainingTypeRepository;
@@ -22,8 +23,8 @@ final class TrainerController extends AbstractController
      */
     #[Route('/api/trainers/', methods: ['GET'], format: 'json')]
     #[Cache(public: true)]
-    #[OA\Parameter(name: 'minPrice', in: 'query', example: 30)]
-    #[OA\Parameter(name: 'maxPrice', in: 'query', example: 50)]
+    #[OA\Parameter(name: 'minPricePerHour', in: 'query', example: 30)]
+    #[OA\Parameter(name: 'maxPricePerHour', in: 'query', example: 50)]
     #[OA\Parameter(name: 'trainingTypeId', in: 'query', example: 1)]
     #[OA\Parameter(name: 'sort', in: 'query', example: 'lastName:ASC')]
     #[OA\Parameter(name: 'page', in: 'query', example: 1)]
@@ -33,17 +34,10 @@ final class TrainerController extends AbstractController
         Request $request,
         TrainerMapperInterface $mapper,
         TrainersQuery $handler,
-        TrainingTypeRepository $trainingTypeRepo,
+        GetTrainersFactory $factory,
     ): OkResponse
     {
-        $sortRaw = $request->query->get('sort', 'lastName:ASC');
-        $minPrice = $request->query->get('minPrice');
-        $maxPrice = $request->query->get('maxPrice');
-        $trainingType = $trainingTypeRepo->find((int) $request->query->get('trainingTypeId'));
-        $page = (int) $request->query->get('page', 1);
-        $limit = (int) $request->query->get('limit', 20);
-
-        $queryDto = new GetTrainers($minPrice, $maxPrice, $trainingType, $sortRaw, $page, $limit);
+        $queryDto = $factory->fromRequest($request);
 
         $trainers = $handler->handle($queryDto);
 

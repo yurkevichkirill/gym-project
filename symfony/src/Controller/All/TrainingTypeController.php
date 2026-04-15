@@ -5,6 +5,7 @@ namespace App\Controller\All;
 use App\Response\OkResponse;
 use App\TrainingType\DTO\GetTrainingTypes;
 use App\TrainingType\Entity\TrainingType;
+use App\TrainingType\Factory\GetTrainingTypesFactory;
 use App\TrainingType\Mapper\TrainingTypeMapperInterface;
 use App\TrainingType\Query\TrainingTypeQuery;
 use App\TrainingType\Repository\TrainingTypeRepository;
@@ -29,24 +30,20 @@ final class TrainingTypeController extends AbstractController
     #[OA\Tag(name: "All: TrainingType")]
     public function getAll(
         TrainingTypeQuery $handler,
-        TrainingTypeRepository $trainingTypeRepo,
+        GetTrainingTypesFactory $factory,
         TrainingTypeMapperInterface $mapper,
         Request $request
     ): OkResponse
     {
-        $sortRaw = $request->query->get('sort', 'name:ASC');
-        $page = (int) $request->query->get('page', 1);
-        $limit = (int) $request->query->get('limit', 20);
-
-        $queryDto = new GetTrainingTypes($sortRaw, $page, $limit);
+        $queryDto = $factory->fromRequest($request);
 
         $trainingTypes = $handler->handle($queryDto);
 
         return new OkResponse(
             array_map(fn ($type) => $mapper->map($type), $trainingTypes),
-            $page,
-            $limit,
-            $trainingTypeRepo->count(),
+            $queryDto->page,
+            $queryDto->limit,
+            $handler->getTotal(),
             $queryDto->sort,
             Response::HTTP_OK,
         );
