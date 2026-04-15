@@ -4,9 +4,8 @@ namespace App\Controller\All;
 
 use App\Response\OkResponse;
 use App\Trainer\Entity\Trainer;
-use App\Trainer\Repository\TrainerRepository;
-use App\TrainerWorkTime\DTO\GetTrainerWorkTime;
 use App\TrainerWorkTime\Entity\TrainerWorkTime;
+use App\TrainerWorkTime\Factory\GetTrainerWorkTimeFactory;
 use App\TrainerWorkTime\Mapper\WorkTimeMapperInterface;
 use App\TrainerWorkTime\Query\WorkTimeQuery;
 use OpenApi\Attributes as OA;
@@ -33,21 +32,19 @@ final class TrainerWorkTimeController extends AbstractController
         Request $request,
         WorkTimeMapperInterface $mapper,
         WorkTimeQuery $handler,
+        GetTrainerWorkTimeFactory $factory,
     ): OkResponse
     {
-        $sortRaw = $request->query->get('sort', 'date:ASC');
-        $date = $request->query->get('date');
-        $page = (int) $request->query->get('page', 1);
-        $limit = (int) $request->query->get('limit', 20);
-
-        $queryDto = new GetTrainerWorkTime($sortRaw, $date, $page, $limit);
+        $queryDto = $factory->fromRequest(
+            request: $request,
+        );
 
         $worktimes = $handler->handle($queryDto);
 
         return new OkResponse(
             array_map(fn ($worktime) => $mapper->map($worktime), $worktimes),
-            $page,
-            $limit,
+            $queryDto->page,
+            $queryDto->limit,
             $handler->getTotal($queryDto->filter),
             $queryDto->sort,
             Response::HTTP_OK,
@@ -69,23 +66,20 @@ final class TrainerWorkTimeController extends AbstractController
         WorkTimeMapperInterface $mapper,
         WorkTimeQuery $handler,
         Trainer $trainer,
-        TrainerRepository $trainerRepo,
+        GetTrainerWorkTimeFactory $factory,
     ): OkResponse
     {
-        $trainer = $trainerRepo->find((int) $trainer->getId());
-        $sortRaw = $request->query->get('sort', 'date:ASC');
-        $date = $request->query->get('date');
-        $page = (int) $request->query->get('page', 1);
-        $limit = (int) $request->query->get('limit', 20);
-
-        $queryDto = new GetTrainerWorkTime($sortRaw, $date, $page, $limit, $trainer);
+        $queryDto = $factory->fromRequest(
+            request: $request,
+            trainer: $trainer,
+        );
 
         $worktimes = $handler->handle($queryDto);
 
         return new OkResponse(
             array_map(fn ($worktime) => $mapper->map($worktime), $worktimes),
-            $page,
-            $limit,
+            $queryDto->page,
+            $queryDto->limit,
             $handler->getTotal($queryDto->filter),
             $queryDto->sort,
             Response::HTTP_OK,
