@@ -5,13 +5,13 @@ namespace App\Controller\Admin;
 use App\Admin\Entity\Admin;
 use App\Client\DTO\AdminUpdateClientRequest;
 use App\Client\DTO\CreateClientRequest;
-use App\Client\DTO\GetClients;
 use App\Client\Entity\Client;
+use App\Client\Factory\GetClientFactory;
 use App\Client\Mapper\ClientMapperInterface;
 use App\Client\Query\ClientQuery;
 use App\Client\Service\ClientManager;
+use App\Membership\Mapper\MembershipMapperInterface;
 use App\Response\OkResponse;
-use App\User\Entity\User;
 use Doctrine\ORM\Exception\ORMException;
 use Doctrine\ORM\OptimisticLockException;
 use Nelmio\ApiDocBundle\Attribute\Model;
@@ -29,9 +29,6 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 final class ClientController extends AbstractController
 {
-    /**
-     * @throws InvalidArgumentException
-     */
     #[Route('/api/clients/', name: 'app_api_clients', methods: ['GET'], format: 'json')]
     #[OA\Parameter(name: 'minAge', in: 'query', example: 18)]
     #[OA\Parameter(name: 'maxAge', in: 'query', example: 18)]
@@ -47,39 +44,10 @@ final class ClientController extends AbstractController
         ClientMapperInterface $mapper,
         Request $request,
         ClientQuery $handler,
+        GetClientFactory $factory,
     ): OkResponse
     {
-        $sortRaw = $request->query->get('sort', 'bookedAt:ASC');
-        $minAge = $request->query->get('minAge');
-        $maxAge = $request->query->get('maxAge');
-        $minBalance = $request->query->get('minBalance');
-        $maxBalance = $request->query->get('maxBalance');
-
-        if (!is_null($request->query->get('isDeleted'))) {
-            if ($request->query->get('isDeleted') === 'true') {
-                $isDeleted = true;
-            } else if ($request->query->get('isDeleted') === 'false') {
-                $isDeleted = false;
-            } else {
-                $isDeleted = null;
-            }
-        } else {
-            $isDeleted = null;
-        }
-
-        $page = (int) $request->query->get('page', 1);
-        $limit = (int) $request->query->get('limit', 20);
-
-        $queryDto = new GetClients(
-            $sortRaw,
-            $minAge,
-            $maxAge,
-            $minBalance,
-            $maxBalance,
-            $isDeleted,
-            $page,
-            $limit,
-        );
+        $queryDto = $factory->fromRequest($request);
 
         $clients = $handler->handle($queryDto);
 
@@ -223,7 +191,7 @@ final class ClientController extends AbstractController
     #[IsGranted('ROLE_ADMIN')]
     public function visit(
         Client $client,
-        ClientMapperInterface $mapper,
+        MembershipMapperInterface $mapper,
         ClientManager $manager,
     ): OkResponse
     {

@@ -9,6 +9,7 @@ use App\Client\Repository\ClientRepository;
 use App\Payment\DTO\GetPayments;
 use App\Payment\DTO\PaymentFilter;
 use App\Payment\Enum\PaymentStatusEnum;
+use App\Request\Utils\RequestParser;
 use App\Trainer\Entity\Trainer;
 use App\Trainer\Repository\TrainerRepository;
 use DateTimeImmutable;
@@ -22,6 +23,7 @@ final readonly class GetPaymentsFactory
     public function __construct(
         private ClientRepository $clientRepo,
         private TrainerRepository $trainerRepo,
+        private RequestParser $parser,
     )
     {}
 
@@ -47,22 +49,6 @@ final readonly class GetPaymentsFactory
             }
         }
 
-        $raw = $request->query->get('isRefund');
-
-        $isRefund = null;
-
-        if ($raw !== null) {
-            $isRefund = filter_var(
-                $raw,
-                FILTER_VALIDATE_BOOLEAN,
-                FILTER_NULL_ON_FAILURE
-            );
-
-            if ($isRefund === null && !in_array(strtolower($raw), ['true', 'false'], true)) {
-                throw new BadRequestHttpException('Invalid isRefund value');
-            }
-        }
-
         $statusInput = $request->query->get('status');
         $status = $statusInput ? PaymentStatusEnum::tryFrom($statusInput) : null;
 
@@ -70,68 +56,27 @@ final readonly class GetPaymentsFactory
             throw new BadRequestHttpException('Invalid status');
         }
 
-        $minCreatedAt = $this->parseDate($request->query->get('minCreateAt'));
-        $maxCreatedAt = $this->parseDate($request->query->get('maxCreateAt'));
+        $minCreatedAt = $this->parser->parseDate($request->query->get('minCreateAt'));
+        $maxCreatedAt = $this->parser->parseDate($request->query->get('maxCreateAt'));
 
         $filter = new PaymentFilter(
             client: $client,
             trainer: $trainer,
-            minAmount: $this->toInt($request->query->get('minAmount')),
-            maxAmount: $this->toInt($request->query->get('maxAmount')),
-            isRefund: $isRefund,
+            minAmount: $this->parser->toInt($request->query->get('minAmount')),
+            maxAmount: $this->parser->toInt($request->query->get('maxAmount')),
+            isRefund: $this->parser->toBool($request->query->get('isRefund')),
             status: $status,
-            minCreatedAt: $minCreatedAt,
-            maxCreatedAt: $maxCreatedAt,
+            minCreatedAt: $this->parser->parseDate($request->query->get('minCreateAt')),
+            maxCreatedAt: $this->parser->parseDate($request->query->get('maxCreateAt')),
         );
+
+        $allowedSortParams = ['amount', 'category', 'paidAt', 'status', 'isRefund', 'createAt'];
 
         return new GetPayments(
-            sort: $this->parseSort($request->query->get('sort', 'paidAt:ASC')),
+            sort: $this->parser->parseSort($request->query->get('sort', 'paidAt:ASC'), $allowedSortParams),
             filter: $filter,
-            page: (int) $request->query->get('page', 1),
-            limit: (int) $request->query->get('limit', 20),
+            page: $this->parser->toPositiveInt($request->query->get('page'), 'page') ?? 1,
+            limit: $this->parser->toPositiveInt($request->query->get('limit'), 'limit') ?? 20,
         );
-    }
-
-    private function parseDate(?string $input): ?DateTimeImmutable
-    {
-        if (!$input) return null;
-
-        try {
-            return new DateTimeImmutable($input);
-        } catch (Exception) {
-            throw new BadRequestHttpException('Invalid date format');
-        }
-    }
-
-    private function toInt(?string $value): ?int
-    {
-        return $value !== null ? (int)$value : null;
-    }
-
-    private function parseSort(string $sortRaw): array
-    {
-        $sort = [];
-        $allowedOrders = ['ASC', 'DESC'];
-        $allowedParams = ['amount', 'category', 'paidAt', 'status', 'isRefund', 'createAt'];
-
-        foreach (explode(',', $sortRaw) as $item) {
-            $exploded = explode(':', $item);
-
-            $field = $exploded[0] ?? null;
-
-            if (!$field || !in_array($field, $allowedParams, true)) {
-                throw new BadRequestHttpException("Invalid sort field: $field");
-            }
-
-            $order = strtoupper(trim($exploded[1] ?? 'ASC'));
-
-            if (!in_array($order, $allowedOrders, true)) {
-                throw new BadRequestHttpException("Invalid sort order: $order");
-            }
-
-            $sort[$field] = $order;
-        }
-
-        return $sort;
     }
 }
