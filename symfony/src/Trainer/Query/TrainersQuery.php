@@ -4,7 +4,8 @@ declare(strict_types=1);
 
 namespace App\Trainer\Query;
 
-use App\Trainer\DTO\GetTypesTrainers;
+use App\Trainer\DTO\GetTrainers;
+use App\Trainer\DTO\TrainerFilter;
 use App\Trainer\Repository\TrainerRepository;
 use Doctrine\ORM\QueryBuilder;
 use Psr\Cache\InvalidArgumentException;
@@ -14,35 +15,32 @@ use Symfony\Contracts\Cache\TagAwareCacheInterface;
 final readonly class TrainersQuery
 {
     private const array SORT_MAP = [
-        'trainingTypeId' => 'type.id'
+        'trainingTypeId' => 'type.id',
     ];
 
     public function __construct(
-        private TrainerRepository      $trainerRepo,
-        private TagAwareCacheInterface $gymCache
-    )
-    {}
+        private TrainerRepository $repo,
+        private TagAwareCacheInterface $cache
+    ) {}
 
     /**
      * @throws InvalidArgumentException
      */
-    public function handle(GetTypesTrainers $dto): array
+    public function handle(GetTrainers $dto): array
     {
         $cacheKey = $this->generateCacheKey($dto);
 
-        return $this->gymCache->get($cacheKey, function (CacheItem $item) use ($dto): array
-        {
+        return $this->cache->get($cacheKey, function (CacheItem $item) use ($dto) {
             $item->expiresAfter(3600);
 
             $qb = $this->createQuery($dto->filter);
 
-            $offset = ($dto->page - 1) * $dto->limit;
-
-            foreach ($dto->sort as $alias => $order) {
-                $field = self::SORT_MAP[$alias] ?? "t.$alias";
-                $qb->addOrderBy("$field", $order);
+            foreach ($dto->sort as $field => $order) {
+                $mapped = self::SORT_MAP[$field] ?? "t.$field";
+                $qb->addOrderBy($mapped, $order);
             }
-            $qb->setFirstResult($offset)
+
+            $qb->setFirstResult(($dto->page - 1) * $dto->limit)
                 ->setMaxResults($dto->limit);
 
             $item->tag(['trainers_list']);
@@ -51,50 +49,47 @@ final readonly class TrainersQuery
         });
     }
 
-    public function getTotal(array $filter): int
+    public function getTotal(TrainerFilter $filter): int
     {
-        return $this->createQuery($filter)->select("COUNT(t.id)")->getQuery()->getSingleScalarResult();
+        return (int) $this->createQuery($filter)
+            ->select('COUNT(t.id)')
+            ->getQuery()
+            ->getSingleScalarResult();
     }
 
-    private function createQuery(array $filter): QueryBuilder
+    private function createQuery(TrainerFilter $filter): QueryBuilder
     {
-        $qb = $this->trainerRepo->createQueryBuilder('t')
+        $qb = $this->repo->createQueryBuilder('t')
             ->leftJoin('t.trainingType', 'type')
             ->addSelect('type');
 
-        if(isset($filter['minPrice'])) {
-            $qb->andWhere('t.pricePerHour >= :minPrice')
-                ->setParameter('minPrice', $filter['minPrice']);
+        if ($filter->minPricePerHour !== null) {
+            $qb->andWhere('t.pricePerHour >= :minPricePerHour')
+                ->setParameter('minPricePerHour', $filter->minPricePerHour);
         }
-        if(isset($filter['maxPrice'])) {
-            $qb->andWhere('t.pricePerHour <= :maxPrice')
-                ->setParameter('maxPrice', $filter['maxPrice']);
+
+        if ($filter->maxPricePerHour !== null) {
+            $qb->andWhere('t.pricePerHour <= :maxPricePerHour')
+                ->setParameter('maxPricePerHour', $filter->maxPricePerHour);
         }
-        if(isset($filter['trainingType'])) {
+
+        if ($filter->trainingType !== null) {
             $qb->andWhere('t.trainingType = :trainingType')
-                ->setParameter('trainingType', $filter['trainingType']);
+                ->setParameter('trainingType', $filter->trainingType);
         }
 
         return $qb;
     }
 
-    private function generateCacheKey(GetTypesTrainers $query): string
+    private function generateCacheKey(GetTrainers $dto): string
     {
-        $params = [
-            'sort' => $query->sort,
-            'page' => $query->page,
-            'limit' => $query->limit,
-        ];
-        if(isset($query->filter['minPrice'])) {
-            $params['minPrice'] = $query->filter['minPrice'];
-        }
-        if(isset($query->filter['maxPrice'])) {
-            $params['maxPrice'] = $query->filter['maxPrice'];
-        }
-        if(isset($query->filter['trainingType'])) {
-            $params['trainingType'] = $query->filter['trainingType'];
-        }
-
-        return 'trainers_' . md5(serialize($params));
+        return 'trainers_' . md5(serialize([
+                'sort' => $dto->sort,
+                'page' => $dto->page,
+                'limit' => $dto->limit,
+                'minPricePerHour' => $dto->filter->minPricePerHour,
+                'maxPricePerHour' => $dto->filter->maxPricePerHour,
+                'trainingTypeId' => $dto->filter->trainingType?->getId(),
+            ]));
     }
 }

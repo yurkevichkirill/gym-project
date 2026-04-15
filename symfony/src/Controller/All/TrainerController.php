@@ -3,7 +3,7 @@
 namespace App\Controller\All;
 
 use App\Response\OkResponse;
-use App\Trainer\DTO\GetTypesTrainers;
+use App\Trainer\DTO\GetTrainers;
 use App\Trainer\Entity\Trainer;
 use App\Trainer\Mapper\TrainerMapperInterface;
 use App\Trainer\Query\TrainersQuery;
@@ -43,7 +43,7 @@ final class TrainerController extends AbstractController
         $page = (int) $request->query->get('page', 1);
         $limit = (int) $request->query->get('limit', 20);
 
-        $queryDto = new GetTypesTrainers($minPrice, $maxPrice, $trainingType, $sortRaw, $page, $limit);
+        $queryDto = new GetTrainers($minPrice, $maxPrice, $trainingType, $sortRaw, $page, $limit);
 
         $trainers = $handler->handle($queryDto);
 

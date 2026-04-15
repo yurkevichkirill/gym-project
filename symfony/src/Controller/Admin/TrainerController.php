@@ -6,12 +6,11 @@ use App\Admin\Entity\Admin;
 use App\Response\OkResponse;
 use App\Trainer\DTO\AdminUpdateTrainerRequest;
 use App\Trainer\DTO\CreateTrainerRequest;
-use App\Trainer\DTO\GetTypesTrainers;
 use App\Trainer\Entity\Trainer;
+use App\Trainer\Factory\GetTrainersFactory;
 use App\Trainer\Mapper\TrainerMapperInterface;
 use App\Trainer\Query\TrainersQuery;
 use App\Trainer\Service\TrainerManager;
-use App\TrainingType\Repository\TrainingTypeRepository;
 use InvalidArgumentException;
 use Nelmio\ApiDocBundle\Attribute\Model;
 use OpenApi\Attributes as OA;
@@ -32,8 +31,8 @@ final class TrainerController extends AbstractController
      * @throws \Psr\Cache\InvalidArgumentException
      */
     #[Route('/api/admin/trainers/', methods: ['GET'], format: 'json')]
-    #[OA\Parameter(name: 'minPrice', in: 'query', example: 30)]
-    #[OA\Parameter(name: 'maxPrice', in: 'query', example: 50)]
+    #[OA\Parameter(name: 'minPricePerHour', in: 'query', example: 30)]
+    #[OA\Parameter(name: 'maxPricePerHour', in: 'query', example: 50)]
     #[OA\Parameter(name: 'trainingTypeId', in: 'query', example: 1)]
     #[OA\Parameter(name: 'sort', in: 'query', example: 'lastName:ASC')]
     #[OA\Parameter(name: 'page', in: 'query', example: 1)]
@@ -44,17 +43,10 @@ final class TrainerController extends AbstractController
         Request $request,
         TrainerMapperInterface $mapper,
         TrainersQuery $handler,
-        TrainingTypeRepository $trainingTypeRepo,
+        GetTrainersFactory $factory,
     ): OkResponse
     {
-        $sortRaw = $request->query->get('sort', 'lastName:ASC');
-        $minPrice = $request->query->get('minPrice');
-        $maxPrice = $request->query->get('maxPrice');
-        $trainingType = $trainingTypeRepo->find((int) $request->query->get('trainingTypeId'));
-        $page = (int) $request->query->get('page', 1);
-        $limit = (int) $request->query->get('limit', 20);
-
-        $queryDto = new GetTypesTrainers($minPrice, $maxPrice, $trainingType, $sortRaw, $page, $limit);
+        $queryDto = $factory->fromRequest($request);
 
         $trainers = $handler->handle($queryDto);
 
@@ -64,7 +56,7 @@ final class TrainerController extends AbstractController
             $queryDto->limit,
             $handler->getTotal($queryDto->filter),
             $queryDto->sort,
-            200,
+            Response::HTTP_OK,
         );
     }
 
@@ -75,7 +67,7 @@ final class TrainerController extends AbstractController
     {
         return new OkResponse(
             data: $mapper->map($trainer, true),
-            status: 200,
+            status: Response::HTTP_OK,
         );
     }
     #[Route('/api/trainers/', methods: ['POST'], format: 'json')]
@@ -96,7 +88,7 @@ final class TrainerController extends AbstractController
         );
     }
 
-    #[Route('/api/trainers/{id}/', methods: ['PUT', 'PATCH'], format: 'json')]
+    #[Route('/api/trainers/{id}/', methods: ['PATCH'], format: 'json')]
     #[OA\RequestBody(content: new Model(type: AdminUpdateTrainerRequest::class))]
     #[OA\Tag(name: "Admin: Trainer")]
     #[IsGranted('ROLE_ADMIN')]
