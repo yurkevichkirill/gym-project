@@ -2,16 +2,14 @@
 
 namespace App\Controller\Trainer;
 
-use App\Client\Repository\ClientRepository;
 use App\Exception\DateRescheduledException;
 use App\Response\OkResponse;
 use App\Trainer\Entity\Trainer;
-use App\Training\DTO\GetTrainings;
-use App\Training\DTO\TrainingRequest;
+use App\Training\DTO\TrainingUpdateRequest;
 use App\Training\Entity\Training;
+use App\Training\Factory\GetTrainingsFactory;
 use App\Training\Mapper\TrainingMapperInterface;
 use App\Training\Query\TrainingsQuery;
-use App\Training\Repository\TrainingRepository;
 use App\Training\Service\TrainingManager;
 use DateMalformedIntervalStringException;
 use DateMalformedStringException;
@@ -31,7 +29,7 @@ final class TrainingController extends AbstractController
     /**
      * @throws InvalidArgumentException
      */
-    #[Route('/api/trainer/me/trainings/', methods: ['GET'], format: 'json')]
+    #[Route('/api/me/trainings/', methods: ['GET'], format: 'json')]
     #[OA\Parameter(name: 'clientId', in: 'query', example: 6)]
     #[OA\Parameter(name: 'status', in: 'query', example: 'scheduled')]
     #[OA\Parameter(name: 'date', in: 'query', example: '2026-03-10')]
@@ -45,21 +43,15 @@ final class TrainingController extends AbstractController
     public function getAll(
         TrainingMapperInterface $mapper,
         #[CurrentUser] Trainer $trainer,
-        TrainingsQuery   $handler,
-        Request               $request,
-        ClientRepository $clientRepo,
+        TrainingsQuery $handler,
+        Request $request,
+        GetTrainingsFactory $factory,
     ): OkResponse
     {
-        $sortRaw = $request->query->get('sort', 'bookedAt:ASC');
-        $client = $clientRepo->find((int) $request->query->get('clientId'));
-        $date = $request->query->get('date');
-        $durationMinutes = $request->query->get('durationMinutes') ? (int) $request->query->get('durationMinutes') : null;
-        $startTime = $request->query->get('startTime');
-        $status = $request->query->get('status');
-        $page = (int) $request->query->get('page', 1);
-        $limit = (int) $request->query->get('limit', 20);
-
-        $queryDto = new GetTrainings($sortRaw, $client, $date, $durationMinutes, $startTime, $status, $page, $limit, $trainer);
+        $queryDto = $factory->fromRequest(
+            request: $request,
+            trainer: $trainer,
+        );
 
         $trainings = $handler->handle($queryDto);
 
@@ -94,13 +86,13 @@ final class TrainingController extends AbstractController
      * @throws DateMalformedIntervalStringException
      */
     #[Route('/api/trainings/{id}/', methods: ['PUT', 'PATCH'], format: 'json')]
-    #[OA\RequestBody(content: new Model(type: TrainingRequest::class))]
+    #[OA\RequestBody(content: new Model(type: TrainingUpdateRequest::class))]
     #[OA\Tag(name: "Trainer: Training")]
     public function update(
-        Training $training,
-        #[MapRequestPayload] TrainingRequest $requestDto,
-        TrainingMapperInterface $mapper,
-        TrainingManager $manager,
+        Training                                   $training,
+        #[MapRequestPayload] TrainingUpdateRequest $requestDto,
+        TrainingMapperInterface                    $mapper,
+        TrainingManager                            $manager,
     ): OkResponse
     {
         $this->denyAccessUnlessGranted("TRAINING_EDIT", $training);
@@ -113,15 +105,15 @@ final class TrainingController extends AbstractController
         );
     }
 
-    #[Route('/api/trainings/{id}/', methods: ['DELETE'], format: 'json')]
+    #[Route('/api/trainings/{id}/cancel/', methods: ['POST'], format: 'json')]
     #[OA\Tag(name: "Trainer: Training")]
-    public function delete(
+    public function cancel(
         Training $training,
         TrainingManager $trainingManager,
     ): Response
     {
         $this->denyAccessUnlessGranted("TRAINING_REMOVE", $training);
-        $trainingManager->remove($training);
+        $trainingManager->cancel($training);
 
         return new Response(status: 204);
     }

@@ -5,18 +5,14 @@ declare(strict_types=1);
 namespace App\Payment\DTO;
 
 use App\Payment\Entity\Payment;
-use App\Payment\Enum\PaymentCategoryEnum;
 use App\Payment\Enum\PaymentStatusEnum;
-use App\Trainer\DTO\TrainerResponse;
 
-final readonly class PaymentResponse
+final readonly class PaymentTrainerResponse
 {
     public function __construct(
         public int $id,
-        public ?TrainerResponse $trainer = null,
         public int $amount,
         public string $currency,
-        public PaymentCategoryEnum $category,
         public bool $isRefund,
         public ?string $stripePaymentIntentId,
         public ?PaymentStatusEnum $status,
@@ -31,10 +27,8 @@ final readonly class PaymentResponse
     {
         return new self(
             id: $payment->getId(),
-            trainer: $payment->getTrainer() ? TrainerResponse::fromEntity($payment->getTrainer()) : null,
             amount: $payment->getAmount(),
             currency: $payment->getCurrency(),
-            category: $payment->getCategory(),
             isRefund: $payment->getIsRefund(),
             stripePaymentIntentId: $payment->getStripePaymentIntentId(),
             status: $payment->getStatus(),

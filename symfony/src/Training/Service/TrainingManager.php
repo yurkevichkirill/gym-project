@@ -9,7 +9,7 @@ use App\Exception\DateRescheduledException;
 use App\Exception\NoActiveMembershipException;
 use App\Membership\Service\VisitingService;
 use App\TrainerWorkTime\Repository\TrainerWorkTimeRepository;
-use App\Training\DTO\TrainingRequest;
+use App\Training\DTO\TrainingUpdateRequest;
 use App\Training\Entity\Training;
 use App\Client\Service\AvailabilityService as ClientAvailabilityService;
 use App\TrainerWorkTime\Service\AvailabilityService as WorktimeAvailabilityService;
@@ -40,17 +40,18 @@ final readonly class TrainingManager
      * @throws DateMalformedIntervalStringException
      * @throws DateRescheduledException
      */
-    public function update(Training $training, TrainingRequest $requestDto): Training
+    public function update(Training $training, TrainingUpdateRequest $requestDto): Training
     {
-        $oldStartTime = $training->getStartTime()->format("H:i:s");
+        if ($training->getBooking()?->getStatus() !== BookingStatusEnum::SCHEDULED) {
+            throw new ConflictHttpException("Only scheduled trainings can be updated");
+        }
 
-        $oldDurationMinutes = $training->getDurationMinutes();
+        $oldStartTime = $training->getStartTime()->format("H:i:s");
 
         $newStartTime = $requestDto->startTime
             ?? $training->getStartTime()->format('H:i:s');
 
-        $newDurationMinutes = $requestDto->durationMinutes
-            ?? $training->getDurationMinutes();
+        $durationMinutes = $training->getDurationMinutes();
 
         $newDate = $requestDto->date
             ? new DateTimeImmutable($requestDto->date)
@@ -72,45 +73,35 @@ final readonly class TrainingManager
 
         if ($newDate->format('Y-m-d') === $training->getTrainerWorkTime()->getDate()->format("Y-m-d")) {
             $worktime = $training->getTrainerWorkTime();
-
-            if (!$this->worktimeAvailabilityService->isTimeAvailable($worktime, $newStartTime, $newDurationMinutes, $oldStartTime, $oldDurationMinutes)) {
-                throw new DateRescheduledException("Trainer doesn't work at this time");
-            }
-            if (!$this->clientAvailabilityService->isClientAvailableInDate($client, $newDate, $newStartTime, $newDurationMinutes, $oldStartTime)) {
-                throw new DateRescheduledException("Client already have training at this time");
-            }
-
-            $training->setStartTime(new DateTimeImmutable($newStartTime));
-            $training->setDurationMinutes($newDurationMinutes);
-
-            $this->entityManager->flush();
-        } else if ($newDate->format("Y-m-d") < new DateTimeImmutable()->add(new DateInterval('P' . self::MIN_DAY_CHANGE . 'D'))->format('Y-m-d')) {
-            throw new DateRescheduledException("The minimum reschedule date must be no earlier than tomorrow.");
         } else {
-            $newWorktime = $this->worktimeRepo->findOneBy(['date' => $newDate]);
-            if (is_null($newWorktime)) {
+            if ($newDate < new DateTimeImmutable()->add(new DateInterval('P' . self::MIN_DAY_CHANGE . 'D'))) {
+                throw new DateRescheduledException("The minimum reschedule date must be no earlier than tomorrow.");
+            }
+
+            $worktime = $this->worktimeRepo->findOneBy(['date' => $newDate]);
+
+            if (!$worktime) {
                 throw new NotFoundHttpException("There is no work time for this date");
             }
 
-            $training->setTrainerWorkTime($newWorktime);
-
-            if (!$this->worktimeAvailabilityService->isTimeAvailable($newWorktime, $newStartTime, $newDurationMinutes, $oldStartTime, $oldDurationMinutes)) {
-                throw new DateRescheduledException("Trainer doesn't work at this time");
-            }
-            if (!$this->clientAvailabilityService->isClientAvailableInDate($client, $newDate, $newStartTime, $newDurationMinutes,  $oldStartTime)) {
-                throw new DateRescheduledException("Client already have training at this time");
-            }
-
-            $training->setStartTime(new DateTimeImmutable($newStartTime));
-            $training->setDurationMinutes($newDurationMinutes);
-
-            $this->entityManager->flush();
+            $training->setTrainerWorkTime($worktime);
         }
+
+        if (!$this->worktimeAvailabilityService->isTimeAvailable($worktime, $newStartTime, $durationMinutes, $oldStartTime)) {
+            throw new DateRescheduledException("Trainer doesn't work at this time");
+        }
+        if (!$this->clientAvailabilityService->isClientAvailableInDate($client, $newDate, $newStartTime, $durationMinutes,  $oldStartTime)) {
+            throw new DateRescheduledException("Client already have training at this time");
+        }
+
+        $training->setStartTime(new DateTimeImmutable($newStartTime));
+
+        $this->entityManager->flush();
 
         return $training;
     }
 
-    public function remove(Training $training, bool $isAdmin = false): void
+    public function cancel(Training $training, bool $isAdmin = false): void
     {
         $booking = $training->getBooking();
         if ($isAdmin) {
@@ -128,8 +119,8 @@ final readonly class TrainingManager
             throw new BadRequestHttpException('Training has not happened yet');
         }
 
-        if ($training->getBooking()->getStatus() === BookingStatusEnum::COMPLETED) {
-            throw new ConflictHttpException('Training already completed');
+        if ($training->getBooking()->getStatus() !== BookingStatusEnum::SCHEDULED) {
+            throw new ConflictHttpException("Only scheduled trainings can be completed");
         }
 
         $training->getBooking()->setStatus(BookingStatusEnum::COMPLETED);

@@ -31,7 +31,7 @@ final readonly class AvailabilityService
 
         return array_all($clientBusyWithoutCurrent, fn($trainingSlot) => (
                 $startTime < $trainingSlot['start'] || $startTime >= $trainingSlot['end']) &&
-            ($endTime <= $trainingSlot['start'] || $startTime > $trainingSlot['end'])
+            ($endTime <= $trainingSlot['start'] || $endTime > $trainingSlot['end'])
         );
     }
 
