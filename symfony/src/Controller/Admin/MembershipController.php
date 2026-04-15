@@ -6,6 +6,7 @@ use App\Client\Entity\Client;
 use App\Membership\DTO\CreateMembershipRequest;
 use App\Membership\DTO\GetMemberships;
 use App\Membership\Entity\Membership;
+use App\Membership\Factory\GetMembershipsFactory;
 use App\Membership\Mapper\MembershipMapperInterface;
 use App\Membership\Query\MembershipQuery;
 use App\Membership\Service\MembershipManager;
@@ -40,42 +41,26 @@ final class MembershipController extends AbstractController
         Request $request,
         MembershipMapperInterface $mapper,
         MembershipQuery $handler,
-        MembershipPlanRepository $membershipPlanRepo,
+        GetMembershipsFactory $factory,
     ): OkResponse
     {
-        $sortRaw = $request->query->get('sort', 'startDate:ASC');
-        $status = $request->query->get('status');
-        $membershipPlan = $membershipPlanRepo->find((int) $request->query->get('membershipPlanId'));
-        $minVisits = $request->query->get('minVisits') ? (int) $request->query->get('minVisits') : null;
-        $maxVisits = $request->query->get('maxVisits') ? (int) $request->query->get('maxVisits') : null;
-        $page = (int) $request->query->get('page', 1);
-        $limit = (int) $request->query->get('limit', 20);
 
-        $queryDto = new GetMemberships(
-            $sortRaw,
-            $membershipPlan,
-            $status,
-            $minVisits,
-            $maxVisits,
-            $page,
-            $limit,
+        $queryDto = $factory->fromRequest(
+            request: $request,
         );
 
         $memberships = $handler->handle($queryDto);
 
         return new OkResponse(
             array_map(fn ($membership) => $mapper->map($membership), $memberships),
-            $page,
-            $limit,
+            $queryDto->page,
+            $queryDto->limit,
             $handler->getTotal($queryDto->filter),
             $queryDto->sort,
             Response::HTTP_OK,
         );
     }
 
-    /**
-     * @throws InvalidArgumentException
-     */
     #[Route('/api/clients/{id}/memberships/', methods: ['GET'], format: 'json')]
     #[OA\Parameter(name: 'membershipPlanId', in: 'query', example: 6)]
     #[OA\Parameter(name: 'status', in: 'query', example: 'active')]
@@ -91,34 +76,21 @@ final class MembershipController extends AbstractController
         Request $request,
         MembershipMapperInterface $mapper,
         MembershipQuery $handler,
-        MembershipPlanRepository $membershipPlanRepo,
+        GetMembershipsFactory $factory,
     ): OkResponse
     {
-        $sortRaw = $request->query->get('sort', 'startDate:ASC');
-        $status = $request->query->get('status');
-        $membershipPlan = $membershipPlanRepo->find((int) $request->query->get('membershipPlanId'));
-        $minVisits = $request->query->get('minVisits') ? (int) $request->query->get('minVisits') : null;
-        $maxVisits = $request->query->get('maxVisits') ? (int) $request->query->get('maxVisits') : null;
-        $page = (int) $request->query->get('page', 1);
-        $limit = (int) $request->query->get('limit', 20);
 
-        $queryDto = new GetMemberships(
-            $sortRaw,
-            $membershipPlan,
-            $status,
-            $minVisits,
-            $maxVisits,
-            $page,
-            $limit,
-            $client,
+        $queryDto = $factory->fromRequest(
+            request: $request,
+            client: $client,
         );
 
         $memberships = $handler->handle($queryDto);
 
         return new OkResponse(
             array_map(fn ($membership) => $mapper->map($membership), $memberships),
-            $page,
-            $limit,
+            $queryDto->page,
+            $queryDto->limit,
             $handler->getTotal($queryDto->filter),
             $queryDto->sort,
             Response::HTTP_OK,
