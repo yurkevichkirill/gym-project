@@ -45,7 +45,10 @@ class PaymentController extends AbstractController
         PaymentsQuery $handler,
     ): OkResponse
     {
-        $queryDto = $factory->fromRequest($request, $trainer);
+        $queryDto = $factory->fromRequest(
+            request: $request,
+            trainer: $trainer
+        );
 
         $payments = $handler->handle($queryDto);
 

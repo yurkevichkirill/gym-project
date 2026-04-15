@@ -39,16 +39,15 @@ class Booking
     private ?Training $training = null;
 
     #[ORM\OneToOne(targetEntity: Payment::class, inversedBy: 'booking', cascade: ['persist'])]
-    #[ORM\JoinColumn(nullable: false, onDelete: 'SET NULL')]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
     private ?Payment $payment = null;
 
-    #[ORM\Column(options: ["default" => "CURRENT_TIMESTAMP"])]
+    #[ORM\Column(nullable: true)]
     private ?DateTimeImmutable $bookedAt = null;
 
     #[ORM\Column(
         type: Types::ENUM,
         length: 50,
-        options: ['default' => BookingStatusEnum::SCHEDULED],
     )]
     private ?BookingStatusEnum $status = null;
 
@@ -127,7 +126,9 @@ class Booking
 
     public function confirm(): void
     {
-        $this->status = BookingStatusEnum::CONFIRMED;
+        $this->bookedAt = new DateTimeImmutable();
+
+        $this->status = BookingStatusEnum::SCHEDULED;
     }
 
     public function cancel(BookingStatusEnum $reason): void
@@ -142,7 +143,6 @@ class Booking
     #[ORM\PrePersist]
     public function initializeDefaults(): static
     {
-        $this->bookedAt = new DateTimeImmutable();
         $this->status = BookingStatusEnum::PENDING;
 
         return $this;
