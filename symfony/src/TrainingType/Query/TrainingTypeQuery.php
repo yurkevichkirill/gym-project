@@ -10,13 +10,12 @@ use Psr\Cache\InvalidArgumentException;
 use Symfony\Component\Cache\CacheItem;
 use Symfony\Contracts\Cache\TagAwareCacheInterface;
 
-class TrainingTypeQuery
+final readonly class TrainingTypeQuery
 {
     public function __construct(
-        private TrainingTypeRepository     $trainingTypeRepo,
-        private TagAwareCacheInterface $gymCache
-    )
-    {}
+        private TrainingTypeRepository $repo,
+        private TagAwareCacheInterface $cache
+    ) {}
 
     /**
      * @throws InvalidArgumentException
@@ -25,18 +24,16 @@ class TrainingTypeQuery
     {
         $cacheKey = $this->generateCacheKey($dto);
 
-        return $this->gymCache->get($cacheKey, function (CacheItem $item) use ($dto): array
-        {
+        return $this->cache->get($cacheKey, function (CacheItem $item) use ($dto) {
             $item->expiresAfter(3600);
 
-            $qb = $this->trainingTypeRepo->createQueryBuilder('t');
-
-            $offset = ($dto->page - 1) * $dto->limit;
+            $qb = $this->repo->createQueryBuilder('t');
 
             foreach ($dto->sort as $field => $order) {
                 $qb->addOrderBy("t.$field", $order);
             }
-            $qb->setFirstResult($offset)
+
+            $qb->setFirstResult(($dto->page - 1) * $dto->limit)
                 ->setMaxResults($dto->limit);
 
             $item->tag(['training_types_list']);
@@ -45,14 +42,20 @@ class TrainingTypeQuery
         });
     }
 
-    private function generateCacheKey(GetTrainingTypes $query): string
+    public function getTotal(): int
     {
-        $params = [
-            'sort' => $query->sort,
-            'page' => $query->page,
-            'limit' => $query->limit,
-        ];
+        return (int) $this->repo->createQueryBuilder('t')
+            ->select('COUNT(t.id)')
+            ->getQuery()
+            ->getSingleScalarResult();
+    }
 
-        return 'training_types_' . md5(serialize($params));
+    private function generateCacheKey(GetTrainingTypes $dto): string
+    {
+        return 'training_types_' . md5(serialize([
+                'sort' => $dto->sort,
+                'page' => $dto->page,
+                'limit' => $dto->limit,
+            ]));
     }
 }

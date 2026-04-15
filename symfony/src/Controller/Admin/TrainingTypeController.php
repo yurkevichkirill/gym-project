@@ -7,22 +7,14 @@ use App\TrainingType\DTO\CreateTrainingTypeRequest;
 use App\TrainingType\DTO\UpdateTrainingTypeRequest;
 use App\TrainingType\Entity\TrainingType;
 use App\TrainingType\Mapper\TrainingTypeMapperInterface;
-use App\TrainingType\Repository\TrainingTypeRepository;
 use App\TrainingType\Service\TrainingTypeManager;
-use App\TrainingType\TrainingTypeServiceInterface;
 use Nelmio\ApiDocBundle\Attribute\Model;
 use OpenApi\Attributes as OA;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\HttpFoundation\JsonResponse;
-use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
-use Symfony\Component\Serializer\Normalizer\AbstractNormalizer;
-use Symfony\Component\Serializer\SerializerInterface;
-use Symfony\Component\Validator\Validator\ValidatorInterface;
-use Throwable;
 
 final class TrainingTypeController extends AbstractController
 {
