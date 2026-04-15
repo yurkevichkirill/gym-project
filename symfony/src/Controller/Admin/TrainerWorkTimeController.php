@@ -32,7 +32,7 @@ final class TrainerWorkTimeController extends AbstractController
         Trainer                                    $trainer,
         #[MapRequestPayload] CreateWorkTimeRequest $requestDto,
         WorkTimeMapperInterface                    $mapper,
-        WorkTimeManager                            $manager
+        WorkTimeManager                            $manager,
     ): OkResponse
     {
         $responseDto = $mapper->map($manager->create($trainer, $requestDto));

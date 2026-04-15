@@ -32,15 +32,12 @@ class TrainerWorkTime
     private ?Trainer $trainer = null;
 
     #[ORM\Column(type: Types::DATE_IMMUTABLE)]
-    #[Context([DateTimeNormalizer::FORMAT_KEY => "Y-m-d"])]
     private ?DateTimeImmutable $date = null;
 
     #[ORM\Column(type: Types::TIME_IMMUTABLE)]
-    #[Context([DateTimeNormalizer::FORMAT_KEY => "H:i"])]
     private ?DateTimeImmutable $startTime = null;
 
     #[ORM\Column(type: Types::TIME_IMMUTABLE)]
-    #[Context([DateTimeNormalizer::FORMAT_KEY => "H:i"])]
     private ?DateTimeImmutable $endTime = null;
 
     #[ORM\OneToMany(targetEntity: Training::class, mappedBy: 'trainerWorkTime', cascade: ['persist', 'remove'])]
@@ -137,32 +134,37 @@ class TrainerWorkTime
     /**
      * @throws DateMalformedIntervalStringException
      */
-    #[Groups(['public-trainer-worktime', 'public-trainer-free-slots'])]
-    #[SerializedName('freeSlots')]
-    #[Context([DateTimeNormalizer::FORMAT_KEY => "H:i"])]
     public function getFreeSlots(): array
     {
-        $trainingsArray = $this->trainings->getValues();
-        $startTrainerTime = $this->startTime;
-        $endTrainerTime = $this->endTime;
-        usort($trainingsArray, fn ($training1, $training2) => $training1->getStartTime()->format("H:i:s") <=> $training2->getStartTime()->format("H:i:s"));
+        $trainings = $this->trainings->getValues();
+
+        usort($trainings, fn ($a, $b) =>
+            $a->getStartTime() <=> $b->getStartTime()
+        );
 
         $available = [];
-        $startPeriod = $startTrainerTime;
-        foreach ($trainingsArray as $dayTraining) {
-            $available[] = [
-                "start" => $startPeriod->format("H:i:s"),
-                "end" => $dayTraining->getStartTime()->format("H:i:s"),
-            ];
-            $startPeriod = $dayTraining->getStartTime()->add(new DateInterval("PT" . $dayTraining->getDurationMinutes() . "M"));
+
+        $current = $this->startTime;
+
+        foreach ($trainings as $training) {
+            $trainingStart = $training->getStartTime();
+
+            if ($current < $trainingStart) {
+                $available[] = [
+                    "start" => $current->format("H:i:s"),
+                    "end" => $trainingStart->format("H:i:s"),
+                ];
+            }
+
+            $current = $trainingStart->add(
+                new DateInterval("PT{$training->getDurationMinutes()}M")
+            );
         }
-        if(isset($available[0]) && $available[0]['start'] === $available[0]['end']) {
-            array_shift($available);
-        }
-        if ($startPeriod->format('H:i:s') !== $endTrainerTime->format("H:i:s")) {
+
+        if ($current < $this->endTime) {
             $available[] = [
-                "start" => $startPeriod->format("H:i:s"),
-                "end" => $endTrainerTime->format("H:i:s"),
+                "start" => $current->format("H:i:s"),
+                "end" => $this->endTime->format("H:i:s"),
             ];
         }
 

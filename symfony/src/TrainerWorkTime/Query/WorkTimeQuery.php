@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\TrainerWorkTime\Query;
 
 use App\TrainerWorkTime\DTO\GetTrainerWorkTime;
+use App\TrainerWorkTime\DTO\WorkTimeFilter;
 use App\TrainerWorkTime\Repository\TrainerWorkTimeRepository;
 use Doctrine\ORM\QueryBuilder;
 use Psr\Cache\InvalidArgumentException;
@@ -26,8 +27,8 @@ final readonly class WorkTimeQuery
     {
         $cacheKey = $this->generateCacheKey($dto);
 
-        return $this->gymCache->get($cacheKey, function (CacheItem $item) use ($dto): array
-        {
+        return $this->gymCache->get($cacheKey, function (CacheItem $item) use ($dto): array {
+
             $item->expiresAfter(3600);
 
             $qb = $this->createQuery($dto->filter);
@@ -37,11 +38,12 @@ final readonly class WorkTimeQuery
             foreach ($dto->sort as $field => $order) {
                 $qb->addOrderBy("w.$field", $order);
             }
+
             $qb->setFirstResult($offset)
                 ->setMaxResults($dto->limit);
 
-            if (isset($dto->filter['client'])) {
-                $item->tag(['trainer_worktimes_list_' . $dto->filter['trainer']->getId()]);
+            if ($dto->filter->trainer) {
+                $item->tag(['trainer_worktimes_list_' . $dto->filter->trainer->getId()]);
             } else {
                 $item->tag(["trainer_worktimes_list_all"]);
             }
@@ -50,12 +52,15 @@ final readonly class WorkTimeQuery
         });
     }
 
-    public function getTotal(array $filter): int
+    public function getTotal(WorkTimeFilter $filter): int
     {
-        return $this->createQuery($filter)->select("COUNT(w.id)")->getQuery()->getSingleScalarResult();
+        return (int) $this->createQuery($filter)
+            ->select('COUNT(w.id)')
+            ->getQuery()
+            ->getSingleScalarResult();
     }
 
-    private function createQuery(array $filter): QueryBuilder
+    private function createQuery(WorkTimeFilter $filter): QueryBuilder
     {
         $qb = $this->worktimeRepo->createQueryBuilder('w')
             ->leftJoin('w.trainer', 'trainer')
@@ -65,14 +70,14 @@ final readonly class WorkTimeQuery
             ->leftJoin('trainer.trainingType', 'type')
             ->addSelect('type');
 
-        if (isset($filter['trainer'])) {
+        if ($filter->trainer !== null) {
             $qb->andWhere('trainer = :trainer')
-                ->setParameter('trainer', $filter['trainer']);
+                ->setParameter('trainer', $filter->trainer);
         }
 
-        if (isset($filter['date'])) {
+        if ($filter->date !== null) {
             $qb->andWhere('w.date = :date')
-                ->setParameter('date', $filter['date']);
+                ->setParameter('date', $filter->date);
         }
 
         return $qb;
@@ -80,20 +85,16 @@ final readonly class WorkTimeQuery
 
     private function generateCacheKey(GetTrainerWorkTime $query): string
     {
+        $f = $query->filter;
+
         $params = [
             'sort' => $query->sort,
             'page' => $query->page,
             'limit' => $query->limit,
+            'trainerId' => $f->trainer?->getId(),
+            'date' => $f->date?->format('Y-m-d'),
         ];
 
-        if (isset($query->filter['trainer'])) {
-            $params['trainer'] = $query->filter['trainer'];
-        }
-
-        if (isset($query->filter['date'])) {
-            $params['date'] = $query->filter['date'];
-        }
-
-        return 'trainer_worktime_' . md5(serialize($params));
+        return 'trainer_worktime_' . md5(json_encode($params));
     }
 }

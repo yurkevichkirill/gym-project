@@ -8,69 +8,10 @@ use App\Trainer\Entity\Trainer;
 
 final readonly class GetTrainerWorkTime
 {
-    public array $sort;
-    public array $filter;
-    public int $page;
-    public int $limit;
-
     public function __construct(
-        string $sortRaw = 'date:ASC',
-        ?string $date = null,
-        int $page = 1,
-        int $limit = 20,
-        ?Trainer $trainer = null,
-    )
-    {
-        $this->sort = $this->parseSort($sortRaw);
-        $this->filter = $this->putFilter($trainer, $date);
-        $this->page = $page;
-        $this->limit = $limit;
-    }
-
-    private function putFilter (
-        ?Trainer $trainer,
-        ?string $date,
-    ): array
-    {
-        $filter = [];
-
-        if ($trainer !== null) {
-            $filter['trainer'] = $trainer;
-        }
-        if ($date !== null) {
-            $filter['date'] = $date;
-        }
-
-        return $filter;
-    }
-
-    private function parseSort(string $sortRaw): array
-    {
-        $sort = [];
-        $allowedOrders = ['ASC', 'DESC'];
-        $allowedParams = ['date', 'startTime', 'endTime'];
-
-        foreach (explode(',', $sortRaw) as $item) {
-            $exploded = explode(':', $item);
-
-            if (!in_array($exploded[0], $allowedParams)) {
-                continue;
-            }
-
-            if (count($exploded) === 1) {
-                $exploded[] = 'ASC';
-            }
-
-            [$field, $rawOrder] = $exploded;
-            $order = strtoupper(trim($rawOrder));
-
-            if (!in_array($order, $allowedOrders)) {
-                continue;
-            }
-
-            $sort[$field] = $order;
-        }
-
-        return $sort;
-    }
+        public array $sort,
+        public WorkTimeFilter $filter,
+        public int $page = 1,
+        public int $limit = 20,
+    ) {}
 }

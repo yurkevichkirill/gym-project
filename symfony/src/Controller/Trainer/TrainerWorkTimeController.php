@@ -11,6 +11,7 @@ use App\TrainerWorkTime\DTO\GetTrainerWorkTime;
 use App\TrainerWorkTime\DTO\CreateWorkTimeRequest;
 use App\TrainerWorkTime\DTO\UpdateWorkTimeRequest;
 use App\TrainerWorkTime\Entity\TrainerWorkTime;
+use App\TrainerWorkTime\Factory\GetTrainerWorkTimeFactory;
 use App\TrainerWorkTime\Mapper\WorkTimeMapperInterface;
 use App\TrainerWorkTime\Query\WorkTimeQuery;
 use App\TrainerWorkTime\Service\WorkTimeManager;
@@ -44,21 +45,20 @@ final class TrainerWorkTimeController extends AbstractController
         Request $request,
         WorkTimeMapperInterface $mapper,
         WorkTimeQuery $handler,
+        GetTrainerWorkTimeFactory $factory,
     ): OkResponse
     {
-        $sortRaw = $request->query->get('sort', 'date:ASC');
-        $date = $request->query->get('date');
-        $page = (int) $request->query->get('page', 1);
-        $limit = (int) $request->query->get('limit', 20);
-
-        $queryDto = new GetTrainerWorkTime($sortRaw, $date, $page, $limit, $trainer);
+        $queryDto = $factory->fromRequest(
+            request: $request,
+            trainer: $trainer,
+        );
 
         $worktimes = $handler->handle($queryDto);
 
         return new OkResponse(
             array_map(fn ($worktime) => $mapper->map($worktime), $worktimes),
-            $page,
-            $limit,
+            $queryDto->page,
+            $queryDto->limit,
             $handler->getTotal($queryDto->filter),
             $queryDto->sort,
             Response::HTTP_OK,
