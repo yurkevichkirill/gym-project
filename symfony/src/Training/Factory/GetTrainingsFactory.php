@@ -7,6 +7,7 @@ namespace App\Training\Factory;
 use App\Booking\Enum\BookingStatusEnum;
 use App\Client\Entity\Client;
 use App\Client\Repository\ClientRepository;
+use App\Request\Utils\RequestParser;
 use App\Trainer\Entity\Trainer;
 use App\Trainer\Repository\TrainerRepository;
 use App\Training\DTO\GetTrainings;
@@ -22,6 +23,7 @@ final readonly class GetTrainingsFactory
     public function __construct(
         private ClientRepository $clientRepo,
         private TrainerRepository $trainerRepo,
+        private RequestParser $parser,
     ) {}
 
     public function fromRequest(Request $request, ?Trainer $trainer = null, ?Client $client = null): GetTrainings
@@ -56,72 +58,19 @@ final readonly class GetTrainingsFactory
         $filter = new TrainingFilter(
             trainer: $trainer,
             client: $client,
-            date: $this->parseDate($request->query->get('date')),
-            durationMinutes: $this->toInt($request->query->get('durationMinutes')),
-            startTime: $this->parseTime($request->query->get('startTime')),
-            status: $request->query->get('status'),
+            date: $this->parser->parseDate($request->query->get('date')),
+            durationMinutes: $this->parser->toInt($request->query->get('durationMinutes')),
+            startTime: $this->parser->parseTime($request->query->get('startTime')),
+            status: $status,
         );
 
-        return new GetTrainings(
-            sort: $this->parseSort($request->query->get('sort', 'bookedAt:ASC')),
-            filter: $filter,
-            page: (int)$request->query->get('page', 1),
-            limit: (int)$request->query->get('limit', 20),
-        );
-    }
-
-    private function toInt(?string $value): ?int
-    {
-        return $value !== null ? (int)$value : null;
-    }
-
-    private function parseDate(?string $input): ?DateTimeImmutable
-    {
-        if (!$input) return null;
-
-        try {
-            return new DateTimeImmutable($input);
-        } catch (Exception) {
-            throw new BadRequestHttpException('Invalid date format');
-        }
-    }
-
-    private function parseTime(?string $input): ?DateTimeImmutable
-    {
-        if (!$input) return null;
-
-        try {
-            return new DateTimeImmutable($input);
-        } catch (Exception) {
-            throw new BadRequestHttpException('Invalid time format');
-        }
-    }
-
-    private function parseSort(string $sortRaw): array
-    {
-        $allowedOrders = ['ASC', 'DESC'];
         $allowedParams = ['startTime', 'durationMinutes', 'clientId', 'date', 'status', 'bookedAt'];
 
-        $sort = [];
-
-        foreach (explode(',', $sortRaw) as $item) {
-            $exploded = explode(':', $item);
-
-            $field = $exploded[0] ?? null;
-
-            if (!$field || !in_array($field, $allowedParams, true)) {
-                throw new BadRequestHttpException("Invalid sort field: $field");
-            }
-
-            $order = strtoupper(trim($exploded[1] ?? 'ASC'));
-
-            if (!in_array($order, $allowedOrders, true)) {
-                throw new BadRequestHttpException("Invalid sort order: $order");
-            }
-
-            $sort[$field] = $order;
-        }
-
-        return $sort;
+        return new GetTrainings(
+            sort: $this->parser->parseSort($request->query->get('sort', 'bookedAt:ASC'), $allowedParams),
+            filter: $filter,
+            page: $this->parser->toPositiveInt($request->query->get('page'), 'page') ?? 1,
+            limit: $this->parser->toPositiveInt($request->query->get('limit'), 'limit') ?? 20,
+        );
     }
 }

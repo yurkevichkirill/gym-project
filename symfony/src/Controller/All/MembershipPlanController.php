@@ -2,8 +2,8 @@
 
 namespace App\Controller\All;
 
-use App\MembershipPlan\DTO\GetMembershipPlans;
 use App\MembershipPlan\Entity\MembershipPlan;
+use App\MembershipPlan\Factory\GetMembershipPlansFactory;
 use App\MembershipPlan\Mapper\MembershipPlanMapperInterface;
 use App\MembershipPlan\Query\MembershipPlansQuery;
 use App\Response\OkResponse;
@@ -24,8 +24,11 @@ final class MembershipPlanController extends AbstractController
     #[Cache(public: true)]
     #[OA\Parameter(name: 'minPrice', in: 'query', example: 50)]
     #[OA\Parameter(name: 'maxPrice', in: 'query', example: 100)]
-    #[OA\Parameter(name: 'durationDays', in: 'query', example: 30)]
-    #[OA\Parameter(name: 'sessionLimit', in: 'query', example: 8)]
+    #[OA\Parameter(name: 'minDurationDays', in: 'query', example: 30)]
+    #[OA\Parameter(name: 'maxDurationDays', in: 'query', example: 30)]
+    #[OA\Parameter(name: 'minSessionLimit', in: 'query', example: 8)]
+    #[OA\Parameter(name: 'maxSessionLimit', in: 'query', example: 8)]
+    #[OA\Parameter(name: 'isUnlimited', in: 'query', example: 'true')]
     #[OA\Parameter(name: 'sort', in: 'query', example: 'durationDays:ASC')]
     #[OA\Parameter(name: 'page', in: 'query', example: 1)]
     #[OA\Parameter(name: 'limit', in: 'query', example: 20)]
@@ -34,24 +37,17 @@ final class MembershipPlanController extends AbstractController
         Request $request,
         MembershipPlanMapperInterface $mapper,
         MembershipPlansQuery $handler,
+        GetMembershipPlansFactory $factory,
     ): OkResponse
     {
-        $sortRaw = $request->query->get('sort', 'durationDays:ASC');
-        $durationDays = $request->query->get('durationDays') ? (int) $request->query->get('durationDays') : null;
-        $minPrice = $request->query->get('minPrice');
-        $maxPrice = $request->query->get('maxPrice');
-        $sessionLimit = $request->query->get('sessionLimit') ? (int) $request->query->get('sessionLimit') : null;
-        $page = (int) $request->query->get('page', 1);
-        $limit = (int) $request->query->get('limit', 20);
-
-        $queryDto = new GetMembershipPlans($minPrice, $maxPrice, $durationDays, $sessionLimit, $sortRaw, $page, $limit);
+        $queryDto = $factory->fromRequest($request);
 
         $plans = $handler->handle($queryDto);
 
         return new OkResponse(
             array_map(fn ($plan) => $mapper->map($plan), $plans),
-            $page,
-            $limit,
+            $queryDto->page,
+            $queryDto->limit,
             $handler->getTotal($queryDto->filter),
             $queryDto->sort,
             Response::HTTP_OK,

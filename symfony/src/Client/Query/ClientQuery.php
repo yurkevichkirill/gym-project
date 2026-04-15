@@ -4,81 +4,76 @@ declare(strict_types=1);
 
 namespace App\Client\Query;
 
+use App\Client\DTO\ClientFilter;
 use App\Client\DTO\GetClients;
 use App\Client\Repository\ClientRepository;
 use Doctrine\ORM\QueryBuilder;
-use Psr\Cache\CacheException;
-use Psr\Cache\InvalidArgumentException;
 use Symfony\Component\Cache\CacheItem;
 use Symfony\Contracts\Cache\TagAwareCacheInterface;
 
 final readonly class ClientQuery
 {
     public function __construct(
-        private ClientRepository       $clientRepo,
+        private ClientRepository $clientRepo,
         private TagAwareCacheInterface $gymCache
-    )
-    {}
+    ) {}
 
-    /**
-     * @throws InvalidArgumentException
-     */
     public function handle(GetClients $dto): array
     {
         $cacheKey = $this->generateCacheKey($dto);
 
-        return $this->gymCache->get($cacheKey, function (CacheItem $item) use ($dto): array
-        {
+        return $this->gymCache->get($cacheKey, function (CacheItem $item) use ($dto): array {
             $item->expiresAfter(3600);
 
             $qb = $this->createQuery($dto->filter);
 
-            $offset = ($dto->page - 1) * $dto->limit;
-
-            foreach ($dto->sort as $alias => $order) {
-                $qb->addOrderBy("c.$alias", $order);
+            foreach ($dto->sort as $field => $order) {
+                $qb->addOrderBy("c.$field", $order);
             }
 
-            $qb->setFirstResult($offset)
+            $qb->setFirstResult(($dto->page - 1) * $dto->limit)
                 ->setMaxResults($dto->limit);
 
-            $item->tag(["clients_list"]);
+            $item->tag(['clients_list']);
 
             return $qb->getQuery()->getResult();
         });
     }
 
-    public function getTotal(array $filter): int
+    public function getTotal(ClientFilter $filter): int
     {
-        return $this->createQuery($filter, true)->select("COUNT(c.id)")->getQuery()->getSingleScalarResult();
+        return (int) $this->createQuery($filter, true)
+            ->select('COUNT(c.id)')
+            ->getQuery()
+            ->getSingleScalarResult();
     }
 
-    private function createQuery(array $filter, bool $isCount = false): QueryBuilder
+    private function createQuery(ClientFilter $filter, bool $isCount = false): QueryBuilder
     {
         $qb = $this->clientRepo->createQueryBuilder('c');
 
-        if (isset($filter['minAge'])) {
+        if ($filter->minAge !== null) {
             $qb->andWhere('c.age >= :minAge')
-                ->setParameter('minAge', $filter['minAge']);
+                ->setParameter('minAge', $filter->minAge);
         }
 
-        if(isset($filter['maxAge'])) {
+        if ($filter->maxAge !== null) {
             $qb->andWhere('c.age <= :maxAge')
-                ->setParameter('maxAge', $filter['maxAge']);
+                ->setParameter('maxAge', $filter->maxAge);
         }
 
-        if(isset($filter['minBalance'])) {
+        if ($filter->minBalance !== null) {
             $qb->andWhere('c.balance >= :minBalance')
-                ->setParameter('minBalance', $filter['minBalance']);
+                ->setParameter('minBalance', $filter->minBalance);
         }
 
-        if(isset($filter['maxBalance'])) {
+        if ($filter->maxBalance !== null) {
             $qb->andWhere('c.balance <= :maxBalance')
-                ->setParameter('maxBalance', $filter['maxBalance']);
+                ->setParameter('maxBalance', $filter->maxBalance);
         }
 
-        if (isset($filter['isDeleted'])) {
-            if ($filter['isDeleted']) {
+        if ($filter->isDeleted !== null) {
+            if ($filter->isDeleted) {
                 $qb->andWhere('c.deletedAt IS NOT NULL');
             } else {
                 $qb->andWhere('c.deletedAt IS NULL');
@@ -90,28 +85,19 @@ final readonly class ClientQuery
 
     private function generateCacheKey(GetClients $query): string
     {
+        $f = $query->filter;
+
         $params = [
             'sort' => $query->sort,
             'page' => $query->page,
             'limit' => $query->limit,
+            'minAge' => $f->minAge,
+            'maxAge' => $f->maxAge,
+            'minBalance' => $f->minBalance,
+            'maxBalance' => $f->maxBalance,
+            'isDeleted' => $f->isDeleted,
         ];
 
-        if(isset($query->filter['minAge'])) {
-            $params['minAge'] = $query->filter['minAge'];
-        }
-        if(isset($query->filter['maxAge'])) {
-            $params['maxAge'] = $query->filter['maxAge'];
-        }
-        if(isset($query->filter['minBalance'])) {
-            $params['minBalance'] = $query->filter['minBalance'];
-        }
-        if(isset($query->filter['maxBalance'])) {
-            $params['maxBalance'] = $query->filter['maxBalance'];
-        }
-        if(isset($query->filter['isDeleted'])) {
-            $params['isDeleted'] = $query->filter['isDeleted'];
-        }
-
-        return 'clients_' . md5(serialize($params));
+        return 'bookings_' . md5(json_encode($params));
     }
 }

@@ -5,19 +5,19 @@ declare(strict_types=1);
 namespace App\MembershipPlan\Query;
 
 use App\MembershipPlan\DTO\GetMembershipPlans;
+use App\MembershipPlan\DTO\MembershipPlanFilter;
 use App\MembershipPlan\Repository\MembershipPlanRepository;
 use Doctrine\ORM\QueryBuilder;
 use Psr\Cache\InvalidArgumentException;
 use Symfony\Component\Cache\CacheItem;
 use Symfony\Contracts\Cache\TagAwareCacheInterface;
 
-class MembershipPlansQuery
+final readonly class MembershipPlansQuery
 {
     public function __construct(
-        private MembershipPlanRepository $membershipPlanRepo,
-        private TagAwareCacheInterface $gymCache
-    )
-    {}
+        private MembershipPlanRepository $repo,
+        private TagAwareCacheInterface $cache
+    ) {}
 
     /**
      * @throws InvalidArgumentException
@@ -26,18 +26,16 @@ class MembershipPlansQuery
     {
         $cacheKey = $this->generateCacheKey($dto);
 
-        return $this->gymCache->get($cacheKey, function (CacheItem $item) use ($dto): array
-        {
+        return $this->cache->get($cacheKey, function (CacheItem $item) use ($dto) {
             $item->expiresAfter(3600);
 
             $qb = $this->createQuery($dto->filter);
 
-            $offset = ($dto->page - 1) * $dto->limit;
-
             foreach ($dto->sort as $field => $order) {
                 $qb->addOrderBy("m.$field", $order);
             }
-            $qb->setFirstResult($offset)
+
+            $qb->setFirstResult(($dto->page - 1) * $dto->limit)
                 ->setMaxResults($dto->limit);
 
             $item->tag(['membership_plans_list']);
@@ -46,59 +44,72 @@ class MembershipPlansQuery
         });
     }
 
-    public function getTotal(array $filter): int
+    public function getTotal(MembershipPlanFilter $filter): int
     {
-        return $this->createQuery($filter)->select("COUNT(m.id)")->getQuery()->getSingleScalarResult();
+        return (int) $this->createQuery($filter)
+            ->select('COUNT(m.id)')
+            ->getQuery()
+            ->getSingleScalarResult();
     }
 
-    private function createQuery(array $filter): QueryBuilder
+    private function createQuery(MembershipPlanFilter $filter): QueryBuilder
     {
-        $qb = $this->membershipPlanRepo->createQueryBuilder('m');
+        $qb = $this->repo->createQueryBuilder('m');
 
-        if(isset($filter['minPrice'])) {
+        if ($filter->minPrice !== null) {
             $qb->andWhere('m.price >= :minPrice')
-                ->setParameter('minPrice', $filter['minPrice']);
+                ->setParameter('minPrice', $filter->minPrice);
         }
 
-        if(isset($filter['maxPrice'])) {
+        if ($filter->maxPrice !== null) {
             $qb->andWhere('m.price <= :maxPrice')
-                ->setParameter('maxPrice', $filter['maxPrice']);
+                ->setParameter('maxPrice', $filter->maxPrice);
         }
 
-        if(isset($filter['durationDays'])) {
-            $qb->andWhere('m.durationDays = :durationDays')
-                ->setParameter('durationDays', $filter['durationDays']);
+        if ($filter->minDurationDays !== null) {
+            $qb->andWhere('m.durationDays >= :minDurationDays')
+                ->setParameter('minDurationDays', $filter->minDurationDays);
         }
 
-        if(isset($filter['sessionLimit'])) {
-            $qb->andWhere('m.sessionLimit = :sessionLimit')
-                ->setParameter('sessionLimit', $filter['sessionLimit']);
+        if ($filter->maxDurationDays !== null) {
+            $qb->andWhere('m.durationDays <= :maxDurationDays')
+                ->setParameter('maxDurationDays', $filter->maxDurationDays);
+        }
+
+        if ($filter->minSessionLimit !== null) {
+            $qb->andWhere('m.sessionLimit >= :minSessionLimit')
+                ->setParameter('minSessionLimit', $filter->minSessionLimit);
+        }
+
+        if ($filter->maxSessionLimit !== null) {
+            $qb->andWhere('m.sessionLimit <= :maxSessionLimit')
+                ->setParameter('maxSessionLimit', $filter->maxSessionLimit);
+        }
+
+        if ($filter->isUnlimited === true) {
+            $qb->andWhere('m.sessionLimit IS NULL');
+        }
+
+        if ($filter->isUnlimited === false) {
+            $qb->andWhere('m.sessionLimit IS NOT NULL');
         }
 
         return $qb;
     }
 
-    private function generateCacheKey(GetMembershipPlans $query): string
+    private function generateCacheKey(GetMembershipPlans $dto): string
     {
-        $params = [
-            'sort' => $query->sort,
-            'page' => $query->page,
-            'limit' => $query->limit,
-        ];
-
-        if(isset($query->filter['minPrice'])) {
-            $params['minPrice'] = $query->filter['minPrice'];
-        }
-        if(isset($query->filter['maxPrice'])) {
-            $params['maxPrice'] = $query->filter['maxPrice'];
-        }
-        if(isset($query->filter['durationDays'])) {
-            $params['durationDays'] = $query->filter['durationDays'];
-        }
-        if(isset($query->filter['sessionLimit'])) {
-            $params['sessionLimit'] = $query->filter['sessionLimit'];
-        }
-
-        return 'membership_plans_' . md5(serialize($params));
+        return 'membership_plans_' . md5(serialize([
+                'sort' => $dto->sort,
+                'page' => $dto->page,
+                'limit' => $dto->limit,
+                'minPrice' => $dto->filter->minPrice,
+                'maxPrice' => $dto->filter->maxPrice,
+                'minDurationDays' => $dto->filter->minDurationDays,
+                'maxDurationDays' => $dto->filter->maxDurationDays,
+                'minSessionLimit' => $dto->filter->minSessionLimit,
+                'maxSessionLimit' => $dto->filter->maxSessionLimit,
+                'isUnlimited' => $dto->filter->isUnlimited,
+            ]));
     }
 }

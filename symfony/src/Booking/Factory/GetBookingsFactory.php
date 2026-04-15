@@ -9,9 +9,9 @@ use App\Booking\DTO\GetBookings;
 use App\Booking\Enum\BookingStatusEnum;
 use App\Client\Entity\Client;
 use App\Client\Repository\ClientRepository;
+use App\Request\Utils\RequestParser;
 use App\Trainer\Entity\Trainer;
 use App\Trainer\Repository\TrainerRepository;
-use DateTimeImmutable;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -20,7 +20,8 @@ final readonly class GetBookingsFactory
 {
     public function __construct(
         private TrainerRepository $trainerRepo,
-        private ClientRepository  $clientRepo,
+        private ClientRepository $clientRepo,
+        private RequestParser $parser,
     ) {}
 
     public function fromRequest(Request $request, ?Client $client = null, ?Trainer $trainer = null): GetBookings
@@ -52,10 +53,10 @@ final readonly class GetBookingsFactory
             throw new BadRequestHttpException('Invalid status');
         }
 
-        $date = $this->parseDate($request->query->get('date'));
-        $startTime = $this->parseTime($request->query->get('startTime'));
+        $date = $this->parser->parseDate($request->query->get('date'));
+        $startTime = $this->parser->parseTime($request->query->get('startTime'));
 
-        $durationMinutes = $this->toInt($request->query->get('durationMinutes'));
+        $durationMinutes = $this->parser->toInt($request->query->get('durationMinutes'));
 
         $filter = new BookingFilter(
             client: $client,
@@ -66,67 +67,13 @@ final readonly class GetBookingsFactory
             durationMinutes: $durationMinutes,
         );
 
+        $allowedSortParams = ['bookedAt', 'status', 'trainingId', 'date', 'startTime', 'durationMinutes'];
+
         return new GetBookings(
-            sort: $this->parseSort($request->query->get('sort', 'bookedAt:ASC')),
+            sort: $this->parser->parseSort($request->query->get('sort', 'bookedAt:ASC'),$allowedSortParams),
             filter: $filter,
-            page: (int)$request->query->get('page', 1),
-            limit: (int)$request->query->get('limit', 20),
+            page: $this->parser->toPositiveInt($request->query->get('page'), 'page') ?? 1,
+            limit: $this->parser->toPositiveInt($request->query->get('limit'), 'limit') ?? 20,
         );
-    }
-
-    private function parseDate(?string $input): ?DateTimeImmutable
-    {
-        if (!$input) return null;
-
-        try {
-            return new DateTimeImmutable($input);
-        } catch (\Exception) {
-            throw new BadRequestHttpException('Invalid date format');
-        }
-    }
-
-    private function parseTime(?string $input): ?DateTimeImmutable
-    {
-        if (!$input) return null;
-
-        $time = DateTimeImmutable::createFromFormat('H:i:s', $input);
-
-        if (!$time) {
-            throw new BadRequestHttpException('Invalid time format, expected H:i:s');
-        }
-
-        return $time;
-    }
-
-    private function toInt(?string $value): ?int
-    {
-        return $value !== null ? (int)$value : null;
-    }
-
-    private function parseSort(string $sortRaw): array
-    {
-        $sort = [];
-        $allowedOrders = ['ASC', 'DESC'];
-        $allowedParams = ['bookedAt', 'status', 'trainingId', 'date', 'startTime', 'durationMinutes'];
-
-        foreach (explode(',', $sortRaw) as $item) {
-            $exploded = explode(':', $item);
-
-            $field = $exploded[0] ?? null;
-
-            if (!$field || !in_array($field, $allowedParams, true)) {
-                throw new BadRequestHttpException("Invalid sort field: $field");
-            }
-
-            $order = strtoupper(trim($exploded[1] ?? 'ASC'));
-
-            if (!in_array($order, $allowedOrders, true)) {
-                throw new BadRequestHttpException("Invalid sort order: $order");
-            }
-
-            $sort[$field] = $order;
-        }
-
-        return $sort;
     }
 }
