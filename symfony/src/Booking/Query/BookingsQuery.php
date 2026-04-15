@@ -61,7 +61,7 @@ final readonly class BookingsQuery
 
     public function getTotal(BookingFilter $filter): int
     {
-        return (int) $this->createQuery($filter)
+        return (int) $this->createQuery($filter, true)
             ->select("COUNT(b.id)")
             ->getQuery()
             ->getSingleScalarResult();
@@ -71,18 +71,14 @@ final readonly class BookingsQuery
     {
         $qb = $this->bookingRepo->createQueryBuilder('b')
             ->innerJoin("b.payment", 'p')
-            ->addSelect('p')
             ->innerJoin("p.trainer", "trainer")
-            ->addSelect("trainer")
             ->innerJoin("trainer.trainingType", 'type')
-            ->addSelect("type");
+            ->innerJoin('b.training', 't')
+            ->innerJoin('t.trainerWorkTime', 'w');
 
         if (!$isCount) {
-            $qb->addSelect('t', 'w');
+            $qb->addSelect('p', 'trainer', 'type', 't', 'w');
         }
-
-        $qb->innerJoin('b.training', 't')
-            ->innerJoin('t.trainerWorkTime', 'w');
 
         if ($filter->client) {
             $qb->andWhere('b.client = :client')

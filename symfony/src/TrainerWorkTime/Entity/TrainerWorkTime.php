@@ -2,6 +2,7 @@
 
 namespace App\TrainerWorkTime\Entity;
 
+use App\Booking\Enum\BookingStatusEnum;
 use App\TrainerWorkTime\Repository\TrainerWorkTimeRepository;
 use App\Trainer\Entity\Trainer;
 use App\Training\Entity\Training;
@@ -136,7 +137,14 @@ class TrainerWorkTime
      */
     public function getFreeSlots(): array
     {
-        $trainings = $this->trainings->getValues();
+        $trainings = array_filter(
+            $this->trainings->getValues(),
+            fn ($t) => in_array(
+                $t->getBooking()?->getStatus(),
+                [BookingStatusEnum::SCHEDULED, BookingStatusEnum::PENDING],
+                true
+            )
+        );
 
         usort($trainings, fn ($a, $b) =>
             $a->getStartTime() <=> $b->getStartTime()

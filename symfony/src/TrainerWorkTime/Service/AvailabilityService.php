@@ -16,14 +16,16 @@ final readonly class AvailabilityService
      * @throws DateMalformedIntervalStringException
      * @throws DateMalformedStringException
      */
-    public function isTimeAvailable(TrainerWorkTime $worktime, string $startTime, int $durationMinutes, ?string $oldStartTime = null, ?int $oldDurationMinutes = null): bool
+    public function isTimeAvailable(TrainerWorkTime $worktime, string $startTime, int $durationMinutes, ?string $oldStartTime = null): bool
     {
         $endTime = new DateTimeImmutable($startTime)
             ->add(new DateInterval('PT' . $durationMinutes . 'M'))
             ->format('H:i:s');
+
         $freeSlots = $worktime->getFreeSlots();
-        if ($oldDurationMinutes && $oldStartTime) {
-            $freeSlots = $this->getFreeSlotsExcept($freeSlots, $oldStartTime, $oldDurationMinutes);
+
+        if ($oldStartTime !== null) {
+            $freeSlots = $this->getFreeSlotsExcept($freeSlots, $oldStartTime, $durationMinutes);
         }
 
         return array_any($freeSlots, fn($slot) => $startTime >= $slot['start'] && $endTime <= $slot['end']);
@@ -33,12 +35,12 @@ final readonly class AvailabilityService
      * @throws DateMalformedStringException
      * @throws DateMalformedIntervalStringException
      */
-    private function getFreeSlotsExcept(array $freeSlots, string $oldStartTime, int $oldDurationMinutes): array
+    private function getFreeSlotsExcept(array $freeSlots, string $oldStartTime, int $durationMinutes): array
     {
         $excludeSlot = [
             'start' => $oldStartTime,
             'end' => new DateTimeImmutable($oldStartTime)
-                ->add(new DateInterval('PT' . $oldDurationMinutes . 'M'))
+                ->add(new DateInterval('PT' . $durationMinutes . 'M'))
                 ->format('H:i:s')
         ];
 
