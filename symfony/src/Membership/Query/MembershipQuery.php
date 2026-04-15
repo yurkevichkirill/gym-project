@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Membership\Query;
 
 use App\Membership\DTO\GetMemberships;
+use App\Membership\DTO\MembershipFilter;
 use App\Membership\Repository\MembershipRepository;
 use Doctrine\ORM\QueryBuilder;
 use Psr\Cache\InvalidArgumentException;
@@ -23,29 +24,27 @@ class MembershipQuery
     )
     {}
 
-    /**
-     * @throws InvalidArgumentException
-     */
     public function handle(GetMemberships $dto): array
     {
         $cacheKey = $this->generateCacheKey($dto);
 
-        return $this->gymCache->get($cacheKey, function (CacheItem $item) use ($dto): array
-        {
+        return $this->gymCache->get($cacheKey, function (CacheItem $item) use ($dto): array {
 
             $item->expiresAfter(3600);
+
             $qb = $this->createQuery($dto->filter);
 
             $offset = ($dto->page - 1) * $dto->limit;
 
             foreach ($dto->sort as $alias => $order) {
                 $field = self::SORT_MAP[$alias] ?? "m.$alias";
-                $qb->addOrderBy("$field", $order);
+                $qb->addOrderBy($field, $order);
             }
+
             $qb->setFirstResult($offset)
                 ->setMaxResults($dto->limit);
 
-            if (isset($dto->filter['client'])) {
+            if ($dto->filter->client) {
                 $item->tag(["memberships_list_" . $dto->filter['client']->getId()]);
             } else {
                 $item->tag(["memberships_list_all"]);
@@ -55,12 +54,15 @@ class MembershipQuery
         });
     }
 
-    public function getTotal(array $filter): int
+    public function getTotal(MembershipFilter $filter): int
     {
-        return $this->createQuery($filter)->select("COUNT(m.id)")->getQuery()->getSingleScalarResult();
+        return (int) $this->createQuery($filter)
+            ->select('COUNT(m.id)')
+            ->getQuery()
+            ->getSingleScalarResult();
     }
 
-    private function createQuery(array $filter): QueryBuilder
+    private function createQuery(MembershipFilter $filter): QueryBuilder
     {
         $qb = $this->membershipRepo->createQueryBuilder('m')
             ->leftJoin('m.plan', 'plan')
@@ -68,29 +70,29 @@ class MembershipQuery
             ->leftJoin('m.payment', 'p')
             ->addSelect('p');
 
-        if(isset($filter['client'])) {
+        if ($filter->client) {
             $qb->andWhere('m.client = :client')
-                ->setParameter('client', $filter['client']);
+                ->setParameter('client', $filter->client);
         }
 
-        if(isset($filter['status'])) {
+        if ($filter->status !== null) {
             $qb->andWhere('m.status = :status')
-                ->setParameter('status', $filter['status']);
+                ->setParameter('status', $filter->status);
         }
 
-        if(isset($filter['membershipPlan'])) {
-            $qb->andWhere('m.plan = :membershipPlan')
-                ->setParameter('membershipPlan', $filter['membershipPlan']);
+        if ($filter->membershipPlan) {
+            $qb->andWhere('m.plan = :plan')
+                ->setParameter('plan', $filter->membershipPlan);
         }
 
-        if(isset($filter['minVisits'])) {
+        if ($filter->minVisits !== null) {
             $qb->andWhere('m.visits >= :minVisits')
-                ->setParameter('minVisits', $filter['minVisits']);
+                ->setParameter('minVisits', $filter->minVisits);
         }
 
-        if(isset($filter['maxVisits'])) {
+        if ($filter->maxVisits !== null) {
             $qb->andWhere('m.visits <= :maxVisits')
-                ->setParameter('maxVisits', $filter['maxVisits']);
+                ->setParameter('maxVisits', $filter->maxVisits);
         }
 
         return $qb;
@@ -98,28 +100,19 @@ class MembershipQuery
 
     private function generateCacheKey(GetMemberships $query): string
     {
+        $f = $query->filter;
+
         $params = [
             'sort' => $query->sort,
             'page' => $query->page,
             'limit' => $query->limit,
+            'clientId' => $f->client?->getId(),
+            'membershipPlanId' => $f->membershipPlan?->getId(),
+            'status' => $f->status,
+            'minVisits' => $f->minVisits,
+            'maxVisits' => $f->maxVisits,
         ];
 
-        if(isset($query->filter['client'])) {
-            $params['client'] = $query->filter['client']->getId();
-        }
-        if(isset($query->filter['status'])) {
-            $params['status'] = $query->filter['status'];
-        }
-        if(isset($query->filter['membershipPlan'])) {
-            $params['membershipPlan'] = $query->filter['membershipPlan']->getId();
-        }
-        if(isset($query->filter['minVisits'])) {
-            $params['minVisits'] = $query->filter['minVisits'];
-        }
-        if(isset($query->filter['maxVisits'])) {
-            $params['maxVisits'] = $query->filter['maxVisits'];
-        }
-
-        return 'memberships_' . md5(serialize($params));
+        return 'memberships_' . md5(json_encode($params));
     }
 }
