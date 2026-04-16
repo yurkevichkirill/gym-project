@@ -9,7 +9,6 @@ use App\Payment\Entity\Payment;
 use App\User\Entity\User;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
-use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Gedmo\Mapping\Annotation as Gedmo;
 
@@ -70,7 +69,7 @@ class Client extends User
         return $this;
     }
 
-    public function getBalance(): ?string
+    public function getBalance(): ?int
     {
         return $this->balance;
     }

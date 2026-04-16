@@ -1,4 +1,4 @@
-FROM php:8.5-fpm-alpine
+FROM php:8.4-fpm-alpine
 
 RUN apk add --no-cache \
     $PHPIZE_DEPS \
@@ -24,7 +24,8 @@ RUN chmod +x /usr/local/bin/install-php-extensions \
         zip \
         bcmath \
         intl \
-        opcache
+        opcache \
+        amqp
 
 RUN pecl install xdebug \
     && docker-php-ext-enable xdebug

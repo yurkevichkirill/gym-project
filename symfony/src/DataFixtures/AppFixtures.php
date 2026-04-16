@@ -6,6 +6,8 @@ use App\Admin\Entity\Admin;
 use App\Booking\Entity\Booking;
 use App\Booking\Enum\BookingStatusEnum;
 use App\Client\Entity\Client;
+use App\ImportError\Entity\ImportError;
+use App\ImportJob\Entity\ImportJob;
 use App\Membership\Entity\Membership;
 use App\MembershipPlan\Entity\MembershipPlan;
 use App\Payment\Entity\Payment;
@@ -272,24 +274,24 @@ class AppFixtures extends Fixture
 //        $manager->remove($manager->getRepository(Membership::class)->find(1));
 //        $manager->remove($manager->getRepository(Membership::class)->find(3));
 //        $manager->remove($manager->getRepository(Membership::class)->find(5));
-        foreach ($manager->getRepository(Booking::class)->findAll() as $item) {
-            $manager->remove($manager->getRepository(Booking::class)->find($item->getId()));
+//        foreach ($manager->getRepository(Booking::class)->findAll() as $item) {
+//            $manager->remove($manager->getRepository(Booking::class)->find($item->getId()));
+//        }
+//
+//        foreach ($manager->getRepository(Membership::class)->findAll() as $item) {
+//            $manager->remove($manager->getRepository(Membership::class)->find($item->getId()));
+//        }
+//
+//        foreach ($manager->getRepository(Booking::class)->findAll() as $item) {
+//            $manager->remove($manager->getRepository(Booking::class)->find($item->getId()));
+//        }
+
+        foreach ($manager->getRepository(ImportJob::class)->findAll() as $job) {
+            $manager->remove($job);
         }
 
-        foreach ($manager->getRepository(Membership::class)->findAll() as $item) {
-            $manager->remove($manager->getRepository(Membership::class)->find($item->getId()));
-        }
-
-        foreach ($manager->getRepository(Booking::class)->findAll() as $item) {
-            $manager->remove($manager->getRepository(Booking::class)->find($item->getId()));
-        }
-
-        foreach ($manager->getRepository(Training::class)->findAll() as $item) {
-            $manager->remove($manager->getRepository(Training::class)->find($item->getId()));
-        }
-
-        foreach ($manager->getRepository(Payment::class)->findAll() as $item) {
-            $manager->remove($manager->getRepository(Payment::class)->find($item->getId()));
+        foreach ($manager->getRepository(ImportError::class)->findAll() as $error) {
+            $manager->remove($error);
         }
 //        $manager->remove($manager->getRepository(Booking::class)->find(12));
 

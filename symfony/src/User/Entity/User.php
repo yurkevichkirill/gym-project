@@ -16,8 +16,6 @@ use Gedmo\Timestampable\Traits\TimestampableEntity;
 use LogicException;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
-use Symfony\Component\Serializer\Attribute\Groups;
-use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: UserRepository::class)]
 #[ORM\Table(name: '`user`')]
@@ -40,15 +38,12 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     private ?int $id = null;
 
     #[ORM\Column(length: 100)]
-    #[Assert\NotBlank]
     private ?string $firstName = null;
 
     #[ORM\Column(length: 100)]
-    #[Assert\NotBlank]
     private ?string $lastName = null;
 
-    #[ORM\Column(length: 180)]
-    #[Groups(['login'])]
+    #[ORM\Column(length: 180, unique: true)]
     private ?string $email = null;
 
     #[ORM\Column(length: 20)]
@@ -64,7 +59,6 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
      * @var ?string The hashed password
      */
     #[ORM\Column]
-    #[Groups(['login'])]
     private ?string $password = null;
 
     #[ORM\OneToMany(targetEntity: RefreshToken::class, mappedBy: 'user')]

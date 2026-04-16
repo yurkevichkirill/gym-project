@@ -10,19 +10,24 @@ use App\Client\Factory\GetClientFactory;
 use App\Client\Mapper\ClientMapperInterface;
 use App\Client\Query\ClientQuery;
 use App\Client\Service\ClientManager;
+use App\ImportJob\DTO\CreateClientImportBatch;
+use App\ImportJob\Message\ImportMessage;
+use App\ImportJob\Service\ImportService;
 use App\Membership\Mapper\MembershipMapperInterface;
 use App\Response\OkResponse;
 use Doctrine\ORM\Exception\ORMException;
 use Doctrine\ORM\OptimisticLockException;
 use Nelmio\ApiDocBundle\Attribute\Model;
 use OpenApi\Attributes as OA;
-use Psr\Cache\InvalidArgumentException;
 use Psr\Container\ContainerExceptionInterface;
 use Psr\Container\NotFoundExceptionInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
+use Symfony\Component\Messenger\Exception\ExceptionInterface;
+use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
@@ -200,6 +205,36 @@ final class ClientController extends AbstractController
         return new OkResponse(
             data: $responseDto,
             status: Response::HTTP_OK,
+        );
+    }
+
+    /**
+     * @throws ExceptionInterface
+     */
+    #[Route('/api/import/clients', methods: ['POST'])]
+    #[OA\RequestBody(content: new Model(type: CreateClientImportBatch::class))]
+    #[OA\Tag(name: "Admin: Client")]
+    #[IsGranted('ROLE_ADMIN')]
+    public function import(
+        #[MapRequestPayload(validationGroups: [])] CreateClientImportBatch $requestDto,
+        ImportService $importService,
+        MessageBusInterface $bus,
+    ): JsonResponse {
+        $job = $importService->create($requestDto);
+
+        foreach ($requestDto->clients as $clientDto) {
+            $bus->dispatch(
+                new ImportMessage($clientDto, $job->getId())
+            );
+        }
+
+        return new JsonResponse(
+            data: [
+                'status' => 'queued',
+                'count' => count($requestDto->clients),
+                'jobId' => $job->getId(),
+            ],
+            status: Response::HTTP_ACCEPTED,
         );
     }
 }
