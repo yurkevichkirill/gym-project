@@ -83,6 +83,42 @@ services:
     networks:
       - app-network
 
+  rabbitmq:
+    container_name: rabbitmq
+    image: rabbitmq:4.0-management-alpine
+    restart: always
+    ports:
+      - "${RABBITMQ_AMQP_PORT}:5672"
+      - "${RABBITMQ_UI_PORT}:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: user
+      RABBITMQ_DEFAULT_PASS: password
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - app-network
+
+  messenger-worker:
+    container_name: messenger-worker
+    build:
+      context: "docker/dockerfiles/php"
+      dockerfile: Dockerfile
+    restart: always
+    working_dir: /var/www
+    command: >
+      php bin/console messenger:consume async
+      --time-limit=3600
+      --memory-limit=256M
+      --limit=1000
+      -vv
+    volumes:
+      - ./symfony:/var/www
+    depends_on:
+      - rabbitmq
+      - postgres
+    networks:
+      - app-network
+
 #  frontend:
 #    container_name: frontend
 #    build:
@@ -107,3 +143,4 @@ volumes:
   pgadmin_data:
   frontend_node_modules:
   pnpm-store:
+  rabbitmq_data:

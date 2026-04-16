@@ -17,6 +17,7 @@ readonly class CreateClientRequest
         #[Assert\NotBlank]
         public string $lastName,
         #[Assert\NotBlank]
+        #[Assert\Email]
         public string $email,
         #[Assert\NotBlank]
         public string $phone,
