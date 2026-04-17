@@ -69,12 +69,12 @@ class Client extends User
         return $this;
     }
 
-    public function getBalance(): ?int
+    public function getBalance(): int
     {
         return $this->balance;
     }
 
-    public function setBalance(string $balance): static
+    public function setBalance(int $balance): static
     {
         $this->balance = $balance;
 

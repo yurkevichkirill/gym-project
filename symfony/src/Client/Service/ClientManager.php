@@ -16,6 +16,7 @@ use App\Membership\Entity\Membership;
 use App\Membership\Service\VisitingService;
 use App\Payment\Entity\Payment;
 use App\Payment\Enum\PaymentCategoryEnum;
+use App\Payment\Enum\PaymentMethodEnum;
 use App\Payment\Repository\PaymentRepository;
 use App\Payment\Service\PaymentService;
 use App\RefreshToken\Repository\RefreshTokenRepository;
@@ -191,6 +192,7 @@ final readonly class ClientManager
             $client,
             $amount,
             PaymentCategoryEnum::BALANCE_TOP_UP,
+            PaymentMethodEnum::BALANCE,
         );
 
         $this->entityManager->flush();

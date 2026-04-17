@@ -13,6 +13,7 @@ use App\Exception\DateTimeAlreadyTakenException;
 use App\Exception\NoActiveMembershipException;
 use App\Membership\Service\VisitingService;
 use App\Payment\Enum\PaymentCategoryEnum;
+use App\Payment\Enum\PaymentMethodEnum;
 use App\Payment\Enum\PaymentStatusEnum;
 use App\Payment\Service\PaymentService;
 use App\Trainer\Repository\TrainerRepository;
@@ -85,13 +86,6 @@ final readonly class BookingManager
                 throw new NoActiveMembershipException();
             }
 
-            $payment = $this->paymentService->createPayment(
-                $client,
-                $price,
-                PaymentCategoryEnum::TRAINER,
-                $trainer
-            );
-
             $training = new Training();
             $training->setDurationMinutes($dto->durationMinutes);
             $training->setStartTime(new DateTimeImmutable($dto->startTime));
@@ -101,8 +95,36 @@ final readonly class BookingManager
             $booking = new Booking();
             $booking->setClient($client);
             $booking->setTraining($training);
-            $booking->setPayment($payment);
             $this->bookingRepo->create($booking);
+
+            if ($client->getBalance() >= $price) {
+                $payment = $this->paymentService->createPayment(
+                    $client,
+                    $price,
+                    PaymentCategoryEnum::TRAINER,
+                    PaymentMethodEnum::BALANCE,
+                    $trainer
+                );
+
+                $booking->setPayment($payment);
+
+                $this->paymentService->confirmPayment(
+                    payment: $payment,
+                    booking: $booking,
+                );
+            } else {
+                $remaining = $price - $client->getBalance();
+
+                $payment = $this->paymentService->createPayment(
+                    $client,
+                    $remaining,
+                    PaymentCategoryEnum::TRAINER,
+                    PaymentMethodEnum::CARD,
+                    $trainer
+                );
+
+                $booking->setPayment($payment);
+            }
 
             return $booking;
         });

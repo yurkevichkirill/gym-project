@@ -6,7 +6,9 @@ use App\Booking\Entity\Booking;
 use App\Client\Entity\Client;
 use App\Membership\Entity\Membership;
 use App\Payment\Enum\PaymentCategoryEnum;
+use App\Payment\Enum\PaymentMethodEnum;
 use App\Payment\Enum\PaymentStatusEnum;
+use App\Payment\Mapper\PaymentMapperInterface;
 use App\Payment\Repository\PaymentRepository;
 use App\Trainer\Entity\Trainer;
 use DateTimeImmutable;
@@ -56,6 +58,9 @@ class Payment
 
     #[ORM\Column(type: Types::ENUM, length: 50)]
     private ?PaymentCategoryEnum $category = null;
+
+    #[ORM\Column(type: Types::ENUM, length: 50)]
+    private PaymentMethodEnum $method;
 
     #[ORM\Column(nullable: true)]
     private ?DateTimeImmutable $paidAt = null;
@@ -287,5 +292,22 @@ class Payment
         $this->expiresAt = $expiresAt;
 
         return $this;
+    }
+
+    public function getMethod(): ?PaymentMethodEnum
+    {
+        return $this->method;
+    }
+
+    public function setMethod(?PaymentMethodEnum $method): static
+    {
+        $this->method = $method;
+
+        return $this;
+    }
+
+    public function __construct(PaymentMethodEnum $method)
+    {
+        $this->method = $method;
     }
 }

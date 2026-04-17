@@ -13,7 +13,7 @@ final readonly class MembershipPlanResponse
         public string $name,
         public int $durationDays,
         public ?int $sessionLimit = null,
-        public string $price,
+        public int $price,
     )
     {}
 
