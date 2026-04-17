@@ -5,12 +5,10 @@ declare(strict_types=1);
 namespace App\ImportJob\Service;
 
 use App\Client\Entity\Client;
-use App\Client\Repository\ClientRepository;
 use App\ImportJob\DTO\CreateClientImport;
 use App\ImportJob\DTO\CreateClientImportBatch;
 use App\ImportJob\Entity\ImportJob;
 use App\ImportJob\Enum\ImportResultEnum;
-use App\ImportJob\Repository\ImportJobRepository;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\ORM\EntityManagerInterface;
 

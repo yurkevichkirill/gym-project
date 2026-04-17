@@ -57,7 +57,7 @@ class ImportJobRepository extends ServiceEntityRepository
             ->set('j.finishedAt', ':now')
             ->set('j.status', ':done')
             ->where('j.id = :id')
-            ->andWhere('(j.processed + j.failed) >= j.total')
+            ->andWhere('(j.processed + j.failed + j.skipped) >= j.total')
             ->andWhere('j.failed = 0')
             ->setParameter('id', $jobId)
             ->setParameter('now', new DateTimeImmutable())
