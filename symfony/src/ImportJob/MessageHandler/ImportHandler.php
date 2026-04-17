@@ -4,14 +4,11 @@ declare(strict_types=1);
 
 namespace App\ImportJob\MessageHandler;
 
-use App\ImportError\Entity\ImportError;
 use App\ImportError\Service\ImportErrorService;
-use App\ImportJob\Entity\ImportJob;
 use App\ImportJob\Enum\ImportResultEnum;
 use App\ImportJob\Message\ImportMessage;
 use App\ImportJob\Repository\ImportJobRepository;
 use App\ImportJob\Service\ImportService;
-use Doctrine\ORM\EntityManagerInterface;
 use RuntimeException;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
@@ -41,14 +38,9 @@ final readonly class ImportHandler
             $result = $this->service->import($message->dto);
 
             match ($result) {
-                ImportResultEnum::CREATED =>
-                $this->jobRepo->incrementProcessed($message->jobId),
-
-                ImportResultEnum::SKIPPED =>
-                $this->jobRepo->incrementSkipped($message->jobId),
+                ImportResultEnum::CREATED => $this->jobRepo->incrementProcessed($message->jobId),
+                ImportResultEnum::SKIPPED => $this->jobRepo->incrementSkipped($message->jobId),
             };
-
-            $this->jobRepo->incrementProcessed($message->jobId);
 
         } catch (Throwable $e) {
             $this->jobRepo->incrementFailed($message->jobId);
