@@ -274,25 +274,25 @@ class AppFixtures extends Fixture
 //        $manager->remove($manager->getRepository(Membership::class)->find(1));
 //        $manager->remove($manager->getRepository(Membership::class)->find(3));
 //        $manager->remove($manager->getRepository(Membership::class)->find(5));
-//        foreach ($manager->getRepository(Booking::class)->findAll() as $item) {
-//            $manager->remove($manager->getRepository(Booking::class)->find($item->getId()));
-//        }
-//
-//        foreach ($manager->getRepository(Membership::class)->findAll() as $item) {
-//            $manager->remove($manager->getRepository(Membership::class)->find($item->getId()));
-//        }
-//
-//        foreach ($manager->getRepository(Booking::class)->findAll() as $item) {
-//            $manager->remove($manager->getRepository(Booking::class)->find($item->getId()));
-//        }
-
-        foreach ($manager->getRepository(ImportJob::class)->findAll() as $job) {
-            $manager->remove($job);
+        foreach ($manager->getRepository(Booking::class)->findAll() as $item) {
+            $manager->remove($item);
         }
 
-        foreach ($manager->getRepository(ImportError::class)->findAll() as $error) {
-            $manager->remove($error);
+        foreach ($manager->getRepository(Membership::class)->findAll() as $item) {
+            $manager->remove($item);
         }
+
+        foreach ($manager->getRepository(Payment::class)->findAll() as $item) {
+            $manager->remove($item);
+        }
+
+        foreach ($manager->getRepository(Training::class)->findAll() as $item) {
+            $manager->remove($item);
+        }
+
+//        foreach ($manager->getRepository(ImportError::class)->findAll() as $error) {
+//            $manager->remove($error);
+//        }
 //        $manager->remove($manager->getRepository(Booking::class)->find(12));
 
 //        $manager->getRepository(Client::class)->find(5)->setBalance(1000);

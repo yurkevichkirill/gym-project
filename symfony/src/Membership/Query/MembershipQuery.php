@@ -24,6 +24,9 @@ class MembershipQuery
     )
     {}
 
+    /**
+     * @throws InvalidArgumentException
+     */
     public function handle(GetMemberships $dto): array
     {
         $cacheKey = $this->generateCacheKey($dto);
@@ -45,7 +48,7 @@ class MembershipQuery
                 ->setMaxResults($dto->limit);
 
             if ($dto->filter->client) {
-                $item->tag(["memberships_list_" . $dto->filter['client']->getId()]);
+                $item->tag(["memberships_list_" . $dto->filter->client->getId()]);
             } else {
                 $item->tag(["memberships_list_all"]);
             }

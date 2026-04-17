@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Membership\Service;
 
 use App\Client\Entity\Client;
+use App\Payment\Enum\PaymentMethodEnum;
 use App\User\Service\AvailabilityService;
 use App\Exception\InvalidMembershipStatusException;
 use App\Exception\MembershipActiveException;
@@ -28,7 +29,7 @@ final readonly class MembershipManager
         private EntityManagerInterface $entityManager,
         private AvailabilityService $userAvailabilityService,
         private VisitingService $visitingService,
-        private PaymentService $clientPaymentService,
+        private PaymentService $paymentService,
     )
     {}
 
@@ -47,12 +48,6 @@ final readonly class MembershipManager
                 throw new MembershipActiveException("Client still has active membership");
             }
 
-            $payment = $this->clientPaymentService->createPayment(
-                client: $client,
-                amount: (int) round((float) $plan->getPrice()),
-                category: PaymentCategoryEnum::MEMBERSHIP,
-            );
-
             $membership = new Membership();
             $membership->setClient($client);
             $membership->setPlan($plan);
@@ -61,11 +56,34 @@ final readonly class MembershipManager
             $membership->setDurationDays($plan->getDurationDays());
             $membership->setSessionLimit($plan->getSessionLimit());
 
-            $membership->setPayment($payment);
-
             $this->membershipRepo->create($membership);
 
-            $this->entityManager->flush();
+            $price = $plan->getPrice();
+
+            if ($client->getBalance() >= $price) {
+                $payment = $this->paymentService->createPayment(
+                    $client,
+                    $price,
+                    PaymentCategoryEnum::MEMBERSHIP,
+                    PaymentMethodEnum::BALANCE,
+                );
+
+                $this->paymentService->confirmPayment(
+                    payment: $payment,
+                    membership: $membership,
+                );
+            } else {
+                $remaining = $price - $client->getBalance();
+
+                $payment = $this->paymentService->createPayment(
+                    $client,
+                    $remaining,
+                    PaymentCategoryEnum::MEMBERSHIP,
+                    PaymentMethodEnum::CARD,
+                );
+            }
+
+            $membership->setPayment($payment);
 
             return $membership;
         });

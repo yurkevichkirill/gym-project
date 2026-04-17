@@ -4,11 +4,14 @@ declare(strict_types=1);
 
 namespace App\Payment\Service;
 
+use App\Booking\Entity\Booking;
 use App\Booking\Enum\BookingStatusEnum;
 use App\Client\Entity\Client;
+use App\Membership\Entity\Membership;
 use App\Membership\Enum\MembershipStatusEnum;
 use App\Payment\Entity\Payment;
 use App\Payment\Enum\PaymentCategoryEnum;
+use App\Payment\Enum\PaymentMethodEnum;
 use App\Payment\Enum\PaymentStatusEnum;
 use App\Payment\Repository\PaymentRepository;
 use App\Trainer\Entity\Trainer;
@@ -34,9 +37,10 @@ final readonly class PaymentService
         Client $client,
         int $amount,
         PaymentCategoryEnum $category,
+        PaymentMethodEnum $method,
         ?Trainer $trainer = null
     ): Payment {
-        $payment = new Payment();
+        $payment = new Payment($method);
         $payment->setClient($client);
         $payment->setAmount($amount);
         $payment->setIsRefund(false);
@@ -55,7 +59,7 @@ final readonly class PaymentService
         return $payment;
     }
 
-    public function confirmPayment(Payment $payment): void
+    public function confirmPayment(Payment $payment, ?Membership $membership = null, ?Booking $booking = null): void
     {
         if ($payment->getStatus() !== PaymentStatusEnum::PENDING) {
             return;
@@ -67,42 +71,67 @@ final readonly class PaymentService
         }
 
         match ($payment->getCategory()) {
-            PaymentCategoryEnum::TRAINER => $this->confirmBookingPayment($payment, $amount),
-            PaymentCategoryEnum::MEMBERSHIP => $this->confirmMembershipPayment($payment, $amount),
+            PaymentCategoryEnum::TRAINER => $this->confirmBookingPayment($payment, $amount, $booking),
+            PaymentCategoryEnum::MEMBERSHIP => $this->confirmMembershipPayment($payment, $amount, $membership),
             PaymentCategoryEnum::BALANCE_TOP_UP => $this->confirmTopUpPayment($payment, $amount),
         };
 
         $payment->setStatus(PaymentStatusEnum::SUCCEEDED);
         $payment->setConfirmedAt(new DateTimeImmutable());
+        if ($payment->getPaidAt() === null) {
+            $payment->setPaidAt(new DateTimeImmutable());
+        }
         $payment->setExpiresAt(null);
 
         $this->em->flush();
     }
 
-    private function confirmBookingPayment(Payment $payment, int $amount): void
+    private function confirmBookingPayment(Payment $payment, int $amount, ?Booking $booking = null): void
     {
         $client = $payment->getClient();
-        $client?->setBalance((string) ((int) $client->getBalance() - $amount));
+        switch ($payment->getMethod()) {
+            case PaymentMethodEnum::BALANCE:
+                $client?->setBalance(($client->getBalance() - $amount));
+                break;
+
+            case PaymentMethodEnum::CARD:
+                break;
+        }
 
         if ($trainer = $payment->getTrainer()) {
             $trainer->setBalance($trainer->getBalance() + $amount);
         }
 
-        $payment->getBooking()?->confirm();
+        if ($booking !== null) {
+            $booking->confirm();
+        } else {
+            $payment->getBooking()->confirm();
+        }
     }
 
-    private function confirmMembershipPayment(Payment $payment, int $amount): void
+    private function confirmMembershipPayment(Payment $payment, int $amount, ?Membership $membership = null): void
     {
         $client = $payment->getClient();
-        $client?->setBalance((string) ((int) $client->getBalance() - $amount));
+        switch ($payment->getMethod()) {
+            case PaymentMethodEnum::BALANCE:
+                $client?->setBalance(($client->getBalance() - $amount));
+                break;
 
-        $payment->getMembership()?->activate();
+            case PaymentMethodEnum::CARD:
+                break;
+        }
+
+        if ($membership !== null) {
+            $membership->activate();
+        } else {
+            $payment->getMembership()->activate();
+        }
     }
 
     private function confirmTopUpPayment(Payment $payment, int $amount): void
     {
         $client = $payment->getClient();
-        $client?->setBalance((string) ((int) $client->getBalance() + $amount));
+        $client?->setBalance(($client->getBalance() + $amount));
     }
 
     public function confirmPaymentByStripeIntentId(string $intentId): void
@@ -155,7 +184,7 @@ final readonly class PaymentService
             throw new LogicException('Payment amount is not set');
         }
 
-        $client?->setBalance((string)((int)$client->getBalance() + $amount));
+        $client?->setBalance(($client->getBalance() + $amount));
 
         if ($payment->getTrainer()) {
             $trainer = $payment->getTrainer();
