@@ -3,7 +3,6 @@
 namespace App\Payment\Entity;
 
 use App\Booking\Entity\Booking;
-use App\Booking\Enum\BookingStatusEnum;
 use App\Client\Entity\Client;
 use App\Membership\Entity\Membership;
 use App\Payment\Enum\PaymentCategoryEnum;
@@ -55,7 +54,7 @@ class Payment
     #[ORM\Column]
     private ?int $amount = null;
 
-    #[ORM\Column(type: Types::ENUM)]
+    #[ORM\Column(type: Types::ENUM, length: 50)]
     private ?PaymentCategoryEnum $category = null;
 
     #[ORM\Column(nullable: true)]

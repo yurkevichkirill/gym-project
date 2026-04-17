@@ -18,7 +18,7 @@ readonly class ClientResponse
         public string $createdAt,
         public string $deletedAt,
         public string $updatedAt,
-        public string $balance,
+        public int $balance,
         public string $type,
         public string $blockedAt,
     )

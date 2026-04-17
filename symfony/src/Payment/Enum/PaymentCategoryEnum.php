@@ -8,4 +8,5 @@ enum PaymentCategoryEnum: string
 {
     case MEMBERSHIP = 'membership';
     case TRAINER = 'trainer';
+    case BALANCE_TOP_UP = 'balanceTopUp';
 }

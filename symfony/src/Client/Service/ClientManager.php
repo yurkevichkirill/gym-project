@@ -7,15 +7,20 @@ namespace App\Client\Service;
 use App\Admin\Entity\Admin;
 use App\Client\DTO\AdminUpdateClientRequest;
 use App\Client\DTO\CreateClientRequest;
+use App\Client\DTO\TopUpBalanceRequest;
 use App\Client\DTO\UpdateClientRequest;
 use App\Client\Entity\Client;
 use App\Client\Repository\ClientRepository;
 use App\Exception\NoActiveMembershipException;
 use App\Membership\Entity\Membership;
-use App\Membership\Service\MembershipManager;
 use App\Membership\Service\VisitingService;
+use App\Payment\Entity\Payment;
+use App\Payment\Enum\PaymentCategoryEnum;
+use App\Payment\Repository\PaymentRepository;
+use App\Payment\Service\PaymentService;
 use App\RefreshToken\Repository\RefreshTokenRepository;
 use App\User\Service\AvailabilityService;
+use DateMalformedStringException;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
@@ -30,6 +35,7 @@ final readonly class ClientManager
         private UserPasswordHasherInterface $passwordHasher,
         private AvailabilityService $userAvailabilityService,
         private VisitingService $visitingService,
+        private PaymentService $paymentService,
         private EntityManagerInterface $entityManager,
     )
     {}
@@ -170,5 +176,25 @@ final readonly class ClientManager
         $this->entityManager->flush();
 
         return $membership;
+    }
+
+    /**
+     * @throws DateMalformedStringException
+     */
+    public function topUpBalance(Client $client, TopUpBalanceRequest $requestDto): Payment
+    {
+        $this->userAvailabilityService->ensureNotBlocked($client);
+
+        $amount = $requestDto->amount;
+
+        $payment = $this->paymentService->createPayment(
+            $client,
+            $amount,
+            PaymentCategoryEnum::BALANCE_TOP_UP,
+        );
+
+        $this->entityManager->flush();
+
+        return $payment;
     }
 }

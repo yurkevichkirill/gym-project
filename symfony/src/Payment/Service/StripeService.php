@@ -32,7 +32,7 @@ final readonly class StripeService
         }
 
         $intent = $this->stripe->paymentIntents->create([
-            'amount' => $payment->getAmount() * 100,
+            'amount' => $payment->getAmount(),
             'currency' => $payment->getCurrency(),
 
             'automatic_payment_methods' => [
