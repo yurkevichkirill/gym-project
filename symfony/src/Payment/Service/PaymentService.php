@@ -61,28 +61,48 @@ final readonly class PaymentService
             return;
         }
 
-        $client = $payment->getClient();
         $amount = $payment->getAmount();
         if ($amount === null) {
             throw new LogicException('Payment amount is not set');
         }
 
-        $client?->setBalance((string)((int)$client->getBalance() - $amount));
-
-        if ($payment->getTrainer()) {
-            $trainer = $payment->getTrainer();
-            $trainer->setBalance($trainer->getBalance() + $amount);
-        }
+        match ($payment->getCategory()) {
+            PaymentCategoryEnum::TRAINER => $this->confirmBookingPayment($payment, $amount),
+            PaymentCategoryEnum::MEMBERSHIP => $this->confirmMembershipPayment($payment, $amount),
+            PaymentCategoryEnum::BALANCE_TOP_UP => $this->confirmTopUpPayment($payment, $amount),
+        };
 
         $payment->setStatus(PaymentStatusEnum::SUCCEEDED);
         $payment->setConfirmedAt(new DateTimeImmutable());
         $payment->setExpiresAt(null);
 
+        $this->em->flush();
+    }
+
+    private function confirmBookingPayment(Payment $payment, int $amount): void
+    {
+        $client = $payment->getClient();
+        $client?->setBalance((string) ((int) $client->getBalance() - $amount));
+
+        if ($trainer = $payment->getTrainer()) {
+            $trainer->setBalance($trainer->getBalance() + $amount);
+        }
+
         $payment->getBooking()?->confirm();
+    }
+
+    private function confirmMembershipPayment(Payment $payment, int $amount): void
+    {
+        $client = $payment->getClient();
+        $client?->setBalance((string) ((int) $client->getBalance() - $amount));
 
         $payment->getMembership()?->activate();
+    }
 
-        $this->em->flush();
+    private function confirmTopUpPayment(Payment $payment, int $amount): void
+    {
+        $client = $payment->getClient();
+        $client?->setBalance((string) ((int) $client->getBalance() + $amount));
     }
 
     public function confirmPaymentByStripeIntentId(string $intentId): void

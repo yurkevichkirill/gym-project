@@ -3,7 +3,6 @@
 namespace App\Controller\Client;
 
 use App\Booking\DTO\BookingRequest;
-use App\Booking\DTO\GetBookings;
 use App\Booking\Entity\Booking;
 use App\Booking\Enum\BookingStatusEnum;
 use App\Booking\Factory\GetBookingsFactory;
@@ -12,7 +11,6 @@ use App\Booking\Query\BookingsQuery;
 use App\Booking\Service\BookingManager;
 use App\Client\Entity\Client;
 use App\Response\OkResponse;
-use App\Trainer\Repository\TrainerRepository;
 use DateMalformedStringException;
 use Nelmio\ApiDocBundle\Attribute\Model;
 use OpenApi\Attributes as OA;
@@ -21,7 +19,6 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
-use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
 use Symfony\Component\Security\Http\Attribute\IsGranted;

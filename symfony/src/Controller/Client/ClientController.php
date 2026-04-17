@@ -2,12 +2,15 @@
 
 namespace App\Controller\Client;
 
+use App\Client\DTO\TopUpBalanceRequest;
 use App\Client\DTO\UpdateClientRequest;
 use App\Client\Entity\Client;
 use App\Client\Mapper\ClientMapperInterface;
 use App\Client\Service\ClientManager;
 use App\Membership\Mapper\MembershipMapperInterface;
+use App\Payment\Mapper\PaymentMapperInterface;
 use App\Response\OkResponse;
+use DateMalformedStringException;
 use Nelmio\ApiDocBundle\Attribute\Model;
 use OpenApi\Attributes as OA;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -91,6 +94,28 @@ final class ClientController extends AbstractController
     ): OkResponse
     {
         $responseDto = $mapper->map($manager->visit($client));
+
+        return new OkResponse(
+            data: $responseDto,
+            status: Response::HTTP_OK,
+        );
+    }
+
+    /**
+     * @throws DateMalformedStringException
+     */
+    #[Route('/api/me/topup/', methods: ['POST'], format: 'json')]
+    #[OA\RequestBody(content: new Model(type: TopUpBalanceRequest::class))]
+    #[OA\Tag(name: "Client: Client")]
+    #[IsGranted('ROLE_CLIENT')]
+    public function topUpBalance(
+        #[CurrentUser] Client $client,
+        #[MapRequestPayload] TopUpBalanceRequest $requestDto,
+        PaymentMapperInterface $mapper,
+        ClientManager $manager,
+    ): OkResponse
+    {
+        $responseDto = $mapper->map($manager->topUpBalance($client, $requestDto));
 
         return new OkResponse(
             data: $responseDto,
