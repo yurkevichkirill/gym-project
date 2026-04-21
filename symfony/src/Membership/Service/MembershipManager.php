@@ -195,6 +195,9 @@ final readonly class MembershipManager
         return $membership;
     }
 
+    /**
+     * @throws Throwable
+     */
     public function renew(Membership $membership): Membership
     {
         $context = $this->membershipContext($membership);

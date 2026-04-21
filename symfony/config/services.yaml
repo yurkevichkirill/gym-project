@@ -51,9 +51,22 @@ services:
         arguments:
             $membershipLogger: '@monolog.logger.membership'
 
+    App\TrainerWorkTime\Service\WorkTimeManager:
+        arguments:
+            $worktimeLogger: '@monolog.logger.worktime'
+
     App\Membership\Service\VisitingService:
         arguments:
             $membershipLogger: '@monolog.logger.membership'
+
+
+    App\ImportJob\Service\ImportService:
+        arguments:
+            $clientLogger: '@monolog.logger.client'
+
+    App\ImportJob\MessageHandler\ImportHandler:
+        arguments:
+            $clientLogger: '@monolog.logger.client'
 
     App\Payment\Service\StripeWebhookService:
         arguments:

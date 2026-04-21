@@ -18,7 +18,7 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\HttpKernel\Exception\UnauthorizedHttpException;
 use Symfony\Component\HttpKernel\KernelEvents;
 
-final class ExceptionListener
+final readonly class ExceptionListener
 {
     public function __construct(
         private LoggerInterface $requestLogger,
