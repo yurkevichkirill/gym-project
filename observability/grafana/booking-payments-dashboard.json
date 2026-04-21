@@ -139,6 +139,22 @@
     },
     {
       "id": 9,
+      "title": "Worktime Failures",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 24 },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "targets": [
+        {
+          "expr": "sum(count_over_time({compose_project=~\".+\"} | json domain=\"context.domain\", operation=\"context.operation\", outcome=\"context.outcome\" | domain=\"worktime\" and outcome=\"rejected\" [5m]))",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 10,
       "title": "P95 Request Duration",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 8, "x": 16, "y": 16 },
@@ -154,7 +170,36 @@
       ]
     },
     {
-      "id": 10,
+      "id": 11,
+      "title": "Payments Success vs Failed",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 0 },
+      "datasource": { "type": "loki", "uid": "loki" },
+      "targets": [
+        {
+          "expr": "sum by (outcome) (count_over_time({compose_project=~\".+\"} | json domain=\"context.domain\", outcome=\"context.outcome\" | domain=\"payment\" [5m]))",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "title": "Import Clients Failures",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 24 },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "targets": [
+        {
+          "expr": "sum(count_over_time({compose_project=~\".+\"} | json domain=\"context.domain\", outcome=\"context.outcome\" | domain=\"client\" and outcome=\"failed\" [5m]))",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 13,
       "title": "Membership Logs",
       "type": "logs",
       "gridPos": { "h": 10, "w": 12, "x": 0, "y": 24 },
@@ -170,7 +215,36 @@
       ]
     },
     {
-      "id": 11,
+      "id": 14,
+      "title": "Booking Logs",
+      "type": "logs",
+      "gridPos": { "h": 10, "w": 12, "x": 0, "y": 24 },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "targets": [
+        {
+          "expr": "{compose_project=~\".+\"} | json domain=\"context.domain\" | domain=\"booking\"",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 15,
+      "title": "Payment Logs",
+      "type": "logs",
+      "gridPos": { "h": 10, "w": 12, "x": 16, "y": 32 },
+      "datasource": { "type": "loki", "uid": "loki" },
+      "targets": [
+        {
+          "expr": "{compose_project=~\".+\"} | json domain=\"context.domain\" | domain=\"payment\"",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 16,
       "title": "Logs By Correlation",
       "type": "logs",
       "gridPos": { "h": 10, "w": 12, "x": 12, "y": 24 },

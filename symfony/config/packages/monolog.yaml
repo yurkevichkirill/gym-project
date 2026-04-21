@@ -3,9 +3,10 @@ monolog:
         - booking
         - payment
         - membership
+        - worktime
         - security
         - stripe
-        - rabbitmq
+        - client
         - request
         - deprecation
 
@@ -58,7 +59,7 @@ when@prod:
                 path: php://stdout
                 level: info
                 formatter: monolog.formatter.json
-                channels: ["!event", "!doctrine", "!console", "!booking", "!payment", "!membership", "!security", "!stripe", "!rabbitmq", "!request"]
+                channels: ["!event", "!doctrine", "!console", "!booking", "!payment", "!membership", "!security", "!stripe", "!client", "!request"]
 
             error:
                 type: stream
@@ -87,6 +88,13 @@ when@prod:
                 formatter: monolog.formatter.json
                 channels: ["membership"]
 
+            worktime:
+                type: stream
+                path: php://stdout
+                level: info
+                formatter: monolog.formatter.json
+                channels: [ "worktime" ]
+
             security:
                 type: stream
                 path: php://stdout
@@ -101,12 +109,12 @@ when@prod:
                 formatter: monolog.formatter.json
                 channels: ["stripe"]
 
-            rabbitmq:
+            client:
                 type: stream
                 path: php://stdout
                 level: info
                 formatter: monolog.formatter.json
-                channels: ["rabbitmq"]
+                channels: ["client"]
 
             request:
                 type: stream
