@@ -7,6 +7,7 @@ namespace App\Booking\Service;
 use App\Booking\DTO\BookingRequest;
 use App\Booking\Entity\Booking;
 use App\Booking\Enum\BookingStatusEnum;
+use App\Booking\Event\BookingCreatedEvent;
 use App\Booking\Repository\BookingRepository;
 use App\Client\Entity\Client;
 use App\Exception\DateTimeAlreadyTakenException;
@@ -31,6 +32,8 @@ use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Symfony\Component\Messenger\MessageBusInterface;
+use Symfony\Component\Uid\Uuid;
 use Throwable;
 
 final readonly class BookingManager
@@ -47,6 +50,7 @@ final readonly class BookingManager
         private PaymentService            $paymentService,
         private EntityManagerInterface    $entityManager,
         private LoggerInterface           $bookingLogger,
+        private MessageBusInterface       $eventBus,
     )
     {}
 
@@ -196,6 +200,18 @@ final readonly class BookingManager
                     'payment_method' => $booking->getPayment()?->getMethod()->value,
                     'payment_status' => $booking->getPayment()?->getStatus()->value,
                 ]));
+
+                $this->eventBus->dispatch(
+                    new BookingCreatedEvent(
+                        eventId: Uuid::v7()->toRfc4122(),
+                        clientId: $client->getId(),
+                        trainerId: $trainer->getId(),
+                        bookingId: $booking->getId(),
+                        price: $price,
+                        paymentMethod: $booking->getPayment()?->getMethod()->value ?? 'unknown',
+                        occurredAt: new \DateTimeImmutable(),
+                    )
+                );
 
                 return $booking;
             } catch (Throwable $e) {
