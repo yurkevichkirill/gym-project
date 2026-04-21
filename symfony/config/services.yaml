@@ -37,7 +37,37 @@ services:
     App\Payment\Service\StripeService:
         arguments:
             $stripeSecretKey: '%env(STRIPE_SECRET_KEY)%'
+            $stripeLogger: '@monolog.logger.stripe'
+
+    App\Booking\Service\BookingManager:
+        arguments:
+            $bookingLogger: '@monolog.logger.booking'
+
+    App\Payment\Service\PaymentService:
+        arguments:
+            $paymentLogger: '@monolog.logger.payment'
+
+    App\Membership\Service\MembershipManager:
+        arguments:
+            $membershipLogger: '@monolog.logger.membership'
+
+    App\Membership\Service\VisitingService:
+        arguments:
+            $membershipLogger: '@monolog.logger.membership'
 
     App\Payment\Service\StripeWebhookService:
         arguments:
             $webhookSecret: '%env(STRIPE_WEBHOOK_SECRET)%'
+            $logger: '@monolog.logger.stripe'
+
+    App\Logging\RequestCorrelationProcessor:
+        tags:
+            - { name: monolog.processor }
+
+    App\Subscriber\RequestLoggingSubscriber:
+        arguments:
+            $requestLogger: '@monolog.logger.request'
+
+    App\EventListener\ExceptionListener:
+        arguments:
+            $requestLogger: '@monolog.logger.request'

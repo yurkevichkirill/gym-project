@@ -179,7 +179,7 @@ final readonly class TrainerManager
 
     public function countPrice(Trainer $trainer, int $durationMinutes): int
     {
-        $pricePerHour = (int) $trainer->getPricePerHour();
+        $pricePerHour = $trainer->getPricePerHour();
 
         return $durationMinutes / self::MIN_DURATION * $pricePerHour / self::TRAINER_PRICE_DIVIDER;
     }
