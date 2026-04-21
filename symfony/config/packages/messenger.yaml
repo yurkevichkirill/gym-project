@@ -12,9 +12,17 @@ framework:
                     exchange:
                         name: clients
                         type: direct
-
                     queues:
                         clients: ~
+
+            analytics:
+                dsn: '%env(MESSENGER_TRANSPORT_DSN)%'
+                options:
+                    exchange:
+                        name: analytics
+                        type: direct
+                    queues:
+                        analytics: ~
 
                 retry_strategy:
                     max_retries: 5
@@ -35,6 +43,8 @@ framework:
             Symfony\Component\Notifier\Message\SmsMessage: async
 
             App\ImportJob\Message\ImportMessage: async
+
+            App\Booking\Event\BookingCreatedEvent: analytics
 
             # Route your messages to the transports
             # 'App\Message\YourMessage': async

@@ -84,3 +84,10 @@ services:
     App\EventListener\ExceptionListener:
         arguments:
             $requestLogger: '@monolog.logger.request'
+
+    App\Infrastructure\ClickHouse\ClickHouseClient:
+        arguments:
+            $host: '%env(CLICKHOUSE_HOST)%'
+            $database: '%env(CLICKHOUSE_DB)%'
+            $user: '%env(CLICKHOUSE_USER)%'
+            $password: '%env(CLICKHOUSE_PASSWORD)%'

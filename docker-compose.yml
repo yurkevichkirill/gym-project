@@ -119,6 +119,42 @@ services:
     networks:
       - app-network
 
+  analytics-worker:
+    container_name: analytics-worker
+    build:
+      context: "docker/dockerfiles/php"
+      dockerfile: Dockerfile
+    restart: always
+    working_dir: /var/www
+    command: >
+      php bin/console messenger:consume analytics
+      --time-limit=3600
+      --memory-limit=256M
+      --limit=1000
+      -vv
+    volumes:
+      - ./symfony:/var/www
+    depends_on:
+      - rabbitmq
+    networks:
+      - app-network
+
+  clickhouse:
+    container_name: clickhouse
+    image: clickhouse/clickhouse-server:25.8
+    restart: always
+    ports:
+      - "${CLICKHOUSE_API_PORT}:8123"
+      - "${CLICKHOUSE_NATIVE_PORT}:9000"
+    volumes:
+      - clickhouse_data:/var/lib/clickhouse
+    ulimits:
+      nofile:
+        soft: 262144
+        hard: 262144
+    networks:
+      - app-network
+
 #  frontend:
 #    container_name: frontend
 #    build:
@@ -144,3 +180,4 @@ volumes:
   frontend_node_modules:
   pnpm-store:
   rabbitmq_data:
+  clickhouse_data:
