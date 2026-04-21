@@ -1,0 +1,98 @@
+groups:
+  - name: booking-payments
+    interval: 1m
+    rules:
+      - alert: BookingFailuresHigh
+        expr: |
+          sum(
+            count_over_time(
+              {compose_project=~".+"}
+              | json domain="context.domain", operation="context.operation", outcome="context.outcome"
+              | domain="booking" and operation="book" and outcome="failed"
+              [5m]
+            )
+          ) > 5
+        for: 5m
+        labels:
+          severity: warning
+          team: backend
+          domain: booking
+        annotations:
+          summary: High booking failure rate
+          description: Booking failures exceeded 5 events over 5 minutes.
+
+      - alert: StripeFailuresHigh
+        expr: |
+          sum(
+            count_over_time(
+              {compose_project=~".+"}
+              | json domain="context.domain", outcome="context.outcome"
+              | domain="stripe" and outcome="failed"
+              [10m]
+            )
+          ) > 3
+        for: 10m
+        labels:
+          severity: critical
+          team: backend
+          domain: stripe
+        annotations:
+          summary: Stripe failures detected
+          description: Stripe integration failures exceeded 3 events over 10 minutes.
+
+      - alert: RefundSpikeDetected
+        expr: |
+          sum(
+            count_over_time(
+              {compose_project=~".+"}
+              | json domain="context.domain", operation="context.operation", outcome="context.outcome"
+              | domain="payment" and operation="refund" and outcome="succeeded"
+              [15m]
+            )
+          ) > 10
+        for: 15m
+        labels:
+          severity: warning
+          team: backend
+          domain: payment
+        annotations:
+          summary: Refund spike detected
+          description: Successful refunds exceeded 10 events over 15 minutes.
+
+      - alert: MembershipFailuresHigh
+        expr: |
+          sum(
+            count_over_time(
+              {compose_project=~".+"}
+              | json domain="context.domain", operation="context.operation", outcome="context.outcome"
+              | domain="membership" and operation="create" and outcome="failed"
+              [10m]
+            )
+          ) > 3
+        for: 10m
+        labels:
+          severity: warning
+          team: backend
+          domain: membership
+        annotations:
+          summary: Membership creation failures detected
+          description: Membership creation failures exceeded 3 events over 10 minutes.
+
+      - alert: MembershipExpirationSpike
+        expr: |
+          sum(
+            count_over_time(
+              {compose_project=~".+"}
+              | json domain="context.domain", operation="context.operation", outcome="context.outcome"
+              | domain="membership" and operation="expire" and outcome="succeeded"
+              [1h]
+            )
+          ) > 20
+        for: 15m
+        labels:
+          severity: warning
+          team: backend
+          domain: membership
+        annotations:
+          summary: Membership expiration spike detected
+          description: Membership expirations exceeded 20 events over 1 hour.

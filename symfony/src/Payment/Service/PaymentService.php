@@ -19,8 +19,10 @@ use DateMalformedStringException;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use LogicException;
+use Psr\Log\LoggerInterface;
 use Stripe\Exception\ApiErrorException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Throwable;
 
 final readonly class PaymentService
 {
@@ -28,6 +30,7 @@ final readonly class PaymentService
         private PaymentRepository $paymentRepo,
         private StripeService $stripeService,
         private EntityManagerInterface $em,
+        private LoggerInterface $paymentLogger,
     ) {}
 
     /**
@@ -56,12 +59,27 @@ final readonly class PaymentService
 
         $this->paymentRepo->create($payment);
 
+        $this->paymentLogger->info('Payment created', $this->paymentContext($payment, 'create', 'succeeded', [
+            'amount' => $amount,
+            'expires_at' => $payment->getExpiresAt()?->format(DATE_ATOM),
+        ]));
+
         return $payment;
     }
 
     public function confirmPayment(Payment $payment, ?Membership $membership = null, ?Booking $booking = null): void
     {
+        $context = $this->paymentContext($payment, 'confirm', 'started', [
+            'target_booking_id' => $booking?->getId(),
+            'target_membership_id' => $membership?->getId(),
+        ]);
+
         if ($payment->getStatus() !== PaymentStatusEnum::PENDING) {
+            $this->paymentLogger->notice('Payment confirmation skipped: payment is not pending', $this->paymentContext($payment, 'confirm', 'skipped', [
+                'target_booking_id' => $booking?->getId(),
+                'target_membership_id' => $membership?->getId(),
+            ]));
+
             return;
         }
 
@@ -70,11 +88,28 @@ final readonly class PaymentService
             throw new LogicException('Payment amount is not set');
         }
 
-        match ($payment->getCategory()) {
-            PaymentCategoryEnum::TRAINER => $this->confirmBookingPayment($payment, $amount, $booking),
-            PaymentCategoryEnum::MEMBERSHIP => $this->confirmMembershipPayment($payment, $amount, $membership),
-            PaymentCategoryEnum::BALANCE_TOP_UP => $this->confirmTopUpPayment($payment, $amount),
-        };
+        $this->paymentLogger->info('Payment confirmation started', $context + [
+            'amount' => $amount,
+        ]);
+
+        try {
+            match ($payment->getCategory()) {
+                PaymentCategoryEnum::TRAINER => $this->confirmBookingPayment($payment, $amount, $booking),
+                PaymentCategoryEnum::MEMBERSHIP => $this->confirmMembershipPayment($payment, $amount, $membership),
+                PaymentCategoryEnum::BALANCE_TOP_UP => $this->confirmTopUpPayment($payment, $amount),
+            };
+        } catch (Throwable $e) {
+            $this->paymentLogger->error('Payment confirmation failed', $this->paymentContext($payment, 'confirm', 'failed', [
+                'target_booking_id' => $booking?->getId(),
+                'target_membership_id' => $membership?->getId(),
+                'amount' => $amount,
+                'exception_class' => $e::class,
+                'error' => $e->getMessage(),
+                'exception' => $e,
+            ]));
+
+            throw $e;
+        }
 
         $payment->setStatus(PaymentStatusEnum::SUCCEEDED);
         $payment->setConfirmedAt(new DateTimeImmutable());
@@ -84,6 +119,12 @@ final readonly class PaymentService
         $payment->setExpiresAt(null);
 
         $this->em->flush();
+
+        $this->paymentLogger->info('Payment confirmed', $this->paymentContext($payment, 'confirm', 'succeeded', [
+            'target_booking_id' => $booking?->getId(),
+            'target_membership_id' => $membership?->getId(),
+            'amount' => $amount,
+        ]));
     }
 
     private function confirmBookingPayment(Payment $payment, int $amount, ?Booking $booking = null): void
@@ -102,11 +143,12 @@ final readonly class PaymentService
             $trainer->setBalance($trainer->getBalance() + $amount);
         }
 
-        if ($booking !== null) {
-            $booking->confirm();
-        } else {
-            $payment->getBooking()->confirm();
+        $booking ??= $payment->getBooking();
+        if ($booking === null) {
+            throw new LogicException('Booking payment cannot be confirmed without booking');
         }
+
+        $booking->confirm();
     }
 
     private function confirmMembershipPayment(Payment $payment, int $amount, ?Membership $membership = null): void
@@ -121,11 +163,12 @@ final readonly class PaymentService
                 break;
         }
 
-        if ($membership !== null) {
-            $membership->activate();
-        } else {
-            $payment->getMembership()->activate();
+        $membership ??= $payment->getMembership();
+        if ($membership === null) {
+            throw new LogicException('Membership payment cannot be confirmed without membership');
         }
+
+        $membership->activate();
     }
 
     private function confirmTopUpPayment(Payment $payment, int $amount): void
@@ -138,6 +181,12 @@ final readonly class PaymentService
     {
         $payment = $this->paymentRepo->findOneByStripePaymentIntentId($intentId);
         if ($payment === null) {
+            $this->paymentLogger->warning('Payment confirmation by Stripe intent failed: payment not found', [
+                'domain' => 'payment',
+                'operation' => 'confirm_by_intent',
+                'outcome' => 'failed',
+                'stripe_payment_intent_id' => $intentId,
+            ]);
             throw new NotFoundHttpException('Payment for Stripe intent was not found');
         }
 
@@ -147,21 +196,29 @@ final readonly class PaymentService
     public function failPayment(Payment $payment): void
     {
         if ($payment->getStatus() !== PaymentStatusEnum::PENDING) {
+            $this->paymentLogger->notice('Payment fail skipped: payment is not pending', $this->paymentContext($payment, 'fail', 'skipped'));
             return;
         }
 
         $payment->setStatus(PaymentStatusEnum::FAILED);
-
         $payment->getBooking()?->cancel(BookingStatusEnum::CANCELED_PAYMENT_FAILED);
         $payment->getMembership()?->cancel(MembershipStatusEnum::CANCELED_PAYMENT_FAILED);
 
         $this->em->flush();
+
+        $this->paymentLogger->warning('Payment marked as failed', $this->paymentContext($payment, 'fail', 'failed'));
     }
 
     public function failPaymentByStripeIntentId(string $intentId): void
     {
         $payment = $this->paymentRepo->findOneByStripePaymentIntentId($intentId);
         if ($payment === null) {
+            $this->paymentLogger->warning('Payment failure by Stripe intent failed: payment not found', [
+                'domain' => 'payment',
+                'operation' => 'fail_by_intent',
+                'outcome' => 'failed',
+                'stripe_payment_intent_id' => $intentId,
+            ]);
             throw new NotFoundHttpException('Payment for Stripe intent was not found');
         }
 
@@ -171,6 +228,8 @@ final readonly class PaymentService
     public function refundPayment(Payment $payment): void
     {
         if ($payment->getStatus() === PaymentStatusEnum::REFUNDED) {
+            $this->paymentLogger->notice('Payment refund skipped: payment already refunded', $this->paymentContext($payment, 'refund', 'skipped'));
+
             return;
         }
 
@@ -195,12 +254,22 @@ final readonly class PaymentService
         $payment->setStatus(PaymentStatusEnum::REFUNDED);
 
         $this->em->flush();
+
+        $this->paymentLogger->info('Payment refunded', $this->paymentContext($payment, 'refund', 'succeeded', [
+            'amount' => $amount,
+        ]));
     }
 
     public function refundPaymentByStripeIntentId(string $intentId): void
     {
         $payment = $this->paymentRepo->findOneByStripePaymentIntentId($intentId);
         if ($payment === null) {
+            $this->paymentLogger->warning('Payment refund by Stripe intent failed: payment not found', [
+                'domain' => 'payment',
+                'operation' => 'refund_by_intent',
+                'outcome' => 'failed',
+                'stripe_payment_intent_id' => $intentId,
+            ]);
             throw new NotFoundHttpException('Payment for Stripe intent was not found');
         }
 
@@ -208,10 +277,11 @@ final readonly class PaymentService
     }
 
     /**
-     * @throws ApiErrorException
+     * @throws ApiErrorException|Throwable
      */
     public function refundPaymentViaStripe(Payment $payment): void
     {
+        $this->paymentLogger->info('Payment refund via Stripe started', $this->paymentContext($payment, 'refund_via_stripe', 'started'));
         $this->stripeService->refund($payment);
         $this->refundPayment($payment);
     }
@@ -219,6 +289,7 @@ final readonly class PaymentService
     public function cancelPayment(Payment $payment): void
     {
         if ($payment->getStatus() !== PaymentStatusEnum::PENDING) {
+            $this->paymentLogger->notice('Payment cancel skipped: payment is not pending', $this->paymentContext($payment, 'cancel', 'skipped'));
             return;
         }
 
@@ -228,17 +299,22 @@ final readonly class PaymentService
         $payment->getMembership()?->cancel(MembershipStatusEnum::CANCELED_PAYMENT_FAILED);
 
         $this->em->flush();
+
+        $this->paymentLogger->info('Payment canceled', $this->paymentContext($payment, 'cancel', 'succeeded'));
     }
 
     /**
-     * @throws ApiErrorException
+     * @throws ApiErrorException|Throwable
      */
     public function cancelPaymentWithStripeIntent(Payment $payment): void
     {
         if ($payment->getStatus() !== PaymentStatusEnum::PENDING) {
+            $this->paymentLogger->notice('Payment cancel via Stripe skipped: payment is not pending', $this->paymentContext($payment, 'cancel_via_stripe', 'skipped'));
+
             return;
         }
 
+        $this->paymentLogger->info('Payment cancel via Stripe started', $this->paymentContext($payment, 'cancel_via_stripe', 'started'));
         $this->stripeService->cancelPaymentIntent($payment);
         $this->cancelPayment($payment);
     }
@@ -247,8 +323,42 @@ final readonly class PaymentService
     {
         $payments = $this->paymentRepo->findExpiredPending();
 
+        $this->paymentLogger->info('Expired pending payment cleanup started', [
+            'domain' => 'payment',
+            'operation' => 'cleanup_expired',
+            'outcome' => 'started',
+            'expired_payments_count' => count($payments),
+        ]);
+
         foreach ($payments as $payment) {
             $this->cancelPayment($payment);
         }
+
+        $this->paymentLogger->info('Expired pending payment cleanup finished', [
+            'domain' => 'payment',
+            'operation' => 'cleanup_expired',
+            'outcome' => 'succeeded',
+            'expired_payments_count' => count($payments),
+        ]);
+    }
+
+    private function paymentContext(Payment $payment, string $operation, string $outcome, array $extra = []): array
+    {
+        return $extra + [
+            'domain' => 'payment',
+            'operation' => $operation,
+            'outcome' => $outcome,
+            'payment_id' => $payment->getId(),
+            'client_id' => $payment->getClient()?->getId(),
+            'trainer_id' => $payment->getTrainer()?->getId(),
+            'booking_id' => $payment->getBooking()?->getId(),
+            'membership_id' => $payment->getMembership()?->getId(),
+            'category' => $payment->getCategory()?->value,
+            'method' => $payment->getMethod()->value,
+            'status' => $payment->getStatus()->value,
+            'stripe_payment_intent_id' => $payment->getStripePaymentIntentId(),
+            'currency' => $payment->getCurrency(),
+            'is_refund' => $payment->getIsRefund(),
+        ];
     }
 }

@@ -1,0 +1,189 @@
+{
+  "title": "Booking Payments And Memberships",
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 2,
+  "refresh": "30s",
+  "tags": ["booking", "payment", "stripe", "membership", "loki"],
+  "templating": {
+    "list": []
+  },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Booking Failures",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 0 },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "targets": [
+        {
+          "expr": "sum(count_over_time({compose_project=~\".+\"} | json domain=\"context.domain\", operation=\"context.operation\", outcome=\"context.outcome\" | domain=\"booking\" and operation=\"book\" and outcome=\"failed\" [5m]))",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "Stripe Failures",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 0 },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "targets": [
+        {
+          "expr": "sum(count_over_time({compose_project=~\".+\"} | json domain=\"context.domain\", outcome=\"context.outcome\" | domain=\"stripe\" and outcome=\"failed\" [5m]))",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "Membership Creation Failures",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 0 },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "targets": [
+        {
+          "expr": "sum(count_over_time({compose_project=~\".+\"} | json domain=\"context.domain\", operation=\"context.operation\", outcome=\"context.outcome\" | domain=\"membership\" and operation=\"create\" and outcome=\"failed\" [10m]))",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "title": "Refund Success Count",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 8 },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "targets": [
+        {
+          "expr": "sum(count_over_time({compose_project=~\".+\"} | json domain=\"context.domain\", operation=\"context.operation\", outcome=\"context.outcome\" | domain=\"payment\" and operation=\"refund\" and outcome=\"succeeded\" [15m]))",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "title": "Membership Created",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 8 },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "targets": [
+        {
+          "expr": "sum(count_over_time({compose_project=~\".+\"} | json domain=\"context.domain\", operation=\"context.operation\", outcome=\"context.outcome\" | domain=\"membership\" and operation=\"create\" and outcome=\"succeeded\" [15m]))",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "title": "Membership Visits",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 8 },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "targets": [
+        {
+          "expr": "sum(count_over_time({compose_project=~\".+\"} | json domain=\"context.domain\", operation=\"context.operation\", outcome=\"context.outcome\" | domain=\"membership\" and operation=\"visit\" and outcome=\"succeeded\" [15m]))",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "title": "Membership Expirations",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 16 },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "targets": [
+        {
+          "expr": "sum(count_over_time({compose_project=~\".+\"} | json domain=\"context.domain\", operation=\"context.operation\", outcome=\"context.outcome\" | domain=\"membership\" and operation=~\"expire|expire_on_visit\" and outcome=\"succeeded\" [1h]))",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "title": "Membership Lifecycle Actions",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 16 },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "targets": [
+        {
+          "expr": "sum by (operation) (count_over_time({compose_project=~\".+\"} | json domain=\"context.domain\", operation=\"context.operation\", outcome=\"context.outcome\" | domain=\"membership\" and operation=~\"freeze|unfreeze|renew|terminate\" and outcome=\"succeeded\" [30m]))",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "title": "P95 Request Duration",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 16 },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "targets": [
+        {
+          "expr": "quantile_over_time(0.95, {compose_project=~\".+\"} | json domain=\"context.domain\", operation=\"context.operation\", duration_ms=\"context.duration_ms\" | domain=\"request\" and operation=\"http_request\" | unwrap duration_ms [5m])",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "title": "Membership Logs",
+      "type": "logs",
+      "gridPos": { "h": 10, "w": 12, "x": 0, "y": 24 },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "targets": [
+        {
+          "expr": "{compose_project=~\".+\"} | json domain=\"context.domain\" | domain=\"membership\"",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "title": "Logs By Correlation",
+      "type": "logs",
+      "gridPos": { "h": 10, "w": 12, "x": 12, "y": 24 },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "targets": [
+        {
+          "expr": "{compose_project=~\".+\"} | json request_id=\"extra.request_id\", correlation_id=\"extra.correlation_id\"",
+          "refId": "A"
+        }
+      ]
+    }
+  ]
+}
