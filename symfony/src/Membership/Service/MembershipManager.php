@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Membership\Service;
 
 use App\Client\Entity\Client;
+use App\Infrastructure\ClickHouse\Publisher\AnalyticsPublisher;
 use App\Payment\Enum\PaymentMethodEnum;
 use App\User\Service\AvailabilityService;
 use App\Exception\InvalidMembershipStatusException;
@@ -21,6 +22,7 @@ use Doctrine\ORM\Exception\ORMException;
 use Doctrine\ORM\OptimisticLockException;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Symfony\Component\Messenger\Exception\ExceptionInterface;
 use Throwable;
 
 final readonly class MembershipManager
@@ -33,6 +35,7 @@ final readonly class MembershipManager
         private VisitingService $visitingService,
         private PaymentService $paymentService,
         private LoggerInterface $membershipLogger,
+        private AnalyticsPublisher $analyticsPublisher,
     )
     {}
 
@@ -138,6 +141,17 @@ final readonly class MembershipManager
                     'price' => $price,
                 ]), 'create', 'succeeded'));
 
+                $this->analyticsPublisher->publish(
+                    'membership.created',
+                    [
+                        'client_id' => $client->getId(),
+                        'membership_id' => $membership->getId(),
+                        'plan_id' => $membership->getPlan()->getId(),
+                        'price' => $membership->getPayment()->getAmount(),
+                        'payment_method' => $membership->getPayment()?->getMethod()->value ?? 'unknown',
+                    ]
+                );
+
                 return $membership;
             });
         } catch (Throwable $e) {
@@ -151,6 +165,9 @@ final readonly class MembershipManager
         }
     }
 
+    /**
+     * @throws ExceptionInterface
+     */
     public function freeze(Membership $membership): Membership
     {
         $context = $this->membershipContext($membership);
@@ -169,9 +186,23 @@ final readonly class MembershipManager
 
         $this->membershipLogger->info('Membership frozen', $this->membershipEventContext($this->membershipContext($membership), 'freeze', 'succeeded'));
 
+        $this->analyticsPublisher->publish(
+            'membership.froze',
+            [
+                'client_id' => $membership->getClient()->getId(),
+                'membership_id' => $membership->getId(),
+                'plan_id' => $membership->getPlan()->getId(),
+                'price' => $membership->getPayment()->getAmount(),
+                'payment_method' => $membership->getPayment()?->getMethod()->value ?? 'unknown',
+            ]
+        );
+
         return $membership;
     }
 
+    /**
+     * @throws ExceptionInterface
+     */
     public function unfreeze(Membership $membership): Membership
     {
         $context = $this->membershipContext($membership);
@@ -191,6 +222,17 @@ final readonly class MembershipManager
         $this->entityManager->flush();
 
         $this->membershipLogger->info('Membership unfrozen', $this->membershipEventContext($this->membershipContext($membership), 'unfreeze', 'succeeded'));
+
+        $this->analyticsPublisher->publish(
+            'membership.unfroze',
+            [
+                'client_id' => $membership->getClient()->getId(),
+                'membership_id' => $membership->getId(),
+                'plan_id' => $membership->getPlan()->getId(),
+                'price' => $membership->getPayment()->getAmount(),
+                'payment_method' => $membership->getPayment()?->getMethod()->value ?? 'unknown',
+            ]
+        );
 
         return $membership;
     }
@@ -218,6 +260,9 @@ final readonly class MembershipManager
         return $renewedMembership;
     }
 
+    /**
+     * @throws ExceptionInterface
+     */
     public function terminate(Membership $membership): Membership
     {
         $context = $this->membershipContext($membership);
@@ -235,6 +280,17 @@ final readonly class MembershipManager
         $this->entityManager->flush();
 
         $this->membershipLogger->info('Membership terminated', $this->membershipEventContext($this->membershipContext($membership), 'terminate', 'succeeded'));
+
+        $this->analyticsPublisher->publish(
+            'membership.terminated',
+            [
+                'client_id' => $membership->getClient()->getId(),
+                'membership_id' => $membership->getId(),
+                'plan_id' => $membership->getPlan()->getId(),
+                'price' => $membership->getPayment()->getAmount(),
+                'payment_method' => $membership->getPayment()?->getMethod()->value ?? 'unknown',
+            ]
+        );
 
         return $membership;
     }

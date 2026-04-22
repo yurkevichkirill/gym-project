@@ -44,7 +44,7 @@ framework:
 
             App\ImportJob\Message\ImportMessage: async
 
-            App\Booking\Event\BookingCreatedEvent: analytics
+            App\Infrastructure\ClickHouse\Event\AnalyticsEvent: analytics
 
             # Route your messages to the transports
             # 'App\Message\YourMessage': async

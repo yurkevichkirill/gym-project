@@ -7,11 +7,11 @@ namespace App\Booking\Service;
 use App\Booking\DTO\BookingRequest;
 use App\Booking\Entity\Booking;
 use App\Booking\Enum\BookingStatusEnum;
-use App\Booking\Event\BookingCreatedEvent;
 use App\Booking\Repository\BookingRepository;
 use App\Client\Entity\Client;
 use App\Exception\DateTimeAlreadyTakenException;
 use App\Exception\NoActiveMembershipException;
+use App\Infrastructure\ClickHouse\Publisher\AnalyticsPublisher;
 use App\Membership\Service\VisitingService;
 use App\Payment\Enum\PaymentCategoryEnum;
 use App\Payment\Enum\PaymentMethodEnum;
@@ -32,8 +32,6 @@ use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
-use Symfony\Component\Messenger\MessageBusInterface;
-use Symfony\Component\Uid\Uuid;
 use Throwable;
 
 final readonly class BookingManager
@@ -50,7 +48,7 @@ final readonly class BookingManager
         private PaymentService            $paymentService,
         private EntityManagerInterface    $entityManager,
         private LoggerInterface           $bookingLogger,
-        private MessageBusInterface       $eventBus,
+        private AnalyticsPublisher        $analyticsPublisher,
     )
     {}
 
@@ -201,16 +199,15 @@ final readonly class BookingManager
                     'payment_status' => $booking->getPayment()?->getStatus()->value,
                 ]));
 
-                $this->eventBus->dispatch(
-                    new BookingCreatedEvent(
-                        eventId: Uuid::v7()->toRfc4122(),
-                        clientId: $client->getId(),
-                        trainerId: $trainer->getId(),
-                        bookingId: $booking->getId(),
-                        price: $price,
-                        paymentMethod: $booking->getPayment()?->getMethod()->value ?? 'unknown',
-                        occurredAt: new \DateTimeImmutable(),
-                    )
+                $this->analyticsPublisher->publish(
+                    'booking.created',
+                    [
+                        'client_id' => $client->getId(),
+                        'trainer_id' => $trainer->getId(),
+                        'booking_id' => $booking->getId(),
+                        'price' => $price,
+                        'payment_method' => $booking->getPayment()->getMethod()->value ?? 'unknown',
+                    ]
                 );
 
                 return $booking;
@@ -237,17 +234,12 @@ final readonly class BookingManager
             'payment_status' => $booking->getPayment()?->getStatus()?->value,
         ];
 
+        $analyticalContext = $this->buildBookingAnalyticalContext($booking);
+
         $this->bookingLogger->info('Booking cancellation started', $this->bookingEventContext($context, 'cancel', 'started'));
 
-        $this->entityManager->wrapInTransaction(function () use ($booking, $reason) {
-            $context = [
-                'booking_id' => $booking->getId(),
-                'reason' => $reason->value,
-                'client_id' => $booking->getClient()?->getId(),
-                'training_id' => $booking->getTraining()?->getId(),
-                'payment_id' => $booking->getPayment()?->getId(),
-                'payment_status' => $booking->getPayment()?->getStatus()?->value,
-            ];
+        $this->entityManager->wrapInTransaction(function () use ($booking, $reason, $context, $analyticalContext) {
+
             $payment = $booking->getPayment();
 
             try {
@@ -261,9 +253,13 @@ final readonly class BookingManager
                 }
 
                 if ($payment->getStatus() === PaymentStatusEnum::SUCCEEDED) {
-                    $this->bookingLogger->info('Booking cancellation requires refund', $this->bookingEventContext($context, 'refund', 'started'));
+                    if ($payment->getMethod() === PaymentMethodEnum::CARD) {
+                        $this->paymentService->refundPaymentViaStripe($payment);
+                    } else {
+                        $this->paymentService->refundPayment($payment);
+                    }
 
-                    $this->paymentService->refundPaymentViaStripe($payment);
+                    $this->bookingLogger->info('Booking cancellation requires refund', $this->bookingEventContext($context, 'refund', 'started'));
                 } else {
                     $this->bookingLogger->info('Booking cancellation requires payment intent cancel', $this->bookingEventContext($context, 'cancel_payment_intent', 'started'));
 
@@ -273,6 +269,11 @@ final readonly class BookingManager
                 $booking->cancel($reason);
 
                 $this->bookingLogger->info('Booking successfully canceled', $this->bookingEventContext($context, 'cancel', 'succeeded'));
+
+                $this->analyticsPublisher->publish(
+                    'booking.canceled',
+                    $analyticalContext,
+                );
             } catch (Throwable $e) {
                 $this->bookingLogger->error('Booking cancellation failed', $this->bookingEventContext($context, 'cancel', 'failed', [
                     'exception_class' => $e::class,
@@ -315,6 +316,17 @@ final readonly class BookingManager
             'date' => $dto->date,
             'start_time' => $dto->startTime,
             'duration_minutes' => $dto->durationMinutes,
+        ];
+    }
+
+    private function buildBookingAnalyticalContext(Booking $booking): array
+    {
+        return [
+            'client_id' => $booking->getClient()->getId(),
+            'trainer_id' => $booking->getTraining()->getTrainerWorkTime()->getTrainer()->getId(),
+            'booking_id' => $booking->getId(),
+            'price' => $booking->getPayment()->getAmount(),
+            'payment_method' => $booking->getPayment()->getMethod()->value ?? 'unknown'
         ];
     }
 
