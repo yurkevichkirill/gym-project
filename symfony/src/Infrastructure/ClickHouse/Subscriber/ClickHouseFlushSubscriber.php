@@ -9,7 +9,7 @@ use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\Messenger\Event\WorkerStoppedEvent;
 use Symfony\Contracts\HttpClient\Exception\TransportExceptionInterface;
 
-final class ClickHouseFlushSubscriber implements EventSubscriberInterface
+final readonly class ClickHouseFlushSubscriber implements EventSubscriberInterface
 {
     public function __construct(
         private ClickHouseBuffer $buffer,

@@ -8,7 +8,6 @@ use App\Membership\Repository\MembershipRepository;
 use App\MembershipPlan\Entity\MembershipPlan;
 use App\Payment\Entity\Payment;
 use DateInterval;
-use DateMalformedIntervalStringException;
 use DateTimeImmutable;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
@@ -28,7 +27,7 @@ class Membership
     private ?Client $client = null;
 
     #[ORM\ManyToOne(inversedBy: 'memberships')]
-    #[ORM\JoinColumn(nullable: false, onDelete: 'SET NULL')]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
     private ?MembershipPlan $plan = null;
 
     #[ORM\Column]
