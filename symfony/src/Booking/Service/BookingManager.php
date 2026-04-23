@@ -58,74 +58,43 @@ final readonly class BookingManager
      */
     public function book(Client $client, BookingRequest $dto): Booking
     {
-        $context = $this->buildBookingContext($client, $dto);
-
-        $this->bookingLogger->info('Booking process started', $this->bookingEventContext($context, 'book', 'started'));
+        $loggingContext = [
+            'client_id' => $client->getId(),
+            'trainer_id' => $dto->trainerId,
+            'date' => $dto->date,
+            'start_time' => $dto->startTime,
+            'duration_minutes' => $dto->durationMinutes,
+        ];
 
         try {
             $this->userAvailabilityService->ensureNotBlocked($client);
-        } catch (Throwable $e) {
-            $this->bookingLogger->notice('Blocked user attempted booking', $this->bookingEventContext($context, 'book', 'rejected', [
-                'exception_class' => $e::class,
-                'exception' => $e,
-            ]));
 
-            throw $e;
-        }
+            $trainer = $this->trainerRepo->find($dto->trainerId);
+            if (!$trainer) {
+                throw new NotFoundHttpException('Trainer not found');
+            }
 
-        $trainer = $this->trainerRepo->find($dto->trainerId);
+            $worktime = $this->worktimeRepo->findOneBy([
+                'trainer' => $trainer,
+                'date' => new DateTimeImmutable($dto->date),
+            ]);
 
-        if (!$trainer) {
-            $this->bookingLogger->warning('Trainer not found during booking', $this->bookingEventContext($context, 'book', 'rejected'));
-            throw new NotFoundHttpException('Trainer not found');
-        }
+            if (!$worktime) {
+                throw new NotFoundHttpException('Worktime not found');
+            }
 
-        $worktime = $this->worktimeRepo->findOneBy([
-            'trainer' => $trainer,
-            'date' => new DateTimeImmutable($dto->date),
-        ]);
+            $bookingDateTime = new DateTimeImmutable($dto->date . ' ' . $dto->startTime);
+            if ($bookingDateTime <= new DateTimeImmutable()) {
+                throw new BadRequestHttpException('Cannot book training in the past');
+            }
 
-        if (!$worktime) {
-            $this->bookingLogger->warning('Trainer worktime not found during booking', $this->bookingEventContext($context, 'book', 'rejected', [
-                'trainer_id' => $trainer->getId(),
-            ]));
+            $price = $this->trainerManager->countPrice($trainer, $dto->durationMinutes);
 
-            throw new NotFoundHttpException('Worktime not found');
-        }
+            return $this->entityManager->wrapInTransaction(function () use ($client, $dto, $trainer, $worktime, $price, $loggingContext) {
 
-        $bookingDateTime = new DateTimeImmutable($dto->date . ' ' . $dto->startTime);
-        $now = new DateTimeImmutable();
-
-        if ($bookingDateTime <= $now) {
-            $this->bookingLogger->notice('Attempt to book training in the past', $this->bookingEventContext($context, 'book', 'rejected', [
-                'datetime' => $bookingDateTime->format('c'),
-                'now' => $now->format('c'),
-            ]));
-
-            throw new BadRequestHttpException('Cannot book training in the past');
-        }
-
-        $price = $this->trainerManager->countPrice($worktime->getTrainer(), $dto->durationMinutes);
-        $context = $context + [
-            'trainer_id' => $trainer->getId(),
-            'worktime_id' => $worktime->getId(),
-            'price' => $price,
-        ];
-
-        $this->bookingLogger->info('Booking price calculated', $this->bookingEventContext($context, 'pricing', 'calculated'));
-
-        return $this->entityManager->wrapInTransaction(function () use ($client, $price, $worktime, $dto, $trainer) {
-            $context = $this->buildBookingContext($client, $dto) + [
-                'trainer_id' => $trainer->getId(),
-                'worktime_id' => $worktime->getId(),
-                'price' => $price,
-            ];
-
-            try {
                 $this->validateTrainingTimeAvailable($worktime, $dto->startTime, $dto->durationMinutes);
 
                 if (!$this->visitingService->hasActiveMembership($client)) {
-                    $this->bookingLogger->notice('Booking rejected: client has no active membership', $this->bookingEventContext($context, 'book', 'rejected'));
                     throw new NoActiveMembershipException();
                 }
 
@@ -140,17 +109,7 @@ final readonly class BookingManager
                 $booking->setTraining($training);
                 $this->bookingRepo->create($booking);
 
-                $this->bookingLogger->info('Booking entity created', $this->bookingEventContext($context, 'book', 'persisted', [
-                    'training_id' => $training->getId(),
-                    'booking_id' => $booking->getId(),
-                ]));
-
                 if ($client->getBalance() >= $price) {
-                    $this->bookingLogger->info('Booking payment route selected: balance', $this->bookingEventContext($context, 'payment_route', 'selected', [
-                        'payment_method' => PaymentMethodEnum::BALANCE->value,
-                        'client_balance' => $client->getBalance(),
-                    ]));
-
                     $payment = $this->paymentService->createPayment(
                         $client,
                         $price,
@@ -161,27 +120,11 @@ final readonly class BookingManager
 
                     $booking->setPayment($payment);
 
-                    $this->paymentService->confirmPayment(
-                        payment: $payment,
-                        booking: $booking,
-                    );
-
-                    $this->bookingLogger->info('Booking payment confirmed from balance', $this->bookingEventContext($context, 'payment', 'confirmed', [
-                        'booking_id' => $booking->getId(),
-                        'payment_id' => $payment->getId(),
-                    ]));
+                    $this->paymentService->confirmPayment($payment, null, $booking);
                 } else {
-                    $remaining = $price - $client->getBalance();
-
-                    $this->bookingLogger->info('Booking payment route selected: card', $this->bookingEventContext($context, 'payment_route', 'selected', [
-                        'payment_method' => PaymentMethodEnum::CARD->value,
-                        'client_balance' => $client->getBalance(),
-                        'remaining_amount' => $remaining,
-                    ]));
-
                     $payment = $this->paymentService->createPayment(
                         $client,
-                        $remaining,
+                        $price - $client->getBalance(),
                         PaymentCategoryEnum::TRAINER,
                         PaymentMethodEnum::CARD,
                         $trainer
@@ -192,94 +135,91 @@ final readonly class BookingManager
 
                 $this->entityManager->flush();
 
-                $this->bookingLogger->info('Booking successfully completed', $this->bookingEventContext($context, 'book', 'succeeded', [
+                $this->bookingLogger->info('booking.succeeded', $this->bookingEventContext($loggingContext, 'book', 'succeeded', [
                     'booking_id' => $booking->getId(),
-                    'payment_id' => $booking->getPayment()?->getId(),
-                    'payment_method' => $booking->getPayment()?->getMethod()->value,
-                    'payment_status' => $booking->getPayment()?->getStatus()->value,
+                    'trainer_id' => $trainer->getId(),
+                    'price' => $price,
                 ]));
 
-                $this->analyticsPublisher->publish(
-                    'booking.created',
-                    [
-                        'client_id' => $client->getId(),
-                        'trainer_id' => $trainer->getId(),
-                        'booking_id' => $booking->getId(),
-                        'price' => $price,
-                        'payment_method' => $booking->getPayment()->getMethod()->value ?? 'unknown',
-                    ]
-                );
+                $this->analyticsPublisher->publish('booking.created', [
+                    'client_id' => $client->getId(),
+                    'trainer_id' => $trainer->getId(),
+                    'booking_id' => $booking->getId(),
+                    'price' => $price,
+                    'payment_method' => $booking->getPayment()->getMethod()->value ?? 'unknown',
+                ]);
 
                 return $booking;
-            } catch (Throwable $e) {
-                $this->bookingLogger->error('Booking failed', $this->bookingEventContext($context, 'book', 'failed', [
-                    'exception_class' => $e::class,
-                    'error' => $e->getMessage(),
-                    'exception' => $e,
-                ]));
+            });
 
-                throw $e;
-            }
-        });
+        } catch (NoActiveMembershipException|DateTimeAlreadyTakenException|BadRequestHttpException|NotFoundHttpException $e) {
+            $this->bookingLogger->notice('booking.rejected', $this->bookingEventContext($loggingContext, 'book', 'rejected', [
+                'reason' => $e::class,
+            ]));
+
+            throw $e;
+
+        } catch (Throwable $e) {
+            $this->bookingLogger->error('booking.failed', $this->bookingEventContext($loggingContext, 'book', 'failed', [
+                'error' => $e->getMessage(),
+                'exception_class' => $e::class,
+            ]));
+
+            throw $e;
+        }
     }
 
     public function cancelBooking(Booking $booking, BookingStatusEnum $reason): void
     {
-        $context = [
+        $loggingContext = [
             'booking_id' => $booking->getId(),
-            'reason' => $reason->value,
             'client_id' => $booking->getClient()?->getId(),
-            'training_id' => $booking->getTraining()?->getId(),
-            'payment_id' => $booking->getPayment()?->getId(),
-            'payment_status' => $booking->getPayment()?->getStatus()?->value,
+            'reason' => $reason->value,
         ];
 
-        $analyticalContext = $this->buildBookingAnalyticalContext($booking);
+        $analyticalContext = [
+            'client_id' => $booking->getClient()->getId(),
+            'trainer_id' => $booking->getTraining()->getTrainerWorkTime()->getTrainer()->getId(),
+            'booking_id' => $booking->getId(),
+            'price' => $booking->getPayment()->getAmount(),
+            'payment_method' => $booking->getPayment()->getMethod()->value ?? 'unknown',
+        ];
 
-        $this->bookingLogger->info('Booking cancellation started', $this->bookingEventContext($context, 'cancel', 'started'));
-
-        $this->entityManager->wrapInTransaction(function () use ($booking, $reason, $context, $analyticalContext) {
-
-            $payment = $booking->getPayment();
+        $this->entityManager->wrapInTransaction(function () use ($booking, $reason, $loggingContext, $analyticalContext) {
 
             try {
-                if ($payment === null) {
-                    $this->bookingLogger->warning('Booking cancellation without payment', $this->bookingEventContext($context, 'cancel', 'degraded'));
-                    $booking->cancel($reason);
+                $payment = $booking->getPayment();
 
-                    $this->bookingLogger->info('Booking canceled without payment refund flow', $this->bookingEventContext($context, 'cancel', 'succeeded'));
-
-                    return;
-                }
-
-                if ($payment->getStatus() === PaymentStatusEnum::SUCCEEDED) {
-                    if ($payment->getMethod() === PaymentMethodEnum::CARD) {
-                        $this->paymentService->refundPaymentViaStripe($payment);
+                if ($payment !== null) {
+                    if ($payment->getStatus() === PaymentStatusEnum::SUCCEEDED) {
+                        if ($payment->getMethod() === PaymentMethodEnum::CARD) {
+                            $this->paymentService->refundPaymentViaStripe($payment);
+                        } else {
+                            $this->paymentService->refundPayment($payment);
+                        }
                     } else {
-                        $this->paymentService->refundPayment($payment);
+                        $this->paymentService->cancelPaymentWithStripeIntent($payment);
                     }
-
-                    $this->bookingLogger->info('Booking cancellation requires refund', $this->bookingEventContext($context, 'refund', 'started'));
-                } else {
-                    $this->bookingLogger->info('Booking cancellation requires payment intent cancel', $this->bookingEventContext($context, 'cancel_payment_intent', 'started'));
-
-                    $this->paymentService->cancelPaymentWithStripeIntent($payment);
                 }
 
                 $booking->cancel($reason);
 
-                $this->bookingLogger->info('Booking successfully canceled', $this->bookingEventContext($context, 'cancel', 'succeeded'));
+                $this->bookingLogger->info('booking.cancel.succeeded',
+                    $this->bookingEventContext($loggingContext, 'cancel', 'succeeded')
+                );
 
                 $this->analyticsPublisher->publish(
                     'booking.canceled',
                     $analyticalContext,
                 );
+
             } catch (Throwable $e) {
-                $this->bookingLogger->error('Booking cancellation failed', $this->bookingEventContext($context, 'cancel', 'failed', [
-                    'exception_class' => $e::class,
-                    'error' => $e->getMessage(),
-                    'exception' => $e,
-                ]));
+                $this->bookingLogger->error('booking.cancel.failed',
+                    $this->bookingEventContext($loggingContext, 'cancel', 'failed', [
+                        'error' => $e->getMessage(),
+                        'exception_class' => $e::class,
+                    ])
+                );
 
                 throw $e;
             }
@@ -293,50 +233,16 @@ final readonly class BookingManager
     private function validateTrainingTimeAvailable(TrainerWorkTime $worktime, string $startTime, int $durationMinutes): void
     {
         if (!$this->worktimeAvailabilityService->isTimeAvailable($worktime, $startTime, $durationMinutes)) {
-            $this->bookingLogger->warning('Time slot already taken', [
-                'domain' => 'booking',
-                'operation' => 'validate_slot',
-                'outcome' => 'rejected',
-                'worktime_id' => $worktime->getId(),
-                'trainer_id' => $worktime->getTrainer()->getId(),
-                'date' => $worktime->getDate()?->format('Y-m-d'),
-                'start_time' => $startTime,
-                'duration_minutes' => $durationMinutes,
-            ]);
             throw new DateTimeAlreadyTakenException();
         }
-    }
-
-    private function buildBookingContext(Client $client, BookingRequest $dto): array
-    {
-        return [
-            'domain' => 'booking',
-            'client_id' => $client->getId(),
-            'trainer_id' => $dto->trainerId,
-            'date' => $dto->date,
-            'start_time' => $dto->startTime,
-            'duration_minutes' => $dto->durationMinutes,
-        ];
-    }
-
-    private function buildBookingAnalyticalContext(Booking $booking): array
-    {
-        return [
-            'client_id' => $booking->getClient()->getId(),
-            'trainer_id' => $booking->getTraining()->getTrainerWorkTime()->getTrainer()->getId(),
-            'booking_id' => $booking->getId(),
-            'price' => $booking->getPayment()->getAmount(),
-            'payment_method' => $booking->getPayment()->getMethod()->value ?? 'unknown'
-        ];
     }
 
     private function bookingEventContext(array $context, string $operation, string $outcome, array $extra = []): array
     {
         return $extra + $context + [
-            'domain' => 'booking',
-            'operation' => $operation,
-            'outcome' => $outcome,
-        ];
+                'domain' => 'booking',
+                'operation' => $operation,
+                'outcome' => $outcome,
+            ];
     }
-
 }
