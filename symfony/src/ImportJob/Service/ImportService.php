@@ -29,7 +29,6 @@ final readonly class ImportService
             'total' => count($dto->clients),
         ];
 
-        $this->clientLogger->info('Import job creation started', $this->ctx($context, 'started'));
         $job = new ImportJob(count($dto->clients));
 
         $this->em->persist($job);
@@ -52,8 +51,6 @@ final readonly class ImportService
             'operation' => 'import_client',
             'email' => $dto->email,
         ];
-
-        $this->clientLogger->info('Client import started', $this->ctx($context, 'started'));
 
         $email = strtolower(trim($dto->email));
 

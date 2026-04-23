@@ -20,8 +20,7 @@ final readonly class StripeService
         string $stripeSecretKey,
         private EntityManagerInterface $em,
         private LoggerInterface $stripeLogger,
-    )
-    {
+    ) {
         $this->stripe = new StripeClient($stripeSecretKey);
     }
 
@@ -35,49 +34,42 @@ final readonly class StripeService
             throw new BadRequestHttpException('Payment must be persisted before creating PaymentIntent');
         }
 
-        $idempotencyKey = sprintf('payment_intent_%d', $payment->getId());
-
-        $this->stripeLogger->info('Stripe payment intent creation started', $this->stripeContext($payment, 'create_payment_intent', 'started', [
-            'idempotency_key' => $idempotencyKey,
-        ]));
+        $idempotencyKey = sprintf('pi_%d', $payment->getId());
 
         try {
             $intent = $this->stripe->paymentIntents->create([
                 'amount' => $payment->getAmount(),
                 'currency' => $payment->getCurrency(),
-
                 'automatic_payment_methods' => [
                     'enabled' => true,
                     'allow_redirects' => 'never',
                 ],
-
                 'metadata' => [
                     'payment_id' => (string)$payment->getId(),
                 ],
             ], [
                 'idempotency_key' => $idempotencyKey,
             ]);
+
+            $payment->setStripePaymentIntentId($intent->id);
+            $this->em->flush();
+
+            $this->stripeLogger->info('stripe.intent.created', [
+                'payment_id' => $payment->getId(),
+                'intent_id' => $intent->id,
+            ]);
+
+            return $intent->client_secret;
+
         } catch (Throwable $e) {
-            $this->stripeLogger->error('Stripe payment intent creation failed', $this->stripeContext($payment, 'create_payment_intent', 'failed', [
-                'idempotency_key' => $idempotencyKey,
-                'exception_class' => $e::class,
+            $this->stripeLogger->error('stripe.intent.failed', [
+                'payment_id' => $payment->getId(),
                 'error' => $e->getMessage(),
-                'exception' => $e,
-            ]));
+                'exception_class' => $e::class,
+            ]);
 
             throw $e;
         }
-
-        $payment->setStripePaymentIntentId($intent->id);
-
-        $this->em->flush();
-
-        $this->stripeLogger->info('Stripe payment intent created', $this->stripeContext($payment, 'create_payment_intent', 'succeeded', [
-            'stripe_payment_intent_id' => $intent->id,
-            'idempotency_key' => $idempotencyKey,
-        ]));
-
-        return $intent->client_secret;
     }
 
     /**
@@ -86,38 +78,36 @@ final readonly class StripeService
      */
     public function refund(Payment $payment): void
     {
-        if ($payment->getStripePaymentIntentId() === null) {
-            $this->stripeLogger->error('Stripe refund failed: payment has no Stripe intent', $this->stripeContext($payment, 'refund', 'failed'));
+        $intentId = $payment->getStripePaymentIntentId();
 
+        if ($intentId === null) {
             throw new BadRequestHttpException('Payment has no Stripe PaymentIntent');
         }
 
-        $idempotencyKey = sprintf('payment_refund_%d', $payment->getId());
-
-        $this->stripeLogger->info('Stripe refund started', $this->stripeContext($payment, 'refund', 'started', [
-            'idempotency_key' => $idempotencyKey,
-        ]));
+        $idempotencyKey = sprintf('refund_%d', $payment->getId());
 
         try {
             $this->stripe->refunds->create([
-                'payment_intent' => $payment->getStripePaymentIntentId(),
+                'payment_intent' => $intentId,
             ], [
                 'idempotency_key' => $idempotencyKey,
             ]);
+
+            $this->stripeLogger->info('stripe.refund.succeeded', [
+                'payment_id' => $payment->getId(),
+                'intent_id' => $intentId,
+            ]);
+
         } catch (Throwable $e) {
-            $this->stripeLogger->error('Stripe refund failed', $this->stripeContext($payment, 'refund', 'failed', [
-                'idempotency_key' => $idempotencyKey,
-                'exception_class' => $e::class,
+            $this->stripeLogger->error('stripe.refund.failed', [
+                'payment_id' => $payment->getId(),
+                'intent_id' => $intentId,
                 'error' => $e->getMessage(),
-                'exception' => $e,
-            ]));
+                'exception_class' => $e::class,
+            ]);
 
             throw $e;
         }
-
-        $this->stripeLogger->info('Stripe refund completed', $this->stripeContext($payment, 'refund', 'succeeded', [
-            'idempotency_key' => $idempotencyKey,
-        ]));
     }
 
     /**
@@ -126,46 +116,29 @@ final readonly class StripeService
      */
     public function cancelPaymentIntent(Payment $payment): void
     {
-        if ($payment->getStripePaymentIntentId() === null) {
-            $this->stripeLogger->notice('Stripe payment intent cancel skipped: payment has no Stripe intent', $this->stripeContext($payment, 'cancel_payment_intent', 'skipped'));
+        $intentId = $payment->getStripePaymentIntentId();
+
+        if ($intentId === null) {
             return;
         }
 
-        $this->stripeLogger->info('Stripe payment intent cancel started', $this->stripeContext($payment, 'cancel_payment_intent', 'started'));
-
         try {
-            $this->stripe->paymentIntents->cancel(
-                $payment->getStripePaymentIntentId()
-            );
+            $this->stripe->paymentIntents->cancel($intentId);
+
+            $this->stripeLogger->info('stripe.intent.canceled', [
+                'payment_id' => $payment->getId(),
+                'intent_id' => $intentId,
+            ]);
+
         } catch (Throwable $e) {
-            $this->stripeLogger->error('Stripe payment intent cancel failed', $this->stripeContext($payment, 'cancel_payment_intent', 'failed', [
-                'exception_class' => $e::class,
+            $this->stripeLogger->error('stripe.intent.cancel.failed', [
+                'payment_id' => $payment->getId(),
+                'intent_id' => $intentId,
                 'error' => $e->getMessage(),
-                'exception' => $e,
-            ]));
+                'exception_class' => $e::class,
+            ]);
+
             throw $e;
         }
-
-        $this->stripeLogger->info('Stripe payment intent canceled', $this->stripeContext($payment, 'cancel_payment_intent', 'succeeded'));
-    }
-
-    private function stripeContext(Payment $payment, string $operation, string $outcome, array $extra = []): array
-    {
-        return $extra + [
-            'domain' => 'stripe',
-            'provider' => 'stripe',
-            'operation' => $operation,
-            'outcome' => $outcome,
-            'payment_id' => $payment->getId(),
-            'client_id' => $payment->getClient()?->getId(),
-            'trainer_id' => $payment->getTrainer()?->getId(),
-            'booking_id' => $payment->getBooking()?->getId(),
-            'membership_id' => $payment->getMembership()?->getId(),
-            'category' => $payment->getCategory()?->value,
-            'method' => $payment->getMethod()->value,
-            'amount' => $payment->getAmount(),
-            'currency' => $payment->getCurrency(),
-            'stripe_payment_intent_id' => $payment->getStripePaymentIntentId(),
-        ];
     }
 }

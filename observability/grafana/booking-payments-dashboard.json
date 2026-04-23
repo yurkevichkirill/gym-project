@@ -27,6 +27,22 @@
     },
     {
       "id": 2,
+      "title": "Booking Rejected",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 0 },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "targets": [
+        {
+          "expr": "sum(count_over_time({compose_project=~\".+\"} | json domain=\"context.domain\", outcome=\"context.outcome\" | domain=\"booking\" and outcome=\"rejected\" [5m]))",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 3,
       "title": "Stripe Failures",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 8, "x": 8, "y": 0 },
@@ -42,8 +58,24 @@
       ]
     },
     {
-      "id": 3,
-      "title": "Membership Creation Failures",
+      "id": 4,
+      "title": "Stripe Rejected",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 0 },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "targets": [
+        {
+          "expr": "sum(count_over_time({compose_project=~\".+\"} | json domain=\"context.domain\", outcome=\"context.outcome\" | domain=\"stripe\" and outcome=\"rejected\" [5m]))",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "title": "Membership Failures",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 8, "x": 16, "y": 0 },
       "datasource": {
@@ -52,13 +84,29 @@
       },
       "targets": [
         {
-          "expr": "sum(count_over_time({compose_project=~\".+\"} | json domain=\"context.domain\", operation=\"context.operation\", outcome=\"context.outcome\" | domain=\"membership\" and operation=\"create\" and outcome=\"failed\" [10m]))",
+          "expr": "sum(count_over_time({compose_project=~\".+\"} | json domain=\"context.domain\", outcome=\"context.outcome\" | domain=\"membership\" and outcome=\"failed\" [10m]))",
           "refId": "A"
         }
       ]
     },
     {
-      "id": 4,
+      "id": 6,
+      "title": "Membership Rejected",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 0 },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "targets": [
+        {
+          "expr": "sum(count_over_time({compose_project=~\".+\"} | json domain=\"context.domain\", outcome=\"context.outcome\" | domain=\"membership\" and outcome=\"rejected\" [10m]))",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 7,
       "title": "Refund Success Count",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 8, "x": 0, "y": 8 },
@@ -74,7 +122,7 @@
       ]
     },
     {
-      "id": 5,
+      "id": 8,
       "title": "Membership Created",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 8, "x": 8, "y": 8 },
@@ -90,7 +138,7 @@
       ]
     },
     {
-      "id": 6,
+      "id": 9,
       "title": "Membership Visits",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 8, "x": 16, "y": 8 },
@@ -106,7 +154,7 @@
       ]
     },
     {
-      "id": 7,
+      "id": 10,
       "title": "Membership Expirations",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 8, "x": 0, "y": 16 },
@@ -122,7 +170,7 @@
       ]
     },
     {
-      "id": 8,
+      "id": 11,
       "title": "Membership Lifecycle Actions",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 8, "x": 8, "y": 16 },
@@ -138,7 +186,7 @@
       ]
     },
     {
-      "id": 9,
+      "id": 12,
       "title": "Worktime Failures",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 8, "x": 16, "y": 24 },
@@ -154,7 +202,7 @@
       ]
     },
     {
-      "id": 10,
+      "id": 13,
       "title": "P95 Request Duration",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 8, "x": 16, "y": 16 },
@@ -170,7 +218,7 @@
       ]
     },
     {
-      "id": 11,
+      "id": 14,
       "title": "Payments Success vs Failed",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 8, "x": 16, "y": 0 },
@@ -183,7 +231,7 @@
       ]
     },
     {
-      "id": 12,
+      "id": 15,
       "title": "Import Clients Failures",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 8, "x": 8, "y": 24 },
@@ -199,7 +247,7 @@
       ]
     },
     {
-      "id": 13,
+      "id": 16,
       "title": "Membership Logs",
       "type": "logs",
       "gridPos": { "h": 10, "w": 12, "x": 0, "y": 24 },
@@ -215,7 +263,7 @@
       ]
     },
     {
-      "id": 14,
+      "id": 17,
       "title": "Booking Logs",
       "type": "logs",
       "gridPos": { "h": 10, "w": 12, "x": 0, "y": 24 },
@@ -231,7 +279,7 @@
       ]
     },
     {
-      "id": 15,
+      "id": 18,
       "title": "Payment Logs",
       "type": "logs",
       "gridPos": { "h": 10, "w": 12, "x": 16, "y": 32 },
@@ -244,7 +292,7 @@
       ]
     },
     {
-      "id": 16,
+      "id": 19,
       "title": "Logs By Correlation",
       "type": "logs",
       "gridPos": { "h": 10, "w": 12, "x": 12, "y": 24 },

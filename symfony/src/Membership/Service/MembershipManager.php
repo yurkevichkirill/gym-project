@@ -39,74 +39,44 @@ final readonly class MembershipManager
     )
     {}
 
+    /**
+     * @throws \DateMalformedStringException
+     * @throws Throwable
+     * @throws ExceptionInterface
+     */
     public function create(Client $client, int $membershipPlanId): Membership
     {
-        $context = $this->membershipActionContext(
-            client: $client,
-            extra: [
-                'membership_plan_id' => $membershipPlanId,
-            ],
-        );
-
-        $this->membershipLogger->info('Membership creation started', $this->membershipEventContext($context, 'create', 'started'));
-
-        try {
-            $this->userAvailabilityService->ensureNotBlocked($client);
-        } catch (Throwable $e) {
-            $this->membershipLogger->notice('Membership creation rejected: client is blocked', $this->membershipEventContext($context, 'create', 'rejected', [
-                'exception_class' => $e::class,
-                'exception' => $e,
-            ]));
-
-            throw $e;
-        }
-
-        $plan = $this->membershipPlanRepo->find($membershipPlanId);
-
-        if ($plan === null) {
-            $this->membershipLogger->warning('Membership creation rejected: plan not found', $this->membershipEventContext($context, 'create', 'rejected'));
-            throw new NotFoundHttpException('Membership plan not found');
-        }
-
-        $context += [
-            'membership_plan_id' => $plan->getId(),
-            'membership_plan_name' => $plan->getName(),
-            'duration_days' => $plan->getDurationDays(),
-            'session_limit' => $plan->getSessionLimit(),
-            'price' => $plan->getPrice(),
+        $loggingContext = [
+            'client_id' => $client->getId(),
+            'membership_plan_id' => $membershipPlanId,
         ];
 
         try {
-            return $this->entityManager->wrapInTransaction(function () use ($client, $plan, $context) {
+            $this->userAvailabilityService->ensureNotBlocked($client);
+
+            $plan = $this->membershipPlanRepo->find($membershipPlanId);
+            if (!$plan) {
+                throw new NotFoundHttpException('Membership plan not found');
+            }
+
+            return $this->entityManager->wrapInTransaction(function () use ($client, $plan, $loggingContext) {
+
                 if ($this->visitingService->hasActiveMembership($client)) {
-                    $this->membershipLogger->notice('Membership creation rejected: active membership already exists', $this->membershipEventContext($context, 'create', 'rejected'));
-                    throw new MembershipActiveException('Client still has active membership');
+                    throw new MembershipActiveException();
                 }
 
                 $membership = new Membership();
                 $membership->setClient($client);
                 $membership->setPlan($plan);
-
                 $membership->setName($plan->getName());
                 $membership->setDurationDays($plan->getDurationDays());
                 $membership->setSessionLimit($plan->getSessionLimit());
 
                 $this->membershipRepo->create($membership);
 
-                $membershipContext = $this->membershipContext($membership, [
-                    'price' => $plan->getPrice(),
-                ]);
-
-                $this->membershipLogger->info('Membership entity created', $this->membershipEventContext($membershipContext, 'create', 'persisted'));
-
                 $price = $plan->getPrice();
 
                 if ($client->getBalance() >= $price) {
-                    $this->membershipLogger->info('Membership payment route selected: balance', $this->membershipEventContext($membershipContext, 'payment_route', 'selected', [
-                        'payment_method' => PaymentMethodEnum::BALANCE->value,
-                        'client_balance' => $client->getBalance(),
-                    ]));
-
                     $payment = $this->paymentService->createPayment(
                         $client,
                         $price,
@@ -119,17 +89,9 @@ final readonly class MembershipManager
                         membership: $membership,
                     );
                 } else {
-                    $remaining = $price - $client->getBalance();
-
-                    $this->membershipLogger->info('Membership payment route selected: card', $this->membershipEventContext($membershipContext, 'payment_route', 'selected', [
-                        'payment_method' => PaymentMethodEnum::CARD->value,
-                        'client_balance' => $client->getBalance(),
-                        'remaining_amount' => $remaining,
-                    ]));
-
                     $payment = $this->paymentService->createPayment(
                         $client,
-                        $remaining,
+                        $price - $client->getBalance(),
                         PaymentCategoryEnum::MEMBERSHIP,
                         PaymentMethodEnum::CARD,
                     );
@@ -137,104 +99,165 @@ final readonly class MembershipManager
 
                 $membership->setPayment($payment);
 
-                $this->membershipLogger->info('Membership created successfully', $this->membershipEventContext($this->membershipContext($membership, [
-                    'price' => $price,
-                ]), 'create', 'succeeded'));
+                $this->entityManager->flush();
 
-                $this->analyticsPublisher->publish(
-                    'membership.created',
-                    [
-                        'client_id' => $client->getId(),
+                $this->membershipLogger->info('membership.succeeded',
+                    $this->membershipEventContext($loggingContext, 'create', 'succeeded', [
                         'membership_id' => $membership->getId(),
-                        'plan_id' => $membership->getPlan()->getId(),
-                        'price' => $membership->getPayment()->getAmount(),
-                        'payment_method' => $membership->getPayment()?->getMethod()->value ?? 'unknown',
-                    ]
+                        'price' => $price,
+                    ])
                 );
+
+                $this->analyticsPublisher->publish('membership.created', [
+                    'client_id' => $client->getId(),
+                    'membership_id' => $membership->getId(),
+                    'plan_id' => $plan->getId(),
+                    'price' => $price,
+                    'payment_method' => $membership->getPayment()?->getMethod()->value ?? 'unknown',
+                ]);
 
                 return $membership;
             });
+
+        } catch (MembershipActiveException|NotFoundHttpException $e) {
+            $this->membershipLogger->notice('membership.rejected',
+                $this->membershipEventContext($loggingContext, 'create', 'rejected', [
+                    'reason' => $e::class,
+                ])
+            );
+
+            throw $e;
+
         } catch (Throwable $e) {
-            $this->membershipLogger->error('Membership creation failed', $this->membershipEventContext($context, 'create', 'failed', [
-                'exception_class' => $e::class,
-                'error' => $e->getMessage(),
-                'exception' => $e,
-            ]));
+            $this->membershipLogger->error('membership.failed',
+                $this->membershipEventContext($loggingContext, 'create', 'failed', [
+                    'error' => $e->getMessage(),
+                    'exception_class' => $e::class,
+                ])
+            );
 
             throw $e;
         }
     }
 
     /**
+     * @throws \DateMalformedStringException
+     * @throws Throwable
      * @throws ExceptionInterface
      */
     public function freeze(Membership $membership): Membership
     {
-        $context = $this->membershipContext($membership);
+        $loggingContext = [
+            'membership_id' => $membership->getId(),
+            'client_id' => $membership->getClient()->getId(),
+        ];
 
-        $this->membershipLogger->info('Membership freeze started', $this->membershipEventContext($context, 'freeze', 'started'));
+        try {
+            if ($membership->getStatus() !== MembershipStatusEnum::ACTIVE) {
+                throw new InvalidMembershipStatusException();
+            }
 
-        if ($membership->getStatus() != MembershipStatusEnum::ACTIVE) {
-            $this->membershipLogger->notice('Membership freeze skipped: membership is not active', $this->membershipEventContext($context, 'freeze', 'skipped'));
-            throw new InvalidMembershipStatusException();
+            $membership->setFrozenAt(new DateTimeImmutable());
+            $membership->setStatus(MembershipStatusEnum::FROZEN);
+
+            $this->entityManager->flush();
+
+            $this->membershipLogger->info('membership.freeze.succeeded',
+                $this->membershipEventContext($loggingContext, 'freeze', 'succeeded')
+            );
+
+            $this->analyticsPublisher->publish(
+                'membership.froze',
+                [
+                    'client_id' => $membership->getClient()->getId(),
+                    'membership_id' => $membership->getId(),
+                    'plan_id' => $membership->getPlan()->getId(),
+                    'price' => $membership->getPayment()->getAmount(),
+                    'payment_method' => $membership->getPayment()?->getMethod()->value ?? 'unknown',
+                ]
+            );
+
+            return $membership;
+        } catch (InvalidMembershipStatusException $e) {
+            $this->membershipLogger->notice('membership.freeze.rejected',
+                $this->membershipEventContext($loggingContext, 'freeze', 'rejected', [
+                    'reason' => $e::class,
+                ])
+            );
+
+            throw $e;
+
+        } catch (Throwable $e) {
+            $this->membershipLogger->error('membership.freeze.failed',
+                $this->membershipEventContext($loggingContext, 'freeze', 'failed', [
+                    'error' => $e->getMessage(),
+                    'exception_class' => $e::class,
+                ])
+            );
+
+            throw $e;
         }
-
-        $membership->setFrozenAt(new DateTimeImmutable());
-        $membership->setStatus(MembershipStatusEnum::FROZEN);
-
-        $this->entityManager->flush();
-
-        $this->membershipLogger->info('Membership frozen', $this->membershipEventContext($this->membershipContext($membership), 'freeze', 'succeeded'));
-
-        $this->analyticsPublisher->publish(
-            'membership.froze',
-            [
-                'client_id' => $membership->getClient()->getId(),
-                'membership_id' => $membership->getId(),
-                'plan_id' => $membership->getPlan()->getId(),
-                'price' => $membership->getPayment()->getAmount(),
-                'payment_method' => $membership->getPayment()?->getMethod()->value ?? 'unknown',
-            ]
-        );
-
-        return $membership;
     }
 
     /**
+     * @throws \DateMalformedStringException
+     * @throws Throwable
      * @throws ExceptionInterface
      */
     public function unfreeze(Membership $membership): Membership
     {
-        $context = $this->membershipContext($membership);
+        $loggingContext = [
+            'membership_id' => $membership->getId(),
+            'client_id' => $membership->getClient()->getId(),
+        ];
 
-        $this->membershipLogger->info('Membership unfreeze started', $this->membershipEventContext($context, 'unfreeze', 'started'));
+        try {
+            if ($membership->getStatus() != MembershipStatusEnum::FROZEN) {
+                throw new InvalidMembershipStatusException("Only frozen membership can be unfrozen");
+            }
 
-        if ($membership->getStatus() != MembershipStatusEnum::FROZEN) {
-            $this->membershipLogger->notice('Membership unfreeze skipped: membership is not frozen', $this->membershipEventContext($context, 'unfreeze', 'skipped'));
-            throw new InvalidMembershipStatusException("Only frozen membership can be unfrozen");
+            $dateInterval = $membership->getFrozenAt()->diff(new DateTimeImmutable());
+            $membership->setEndDate($membership->getEndDate()->add($dateInterval));
+            $membership->setFrozenAt(null);
+            $membership->setStatus(MembershipStatusEnum::ACTIVE);
+
+            $this->entityManager->flush();
+
+            $this->membershipLogger->info('membership.unfreeze.succeeded',
+                $this->membershipEventContext($loggingContext, 'unfreeze', 'succeeded')
+            );
+
+            $this->analyticsPublisher->publish(
+                'membership.unfroze',
+                [
+                    'client_id' => $membership->getClient()->getId(),
+                    'membership_id' => $membership->getId(),
+                    'plan_id' => $membership->getPlan()->getId(),
+                    'price' => $membership->getPayment()->getAmount(),
+                    'payment_method' => $membership->getPayment()?->getMethod()->value ?? 'unknown',
+                ]
+            );
+
+            return $membership;
+        } catch (InvalidMembershipStatusException $e) {
+            $this->membershipLogger->notice('membership.unfreeze.rejected',
+                $this->membershipEventContext($loggingContext, 'unfreeze', 'rejected', [
+                    'reason' => $e::class,
+                ])
+            );
+
+            throw $e;
+
+        } catch (Throwable $e) {
+            $this->membershipLogger->error('membership.unfreeze.failed',
+                $this->membershipEventContext($loggingContext, 'unfreeze', 'failed', [
+                    'error' => $e->getMessage(),
+                    'exception_class' => $e::class,
+                ])
+            );
+
+            throw $e;
         }
-
-        $dateInterval = $membership->getFrozenAt()->diff(new DateTimeImmutable());
-        $membership->setEndDate($membership->getEndDate()->add($dateInterval));
-        $membership->setFrozenAt(null);
-        $membership->setStatus(MembershipStatusEnum::ACTIVE);
-
-        $this->entityManager->flush();
-
-        $this->membershipLogger->info('Membership unfrozen', $this->membershipEventContext($this->membershipContext($membership), 'unfreeze', 'succeeded'));
-
-        $this->analyticsPublisher->publish(
-            'membership.unfroze',
-            [
-                'client_id' => $membership->getClient()->getId(),
-                'membership_id' => $membership->getId(),
-                'plan_id' => $membership->getPlan()->getId(),
-                'price' => $membership->getPayment()->getAmount(),
-                'payment_method' => $membership->getPayment()?->getMethod()->value ?? 'unknown',
-            ]
-        );
-
-        return $membership;
     }
 
     /**
@@ -242,57 +265,95 @@ final readonly class MembershipManager
      */
     public function renew(Membership $membership): Membership
     {
-        $context = $this->membershipContext($membership);
+        $loggingContext = [
+            'membership_id' => $membership->getId(),
+            'client_id' => $membership->getClient()->getId(),
+        ];
 
-        $this->membershipLogger->info('Membership renew started', $this->membershipEventContext($context, 'renew', 'started'));
+        try {
+            if (!$membership->getPlan()) {
+                throw new NotFoundHttpException();
+            }
 
-        if ($membership->getPlan() === null) {
-            $this->membershipLogger->warning('Membership renew failed: plan not found', $this->membershipEventContext($context, 'renew', 'failed'));
-            throw new NotFoundHttpException("This membership type no longer exists");
+            $new = $this->create($membership->getClient(), $membership->getPlan()->getId());
+
+            $this->membershipLogger->info('membership.renew.succeeded',
+                $this->membershipEventContext($loggingContext, 'renew', 'succeeded', [
+                    'new_membership_id' => $new->getId(),
+                ])
+            );
+
+            return $new;
+
+        } catch (Throwable $e) {
+            $this->membershipLogger->error('membership.renew.failed',
+                $this->membershipEventContext($loggingContext, 'renew', 'failed', [
+                    'error' => $e->getMessage(),
+                    'exception_class' => $e::class,
+                ])
+            );
+
+            throw $e;
         }
-
-        $renewedMembership = $this->create($membership->getClient(), $membership->getPlan()->getId());
-
-        $this->membershipLogger->info('Membership renewed', $this->membershipEventContext($this->membershipContext($renewedMembership, [
-            'source_membership_id' => $membership->getId(),
-        ]), 'renew', 'succeeded'));
-
-        return $renewedMembership;
     }
 
     /**
+     * @throws \DateMalformedStringException
+     * @throws Throwable
      * @throws ExceptionInterface
      */
     public function terminate(Membership $membership): Membership
     {
-        $context = $this->membershipContext($membership);
+        $loggingContext = [
+            'membership_id' => $membership->getId(),
+            'client_id' => $membership->getClient()->getId(),
+        ];
 
-        $this->membershipLogger->info('Membership terminate started', $this->membershipEventContext($context, 'terminate', 'started'));
+        try {
+            if ($membership->getStatus() === MembershipStatusEnum::EXPIRED) {
+                throw new InvalidMembershipStatusException('Membership already expired');
+            }
 
-        if ($membership->getStatus() === MembershipStatusEnum::EXPIRED) {
-            $this->membershipLogger->notice('Membership terminate skipped: membership already expired', $this->membershipEventContext($context, 'terminate', 'skipped'));
-            throw new InvalidMembershipStatusException("Membership already expired");
+            $membership->setEndDate(new DateTimeImmutable());
+            $membership->setStatus(MembershipStatusEnum::EXPIRED);
+
+            $this->entityManager->flush();
+
+            $this->membershipLogger->info('membership.terminate.succeeded',
+                $this->membershipEventContext($loggingContext, 'terminate', 'succeeded')
+            );
+
+            $this->analyticsPublisher->publish(
+                'membership.terminated',
+                [
+                    'client_id' => $membership->getClient()->getId(),
+                    'membership_id' => $membership->getId(),
+                    'plan_id' => $membership->getPlan()->getId(),
+                    'price' => $membership->getPayment()->getAmount(),
+                    'payment_method' => $membership->getPayment()?->getMethod()->value ?? 'unknown',
+                ]
+            );
+
+            return $membership;
+        } catch (InvalidMembershipStatusException $e) {
+            $this->membershipLogger->notice('membership.terminate.rejected',
+                $this->membershipEventContext($loggingContext, 'terminate', 'rejected', [
+                    'reason' => $e::class,
+                ])
+            );
+
+            throw $e;
+
+        } catch (Throwable $e) {
+            $this->membershipLogger->error('membership.terminate.failed',
+                $this->membershipEventContext($loggingContext, 'terminate', 'failed', [
+                    'error' => $e->getMessage(),
+                    'exception_class' => $e::class,
+                ])
+            );
+
+            throw $e;
         }
-
-        $membership->setEndDate(new DateTimeImmutable());
-        $membership->setStatus(MembershipStatusEnum::EXPIRED);
-
-        $this->entityManager->flush();
-
-        $this->membershipLogger->info('Membership terminated', $this->membershipEventContext($this->membershipContext($membership), 'terminate', 'succeeded'));
-
-        $this->analyticsPublisher->publish(
-            'membership.terminated',
-            [
-                'client_id' => $membership->getClient()->getId(),
-                'membership_id' => $membership->getId(),
-                'plan_id' => $membership->getPlan()->getId(),
-                'price' => $membership->getPayment()->getAmount(),
-                'payment_method' => $membership->getPayment()?->getMethod()->value ?? 'unknown',
-            ]
-        );
-
-        return $membership;
     }
 
     /**
@@ -304,66 +365,25 @@ final readonly class MembershipManager
         $curDate = new DateTimeImmutable();
         $expiredMemberships = $this->membershipRepo->findExpired($curDate);
 
-        $this->membershipLogger->info('Membership expiration scan started', $this->membershipEventContext([
-            'domain' => 'membership',
-            'evaluated_at' => $curDate->format(DATE_ATOM),
-            'expired_candidates' => count($expiredMemberships),
-        ], 'expire', 'started'));
-
         foreach ($expiredMemberships as $membership) {
             if ($membership->getStatus() === MembershipStatusEnum::ACTIVE && $membership->getEndDate() <= $curDate) {
                 $membership->setStatus(MembershipStatusEnum::EXPIRED);
-
-                $this->membershipLogger->info('Membership expired by scheduler', $this->membershipEventContext($this->membershipContext($membership, [
-                    'evaluated_at' => $curDate->format(DATE_ATOM),
-                ]), 'expire', 'succeeded'));
             }
         }
 
         $this->entityManager->flush();
 
-        $this->membershipLogger->info('Membership expiration scan finished', $this->membershipEventContext([
-            'domain' => 'membership',
-            'evaluated_at' => $curDate->format(DATE_ATOM),
-            'expired_count' => count($expiredMemberships),
-        ], 'expire', 'completed'));
+        $this->membershipLogger->info('membership.expire.succeeded', [
+            'count' => count($expiredMemberships),
+        ]);
 
         return count($expiredMemberships);
-    }
-
-    private function membershipContext(Membership $membership, array $extra = []): array
-    {
-        return $this->membershipActionContext(
-            membership: $membership,
-            client: $membership->getClient(),
-            extra: $extra,
-        );
-    }
-
-    private function membershipActionContext(?Membership $membership = null, ?Client $client = null, array $extra = []): array
-    {
-        return $extra + [
-            'domain' => 'membership',
-            'membership_id' => $membership?->getId(),
-            'client_id' => $client?->getId() ?? $membership?->getClient()?->getId(),
-            'membership_plan_id' => $membership?->getPlan()?->getId(),
-            'membership_plan_name' => $membership?->getPlan()?->getName(),
-            'payment_id' => $membership?->getPayment()?->getId(),
-            'payment_method' => $membership?->getPayment()?->getMethod()?->value,
-            'payment_status' => $membership?->getPayment()?->getStatus()?->value,
-            'status' => $membership?->getStatus()?->value,
-            'visits' => $membership?->getVisits(),
-            'session_limit' => $membership?->getSessionLimit(),
-            'duration_days' => $membership?->getDurationDays(),
-            'start_date' => $membership?->getStartDate()?->format(DATE_ATOM),
-            'end_date' => $membership?->getEndDate()?->format(DATE_ATOM),
-            'frozen_at' => $membership?->getFrozenAt()?->format(DATE_ATOM),
-        ];
     }
 
     private function membershipEventContext(array $context, string $operation, string $outcome, array $extra = []): array
     {
         return $extra + $context + [
+            'domain' => 'membership',
             'operation' => $operation,
             'outcome' => $outcome,
         ];
