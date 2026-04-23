@@ -24,7 +24,7 @@ final readonly class CreateTrainerRequest
         public int $trainingTypeId,
         #[Assert\NotBlank]
         #[Assert\Positive]
-        public string $pricePerHour,
+        public int $pricePerHour,
         #[Assert\NotBlank]
         public string $photoUrl,
         public ?string $education,

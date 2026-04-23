@@ -13,7 +13,6 @@ final readonly class PaymentResponse
 {
     public function __construct(
         public int $id,
-        public ?TrainerResponse $trainer = null,
         public int $amount,
         public string $currency,
         public PaymentCategoryEnum $category,
@@ -24,6 +23,7 @@ final readonly class PaymentResponse
         public ?string $paidAt,
         public ?string $confirmedAt,
         public ?string $expiresAt,
+        public ?TrainerResponse $trainer = null,
     )
     {}
 
@@ -31,7 +31,6 @@ final readonly class PaymentResponse
     {
         return new self(
             id: $payment->getId(),
-            trainer: $payment->getTrainer() ? TrainerResponse::fromEntity($payment->getTrainer()) : null,
             amount: $payment->getAmount(),
             currency: $payment->getCurrency(),
             category: $payment->getCategory(),
@@ -42,6 +41,7 @@ final readonly class PaymentResponse
             paidAt: $payment->getPaidAt()?->format(DATE_ATOM) ?? '',
             confirmedAt: $payment->getConfirmedAt()?->format(DATE_ATOM) ?? '',
             expiresAt: $payment->getExpiresAt()?->format(DATE_ATOM) ?? '',
+            trainer: $payment->getTrainer() ? TrainerResponse::fromEntity($payment->getTrainer()) : null,
         );
     }
 }

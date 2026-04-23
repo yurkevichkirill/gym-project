@@ -8,6 +8,7 @@ use App\TrainingType\DTO\GetTrainingTypes;
 use App\TrainingType\Repository\TrainingTypeRepository;
 use Psr\Cache\InvalidArgumentException;
 use Symfony\Component\Cache\CacheItem;
+use Symfony\Contracts\Cache\ItemInterface;
 use Symfony\Contracts\Cache\TagAwareCacheInterface;
 
 final readonly class TrainingTypeQuery
@@ -24,7 +25,7 @@ final readonly class TrainingTypeQuery
     {
         $cacheKey = $this->generateCacheKey($dto);
 
-        return $this->cache->get($cacheKey, function (CacheItem $item) use ($dto) {
+        return $this->cache->get($cacheKey, function (ItemInterface $item, bool $save) use ($dto) {
             $item->expiresAfter(3600);
 
             $qb = $this->repo->createQueryBuilder('t');

@@ -48,7 +48,7 @@ final class ApiLoginController extends AbstractController
             true,
             true,
             false,
-            'None'
+            'none'
         );
 
         $refreshTokenCookie = Cookie::create(
@@ -60,7 +60,7 @@ final class ApiLoginController extends AbstractController
             true,
             true,
             false,
-            'None',
+            'none',
         );
 
         $response->headers->setCookie($accessTokenCookie);
@@ -96,7 +96,7 @@ final class ApiLoginController extends AbstractController
                 true,
                 true,
                 false,
-                'None'
+                'none'
             )
         );
 
@@ -110,7 +110,7 @@ final class ApiLoginController extends AbstractController
                 true,
                 true,
                 false,
-                'None'
+                'none'
             )
         );
 

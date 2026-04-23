@@ -9,7 +9,7 @@ use App\Payment\DTO\PaymentFilter;
 use App\Payment\Repository\PaymentRepository;
 use Doctrine\ORM\QueryBuilder;
 use Psr\Cache\InvalidArgumentException;
-use Symfony\Component\Cache\CacheItem;
+use Symfony\Contracts\Cache\ItemInterface;
 use Symfony\Contracts\Cache\TagAwareCacheInterface;
 
 final readonly class PaymentsQuery
@@ -27,7 +27,7 @@ final readonly class PaymentsQuery
     {
         $cacheKey = $this->generateCacheKey($dto);
 
-        return $this->gymCache->get($cacheKey, function (CacheItem $item) use ($dto): array {
+        return $this->gymCache->get($cacheKey, function (ItemInterface $item, bool $save) use ($dto): array {
             $item->expiresAfter(3600);
 
             $qb = $this->createQuery($dto->filter);

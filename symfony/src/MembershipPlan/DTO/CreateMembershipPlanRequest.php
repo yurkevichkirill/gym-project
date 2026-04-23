@@ -18,7 +18,7 @@ final readonly class CreateMembershipPlanRequest
         public ?int $sessionLimit,
         #[Assert\NotBlank]
         #[Assert\Positive]
-        public string $price,
+        public int $price,
     )
     {}
 }

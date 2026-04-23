@@ -10,6 +10,7 @@ use App\Trainer\Repository\TrainerRepository;
 use Doctrine\ORM\QueryBuilder;
 use Psr\Cache\InvalidArgumentException;
 use Symfony\Component\Cache\CacheItem;
+use Symfony\Contracts\Cache\ItemInterface;
 use Symfony\Contracts\Cache\TagAwareCacheInterface;
 
 final readonly class TrainersQuery
@@ -30,7 +31,7 @@ final readonly class TrainersQuery
     {
         $cacheKey = $this->generateCacheKey($dto);
 
-        return $this->cache->get($cacheKey, function (CacheItem $item) use ($dto) {
+        return $this->cache->get($cacheKey, function (ItemInterface $item, bool $save) use ($dto) {
             $item->expiresAfter(3600);
 
             $qb = $this->createQuery($dto->filter);

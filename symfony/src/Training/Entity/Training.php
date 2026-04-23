@@ -29,7 +29,7 @@ class Training
     #[Assert\NotBlank]
     private ?\DateTimeImmutable $startTime = null;
 
-    #[ORM\Column(options: ['default' => 60, 'check' => "duration_minutes" > 0])]
+    #[ORM\Column(options: ['default' => 60])]
     #[Groups(['public-training', 'create-update-training'])]
     #[Assert\NotBlank]
     #[Assert\Positive]

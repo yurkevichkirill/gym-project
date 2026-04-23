@@ -49,7 +49,7 @@ final readonly class RequestParser
         return $result;
     }
 
-    public function toPositiveInt(?string $value, string $fieldName = 'value'): ?int
+    public function toPositiveInt(?string $value, string $fieldName = 'value'): int
     {
         $result = $this->toInt($value);
 
@@ -85,7 +85,7 @@ final readonly class RequestParser
         foreach (explode(',', $sortRaw) as $item) {
             $exploded = explode(':', $item);
 
-            $field = $exploded[0] ?? null;
+            $field = $exploded[0];
 
             if (!$field || !in_array($field, $allowedParams, true)) {
                 throw new BadRequestHttpException("Invalid sort field: $field");

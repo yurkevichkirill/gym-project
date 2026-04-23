@@ -21,7 +21,7 @@ class MembershipPlan
     #[ORM\Column(length: 255)]
     private ?string $name = null;
 
-    #[ORM\Column(options: ['check' => "duration_days" > 0])]
+    #[ORM\Column]
     private ?int $durationDays = null;
 
     #[ORM\Column(nullable: true)]

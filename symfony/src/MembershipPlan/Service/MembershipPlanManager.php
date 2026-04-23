@@ -9,8 +9,6 @@ use App\MembershipPlan\DTO\UpdateMembershipPlanRequest;
 use App\MembershipPlan\Entity\MembershipPlan;
 use App\MembershipPlan\Repository\MembershipPlanRepository;
 use Doctrine\ORM\EntityManagerInterface;
-use Doctrine\ORM\Exception\ORMException;
-use Doctrine\ORM\OptimisticLockException;
 
 final readonly class MembershipPlanManager
 {

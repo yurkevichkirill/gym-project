@@ -14,11 +14,11 @@ final readonly class AdminUpdateTrainerRequest
         public ?string $email,
         public ?string $phone,
         public ?string $password,
-        public ?string $pricePerHour,
+        public ?int $pricePerHour,
         public ?string $photoUrl,
         public ?string $education,
         public ?string $about,
-        public ?string $balance,
+        public ?int $balance,
     )
     {}
 }
