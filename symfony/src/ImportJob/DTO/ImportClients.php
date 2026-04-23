@@ -17,11 +17,11 @@ final readonly class ImportClients
     public static function fromArray(CreateClientImport $data): self
     {
         return new self(
-            email: $data?->email,
-            firstName: $data?->firstName,
-            lastName: $data?->lastName,
-            phone: $data?->phone,
-            age: isset($data->age) ? (int) $data->age : null,
+            email: $data->email,
+            firstName: $data->firstName,
+            lastName: $data->lastName,
+            phone: $data->phone,
+            age: (int) $data->age,
         );
     }
 }

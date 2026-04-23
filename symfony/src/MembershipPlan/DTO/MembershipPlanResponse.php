@@ -12,8 +12,8 @@ final readonly class MembershipPlanResponse
         public int $id,
         public string $name,
         public int $durationDays,
-        public ?int $sessionLimit = null,
         public int $price,
+        public ?int $sessionLimit = null,
     )
     {}
 
@@ -23,8 +23,8 @@ final readonly class MembershipPlanResponse
             id: $membershipPlan->getId(),
             name: $membershipPlan->getName(),
             durationDays: $membershipPlan->getDurationDays(),
-            sessionLimit: $membershipPlan->getSessionLimit(),
             price: $membershipPlan->getPrice(),
+            sessionLimit: $membershipPlan->getSessionLimit(),
         );
     }
 }

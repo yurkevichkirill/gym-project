@@ -10,7 +10,7 @@ final readonly class AdminUpdateClientRequest
         public ?int $age = null,
         public ?string $firstName = null,
         public ?string $lastName = null,
-        public ?string $balance = null,
+        public ?int $balance = null,
         public ?string $email = null,
         public ?string $phone = null,
         public ?string $password = null,

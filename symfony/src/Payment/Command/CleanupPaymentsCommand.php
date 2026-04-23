@@ -9,10 +9,10 @@ use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 
 #[AsCommand(name: 'app:payments:cleanup')]
-class CleanupPaymentsCommand
+readonly class CleanupPaymentsCommand
 {
     public function __construct(
-        private PaymentService $paymentService
+        private PaymentService $paymentService,
     )
     {}
 

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Training\DTO;
 
+use App\Booking\Enum\BookingStatusEnum;
 use App\Client\Entity\Client;
 use App\Trainer\Entity\Trainer;
 use DateTimeImmutable;
@@ -16,6 +17,6 @@ final readonly class TrainingFilter
         public ?DateTimeImmutable $date,
         public ?int               $durationMinutes,
         public ?DateTimeImmutable $startTime,
-        public ?string            $status,
+        public ?BookingStatusEnum $status,
     ) {}
 }

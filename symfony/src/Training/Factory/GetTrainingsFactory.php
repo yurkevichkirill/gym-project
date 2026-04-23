@@ -12,8 +12,6 @@ use App\Trainer\Entity\Trainer;
 use App\Trainer\Repository\TrainerRepository;
 use App\Training\DTO\GetTrainings;
 use App\Training\DTO\TrainingFilter;
-use DateTimeImmutable;
-use Exception;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -69,8 +67,8 @@ final readonly class GetTrainingsFactory
         return new GetTrainings(
             sort: $this->parser->parseSort($request->query->get('sort', 'bookedAt:ASC'), $allowedParams),
             filter: $filter,
-            page: $this->parser->toPositiveInt($request->query->get('page'), 'page') ?? 1,
-            limit: $this->parser->toPositiveInt($request->query->get('limit'), 'limit') ?? 20,
+            page: $this->parser->toPositiveInt($request->query->get('page'), 'page'),
+            limit: $this->parser->toPositiveInt($request->query->get('limit'), 'limit'),
         );
     }
 }

@@ -20,6 +20,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use LogicException;
 use Psr\Log\LoggerInterface;
 use Stripe\Exception\ApiErrorException;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Throwable;
 
 final readonly class PaymentService
@@ -158,6 +159,19 @@ final readonly class PaymentService
     /**
      * @throws Throwable
      */
+    public function confirmPaymentByStripeIntentId(string $intentId): void
+    {
+        $payment = $this->paymentRepo->findOneByStripePaymentIntentId($intentId);
+        if ($payment === null) {
+            throw new NotFoundHttpException('Payment for Stripe intent was not found');
+        }
+
+        $this->confirmPayment($payment);
+    }
+
+    /**
+     * @throws Throwable
+     */
     public function failPayment(Payment $payment): void
     {
         try {
@@ -187,6 +201,19 @@ final readonly class PaymentService
 
             throw $e;
         }
+    }
+
+    /**
+     * @throws Throwable
+     */
+    public function failPaymentByStripeIntentId(string $intentId): void
+    {
+        $payment = $this->paymentRepo->findOneByStripePaymentIntentId($intentId);
+        if ($payment === null) {
+            throw new NotFoundHttpException('Payment for Stripe intent was not found');
+        }
+
+        $this->failPayment($payment);
     }
 
     /**
@@ -236,6 +263,19 @@ final readonly class PaymentService
 
             throw $e;
         }
+    }
+
+    /**
+     * @throws Throwable
+     */
+    public function refundPaymentByStripeIntentId(string $intentId): void
+    {
+        $payment = $this->paymentRepo->findOneByStripePaymentIntentId($intentId);
+        if ($payment === null) {
+            throw new NotFoundHttpException('Payment for Stripe intent was not found');
+        }
+
+        $this->refundPayment($payment);
     }
 
     /**
@@ -294,6 +334,21 @@ final readonly class PaymentService
 
         $this->stripeService->cancelPaymentIntent($payment);
         $this->cancelPayment($payment);
+    }
+
+    public function cancelExpiredPayments(): void
+    {
+        $payments = $this->paymentRepo->findAll();
+
+        $now = new DateTimeImmutable();
+
+        foreach ($payments as $payment) {
+            if ($payment->getExpiresAt() < $now) {
+                $payment->setStatus(PaymentStatusEnum::CANCELED);
+            }
+        }
+
+        $this->em->flush();
     }
 
     private function paymentEventContext(Payment $payment, string $operation, string $outcome, array $extra = []): array

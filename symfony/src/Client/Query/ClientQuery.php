@@ -8,7 +8,8 @@ use App\Client\DTO\ClientFilter;
 use App\Client\DTO\GetClients;
 use App\Client\Repository\ClientRepository;
 use Doctrine\ORM\QueryBuilder;
-use Symfony\Component\Cache\CacheItem;
+use Psr\Cache\InvalidArgumentException;
+use Symfony\Contracts\Cache\ItemInterface;
 use Symfony\Contracts\Cache\TagAwareCacheInterface;
 
 final readonly class ClientQuery
@@ -18,11 +19,14 @@ final readonly class ClientQuery
         private TagAwareCacheInterface $gymCache
     ) {}
 
+    /**
+     * @throws InvalidArgumentException
+     */
     public function handle(GetClients $dto): array
     {
         $cacheKey = $this->generateCacheKey($dto);
 
-        return $this->gymCache->get($cacheKey, function (CacheItem $item) use ($dto): array {
+        return $this->gymCache->get($cacheKey, function (ItemInterface $item, bool $save) use ($dto): array {
             $item->expiresAfter(3600);
 
             $qb = $this->createQuery($dto->filter);

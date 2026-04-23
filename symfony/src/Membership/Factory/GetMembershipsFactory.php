@@ -53,8 +53,8 @@ final readonly class GetMembershipsFactory
         return new GetMemberships(
             sort: $this->parser->parseSort($request->query->get('sort', 'startDate:ASC'), $allowedSortParams),
             filter: $filter,
-            page: $this->parser->toPositiveInt($request->query->get('page'), 'page') ?? 1,
-            limit: $this->parser->toPositiveInt($request->query->get('limit'), 'limit') ?? 20,
+            page: $this->parser->toPositiveInt($request->query->get('page'), 'page'),
+            limit: $this->parser->toPositiveInt($request->query->get('limit'), 'limit'),
         );
     }
 }

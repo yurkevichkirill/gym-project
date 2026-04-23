@@ -191,10 +191,6 @@ class Payment
     public function initializeDefaults(): void
     {
         $this->createdAt = new DateTimeImmutable();
-
-        if ($this->status === null) {
-            $this->status = PaymentStatusEnum::PENDING;
-        }
     }
 
     public function getClientFullName(): ?string

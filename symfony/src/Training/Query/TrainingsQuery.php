@@ -4,13 +4,12 @@ declare(strict_types=1);
 
 namespace App\Training\Query;
 
-use App\Trainer\Repository\TrainerRepository;
 use App\Training\DTO\GetTrainings;
 use App\Training\DTO\TrainingFilter;
 use App\Training\Repository\TrainingRepository;
 use Doctrine\ORM\QueryBuilder;
 use Psr\Cache\InvalidArgumentException;
-use Symfony\Component\Cache\CacheItem;
+use Symfony\Contracts\Cache\ItemInterface;
 use Symfony\Contracts\Cache\TagAwareCacheInterface;
 
 class TrainingsQuery
@@ -23,8 +22,8 @@ class TrainingsQuery
     ];
 
     public function __construct(
-        private TrainingRepository     $trainingRepo,
-        private TagAwareCacheInterface $gymCache
+        private readonly TrainingRepository $trainingRepo,
+        private readonly TagAwareCacheInterface $gymCache
     )
     {}
 
@@ -35,7 +34,7 @@ class TrainingsQuery
     {
         $cacheKey = $this->generateCacheKey($dto);
 
-        return $this->gymCache->get($cacheKey, function (CacheItem $item) use ($dto): array {
+        return $this->gymCache->get($cacheKey, function (ItemInterface $item, bool $save) use ($dto): array {
 
             $item->expiresAfter(3600);
 
