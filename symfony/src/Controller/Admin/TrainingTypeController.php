@@ -4,7 +4,6 @@ namespace App\Controller\Admin;
 
 use App\Response\ItemResponse;
 use App\Response\NoContentResponse;
-use App\Response\OkResponse;
 use App\TrainingType\DTO\CreateTrainingTypeRequest;
 use App\TrainingType\DTO\UpdateTrainingTypeRequest;
 use App\TrainingType\Entity\TrainingType;
@@ -13,7 +12,6 @@ use App\TrainingType\Service\TrainingTypeManager;
 use Nelmio\ApiDocBundle\Attribute\Model;
 use OpenApi\Attributes as OA;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
