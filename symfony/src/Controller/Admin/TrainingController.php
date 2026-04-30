@@ -5,7 +5,6 @@ namespace App\Controller\Admin;
 use App\Response\CollectionResponse;
 use App\Response\ItemResponse;
 use App\Response\NoContentResponse;
-use App\Response\OkResponse;
 use App\Trainer\Entity\Trainer;
 use App\Training\DTO\TrainingUpdateRequest;
 use App\Training\Entity\Training;
@@ -40,7 +39,7 @@ final class TrainingController extends AbstractController
     #[OA\Parameter(name: 'page', in: 'query', example: 1)]
     #[OA\Parameter(name: 'limit', in: 'query', example: 20)]
     #[OA\Tag(name: "Admin: Training")]
-    #[IsGranted('ROLE_TRAINER')]
+    #[IsGranted('ROLE_ADMIN')]
     public function getAll(
         TrainingMapperInterface $mapper,
         TrainingsQuery $handler,
@@ -77,7 +76,7 @@ final class TrainingController extends AbstractController
     #[OA\Parameter(name: 'page', in: 'query', example: 1)]
     #[OA\Parameter(name: 'limit', in: 'query', example: 20)]
     #[OA\Tag(name: "Admin: Training")]
-    #[IsGranted('ROLE_TRAINER')]
+    #[IsGranted('ROLE_ADMIN')]
     public function getAllByTrainer(
         TrainingMapperInterface $mapper,
         Trainer $trainer,
