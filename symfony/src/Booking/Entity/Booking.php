@@ -10,8 +10,6 @@ use App\Training\Entity\Training;
 use DateTimeImmutable;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
-use Symfony\Component\Serializer\Attribute\Groups;
-use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\HasLifecycleCallbacks]
 #[ORM\Entity(repositoryClass: BookingRepository::class)]
@@ -20,13 +18,10 @@ class Booking
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups('public-booking')]
     private ?int $id = null;
 
     #[ORM\ManyToOne(inversedBy: 'bookings')]
     #[ORM\JoinColumn(nullable: false)]
-    #[Groups('public-booking')]
-    #[Assert\NotBlank]
     private ?Client $client = null;
 
     #[ORM\OneToOne(
