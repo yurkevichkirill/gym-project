@@ -200,3 +200,7 @@ final readonly class ClientManager
         return $payment;
     }
 }
+
+//fn($trainingSlot) =>
+//    $startTime >= $trainingSlot['end'] ||
+//    $endTime <= $trainingSlot['start']
