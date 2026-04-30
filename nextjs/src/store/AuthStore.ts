@@ -65,9 +65,7 @@ export const authStore: AuthStore = {
     logout: async () => {
         await apiPost(
             "/logout/",
-            {
-                credentials: "include"
-            }
+            {}
         );
 
         authStore.user = null;
