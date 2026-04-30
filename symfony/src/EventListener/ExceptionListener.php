@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace App\EventListener;
 
-use App\Exception\InvalidMembershipStatusException;
-use App\Exception\NoActiveMembershipException;
 use LogicException;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
@@ -17,11 +15,13 @@ use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\HttpKernel\Exception\UnauthorizedHttpException;
 use Symfony\Component\HttpKernel\KernelEvents;
+use Symfony\Component\HttpKernel\KernelInterface;
 
 final readonly class ExceptionListener
 {
     public function __construct(
         private LoggerInterface $requestLogger,
+        private KernelInterface $kernel,
     ) {}
 
     #[AsEventListener(event: KernelEvents::EXCEPTION)]
@@ -70,7 +70,7 @@ final readonly class ExceptionListener
             'request_id' => is_string($requestId) && $requestId !== '' ? $requestId : null,
         ];
 
-        if ($_ENV['APP_ENV'] === 'dev') {
+        if ($this->kernel->getEnvironment() === 'dev') {
             $responseData['trace'] = $exception->getTrace();
         }
 
