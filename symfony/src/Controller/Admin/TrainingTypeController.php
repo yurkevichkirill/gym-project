@@ -2,6 +2,8 @@
 
 namespace App\Controller\Admin;
 
+use App\Response\ItemResponse;
+use App\Response\NoContentResponse;
 use App\Response\OkResponse;
 use App\TrainingType\DTO\CreateTrainingTypeRequest;
 use App\TrainingType\DTO\UpdateTrainingTypeRequest;
@@ -26,11 +28,11 @@ final class TrainingTypeController extends AbstractController
         #[MapRequestPayload] CreateTrainingTypeRequest $requestDto,
         TrainingTypeManager $manager,
         TrainingTypeMapperInterface $mapper,
-    ): OkResponse
+    ): ItemResponse
     {
         $responseDto = $mapper->map($manager->create($requestDto));
 
-        return new OkResponse(
+        return new ItemResponse(
             data: $responseDto,
             status: 201,
         );
@@ -45,11 +47,11 @@ final class TrainingTypeController extends AbstractController
         TrainingType $trainingType,
         TrainingTypeManager $manager,
         TrainingTypeMapperInterface $mapper,
-    ): OkResponse
+    ): ItemResponse
     {
         $responseDto = $mapper->map($manager->update($requestDto, $trainingType));
 
-        return new OkResponse(
+        return new ItemResponse(
             data: $responseDto,
             status: 201,
         );
@@ -61,10 +63,10 @@ final class TrainingTypeController extends AbstractController
     public function delete(
         TrainingType $trainingType,
         TrainingTypeManager $manager,
-    ): Response
+    ): NoContentResponse
     {
         $manager->remove($trainingType);
 
-        return new Response(status: Response::HTTP_NO_CONTENT);
+        return new NoContentResponse();
     }
 }

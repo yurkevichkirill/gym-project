@@ -7,6 +7,8 @@ use App\Payment\Entity\Payment;
 use App\Payment\Factory\GetPaymentsFactory;
 use App\Payment\Mapper\PaymentMapperInterface;
 use App\Payment\Query\PaymentsQuery;
+use App\Response\CollectionResponse;
+use App\Response\ItemResponse;
 use App\Response\OkResponse;
 use OpenApi\Attributes as OA;
 use Psr\Cache\InvalidArgumentException;
@@ -40,7 +42,7 @@ final class PaymentController extends AbstractController
         PaymentMapperInterface $mapper,
         PaymentsQuery $handler,
         GetPaymentsFactory $factory,
-    ): OkResponse
+    ): CollectionResponse
     {
         $queryDto = $factory->fromRequest(
             request: $request,
@@ -48,7 +50,7 @@ final class PaymentController extends AbstractController
 
         $payments = $handler->handle($queryDto);
 
-        return new OkResponse(
+        return new CollectionResponse(
             array_map(fn ($payment) => $mapper->map($payment), $payments),
             $queryDto->page,
             $queryDto->limit,
@@ -77,7 +79,7 @@ final class PaymentController extends AbstractController
         PaymentMapperInterface $mapper,
         PaymentsQuery $handler,
         GetPaymentsFactory $factory,
-    ): OkResponse
+    ): CollectionResponse
     {
         $queryDto = $factory->fromRequest(
             request: $request,
@@ -86,7 +88,7 @@ final class PaymentController extends AbstractController
 
         $payments = $handler->handle($queryDto);
 
-        return new OkResponse(
+        return new CollectionResponse(
             array_map(fn ($payment) => $mapper->map($payment), $payments),
             $queryDto->page,
             $queryDto->limit,
@@ -102,9 +104,9 @@ final class PaymentController extends AbstractController
     public function get(
         Payment $payment,
         PaymentMapperInterface $mapper,
-    ): OkResponse
+    ): ItemResponse
     {
-        return new OkResponse(
+        return new ItemResponse(
             data: $mapper->map($payment),
             status: Response::HTTP_OK,
         );

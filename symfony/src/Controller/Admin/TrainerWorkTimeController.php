@@ -2,6 +2,8 @@
 
 namespace App\Controller\Admin;
 
+use App\Response\ItemResponse;
+use App\Response\NoContentResponse;
 use App\Response\OkResponse;
 use App\Trainer\Entity\Trainer;
 use App\TrainerWorkTime\DTO\CreateWorkTimeRequest;
@@ -18,11 +20,12 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
+use Throwable;
 
 final class TrainerWorkTimeController extends AbstractController
 {
     /**
-     * @throws DateMalformedStringException
+     * @throws DateMalformedStringException|Throwable
      */
     #[Route('/api/trainers/{id}/worktime/', methods: ['POST'], format: 'json')]
     #[OA\RequestBody(content: new Model(type: CreateWorkTimeRequest::class))]
@@ -33,11 +36,11 @@ final class TrainerWorkTimeController extends AbstractController
         #[MapRequestPayload] CreateWorkTimeRequest $requestDto,
         WorkTimeMapperInterface                    $mapper,
         WorkTimeManager                            $manager,
-    ): OkResponse
+    ): ItemResponse
     {
         $responseDto = $mapper->map($manager->create($trainer, $requestDto));
 
-        return new OkResponse(
+        return new ItemResponse(
             data: $responseDto,
             status: Response::HTTP_CREATED,
         );
@@ -45,7 +48,7 @@ final class TrainerWorkTimeController extends AbstractController
 
     /**
      * @throws DateMalformedStringException
-     * @throws DateMalformedIntervalStringException
+     * @throws DateMalformedIntervalStringException|Throwable
      */
     #[Route('/api/admin/worktime/{id}/', methods: ['PUT', 'PATCH'], format: 'json')]
     #[OA\RequestBody(content: new Model(type: UpdateWorkTimeRequest::class))]
@@ -56,27 +59,29 @@ final class TrainerWorkTimeController extends AbstractController
         #[MapRequestPayload] UpdateWorkTimeRequest $requestDto,
         WorkTimeMapperInterface $mapper,
         WorkTimeManager $manager,
-    ): OkResponse
+    ): ItemResponse
     {
         $responseDto = $mapper->map($manager->update($worktime, $requestDto, true));
 
-        return new OkResponse(
+        return new ItemResponse(
             data: $responseDto,
             status: Response::HTTP_OK,
         );
     }
 
-    #change route
+    /**
+     * @throws Throwable
+     */
     #[Route('/api/admin/worktime/{id}/', methods: ['DELETE'], format: 'json')]
     #[OA\Tag(name: "Admin: WorkTime")]
     #[IsGranted('ROLE_ADMIN')]
     public function remove(
         TrainerWorkTime $worktime,
         WorkTimeManager $manager,
-    ): Response
+    ): NoContentResponse
     {
         $manager->remove($worktime);
 
-        return new Response(status: Response::HTTP_NO_CONTENT);
+        return new NoContentResponse();
     }
 }

@@ -11,7 +11,10 @@ use App\Membership\Mapper\MembershipMapperInterface;
 use App\Membership\Query\MembershipQuery;
 use App\Membership\Service\MembershipManager;
 use App\MembershipPlan\Repository\MembershipPlanRepository;
+use App\Response\CollectionResponse;
+use App\Response\ItemResponse;
 use App\Response\OkResponse;
+use DateMalformedStringException;
 use Nelmio\ApiDocBundle\Attribute\Model;
 use OpenApi\Attributes as OA;
 use Psr\Cache\InvalidArgumentException;
@@ -19,8 +22,10 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
+use Symfony\Component\Messenger\Exception\ExceptionInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
+use Throwable;
 
 final class MembershipController extends AbstractController
 {
@@ -42,7 +47,7 @@ final class MembershipController extends AbstractController
         MembershipMapperInterface $mapper,
         MembershipQuery $handler,
         GetMembershipsFactory $factory,
-    ): OkResponse
+    ): CollectionResponse
     {
 
         $queryDto = $factory->fromRequest(
@@ -51,7 +56,7 @@ final class MembershipController extends AbstractController
 
         $memberships = $handler->handle($queryDto);
 
-        return new OkResponse(
+        return new CollectionResponse(
             array_map(fn ($membership) => $mapper->map($membership), $memberships),
             $queryDto->page,
             $queryDto->limit,
@@ -61,6 +66,9 @@ final class MembershipController extends AbstractController
         );
     }
 
+    /**
+     * @throws InvalidArgumentException
+     */
     #[Route('/api/clients/{id}/memberships/', methods: ['GET'], format: 'json')]
     #[OA\Parameter(name: 'membershipPlanId', in: 'query', example: 6)]
     #[OA\Parameter(name: 'status', in: 'query', example: 'active')]
@@ -77,7 +85,7 @@ final class MembershipController extends AbstractController
         MembershipMapperInterface $mapper,
         MembershipQuery $handler,
         GetMembershipsFactory $factory,
-    ): OkResponse
+    ): CollectionResponse
     {
 
         $queryDto = $factory->fromRequest(
@@ -87,7 +95,7 @@ final class MembershipController extends AbstractController
 
         $memberships = $handler->handle($queryDto);
 
-        return new OkResponse(
+        return new CollectionResponse(
             array_map(fn ($membership) => $mapper->map($membership), $memberships),
             $queryDto->page,
             $queryDto->limit,
@@ -103,14 +111,19 @@ final class MembershipController extends AbstractController
     public function get(
         Membership $membership,
         MembershipMapperInterface $mapper
-    ): OkResponse
+    ): ItemResponse
     {
-        return new OkResponse(
+        return new ItemResponse(
             data: $mapper->map($membership),
             status: Response::HTTP_OK,
         );
     }
 
+    /**
+     * @throws DateMalformedStringException
+     * @throws Throwable
+     * @throws ExceptionInterface
+     */
     #[Route('/api/clients/{id}/membership/', methods: ['POST'], format: 'json')]
     #[OA\RequestBody(content: new Model(type: CreateMembershipRequest::class))]
     #[OA\Tag(name: "Admin: Membership")]
@@ -120,16 +133,21 @@ final class MembershipController extends AbstractController
         #[MapRequestPayload] CreateMembershipRequest $requestDto,
         MembershipMapperInterface $mapper,
         MembershipManager $manager,
-    ): OkResponse
+    ): ItemResponse
     {
         $responseDto = $mapper->map($manager->create($client, $requestDto->membershipPlanId));
 
-        return new OkResponse(
+        return new ItemResponse(
             data: $responseDto,
             status: Response::HTTP_CREATED,
         );
     }
 
+    /**
+     * @throws DateMalformedStringException
+     * @throws Throwable
+     * @throws ExceptionInterface
+     */
     #[Route('/api/memberships/{id}/freeze/', methods: ['POST'], format: 'json')]
     #[OA\Tag(name: "Admin: Membership")]
     #[IsGranted('ROLE_ADMIN')]
@@ -137,16 +155,21 @@ final class MembershipController extends AbstractController
         Membership $membership,
         MembershipMapperInterface $mapper,
         MembershipManager $manager,
-    ): OkResponse
+    ): ItemResponse
     {
         $responseDto = $mapper->map($manager->freeze($membership));
 
-        return new OkResponse(
+        return new ItemResponse(
             data: $responseDto,
             status: Response::HTTP_OK,
         );
     }
 
+    /**
+     * @throws DateMalformedStringException
+     * @throws Throwable
+     * @throws ExceptionInterface
+     */
     #[Route('/api/memberships/{id}/unfreeze/', methods: ['POST'], format: 'json')]
     #[OA\Tag(name: "Admin: Membership")]
     #[IsGranted('ROLE_ADMIN')]
@@ -154,16 +177,19 @@ final class MembershipController extends AbstractController
         Membership $membership,
         MembershipMapperInterface $mapper,
         MembershipManager $manager,
-    ): OkResponse
+    ): ItemResponse
     {
         $responseDto = $mapper->map($manager->unfreeze($membership));
 
-        return new OkResponse(
+        return new ItemResponse(
             data: $responseDto,
             status: Response::HTTP_OK,
         );
     }
 
+    /**
+     * @throws Throwable
+     */
     #[Route('/api/memberships/{id}/renew/', methods: ['POST'], format: 'json')]
     #[OA\Tag(name: "Admin: Membership")]
     #[IsGranted('ROLE_ADMIN')]
@@ -171,16 +197,21 @@ final class MembershipController extends AbstractController
         Membership $membership,
         MembershipMapperInterface $mapper,
         MembershipManager $manager,
-    ): OkResponse
+    ): ItemResponse
     {
         $responseDto = $mapper->map($manager->renew($membership));
 
-        return new OkResponse(
+        return new ItemResponse(
             data: $responseDto,
             status: Response::HTTP_OK,
         );
     }
 
+    /**
+     * @throws DateMalformedStringException
+     * @throws Throwable
+     * @throws ExceptionInterface
+     */
     #[Route('/api/memberships/{id}/terminate/', methods: ['POST'], format: 'json')]
     #[OA\Tag(name: "Admin: Membership")]
     #[IsGranted('ROLE_ADMIN')]
@@ -188,11 +219,11 @@ final class MembershipController extends AbstractController
         Membership $membership,
         MembershipMapperInterface $mapper,
         MembershipManager $manager,
-    ): OkResponse
+    ): ItemResponse
     {
         $responseDto = $mapper->map($manager->terminate($membership));
 
-        return new OkResponse(
+        return new ItemResponse(
             data: $responseDto,
             status: Response::HTTP_OK,
         );

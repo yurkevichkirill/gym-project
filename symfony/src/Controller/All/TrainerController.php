@@ -2,6 +2,8 @@
 
 namespace App\Controller\All;
 
+use App\Response\CollectionResponse;
+use App\Response\ItemResponse;
 use App\Response\OkResponse;
 use App\Trainer\DTO\GetTrainers;
 use App\Trainer\Entity\Trainer;
@@ -13,6 +15,7 @@ use OpenApi\Attributes as OA;
 use Psr\Cache\InvalidArgumentException;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Attribute\Cache;
 use Symfony\Component\Routing\Attribute\Route;
 
@@ -35,29 +38,29 @@ final class TrainerController extends AbstractController
         TrainerMapperInterface $mapper,
         TrainersQuery $handler,
         GetTrainersFactory $factory,
-    ): OkResponse
+    ): CollectionResponse
     {
         $queryDto = $factory->fromRequest($request);
 
         $trainers = $handler->handle($queryDto);
 
-        return new OkResponse(
+        return new CollectionResponse(
             array_map(fn ($trainer) => $mapper->map($trainer), $trainers),
             $queryDto->page,
             $queryDto->limit,
             $handler->getTotal($queryDto->filter),
             $queryDto->sort,
-            200,
+            Response::HTTP_OK,
         );
     }
 
     #[Route('/api/trainers/{id}/', methods: ['GET'], format: 'json')]
     #[OA\Tag(name: "All: Trainers")]
-    public function get(Trainer $trainer, TrainerMapperInterface $mapper): OkResponse
+    public function get(Trainer $trainer, TrainerMapperInterface $mapper): ItemResponse
     {
-        return new OkResponse(
+        return new ItemResponse(
             data: $mapper->map($trainer),
-            status: 200,
+            status: Response::HTTP_OK,
         );
     }
 }

@@ -3,6 +3,9 @@
 namespace App\Controller\Trainer;
 
 use App\Exception\DateRescheduledException;
+use App\Response\CollectionResponse;
+use App\Response\ItemResponse;
+use App\Response\NoContentResponse;
 use App\Response\OkResponse;
 use App\Trainer\Entity\Trainer;
 use App\Training\DTO\TrainingUpdateRequest;
@@ -46,7 +49,7 @@ final class TrainingController extends AbstractController
         TrainingsQuery $handler,
         Request $request,
         GetTrainingsFactory $factory,
-    ): OkResponse
+    ): CollectionResponse
     {
         $queryDto = $factory->fromRequest(
             request: $request,
@@ -55,13 +58,13 @@ final class TrainingController extends AbstractController
 
         $trainings = $handler->handle($queryDto);
 
-        return new OkResponse(
+        return new CollectionResponse(
             array_map(fn ($training) => $mapper->map($training), $trainings),
             $queryDto->page,
             $queryDto->limit,
             $handler->getTotal($queryDto->filter),
             $queryDto->sort,
-            200,
+            Response::HTTP_OK,
         );
     }
 
@@ -70,13 +73,13 @@ final class TrainingController extends AbstractController
     public function get(
         TrainingMapperInterface $mapper,
         Training $training,
-    ): OkResponse
+    ): ItemResponse
     {
         $this->denyAccessUnlessGranted("TRAINING_VIEW", $training);
 
-        return new OkResponse(
+        return new ItemResponse(
             data: $mapper->map($training),
-            status: 200,
+            status: Response::HTTP_OK,
         );
     }
 
@@ -93,15 +96,15 @@ final class TrainingController extends AbstractController
         #[MapRequestPayload] TrainingUpdateRequest $requestDto,
         TrainingMapperInterface                    $mapper,
         TrainingManager                            $manager,
-    ): OkResponse
+    ): ItemResponse
     {
         $this->denyAccessUnlessGranted("TRAINING_EDIT", $training);
 
         $responseDto = $mapper->map($manager->update($training, $requestDto));
 
-        return new OkResponse(
+        return new ItemResponse(
             data: $responseDto,
-            status: 200,
+            status: Response::HTTP_OK,
         );
     }
 
@@ -110,12 +113,12 @@ final class TrainingController extends AbstractController
     public function cancel(
         Training $training,
         TrainingManager $trainingManager,
-    ): Response
+    ): NoContentResponse
     {
         $this->denyAccessUnlessGranted("TRAINING_REMOVE", $training);
         $trainingManager->cancel($training);
 
-        return new Response(status: 204);
+        return new NoContentResponse();
     }
 
     #[Route('/api/trainings/{id}/complete/', methods: ['POST'], format: 'json')]
@@ -124,15 +127,15 @@ final class TrainingController extends AbstractController
         Training $training,
         TrainingMapperInterface $mapper,
         TrainingManager $manager,
-    ): OkResponse
+    ): ItemResponse
     {
         $this->denyAccessUnlessGranted("TRAINING_EDIT", $training);
 
         $responseDto = $mapper->map($manager->complete($training));
 
-        return new OkResponse(
+        return new ItemResponse(
             data: $responseDto,
-            status: 200,
+            status: Response::HTTP_OK,
         );
     }
 }

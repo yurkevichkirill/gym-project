@@ -6,6 +6,8 @@ use App\MembershipPlan\Entity\MembershipPlan;
 use App\MembershipPlan\Factory\GetMembershipPlansFactory;
 use App\MembershipPlan\Mapper\MembershipPlanMapperInterface;
 use App\MembershipPlan\Query\MembershipPlansQuery;
+use App\Response\CollectionResponse;
+use App\Response\ItemResponse;
 use App\Response\OkResponse;
 use OpenApi\Attributes as OA;
 use Psr\Cache\InvalidArgumentException;
@@ -38,13 +40,13 @@ final class MembershipPlanController extends AbstractController
         MembershipPlanMapperInterface $mapper,
         MembershipPlansQuery $handler,
         GetMembershipPlansFactory $factory,
-    ): OkResponse
+    ): CollectionResponse
     {
         $queryDto = $factory->fromRequest($request);
 
         $plans = $handler->handle($queryDto);
 
-        return new OkResponse(
+        return new CollectionResponse(
             array_map(fn ($plan) => $mapper->map($plan), $plans),
             $queryDto->page,
             $queryDto->limit,
@@ -59,9 +61,9 @@ final class MembershipPlanController extends AbstractController
     public function get(
         MembershipPlan $membershipPlan,
         MembershipPlanMapperInterface $mapper,
-    ): OkResponse
+    ): ItemResponse
     {
-        return new OkResponse(
+        return new ItemResponse(
             data: $mapper->map($membershipPlan),
             status: Response::HTTP_OK,
         );

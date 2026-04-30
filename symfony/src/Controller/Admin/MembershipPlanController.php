@@ -7,6 +7,8 @@ use App\MembershipPlan\DTO\UpdateMembershipPlanRequest;
 use App\MembershipPlan\Entity\MembershipPlan;
 use App\MembershipPlan\Mapper\MembershipPlanMapper;
 use App\MembershipPlan\Service\MembershipPlanManager;
+use App\Response\ItemResponse;
+use App\Response\NoContentResponse;
 use App\Response\OkResponse;
 use Nelmio\ApiDocBundle\Attribute\Model;
 use OpenApi\Attributes as OA;
@@ -26,11 +28,11 @@ final class MembershipPlanController extends AbstractController
         #[MapRequestPayload] CreateMembershipPlanRequest $requestDto,
         MembershipPlanManager                            $manager,
         MembershipPlanMapper                             $mapper,
-    ): OkResponse
+    ): ItemResponse
     {
         $responseDto = $mapper->map($manager->create($requestDto));
 
-        return new OkResponse(
+        return new ItemResponse(
             data: $responseDto,
             status: 201,
         );
@@ -45,11 +47,11 @@ final class MembershipPlanController extends AbstractController
         MembershipPlan                                   $membershipPlan,
         MembershipPlanManager                            $manager,
         MembershipPlanMapper                             $mapper,
-    ): OkResponse
+    ): ItemResponse
     {
         $responseDto = $mapper->map($manager->update($requestDto, $membershipPlan));
 
-        return new OkResponse(
+        return new ItemResponse(
             data: $responseDto,
             status: 201,
         );
@@ -61,10 +63,10 @@ final class MembershipPlanController extends AbstractController
     public function remove(
         MembershipPlanManager $membershipPlanManager,
         MembershipPlan $membershipPlan,
-    ): Response
+    ): NoContentResponse
     {
         $membershipPlanManager->remove($membershipPlan);
 
-        return new Response(status: Response::HTTP_NO_CONTENT);
+        return new NoContentResponse();
     }
 }

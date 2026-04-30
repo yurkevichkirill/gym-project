@@ -2,6 +2,8 @@
 
 namespace App\Controller\All;
 
+use App\Response\CollectionResponse;
+use App\Response\ItemResponse;
 use App\Response\OkResponse;
 use App\TrainingType\DTO\GetTrainingTypes;
 use App\TrainingType\Entity\TrainingType;
@@ -33,13 +35,13 @@ final class TrainingTypeController extends AbstractController
         GetTrainingTypesFactory $factory,
         TrainingTypeMapperInterface $mapper,
         Request $request
-    ): OkResponse
+    ): CollectionResponse
     {
         $queryDto = $factory->fromRequest($request);
 
         $trainingTypes = $handler->handle($queryDto);
 
-        return new OkResponse(
+        return new CollectionResponse(
             array_map(fn ($type) => $mapper->map($type), $trainingTypes),
             $queryDto->page,
             $queryDto->limit,
@@ -54,9 +56,9 @@ final class TrainingTypeController extends AbstractController
     public function get(
         TrainingType $trainingType,
         TrainingTypeMapperInterface $mapper,
-    ): OkResponse
+    ): ItemResponse
     {
-        return new OkResponse(
+        return new ItemResponse(
             data: $mapper->map($trainingType),
             status: Response::HTTP_OK,
         );

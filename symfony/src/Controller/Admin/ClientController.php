@@ -14,11 +14,15 @@ use App\ImportJob\DTO\CreateClientImportBatch;
 use App\ImportJob\Message\ImportMessage;
 use App\ImportJob\Service\ImportService;
 use App\Membership\Mapper\MembershipMapperInterface;
+use App\Response\CollectionResponse;
+use App\Response\ItemResponse;
+use App\Response\NoContentResponse;
 use App\Response\OkResponse;
 use Doctrine\ORM\Exception\ORMException;
 use Doctrine\ORM\OptimisticLockException;
 use Nelmio\ApiDocBundle\Attribute\Model;
 use OpenApi\Attributes as OA;
+use Psr\Cache\InvalidArgumentException;
 use Psr\Container\ContainerExceptionInterface;
 use Psr\Container\NotFoundExceptionInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -34,6 +38,9 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 final class ClientController extends AbstractController
 {
+    /**
+     * @throws InvalidArgumentException
+     */
     #[Route('/api/clients/', name: 'app_api_clients', methods: ['GET'], format: 'json')]
     #[OA\Parameter(name: 'minAge', in: 'query', example: 18)]
     #[OA\Parameter(name: 'maxAge', in: 'query', example: 18)]
@@ -50,13 +57,13 @@ final class ClientController extends AbstractController
         Request $request,
         ClientQuery $handler,
         GetClientFactory $factory,
-    ): OkResponse
+    ): CollectionResponse
     {
         $queryDto = $factory->fromRequest($request);
 
         $clients = $handler->handle($queryDto);
 
-        return new OkResponse(
+        return new CollectionResponse(
             array_map(fn($client) => $mapper->map($client), $clients),
             $queryDto->page,
             $queryDto->limit,
@@ -72,9 +79,9 @@ final class ClientController extends AbstractController
     public function get(
         Client $client,
         ClientMapperInterface $mapper,
-    ): OkResponse
+    ): ItemResponse
     {
-        return new OkResponse(
+        return new ItemResponse(
             data: $mapper->map($client),
             status: Response::HTTP_OK,
         );
@@ -88,11 +95,11 @@ final class ClientController extends AbstractController
         #[MapRequestPayload] CreateClientRequest $requestDto,
         ClientMapperInterface $mapper,
         ClientManager $manager,
-    ): OkResponse
+    ): ItemResponse
     {
         $responseDto = $mapper->map($manager->create($requestDto));
 
-        return new OkResponse(
+        return new ItemResponse(
             data: $responseDto,
             status: Response::HTTP_OK,
         );
@@ -107,11 +114,11 @@ final class ClientController extends AbstractController
         #[MapRequestPayload] AdminUpdateClientRequest $requestDto,
         ClientMapperInterface $mapper,
         ClientManager $manager,
-    ): OkResponse
+    ): ItemResponse
     {
         $responseDto = $mapper->map($manager->updateByAdmin($client, $requestDto));
 
-        return new OkResponse(
+        return new ItemResponse(
             data: $responseDto,
             status: Response::HTTP_OK,
         );
@@ -130,13 +137,13 @@ final class ClientController extends AbstractController
         #[CurrentUser] Admin $admin,
         Client $client,
         ClientManager $manager,
-    ): Response
+    ): NoContentResponse
     {
         $manager->softDelete($client, $admin);
         $this->container->get('security.token_storage')->setToken(null);
         //clean cookies in frontend
 
-        return new Response(status: Response::HTTP_NO_CONTENT);
+        return new NoContentResponse();
     }
 
     #[Route('/api/clients/{id}/restore/', methods: ['POST'], format: 'json')]
@@ -146,11 +153,11 @@ final class ClientController extends AbstractController
         Client $client,
         ClientManager $manager,
         ClientMapperInterface $mapper,
-    ): OkResponse
+    ): ItemResponse
     {
         $responseDto = $mapper->map($manager->restore($client));
 
-        return new OkResponse(
+        return new ItemResponse(
             data: $responseDto,
             status: Response::HTTP_OK,
         );
@@ -164,11 +171,11 @@ final class ClientController extends AbstractController
         #[CurrentUser] Admin $admin,
         ClientMapperInterface $mapper,
         ClientManager $manager,
-    ): OkResponse
+    ): ItemResponse
     {
         $responseDto = $mapper->map($manager->block($admin, $client));
 
-        return new OkResponse(
+        return new ItemResponse(
             data: $responseDto,
             status: Response::HTTP_OK,
         );
@@ -181,11 +188,11 @@ final class ClientController extends AbstractController
         Client $client,
         ClientMapperInterface $mapper,
         ClientManager $manager,
-    ): OkResponse
+    ): ItemResponse
     {
         $responseDto = $mapper->map($manager->unblock($client));
 
-        return new OkResponse(
+        return new ItemResponse(
             data: $responseDto,
             status: Response::HTTP_OK,
         );
@@ -198,11 +205,11 @@ final class ClientController extends AbstractController
         Client $client,
         MembershipMapperInterface $mapper,
         ClientManager $manager,
-    ): OkResponse
+    ): ItemResponse
     {
         $responseDto = $mapper->map($manager->visit($client));
 
-        return new OkResponse(
+        return new ItemResponse(
             data: $responseDto,
             status: Response::HTTP_OK,
         );

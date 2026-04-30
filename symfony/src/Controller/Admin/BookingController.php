@@ -11,6 +11,9 @@ use App\Booking\Mapper\BookingMapperInterface;
 use App\Booking\Query\BookingsQuery;
 use App\Booking\Service\BookingManager;
 use App\Client\Entity\Client;
+use App\Response\CollectionResponse;
+use App\Response\ItemResponse;
+use App\Response\NoContentResponse;
 use App\Response\OkResponse;
 use App\Trainer\Entity\Trainer;
 use DateMalformedStringException;
@@ -47,7 +50,7 @@ final class BookingController extends AbstractController
         BookingsQuery          $handler,
         Request                $request,
         GetBookingsFactory     $factory,
-    ): OkResponse
+    ): CollectionResponse
     {
         $dto = $factory->fromRequest(
             request: $request,
@@ -55,7 +58,7 @@ final class BookingController extends AbstractController
 
         $bookings = $handler->handle($dto);
 
-        return new OkResponse(
+        return new CollectionResponse(
             array_map(fn($booking) => $mapper->map($booking), $bookings),
             $dto->page,
             $dto->limit,
@@ -85,7 +88,7 @@ final class BookingController extends AbstractController
         BookingsQuery          $handler,
         Request                $request,
         GetBookingsFactory     $factory,
-    ): OkResponse
+    ): CollectionResponse
     {
         $dto = $factory->fromRequest(
             request: $request,
@@ -94,7 +97,7 @@ final class BookingController extends AbstractController
 
         $bookings = $handler->handle($dto);
 
-        return new OkResponse(
+        return new CollectionResponse(
             array_map(fn($booking) => $mapper->map($booking), $bookings),
             $dto->page,
             $dto->limit,
@@ -124,7 +127,7 @@ final class BookingController extends AbstractController
         BookingsQuery $handler,
         Request $request,
         GetBookingsFactory $factory,
-    ): OkResponse
+    ): CollectionResponse
     {
         $queryDto = $factory->fromRequest(
             request: $request,
@@ -133,7 +136,7 @@ final class BookingController extends AbstractController
 
         $trainings = $handler->handle($queryDto);
 
-        return new OkResponse(
+        return new CollectionResponse(
             array_map(fn ($training) => $mapper->map($training), $trainings),
             $queryDto->page,
             $queryDto->limit,
@@ -146,9 +149,9 @@ final class BookingController extends AbstractController
     #[Route('api/bookings/{id}/', methods: ['GET'], format: 'json')]
     #[OA\Tag(name: "Admin: Bookings")]
     #[IsGranted('ROLE_ADMIN')]
-    public function get(BookingAdminMapperInterface $mapper, Booking $booking): OkResponse
+    public function get(BookingAdminMapperInterface $mapper, Booking $booking): ItemResponse
     {
-        return new OkResponse(
+        return new ItemResponse(
             data: $mapper->map($booking),
             status: Response::HTTP_OK,
         );
@@ -167,11 +170,11 @@ final class BookingController extends AbstractController
         Client                              $client,
         #[MapRequestPayload] BookingRequest $requestDto,
         BookingManager                      $manager
-    ): OkResponse
+    ): ItemResponse
     {
         $responseDto = $mapper->map($manager->book($client, $requestDto));
 
-        return new OkResponse(
+        return new ItemResponse(
             data: $responseDto,
             status: Response::HTTP_CREATED,
         );
@@ -182,12 +185,10 @@ final class BookingController extends AbstractController
     public function remove(
         Booking $booking,
         BookingManager $manager,
-    ): Response
+    ): NoContentResponse
     {
         $manager->cancelBooking($booking, BookingStatusEnum::CANCELED_BY_SYSTEM);
 
-        return new Response(
-            status: Response::HTTP_NO_CONTENT
-        );
+        return new NoContentResponse();
     }
 }

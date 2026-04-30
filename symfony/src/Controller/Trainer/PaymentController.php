@@ -8,6 +8,8 @@ use App\Payment\Entity\Payment;
 use App\Payment\Factory\GetPaymentsFactory;
 use App\Payment\Mapper\PaymentMapperInterface;
 use App\Payment\Query\PaymentsQuery;
+use App\Response\CollectionResponse;
+use App\Response\ItemResponse;
 use App\Response\OkResponse;
 use App\Trainer\Entity\Trainer;
 use Psr\Cache\InvalidArgumentException;
@@ -43,7 +45,7 @@ class PaymentController extends AbstractController
         PaymentMapperInterface $mapper,
         GetPaymentsFactory $factory,
         PaymentsQuery $handler,
-    ): OkResponse
+    ): CollectionResponse
     {
         $queryDto = $factory->fromRequest(
             request: $request,
@@ -52,7 +54,7 @@ class PaymentController extends AbstractController
 
         $payments = $handler->handle($queryDto);
 
-        return new OkResponse(
+        return new CollectionResponse(
             array_map(fn ($payment) => $mapper->map($payment), $payments),
             $queryDto->page,
             $queryDto->limit,
@@ -67,11 +69,11 @@ class PaymentController extends AbstractController
     public function get(
         Payment $payment,
         PaymentMapperInterface $mapper,
-    ): OkResponse
+    ): ItemResponse
     {
         $this->denyAccessUnlessGranted("PAYMENT_VIEW", $payment);
 
-        return new OkResponse(
+        return new ItemResponse(
             data: $mapper->map($payment),
             status: Response::HTTP_OK,
         );
