@@ -23,6 +23,7 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
+use Throwable;
 
 final class BookingController extends AbstractController
 {
@@ -155,6 +156,7 @@ final class BookingController extends AbstractController
 
     /**
      * @throws DateMalformedStringException
+     * @throws Throwable
      */
     #[Route('api/clients/{id}/bookings/', methods: ['POST'], format: 'json')]
     #[OA\RequestBody(content: new Model(type: BookingRequest::class))]
@@ -182,8 +184,6 @@ final class BookingController extends AbstractController
         BookingManager $manager,
     ): Response
     {
-        $this->denyAccessUnlessGranted("BOOKING_REMOVE", $booking);
-
         $manager->cancelBooking($booking, BookingStatusEnum::CANCELED_BY_SYSTEM);
 
         return new Response(
