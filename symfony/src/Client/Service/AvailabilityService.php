@@ -10,7 +10,6 @@ use DateInterval;
 use DateMalformedIntervalStringException;
 use DateMalformedStringException;
 use DateTimeImmutable;
-use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
 final readonly class AvailabilityService
 {
@@ -23,10 +22,10 @@ final readonly class AvailabilityService
      * @throws DateMalformedStringException
      * @throws DateMalformedIntervalStringException
      */
-    public function isClientAvailableInDate(Client $client, DateTimeImmutable $date, string $startTime, int $durationMinutes, string $oldStartTime): bool
+    public function isClientAvailableInDate(Client $client, DateTimeImmutable $date, string $startTime, int $durationMinutes, ?string $oldStartTime = null): bool
     {
         $clientBusy = $this->getClientBusy($client, $date);
-        $clientBusyWithoutCurrent = array_filter($clientBusy, fn ($slot) => $slot['start'] !== $oldStartTime);
+        $clientBusyWithoutCurrent = array_filter($clientBusy, fn($slot) => $slot['start'] !== $oldStartTime);
         $endTime = new DateTimeImmutable($startTime)->add(new DateInterval("PT" . $durationMinutes . "M"))->format('H:i:s');
 
         return array_all($clientBusyWithoutCurrent, fn($trainingSlot) => (

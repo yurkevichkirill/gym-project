@@ -9,6 +9,8 @@ use App\Booking\Entity\Booking;
 use App\Booking\Enum\BookingStatusEnum;
 use App\Booking\Repository\BookingRepository;
 use App\Client\Entity\Client;
+use App\Client\Service\AvailabilityService;
+use App\Exception\DateRescheduledException;
 use App\Exception\DateTimeAlreadyTakenException;
 use App\Exception\NoActiveMembershipException;
 use App\Infrastructure\ClickHouse\Publisher\AnalyticsPublisher;
@@ -23,6 +25,7 @@ use App\TrainerWorkTime\Entity\TrainerWorkTime;
 use App\TrainerWorkTime\Repository\TrainerWorkTimeRepository;
 use App\Training\Entity\Training;
 use App\Training\Repository\TrainingRepository;
+use App\Training\Service\TrainingManager;
 use App\User\Service\AvailabilityService as UserAvailabilityService;
 use App\TrainerWorkTime\Service\AvailabilityService as WorktimeAvailabilityService;
 use DateMalformedIntervalStringException;
@@ -46,6 +49,7 @@ final readonly class BookingManager
         private UserAvailabilityService   $userAvailabilityService,
         private WorktimeAvailabilityService $worktimeAvailabilityService,
         private PaymentService            $paymentService,
+        private AvailabilityService       $clientAvailabilitySerivce,
         private EntityManagerInterface    $entityManager,
         private LoggerInterface           $bookingLogger,
         private AnalyticsPublisher        $analyticsPublisher,
@@ -86,6 +90,10 @@ final readonly class BookingManager
             $bookingDateTime = new DateTimeImmutable($dto->date . ' ' . $dto->startTime);
             if ($bookingDateTime <= new DateTimeImmutable()) {
                 throw new BadRequestHttpException('Cannot book training in the past');
+            }
+
+            if (!$this->clientAvailabilitySerivce->isClientAvailableInDate($client, new DateTimeImmutable($dto->date), $dto->startTime, $dto->durationMinutes)) {
+                throw new DateRescheduledException("Client already have training at this time");
             }
 
             $price = $this->trainerManager->countPrice($trainer, $dto->durationMinutes);

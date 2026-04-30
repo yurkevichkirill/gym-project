@@ -30,10 +30,12 @@ class BookingRepository extends ServiceEntityRepository
 
     public function getClientBookingsByDate(Client $client, DateTimeImmutable $date): array
     {
-        return  $this->createQueryBuilder('b')
+        return $this->createQueryBuilder('b')
             ->innerJoin("b.training", "t")
             ->innerJoin("t.trainerWorkTime", "wt")
-            ->where("wt.date = :date")
+            ->where("b.client = :client")
+            ->andWhere("wt.date = :date")
+            ->setParameter("client", $client)
             ->setParameter("date", $date)
             ->getQuery()
             ->getResult();
