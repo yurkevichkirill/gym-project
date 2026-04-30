@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace App\Controller\Trainer;
 
 use App\Exception\DateTimeAlreadyTakenException;
+use App\Response\CollectionResponse;
+use App\Response\ItemResponse;
+use App\Response\NoContentResponse;
 use App\Response\OkResponse;
 use App\Trainer\Entity\Trainer;
-use App\TrainerWorkTime\DTO\GetTrainerWorkTime;
 use App\TrainerWorkTime\DTO\CreateWorkTimeRequest;
 use App\TrainerWorkTime\DTO\UpdateWorkTimeRequest;
 use App\TrainerWorkTime\Entity\TrainerWorkTime;
@@ -27,6 +29,7 @@ use Symfony\Component\Routing\Attribute\Route;
 use OpenApi\Attributes as OA;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
+use Throwable;
 
 final class TrainerWorkTimeController extends AbstractController
 {
@@ -46,7 +49,7 @@ final class TrainerWorkTimeController extends AbstractController
         WorkTimeMapperInterface $mapper,
         WorkTimeQuery $handler,
         GetTrainerWorkTimeFactory $factory,
-    ): OkResponse
+    ): CollectionResponse
     {
         $queryDto = $factory->fromRequest(
             request: $request,
@@ -55,7 +58,7 @@ final class TrainerWorkTimeController extends AbstractController
 
         $worktimes = $handler->handle($queryDto);
 
-        return new OkResponse(
+        return new CollectionResponse(
             array_map(fn ($worktime) => $mapper->map($worktime), $worktimes),
             $queryDto->page,
             $queryDto->limit,
@@ -67,7 +70,7 @@ final class TrainerWorkTimeController extends AbstractController
 
     /**
      * @throws DateMalformedStringException
-     * @throws DateTimeAlreadyTakenException
+     * @throws DateTimeAlreadyTakenException|Throwable
      */
     #[Route('/api/trainer/me/worktime/', methods: ['POST'], format: 'json')]
     #[OA\RequestBody(content: new Model(type: CreateWorkTimeRequest::class))]
@@ -78,11 +81,11 @@ final class TrainerWorkTimeController extends AbstractController
         #[MapRequestPayload] CreateWorkTimeRequest $requestDto,
         WorkTimeMapperInterface                    $mapper,
         WorkTimeManager                            $manager
-    ): OkResponse
+    ): ItemResponse
     {
         $responseDto = $mapper->map($manager->create($trainer, $requestDto));
 
-        return new OkResponse(
+        return new ItemResponse(
             data: $responseDto,
             status:Response::HTTP_CREATED,
         );
@@ -91,7 +94,7 @@ final class TrainerWorkTimeController extends AbstractController
     /**
      * @throws DateMalformedStringException
      * @throws DateMalformedIntervalStringException
-     * @throws DateTimeAlreadyTakenException
+     * @throws DateTimeAlreadyTakenException|Throwable
      */
     #[Route('/api/worktime/{id}/', methods: ['PUT', 'PATCH'], format: 'json')]
     #[OA\RequestBody(content: new Model(type: UpdateWorkTimeRequest::class))]
@@ -101,28 +104,31 @@ final class TrainerWorkTimeController extends AbstractController
         #[MapRequestPayload] UpdateWorkTimeRequest $requestDto,
         WorkTimeMapperInterface $mapper,
         WorkTimeManager $manager,
-    ): OkResponse
+    ): ItemResponse
     {
         $this->denyAccessUnlessGranted('WORKTIME_EDIT', $worktime);
 
         $responseDto = $mapper->map($manager->update($worktime, $requestDto));
 
-        return new OkResponse(
+        return new ItemResponse(
             data: $responseDto,
             status: Response::HTTP_OK,
         );
     }
 
+    /**
+     * @throws Throwable
+     */
     #[Route('/api/worktime/{id}/', methods: ['DELETE'], format: 'json')]
     #[OA\Tag(name: "Trainer: WorkTime")]
     public function remove(
         TrainerWorkTime $worktime,
         WorkTimeManager $manager,
-    ): Response
+    ): NoContentResponse
     {
         $this->denyAccessUnlessGranted("WORKTIME_REMOVE", $worktime);
         $manager->remove($worktime);
 
-        return new Response(status: Response::HTTP_NO_CONTENT);
+        return new NoContentResponse();
     }
 }

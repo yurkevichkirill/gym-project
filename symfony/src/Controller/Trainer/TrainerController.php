@@ -2,6 +2,8 @@
 
 namespace App\Controller\Trainer;
 
+use App\Response\ItemResponse;
+use App\Response\NoContentResponse;
 use App\Response\OkResponse;
 use App\Trainer\DTO\UpdateTrainerRequest;
 use App\Trainer\Entity\Trainer;
@@ -26,13 +28,13 @@ final class TrainerController extends AbstractController
     public function get(
         #[CurrentUser] Trainer                    $trainer,
         TrainerMapperInterface                    $mapper,
-    ): OkResponse
+    ): ItemResponse
     {
         $responseDto = $mapper->map($trainer, true);
 
-        return new OkResponse(
+        return new ItemResponse(
             data: $responseDto,
-            status: 200,
+            status: Response::HTTP_OK,
         );
     }
 
@@ -45,13 +47,13 @@ final class TrainerController extends AbstractController
         #[MapRequestPayload] UpdateTrainerRequest $requestDto,
         TrainerMapperInterface                    $mapper,
         TrainerManager                            $manager,
-    ): OkResponse
+    ): ItemResponse
     {
         $responseDto = $mapper->map($manager->update($trainer, $requestDto), true);
 
-        return new OkResponse(
+        return new ItemResponse(
             data: $responseDto,
-            status: 200,
+            status: Response::HTTP_OK,
         );
     }
 
@@ -65,11 +67,11 @@ final class TrainerController extends AbstractController
     public function remove(
         #[CurrentUser] Trainer $trainer,
         TrainerManager $manager,
-    ): Response
+    ): NoContentResponse
     {
         $manager->softDelete($trainer);
         $this->container->get('security.token_storage')->setToken(null);
 
-        return new Response(status: Response::HTTP_NO_CONTENT);
+        return new NoContentResponse();
     }
 }

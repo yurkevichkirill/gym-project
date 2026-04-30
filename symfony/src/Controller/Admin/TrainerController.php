@@ -3,6 +3,9 @@
 namespace App\Controller\Admin;
 
 use App\Admin\Entity\Admin;
+use App\Response\CollectionResponse;
+use App\Response\ItemResponse;
+use App\Response\NoContentResponse;
 use App\Response\OkResponse;
 use App\Trainer\DTO\AdminUpdateTrainerRequest;
 use App\Trainer\DTO\CreateTrainerRequest;
@@ -44,13 +47,13 @@ final class TrainerController extends AbstractController
         TrainerMapperInterface $mapper,
         TrainersQuery $handler,
         GetTrainersFactory $factory,
-    ): OkResponse
+    ): CollectionResponse
     {
         $queryDto = $factory->fromRequest($request);
 
         $trainers = $handler->handle($queryDto);
 
-        return new OkResponse(
+        return new CollectionResponse(
             array_map(fn ($trainer) => $mapper->map($trainer, true), $trainers),
             $queryDto->page,
             $queryDto->limit,
@@ -63,9 +66,9 @@ final class TrainerController extends AbstractController
     #[Route('/api/admin/trainers/{id}/', methods: ['GET'], format: 'json')]
     #[OA\Tag(name: "Admin: Trainer")]
     #[IsGranted('ROLE_ADMIN')]
-    public function get(Trainer $trainer, TrainerMapperInterface $mapper): OkResponse
+    public function get(Trainer $trainer, TrainerMapperInterface $mapper): ItemResponse
     {
-        return new OkResponse(
+        return new ItemResponse(
             data: $mapper->map($trainer, true),
             status: Response::HTTP_OK,
         );
@@ -78,11 +81,11 @@ final class TrainerController extends AbstractController
         #[MapRequestPayload] CreateTrainerRequest $requestDto,
         TrainerMapperInterface $mapper,
         TrainerManager $manager,
-    ): OkResponse
+    ): ItemResponse
     {
         $responseDto = $mapper->map($manager->create($requestDto), true);
 
-        return new OkResponse(
+        return new ItemResponse(
             data: $responseDto,
             status: Response::HTTP_OK,
         );
@@ -97,11 +100,11 @@ final class TrainerController extends AbstractController
         #[MapRequestPayload] AdminUpdateTrainerRequest $requestDto,
         TrainerManager $manager,
         TrainerMapperInterface $mapper,
-    ): OkResponse
+    ): ItemResponse
     {
         $responseDto = $mapper->map($manager->updateByAdmin($requestDto, $trainer), true);
 
-        return new OkResponse(
+        return new ItemResponse(
             data: $responseDto,
             status: Response::HTTP_OK,
         );
@@ -118,13 +121,13 @@ final class TrainerController extends AbstractController
         #[CurrentUser] Admin $admin,
         Trainer $trainer,
         TrainerManager $manager,
-    ): Response
+    ): NoContentResponse
     {
         $manager->softDelete($trainer, $admin);
         $this->container->get('security.token_storage')->setToken(null);
         //clean cookies in frontend
 
-        return new Response(status: Response::HTTP_NO_CONTENT);
+        return new NoContentResponse();
     }
 
     #[Route('/api/trainers/{id}/restore/', methods: ['POST'], format: 'json')]
@@ -134,11 +137,11 @@ final class TrainerController extends AbstractController
         Trainer $trainer,
         TrainerManager $manager,
         TrainerMapperInterface $mapper,
-    ): OkResponse
+    ): ItemResponse
     {
         $responseDto = $mapper->map($manager->restore($trainer), true);
 
-        return new OkResponse(
+        return new ItemResponse(
             data: $responseDto,
             status: Response::HTTP_OK,
         );
@@ -152,11 +155,11 @@ final class TrainerController extends AbstractController
         Trainer $trainer,
         TrainerMapperInterface $mapper,
         TrainerManager $manager,
-    ): OkResponse
+    ): ItemResponse
     {
         $responseDto = $mapper->map($manager->block($admin, $trainer), true);
 
-        return new OkResponse(
+        return new ItemResponse(
             data: $responseDto,
             status: Response::HTTP_OK,
         );
@@ -169,11 +172,11 @@ final class TrainerController extends AbstractController
         Trainer $trainer,
         TrainerMapperInterface $mapper,
         TrainerManager $manager,
-    ): OkResponse
+    ): ItemResponse
     {
         $responseDto = $mapper->map($manager->unblock($trainer), true);
 
-        return new OkResponse(
+        return new ItemResponse(
             data: $responseDto,
             status: Response::HTTP_OK,
         );

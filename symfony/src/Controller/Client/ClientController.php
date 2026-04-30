@@ -9,6 +9,7 @@ use App\Client\Mapper\ClientMapperInterface;
 use App\Client\Service\ClientManager;
 use App\Membership\Mapper\MembershipMapperInterface;
 use App\Payment\Mapper\PaymentMapperInterface;
+use App\Response\ItemResponse;
 use App\Response\OkResponse;
 use DateMalformedStringException;
 use Nelmio\ApiDocBundle\Attribute\Model;
@@ -27,11 +28,11 @@ final class ClientController extends AbstractController
     public function get(
         #[CurrentUser] Client $client,
         ClientMapperInterface $clientMapper,
-    ): OkResponse
+    ): ItemResponse
     {
         $responseDto = $clientMapper->map($client);
 
-        return new OkResponse(
+        return new ItemResponse(
             data: $responseDto,
             status: Response::HTTP_OK,
         );
@@ -46,11 +47,11 @@ final class ClientController extends AbstractController
         #[MapRequestPayload] UpdateClientRequest $requestDto,
         ClientMapperInterface $mapper,
         ClientManager $manager,
-    ): OkResponse
+    ): ItemResponse
     {
         $responseDto = $mapper->map($manager->update($client, $requestDto));
 
-        return new OkResponse(
+        return new ItemResponse(
             data: $responseDto,
             status: Response::HTTP_OK,
         );
@@ -91,11 +92,11 @@ final class ClientController extends AbstractController
         #[CurrentUser] Client $client,
         MembershipMapperInterface $mapper,
         ClientManager $manager,
-    ): OkResponse
+    ): ItemResponse
     {
         $responseDto = $mapper->map($manager->visit($client));
 
-        return new OkResponse(
+        return new ItemResponse(
             data: $responseDto,
             status: Response::HTTP_OK,
         );
@@ -113,11 +114,11 @@ final class ClientController extends AbstractController
         #[MapRequestPayload] TopUpBalanceRequest $requestDto,
         PaymentMapperInterface $mapper,
         ClientManager $manager,
-    ): OkResponse
+    ): ItemResponse
     {
         $responseDto = $mapper->map($manager->topUpBalance($client, $requestDto));
 
-        return new OkResponse(
+        return new ItemResponse(
             data: $responseDto,
             status: Response::HTTP_OK,
         );

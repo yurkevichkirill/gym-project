@@ -3,19 +3,18 @@
 namespace App\Controller\Client;
 
 use App\Client\Entity\Client;
-use App\Payment\DTO\GetPayments;
 use App\Payment\Entity\Payment;
 use App\Payment\Factory\GetPaymentsFactory;
 use App\Payment\Mapper\PaymentMapperInterface;
 use App\Payment\Query\PaymentsQuery;
+use App\Response\CollectionResponse;
+use App\Response\ItemResponse;
 use App\Response\OkResponse;
-use App\Trainer\Repository\TrainerRepository;
 use OpenApi\Attributes as OA;
 use Psr\Cache\InvalidArgumentException;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
@@ -44,7 +43,7 @@ final class PaymentController extends AbstractController
         PaymentMapperInterface $mapper,
         GetPaymentsFactory $factory,
         PaymentsQuery $handler,
-    ): OkResponse
+    ): CollectionResponse
     {
         $queryDto = $factory->fromRequest(
             request: $request,
@@ -53,7 +52,7 @@ final class PaymentController extends AbstractController
 
         $payments = $handler->handle($queryDto);
 
-        return new OkResponse(
+        return new CollectionResponse(
             array_map(fn ($payment) => $mapper->map($payment), $payments),
             $queryDto->page,
             $queryDto->limit,
@@ -68,11 +67,11 @@ final class PaymentController extends AbstractController
     public function get(
         Payment $payment,
         PaymentMapperInterface $mapper,
-    ): OkResponse
+    ): ItemResponse
     {
         $this->denyAccessUnlessGranted("PAYMENT_VIEW", $payment);
 
-        return new OkResponse(
+        return new ItemResponse(
             data: $mapper->map($payment),
             status: Response::HTTP_OK,
         );

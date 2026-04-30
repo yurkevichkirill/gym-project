@@ -2,6 +2,8 @@
 
 namespace App\Controller\All;
 
+use App\Response\CollectionResponse;
+use App\Response\ItemResponse;
 use App\Response\OkResponse;
 use App\Trainer\Entity\Trainer;
 use App\TrainerWorkTime\Entity\TrainerWorkTime;
@@ -33,7 +35,7 @@ final class TrainerWorkTimeController extends AbstractController
         WorkTimeMapperInterface $mapper,
         WorkTimeQuery $handler,
         GetTrainerWorkTimeFactory $factory,
-    ): OkResponse
+    ): CollectionResponse
     {
         $queryDto = $factory->fromRequest(
             request: $request,
@@ -41,7 +43,7 @@ final class TrainerWorkTimeController extends AbstractController
 
         $worktimes = $handler->handle($queryDto);
 
-        return new OkResponse(
+        return new CollectionResponse(
             array_map(fn ($worktime) => $mapper->map($worktime), $worktimes),
             $queryDto->page,
             $queryDto->limit,
@@ -67,7 +69,7 @@ final class TrainerWorkTimeController extends AbstractController
         WorkTimeQuery $handler,
         Trainer $trainer,
         GetTrainerWorkTimeFactory $factory,
-    ): OkResponse
+    ): CollectionResponse
     {
         $queryDto = $factory->fromRequest(
             request: $request,
@@ -76,7 +78,7 @@ final class TrainerWorkTimeController extends AbstractController
 
         $worktimes = $handler->handle($queryDto);
 
-        return new OkResponse(
+        return new CollectionResponse(
             array_map(fn ($worktime) => $mapper->map($worktime), $worktimes),
             $queryDto->page,
             $queryDto->limit,
@@ -91,9 +93,9 @@ final class TrainerWorkTimeController extends AbstractController
     public function get(
         TrainerWorkTime $worktime,
         WorkTimeMapperInterface $mapper,
-    ): OkResponse
+    ): ItemResponse
     {
-        return new OkResponse(
+        return new ItemResponse(
             $mapper->map($worktime),
             Response::HTTP_OK,
         );

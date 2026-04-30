@@ -5,9 +5,11 @@ namespace App\Controller;
 use App\Client\DTO\CreateClientRequest;
 use App\Client\Mapper\ClientMapperInterface;
 use App\Client\Service\ClientManager;
+use App\Response\ItemResponse;
 use App\Response\OkResponse;
 use Nelmio\ApiDocBundle\Attribute\Model;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Component\Routing\Attribute\Route;
@@ -22,13 +24,13 @@ final class RegistrationController extends AbstractController
         #[MapRequestPayload] CreateClientRequest $requestDto,
         ClientMapperInterface $mapper,
         ClientManager $manager,
-    ): OkResponse
+    ): ItemResponse
     {
         $responseDto = $mapper->map($manager->create($requestDto));
 
-        return new OkResponse(
+        return new ItemResponse(
             data: $responseDto,
-            status: 201,
+            status: Response::HTTP_OK,
         );
     }
 }
