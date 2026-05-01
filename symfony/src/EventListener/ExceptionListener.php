@@ -12,6 +12,7 @@ use Symfony\Component\HttpKernel\Event\ExceptionEvent;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
+use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\HttpKernel\Exception\UnauthorizedHttpException;
 use Symfony\Component\HttpKernel\KernelEvents;
@@ -30,16 +31,9 @@ final readonly class ExceptionListener
         $exception = $event->getThrowable();
         $request = $event->getRequest();
 
-        $statusCode = match (true) {
-            $exception instanceof NotFoundHttpException => 404,
-            $exception instanceof BadRequestHttpException  => 400,
-            $exception instanceof LogicException => 422,
-            $exception instanceof ConflictHttpException => 409,
-            $exception instanceof UnauthorizedHttpException => 401,
-            $exception instanceof AccessDeniedHttpException => 403,
-
-            default => 500
-        };
+        $statusCode = $exception instanceof HttpExceptionInterface
+            ? $exception->getStatusCode()
+            : 500;
 
         $requestId = $request->attributes->get('_request_id');
         $correlationId = $request->attributes->get('_correlation_id', $requestId);
