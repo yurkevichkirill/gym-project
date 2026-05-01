@@ -20,8 +20,8 @@ final readonly class GetTrainingTypesFactory
 
         return new GetTrainingTypes(
             sort: $this->parser->parseSort($request->query->get('sort', 'name:ASC'), $allowedSortParams),
-            page: $this->parser->toPositiveInt($request->query->get('page'), 'page'),
-            limit: $this->parser->toPositiveInt($request->query->get('limit'), 'limit'),
+            page: $this->parser->toPositiveInt($request->query->get('page'), 'page') ?? 1,
+            limit: $this->parser->toPositiveInt($request->query->get('limit'), 'limit') ?? 20,
         );
     }
 }

@@ -41,8 +41,8 @@ final readonly class GetTrainersFactory
         return new GetTrainers(
             sort: $this->parser->parseSort($request->query->get('sort', 'lastName:ASC'), $allowedSort),
             filter: $filter,
-            page: $this->parser->toPositiveInt($request->query->get('page'), 'page'),
-            limit: $this->parser->toPositiveInt($request->query->get('limit'), 'limit'),
+            page: $this->parser->toPositiveInt($request->query->get('page'), 'page') ?? 1,
+            limit: $this->parser->toPositiveInt($request->query->get('limit'), 'limit') ?? 20,
         );
     }
 }

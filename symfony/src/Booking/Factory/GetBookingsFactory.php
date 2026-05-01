@@ -72,8 +72,8 @@ final readonly class GetBookingsFactory
         return new GetBookings(
             sort: $this->parser->parseSort($request->query->get('sort', 'bookedAt:ASC'),$allowedSortParams),
             filter: $filter,
-            page: $this->parser->toPositiveInt($request->query->get('page'), 'page'),
-            limit: $this->parser->toPositiveInt($request->query->get('limit'), 'limit'),
+            page: $this->parser->toPositiveInt($request->query->get('page'), 'page') ?? 1,
+            limit: $this->parser->toPositiveInt($request->query->get('limit'), 'limit') ?? 20,
         );
     }
 }
