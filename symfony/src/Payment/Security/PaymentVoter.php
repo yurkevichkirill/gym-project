@@ -35,6 +35,6 @@ class PaymentVoter extends Voter
         /** @var Payment $payment **/
         $payment = $subject;
 
-        return $payment->getClient()->getId() === $user->getId() || $payment->getTrainer()?->getId() === $user->getId();
+        return $payment->getClient()?->getId() === $user->getId() || $payment->getTrainer()?->getId() === $user->getId();
     }
 }
