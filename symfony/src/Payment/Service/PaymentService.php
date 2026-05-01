@@ -338,7 +338,7 @@ final readonly class PaymentService
 
     public function cancelExpiredPayments(): void
     {
-        $payments = $this->paymentRepo->findAll();
+        $payments = $this->paymentRepo->findExpiredPending();
 
         $now = new DateTimeImmutable();
 
