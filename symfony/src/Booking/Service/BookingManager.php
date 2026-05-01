@@ -49,7 +49,7 @@ final readonly class BookingManager
         private UserAvailabilityService   $userAvailabilityService,
         private WorktimeAvailabilityService $worktimeAvailabilityService,
         private PaymentService            $paymentService,
-        private AvailabilityService       $clientAvailabilitySerivce,
+        private AvailabilityService       $clientAvailabilityService,
         private EntityManagerInterface    $entityManager,
         private LoggerInterface           $bookingLogger,
         private AnalyticsPublisher        $analyticsPublisher,
@@ -60,6 +60,7 @@ final readonly class BookingManager
      * @throws DateMalformedStringException
      * @throws Throwable
      */
+
     public function book(Client $client, BookingRequest $dto): Booking
     {
         $loggingContext = [
@@ -92,7 +93,7 @@ final readonly class BookingManager
                 throw new BadRequestHttpException('Cannot book training in the past');
             }
 
-            if (!$this->clientAvailabilitySerivce->isClientAvailableInDate($client, new DateTimeImmutable($dto->date), $dto->startTime, $dto->durationMinutes)) {
+            if (!$this->clientAvailabilityService->isClientAvailableInDate($client, new DateTimeImmutable($dto->date), $dto->startTime, $dto->durationMinutes)) {
                 throw new DateRescheduledException("Client already have training at this time");
             }
 

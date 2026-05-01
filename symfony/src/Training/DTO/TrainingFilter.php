@@ -18,5 +18,6 @@ final readonly class TrainingFilter
         public ?int               $durationMinutes,
         public ?DateTimeImmutable $startTime,
         public ?BookingStatusEnum $status,
+        public ?bool               $isBusy,
     ) {}
 }

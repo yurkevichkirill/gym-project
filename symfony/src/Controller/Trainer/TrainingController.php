@@ -6,7 +6,6 @@ use App\Exception\DateRescheduledException;
 use App\Response\CollectionResponse;
 use App\Response\ItemResponse;
 use App\Response\NoContentResponse;
-use App\Response\OkResponse;
 use App\Trainer\Entity\Trainer;
 use App\Training\DTO\TrainingUpdateRequest;
 use App\Training\Entity\Training;
@@ -38,6 +37,7 @@ final class TrainingController extends AbstractController
     #[OA\Parameter(name: 'date', in: 'query', example: '2026-03-10')]
     #[OA\Parameter(name: 'startTime', in: 'query', example: '15:00:00')]
     #[OA\Parameter(name: 'durationMinutes', in: 'query', example: 90)]
+    #[OA\Parameter(name: 'isBusy', in: 'query', example: 'true')]
     #[OA\Parameter(name: 'sort', in: 'query', example: 'bookedAt:ASC')]
     #[OA\Parameter(name: 'page', in: 'query', example: 1)]
     #[OA\Parameter(name: 'limit', in: 'query', example: 20)]

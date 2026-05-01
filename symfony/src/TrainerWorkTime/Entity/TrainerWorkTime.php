@@ -132,16 +132,12 @@ class TrainerWorkTime
      */
     public function getFreeSlots(): array
     {
-        $trainings = array_filter(
+        $busyTrainings = array_filter(
             $this->trainings->getValues(),
-            fn ($t) => in_array(
-                $t->getBooking()?->getStatus(),
-                [BookingStatusEnum::SCHEDULED, BookingStatusEnum::PENDING],
-                true
-            )
+            fn ($training) => $training->isBusy()
         );
 
-        usort($trainings, fn ($a, $b) =>
+        usort($busyTrainings, fn ($a, $b) =>
             $a->getStartTime() <=> $b->getStartTime()
         );
 
@@ -149,7 +145,7 @@ class TrainerWorkTime
 
         $current = $this->startTime;
 
-        foreach ($trainings as $training) {
+        foreach ($busyTrainings as $training) {
             $trainingStart = $training->getStartTime();
 
             if ($current < $trainingStart) {

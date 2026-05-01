@@ -109,6 +109,11 @@ class TrainingsQuery
                 ->setParameter('durationMinutes', $filter->durationMinutes);
         }
 
+        if ($filter->isBusy !== null) {
+            $qb->andWhere('t.isBusy = :isBusy')
+                ->setParameter('isBusy', $filter->isBusy);
+        }
+
         return $qb;
     }
 
@@ -126,6 +131,7 @@ class TrainingsQuery
             'date' => $f->date?->format('Y-m-d'),
             'startTime' => $f->startTime?->format('H:i:s'),
             'durationMinutes' => $f->durationMinutes,
+            'isBusy' => $f->isBusy,
         ];
 
         return 'trainings_' . md5(json_encode($params));

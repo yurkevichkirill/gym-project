@@ -39,7 +39,7 @@ final readonly class AvailabilityService
      */
     public function getClientBusy(Client $client, DateTimeImmutable $date): array
     {
-        $bookings = $this->bookingRepo->getClientBookingsByDate($client, $date);
+        $bookings = $this->bookingRepo->getActiveClientBookingsByDate($client, $date);
 
         $clientBusy = [];
         foreach ($bookings as $booking) {
