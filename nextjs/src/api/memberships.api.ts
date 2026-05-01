@@ -4,7 +4,7 @@ import MembershipType from "@/types/membership/membership.type";
 import MembershipCreateType from "@/types/membership/membership-create.type";
 
 export const getMyMemberships = async (): Promise<MembershipType[]> => {
-    const data = await apiGet<ApiResponse<MembershipType[]>>('/me/memberships');
+    const data = await apiGet<ApiResponse<MembershipType[]>>('/me/memberships/');
 
     return data.data;
 }
