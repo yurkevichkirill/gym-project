@@ -49,9 +49,13 @@ final readonly class RequestParser
         return $result;
     }
 
-    public function toPositiveInt(?string $value, string $fieldName = 'value'): int
+    public function toPositiveInt(?string $value, string $fieldName = 'value'): ?int
     {
         $result = $this->toInt($value);
+
+        if ($result === null) {
+            return null;
+        }
 
         if ($result <= 0) {
             throw new BadRequestHttpException("$fieldName must be a positive integer");

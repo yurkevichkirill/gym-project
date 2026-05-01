@@ -75,8 +75,8 @@ final readonly class GetPaymentsFactory
         return new GetPayments(
             sort: $this->parser->parseSort($request->query->get('sort', 'paidAt:ASC'), $allowedSortParams),
             filter: $filter,
-            page: $this->parser->toPositiveInt($request->query->get('page'), 'page'),
-            limit: $this->parser->toPositiveInt($request->query->get('limit'), 'limit'),
+            page: $this->parser->toPositiveInt($request->query->get('page'), 'page') ?? 1,
+            limit: $this->parser->toPositiveInt($request->query->get('limit'), 'limit') ?? 20,
         );
     }
 }
