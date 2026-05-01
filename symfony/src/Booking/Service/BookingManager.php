@@ -132,7 +132,7 @@ final readonly class BookingManager
                 } else {
                     $payment = $this->paymentService->createPayment(
                         $client,
-                        $price - $client->getBalance(),
+                        $price,
                         PaymentCategoryEnum::TRAINER,
                         PaymentMethodEnum::CARD,
                         $trainer
