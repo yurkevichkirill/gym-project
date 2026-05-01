@@ -78,7 +78,10 @@ final readonly class TrainingManager
                 throw new DateRescheduledException("The minimum reschedule date must be no earlier than tomorrow.");
             }
 
-            $worktime = $this->worktimeRepo->findOneBy(['date' => $newDate]);
+            $worktime = $this->worktimeRepo->findByDateForTrainer(
+                $training->getTrainerWorkTime()->getTrainer(),
+                new DateTimeImmutable($requestDto->date)
+            );
 
             if (!$worktime) {
                 throw new NotFoundHttpException("There is no work time for this date");
