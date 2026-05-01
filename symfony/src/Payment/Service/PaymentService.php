@@ -45,7 +45,7 @@ final readonly class PaymentService
         $payment->setIsRefund(false);
         $payment->setCategory($category);
         $payment->setStatus(PaymentStatusEnum::PENDING);
-        $payment->setExpiresAt(new DateTimeImmutable('+15 minutes'));
+        $payment->setExpiresAt(new DateTimeImmutable('+2 minutes'));
 
         if ($trainer) {
             $payment->setTrainer($trainer);
@@ -166,6 +166,8 @@ final readonly class PaymentService
             throw new NotFoundHttpException('Payment for Stripe intent was not found');
         }
 
+        $payment->setPaidAt(new DateTimeImmutable());
+
         $this->confirmPayment($payment);
     }
 
@@ -214,6 +216,19 @@ final readonly class PaymentService
         }
 
         $this->failPayment($payment);
+    }
+
+    /**
+     * @throws Throwable
+     */
+    public function cancelPaymentByStripeIntentId(string $intentId): void
+    {
+        $payment = $this->paymentRepo->findOneByStripePaymentIntentId($intentId);
+        if ($payment === null) {
+            throw new NotFoundHttpException('Payment for Stripe intent was not found');
+        }
+
+        $this->cancelPayment($payment);
     }
 
     /**
