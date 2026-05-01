@@ -4,14 +4,13 @@ declare(strict_types=1);
 
 namespace App\Payment\Service;
 
-use App\Payment\Repository\PaymentRepository;
-use DateTimeImmutable;
 use Psr\Log\LoggerInterface;
 use Stripe\Event;
 use Stripe\Exception\SignatureVerificationException;
 use Stripe\Webhook;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Throwable;
 use UnexpectedValueException;
 
 final readonly class StripeWebhookService
@@ -19,7 +18,6 @@ final readonly class StripeWebhookService
     public function __construct(
         private string $webhookSecret,
         private PaymentService $paymentService,
-        private PaymentRepository $paymentRepo,
         private LoggerInterface $logger,
     ) {}
 
@@ -50,8 +48,6 @@ final readonly class StripeWebhookService
             switch ($event->type) {
                 case 'payment_intent.succeeded':
                     if ($paymentIntentId !== '') {
-                        $payment = $this->paymentRepo->findOneByStripePaymentIntentId($paymentIntentId);
-                        $payment->setPaidAt(new DateTimeImmutable());
                         $this->paymentService->confirmPaymentByStripeIntentId($paymentIntentId);
                     }
                     break;
@@ -62,7 +58,7 @@ final readonly class StripeWebhookService
                     break;
                 case 'payment_intent.canceled':
                     if ($paymentIntentId !== '') {
-                        $this->paymentService->failPaymentByStripeIntentId($paymentIntentId);
+                        $this->paymentService->cancelPaymentByStripeIntentId($paymentIntentId);
                     }
                     break;
                 case 'charge.refunded':
@@ -78,6 +74,11 @@ final readonly class StripeWebhookService
             }
         } catch (NotFoundHttpException $e) {
             $this->logger->warning('Stripe webhook payment record not found', [
+                'type' => $event->type,
+                'message' => $e->getMessage(),
+            ]);
+        } catch (Throwable $e) {
+            $this->logger->warning('Stripe webhook warning', [
                 'type' => $event->type,
                 'message' => $e->getMessage(),
             ]);
