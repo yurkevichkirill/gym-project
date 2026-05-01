@@ -3,6 +3,7 @@
 namespace App\Booking\Repository;
 
 use App\Booking\Entity\Booking;
+use App\Booking\Enum\BookingStatusEnum;
 use App\Client\Entity\Client;
 use DateTimeImmutable;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
@@ -28,15 +29,20 @@ class BookingRepository extends ServiceEntityRepository
         $this->getEntityManager()->remove($booking);
     }
 
-    public function getClientBookingsByDate(Client $client, DateTimeImmutable $date): array
+    public function getActiveClientBookingsByDate(Client $client, DateTimeImmutable $date): array
     {
         return $this->createQueryBuilder('b')
             ->innerJoin("b.training", "t")
             ->innerJoin("t.trainerWorkTime", "wt")
             ->where("b.client = :client")
             ->andWhere("wt.date = :date")
+            ->andWhere("b.status IN (:statuses)")
             ->setParameter("client", $client)
             ->setParameter("date", $date)
+            ->setParameter('statuses', [
+                BookingStatusEnum::SCHEDULED,
+                BookingStatusEnum::PENDING,
+            ])
             ->getQuery()
             ->getResult();
     }

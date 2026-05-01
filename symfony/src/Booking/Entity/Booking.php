@@ -130,9 +130,7 @@ class Booking
     {
         $this->status = $reason;
 
-        if ($this->training) {
-            $this->training = null;
-        }
+        $this->training->setIsBusy(false);
     }
 
     #[ORM\PrePersist]

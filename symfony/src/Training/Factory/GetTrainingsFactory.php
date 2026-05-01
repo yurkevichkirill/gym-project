@@ -60,9 +60,10 @@ final readonly class GetTrainingsFactory
             durationMinutes: $this->parser->toInt($request->query->get('durationMinutes')),
             startTime: $this->parser->parseTime($request->query->get('startTime')),
             status: $status,
+            isBusy: $this->parser->toBool($request->query->get('isBusy')),
         );
 
-        $allowedParams = ['startTime', 'durationMinutes', 'clientId', 'date', 'status', 'bookedAt'];
+        $allowedParams = ['startTime', 'durationMinutes', 'clientId', 'date', 'status', 'bookedAt', 'isBusy'];
 
         return new GetTrainings(
             sort: $this->parser->parseSort($request->query->get('sort', 'bookedAt:ASC'), $allowedParams),

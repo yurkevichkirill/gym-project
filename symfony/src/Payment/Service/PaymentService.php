@@ -45,7 +45,7 @@ final readonly class PaymentService
         $payment->setIsRefund(false);
         $payment->setCategory($category);
         $payment->setStatus(PaymentStatusEnum::PENDING);
-        $payment->setExpiresAt(new DateTimeImmutable('+2 minutes'));
+        $payment->setExpiresAt(new DateTimeImmutable('+1 minutes'));
 
         if ($trainer) {
             $payment->setTrainer($trainer);
@@ -351,6 +351,9 @@ final readonly class PaymentService
         $this->cancelPayment($payment);
     }
 
+    /**
+     * @throws Throwable
+     */
     public function cancelExpiredPayments(): void
     {
         $payments = $this->paymentRepo->findExpiredPending();
@@ -359,7 +362,7 @@ final readonly class PaymentService
 
         foreach ($payments as $payment) {
             if ($payment->getExpiresAt() < $now) {
-                $payment->setStatus(PaymentStatusEnum::CANCELED);
+                $this->cancelPayment($payment);
             }
         }
 

@@ -7,8 +7,6 @@ use App\TrainerWorkTime\Entity\TrainerWorkTime;
 use App\Training\Repository\TrainingRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
-use Symfony\Component\Serializer\Attribute\Groups;
-use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: TrainingRepository::class)]
 class Training
@@ -16,28 +14,35 @@ class Training
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['public-training', 'public-booking', 'create-update-booking'])]
     private ?int $id = null;
 
     #[ORM\ManyToOne(inversedBy: 'trainings')]
     #[ORM\JoinColumn(nullable: false)]
-    #[Groups(['public-training'])]
     private ?TrainerWorkTime $trainerWorkTime = null;
 
     #[ORM\Column(type: Types::TIME_IMMUTABLE)]
-    #[Groups(['public-training', 'create-update-training'])]
-    #[Assert\NotBlank]
     private ?\DateTimeImmutable $startTime = null;
 
     #[ORM\Column(options: ['default' => 60])]
-    #[Groups(['public-training', 'create-update-training'])]
-    #[Assert\NotBlank]
-    #[Assert\Positive]
-    #[Assert\GreaterThanOrEqual(60)]
     private ?int $durationMinutes = null;
 
     #[ORM\OneToOne(targetEntity: Booking::class, mappedBy: 'training', cascade: ['persist'])]
     private ?Booking $booking = null;
+
+    #[ORM\Column]
+    private bool $isBusy = true;
+
+    public function isBusy(): bool
+    {
+        return $this->isBusy;
+    }
+
+    public function setIsBusy(bool $isBusy): static
+    {
+        $this->isBusy = $isBusy;
+
+        return $this;
+    }
 
     public function getBooking(): ?Booking
     {
