@@ -91,7 +91,7 @@ final readonly class MembershipManager
                 } else {
                     $payment = $this->paymentService->createPayment(
                         $client,
-                        $price - $client->getBalance(),
+                        $price,
                         PaymentCategoryEnum::MEMBERSHIP,
                         PaymentMethodEnum::CARD,
                     );
