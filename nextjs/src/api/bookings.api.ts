@@ -4,7 +4,7 @@ import {apiDelete, apiGet, apiPost} from "@/lib/apiClient";
 import BookingCreateType from "@/types/booking/booking-create.type";
 
 export const getMyBookingsApi = async (): Promise<BookingType[]> => {
-    const data = await apiGet<ApiResponse<BookingType[]>>('/me/bookings');
+    const data = await apiGet<ApiResponse<BookingType[]>>('/me/bookings/');
 
     return data.data;
 }
