@@ -103,6 +103,12 @@ doctrine:
                 dir: '%kernel.project_dir%/src/ImportJob/Entity'
                 prefix: 'App\ImportJob\Entity'
                 alias: ImportJob
+            ImportJobItem:
+                type: attribute
+                is_bundle: false
+                dir: '%kernel.project_dir%/src/ImportJobItem/Entity'
+                prefix: 'App\ImportJobItem\Entity'
+                alias: ImportJobItem
             ImportError:
                 type: attribute
                 is_bundle: false

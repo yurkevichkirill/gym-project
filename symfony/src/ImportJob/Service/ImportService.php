@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\ImportJob\Service;
 
 use App\Client\Entity\Client;
+use App\Client\Repository\ClientRepository;
 use App\ImportJob\DTO\CreateClientImport;
 use App\ImportJob\DTO\CreateClientImportBatch;
 use App\ImportJob\Entity\ImportJob;
@@ -18,25 +19,16 @@ final readonly class ImportService
 {
     public function __construct(
         private EntityManagerInterface $em,
+        private ClientRepository $clientRepo,
         private LoggerInterface $clientLogger,
     ) {}
 
     public function create(CreateClientImportBatch $dto): ImportJob
     {
-        $context = [
-            'domain' => 'client',
-            'operation' => 'create_job',
-            'total' => count($dto->clients),
-        ];
-
         $job = new ImportJob(count($dto->clients));
 
         $this->em->persist($job);
         $this->em->flush();
-
-        $this->clientLogger->info('Import job created', $this->ctx($context + [
-                'job_id' => $job->getId(),
-            ], 'succeeded'));
 
         return $job;
     }
@@ -53,6 +45,14 @@ final readonly class ImportService
         ];
 
         $email = strtolower(trim($dto->email));
+
+        $existingClient = $this->clientRepo->findOneBy([
+            'email' => $email,
+        ]);
+
+        if ($existingClient) {
+            return ImportResultEnum::SKIPPED;
+        }
 
         $client = new Client();
         $client->setEmail($email);
@@ -73,10 +73,6 @@ final readonly class ImportService
 
             return ImportResultEnum::CREATED;
 
-        } catch (UniqueConstraintViolationException) {
-            $this->clientLogger->notice('Client import skipped (duplicate)', $this->ctx($context, 'skipped'));
-
-            return ImportResultEnum::SKIPPED;
         } catch (Throwable $e) {
             $this->clientLogger->error('Client import failed', $this->ctx($context, 'failed', [
                 'exception_class' => $e::class,

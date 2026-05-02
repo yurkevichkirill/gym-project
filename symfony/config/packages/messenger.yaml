@@ -15,6 +15,12 @@ framework:
                     queues:
                         clients: ~
 
+                retry_strategy:
+                    max_retries: 3
+                    delay: 1000
+                    multiplier: 2
+                    max_delay: 10000
+
             analytics:
                 dsn: '%env(MESSENGER_TRANSPORT_DSN)%'
                 options:

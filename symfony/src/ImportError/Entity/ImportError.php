@@ -4,6 +4,7 @@ namespace App\ImportError\Entity;
 
 use App\ImportError\Repository\ImportErrorRepository;
 use App\ImportJob\Entity\ImportJob;
+use App\ImportJobItem\Entity\ImportJobItem;
 use DateTimeImmutable;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
@@ -19,6 +20,12 @@ class ImportError
     #[ORM\ManyToOne(targetEntity: ImportJob::class, inversedBy: 'errors')]
     #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
     private ImportJob $job;
+
+    #[ORM\OneToOne(
+        inversedBy: 'error'
+    )]
+    #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
+    private ImportJobItem $item;
 
     #[ORM\Column(type: Types::JSON)]
     private array $payload;
@@ -89,6 +96,18 @@ class ImportError
     public function setCreatedAt(DateTimeImmutable $createdAt): static
     {
         $this->createdAt = $createdAt;
+
+        return $this;
+    }
+
+    public function getItem(): ImportJobItem
+    {
+        return $this->item;
+    }
+
+    public function setItem(ImportJobItem $item): static
+    {
+        $this->item = $item;
 
         return $this;
     }

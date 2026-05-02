@@ -24,7 +24,6 @@ final readonly class ImportErrorService
         );
 
         $this->em->persist($error);
-        $this->em->flush();
 
         return $error;
     }

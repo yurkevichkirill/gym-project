@@ -5,6 +5,7 @@ namespace App\ImportJob\Entity;
 use App\ImportError\Entity\ImportError;
 use App\ImportJob\Enum\ImportStatusEnum;
 use App\ImportJob\Repository\ImportJobRepository;
+use App\ImportJobItem\Entity\ImportJobItem;
 use DateTimeImmutable;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
@@ -26,6 +27,14 @@ class ImportJob
         orphanRemoval: true
     )]
     private Collection $errors;
+
+    #[ORM\OneToMany(
+        targetEntity: ImportJobItem::class,
+        mappedBy: 'job',
+        cascade: ['persist'],
+        orphanRemoval: true
+    )]
+    private Collection $items;
 
     #[ORM\Column(type: Types::ENUM, length: 50)]
     private ImportStatusEnum $status;
@@ -154,11 +163,27 @@ class ImportJob
         return $this->errors;
     }
 
-    public function addError(ImportError $error): void
+    public function addError(ImportError $error): static
     {
         if (!$this->errors->contains($error)) {
             $this->errors->add($error);
         }
+
+        return $this;
+    }
+
+    public function getItems(): Collection
+    {
+        return $this->items;
+    }
+
+    public function addItem(ImportJobItem $item): static
+    {
+        if (!$this->items->contains($item)) {
+            $this->items->add($item);
+        }
+
+        return $this;
     }
 
     public function incrementFailed(): void
