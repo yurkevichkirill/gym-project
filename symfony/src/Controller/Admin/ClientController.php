@@ -229,9 +229,9 @@ final class ClientController extends AbstractController
     ): JsonResponse {
         $job = $importService->create($requestDto);
 
-        foreach ($requestDto->clients as $clientDto) {
+        foreach ($requestDto->clients as $rowIndex => $clientDto) {
             $bus->dispatch(
-                new ImportMessage($clientDto, $job->getId())
+                new ImportMessage($clientDto, $job->getId(), $rowIndex)
             );
         }
 

@@ -10,6 +10,7 @@ final readonly class ImportMessage
 {
     public function __construct(
         public CreateClientImport $dto,
-        public int $jobId
+        public int $jobId,
+        public int $rowIndex,
     ) {}
 }
