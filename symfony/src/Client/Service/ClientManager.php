@@ -6,6 +6,7 @@ namespace App\Client\Service;
 
 use App\Admin\Entity\Admin;
 use App\Client\DTO\AdminUpdateClientRequest;
+use App\Client\DTO\ClientActivateRequest;
 use App\Client\DTO\CreateClientRequest;
 use App\Client\DTO\TopUpBalanceRequest;
 use App\Client\DTO\UpdateClientRequest;
@@ -17,15 +18,14 @@ use App\Membership\Service\VisitingService;
 use App\Payment\Entity\Payment;
 use App\Payment\Enum\PaymentCategoryEnum;
 use App\Payment\Enum\PaymentMethodEnum;
-use App\Payment\Repository\PaymentRepository;
 use App\Payment\Service\PaymentService;
 use App\RefreshToken\Repository\RefreshTokenRepository;
 use App\User\Service\AvailabilityService;
-use DateMalformedStringException;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
 final readonly class ClientManager
@@ -67,6 +67,7 @@ final readonly class ClientManager
     public function update(Client $client, UpdateClientRequest $requestDto): Client
     {
         $this->userAvailabilityService->ensureNotBlocked($client);
+        $this->userAvailabilityService->ensureActive($client);
 
         if ($requestDto->phone !== null) {
             $client->setPhone($requestDto->phone);
@@ -167,6 +168,7 @@ final readonly class ClientManager
     public function visit(Client $client): Membership
     {
         $this->userAvailabilityService->ensureNotBlocked($client);
+        $this->userAvailabilityService->ensureActive($client);
 
         if (!$this->visitingService->hasActiveMembership($client)) {
             throw new NoActiveMembershipException();
@@ -179,12 +181,10 @@ final readonly class ClientManager
         return $membership;
     }
 
-    /**
-     * @throws DateMalformedStringException
-     */
     public function topUpBalance(Client $client, TopUpBalanceRequest $requestDto): Payment
     {
         $this->userAvailabilityService->ensureNotBlocked($client);
+        $this->userAvailabilityService->ensureActive($client);
 
         $amount = $requestDto->amount;
 
@@ -199,8 +199,29 @@ final readonly class ClientManager
 
         return $payment;
     }
-}
 
-//fn($trainingSlot) =>
-//    $startTime >= $trainingSlot['end'] ||
-//    $endTime <= $trainingSlot['start']
+    public function activate(ClientActivateRequest $requestDto): Client
+    {
+        return $this->entityManager->wrapInTransaction(function () use ($requestDto) {
+            $client = $this->clientRepo->findOneBy(['activationToken' => $requestDto->activationToken]);
+
+            if ($client === null) {
+                throw new NotFoundHttpException('Activation token is invalid.');
+            }
+
+            $this->userAvailabilityService->ensureNotBlocked($client);
+            if ($client->isActive()) {
+                throw new ConflictHttpException('Account is already activated.');
+            }
+
+            $hashedPassword = $this->passwordHasher->hashPassword($client, $requestDto->password);
+            $client->setPassword($hashedPassword);
+            $client->setIsActive(true);
+            $client->setActivationToken(null);
+
+            $this->entityManager->flush();
+
+            return $client;
+        });
+    }
+}

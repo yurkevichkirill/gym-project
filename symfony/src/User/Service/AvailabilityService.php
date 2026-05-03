@@ -15,4 +15,11 @@ final readonly class AvailabilityService
             throw new AccessDeniedHttpException("User is blocked");
         }
     }
+
+    public function ensureActive(User $user): void
+    {
+        if (!$user->isActive()) {
+            throw new AccessDeniedHttpException("User is not active");
+        }
+    }
 }

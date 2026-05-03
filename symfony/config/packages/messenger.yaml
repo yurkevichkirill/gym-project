@@ -49,6 +49,7 @@ framework:
             Symfony\Component\Notifier\Message\SmsMessage: async
 
             App\ImportJob\Message\ImportMessage: async
+            App\ImportJob\Message\SendActivationEmailMessage: async
 
             App\Infrastructure\ClickHouse\Event\AnalyticsEvent: analytics
 

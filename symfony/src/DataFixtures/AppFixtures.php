@@ -274,13 +274,13 @@ class AppFixtures extends Fixture
 //        $manager->remove($manager->getRepository(Membership::class)->find(1));
 //        $manager->remove($manager->getRepository(Membership::class)->find(3));
 //        $manager->remove($manager->getRepository(Membership::class)->find(5));
-        foreach ($manager->getRepository(ImportJob::class)->findAll() as $item) {
-            $manager->remove($item);
+        foreach ($manager->getRepository(User::class)->findAll() as $item) {
+            $item->setIsActive(true);
         }
 
-        foreach ($manager->getRepository(ImportError::class)->findAll() as $item) {
-            $manager->remove($item);
-        }
+//        foreach ($manager->getRepository(ImportError::class)->findAll() as $item) {
+//            $manager->remove($item);
+//        }
 
 //        foreach ($manager->getRepository(Payment::class)->findAll() as $item) {
 //            $manager->remove($item);

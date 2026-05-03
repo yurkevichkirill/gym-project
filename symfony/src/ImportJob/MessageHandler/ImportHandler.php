@@ -7,6 +7,7 @@ namespace App\ImportJob\MessageHandler;
 use App\ImportError\Service\ImportErrorService;
 use App\ImportJob\Enum\ImportResultEnum;
 use App\ImportJob\Message\ImportMessage;
+use App\ImportJob\Message\SendActivationEmailMessage;
 use App\ImportJob\Repository\ImportJobRepository;
 use App\ImportJob\Service\ImportService;
 use App\ImportJobItem\Service\ImportJobItemManager;
@@ -14,6 +15,7 @@ use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
+use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 use Throwable;
 
@@ -26,6 +28,7 @@ final readonly class ImportHandler
         private ImportErrorService $errorService,
         private ImportJobRepository $jobRepo,
         private ImportJobItemManager $jobItemManager,
+        private MessageBusInterface $bus,
         private LoggerInterface $clientLogger,
         private EntityManagerInterface $em,
     ) {}
@@ -70,12 +73,16 @@ final readonly class ImportHandler
                     'violations' => (string) $violations,
                 ]));
             } else {
-                $result = $this->service->import($message->dto);
+                $client = $this->service->import($message->dto);
 
-                if ($result === ImportResultEnum::CREATED) {
+                if ($client !== null) {
                     $this->jobRepo->incrementProcessed($message->jobId);
                     $this->jobItemManager->success($jobItem);
-                } else if ($result === ImportResultEnum::SKIPPED) {
+
+                    $this->bus->dispatch(
+                        new SendActivationEmailMessage($client->getId())
+                    );
+                } else {
                     $this->jobRepo->incrementSkipped($message->jobId);
                     $this->jobItemManager->skip($jobItem);
                 }
