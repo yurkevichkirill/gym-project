@@ -11,7 +11,8 @@ const refreshToken = async () => {
 
 const request = async <T>(
     url: string,
-    init?: RequestInit
+    init?: RequestInit,
+    isRetry = false
 ) => {
     const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}${url}`, {
         ...init,
@@ -22,20 +23,11 @@ const request = async <T>(
         },
     });
 
-    if (res.status === 401) {
+    if (res.status === 401 && !isRetry) {
         const refreshed = await refreshToken();
 
         if (refreshed) {
-            const retry = await fetch(`${process.env.NEXT_PUBLIC_API_URL}${url}`, {
-                ...init,
-                credentials: 'include',
-            });
-
-            if (!retry.ok) {
-                throw new Error("Request failed after refresh");
-            }
-
-            return retry.json() as Promise<T>;
+            return request<T>(url, init, true);
         }
 
         throw new Error("Unauthorized");
