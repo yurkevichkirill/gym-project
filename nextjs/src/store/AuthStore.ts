@@ -1,8 +1,8 @@
 import {makeAutoObservable, runInAction} from "mobx";
 import {LoginRequest, LoginResponse, MeResponse, User} from "@/types/auth.type";
 import {apiDelete, apiGet, apiPatch, apiPost} from "@/lib/apiClient";
-import {ApiResponse} from "@/types/api-response.type";
 import ClientEditType from "@/types/client/client-edit.type";
+import {ApiItemResponse} from "@/types/api-item-response.type";
 
 export interface AuthStore {
     user: User | null;
@@ -78,7 +78,7 @@ export const authStore: AuthStore = {
         });
 
         try {
-            const res = await apiPatch<ApiResponse<User>>('/me/', data);
+            const res = await apiPatch<ApiItemResponse<User>>('/me/', data);
 
             runInAction(() => {
                 authStore.user = res.data;

@@ -1,4 +1,4 @@
-export type ApiResponse<T> = {
+export type ApiCollectionResponse<T> = {
     data: T
     meta: {
         pagination: {

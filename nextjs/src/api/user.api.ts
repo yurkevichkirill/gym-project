@@ -1,16 +1,16 @@
-import UserPersonalType from "@/types/user/user.type";
-import {ApiResponse} from "@/types/api-response.type";
+import UserPersonalType from "@/types/client/client.type";
 import {apiGet, apiPatch} from "@/lib/apiClient";
-import UserPersonalEditType from "@/types/user/user-edit.type";
+import UserPersonalEditType from "@/types/client/client-edit.type";
+import {ApiItemResponse} from "@/types/api-item-response.type";
 
 export const getMe = async (): Promise<UserPersonalType> => {
-    const data = await apiGet<ApiResponse<UserPersonalType>>('/me/');
+    const data = await apiGet<ApiItemResponse<UserPersonalType>>('/me/');
 
     return data.data;
 }
 
 export const editMe = async ({ phone }: UserPersonalEditType): Promise<UserPersonalType> => {
-    const data = await apiPatch<ApiResponse<UserPersonalType>>('/me/', {
+    const data = await apiPatch<ApiItemResponse<UserPersonalType>>('/me/', {
         phone
     });
 

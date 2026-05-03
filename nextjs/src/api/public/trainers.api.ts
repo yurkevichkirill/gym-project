@@ -1,12 +1,13 @@
-import {ApiResponse} from "@/types/api-response.type";
 import TrainerData from "@/types/trainer/public/trainer.type";
+import {ApiCollectionResponse} from "@/types/api-collection-response";
+import {ApiItemResponse} from "@/types/api-item-response.type";
 
 export const getTrainers = async (): Promise<TrainerData[]> => {
     const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/trainers/`);
     if (!response.ok) {
         throw new Error(`HTTP ${response.status}`);
     }
-    const obj: ApiResponse<TrainerData[]> = await response.json();
+    const obj: ApiCollectionResponse<TrainerData[]> = await response.json();
 
     return obj.data;
 }
@@ -16,7 +17,7 @@ export const getTrainer = async (id: string):Promise<TrainerData> => {
     if (!response.ok) {
         throw new Error(`HTTP ${response.status}`);
     }
-    const obj: ApiResponse<TrainerData> = await response.json();
+    const obj: ApiItemResponse<TrainerData> = await response.json();
 
     return obj.data;
 }
