@@ -2,6 +2,7 @@
 
 namespace App\Controller\Client;
 
+use App\Client\DTO\ClientActivateRequest;
 use App\Client\DTO\TopUpBalanceRequest;
 use App\Client\DTO\UpdateClientRequest;
 use App\Client\Entity\Client;
@@ -102,9 +103,6 @@ final class ClientController extends AbstractController
         );
     }
 
-    /**
-     * @throws DateMalformedStringException
-     */
     #[Route('/api/me/topup/', methods: ['POST'], format: 'json')]
     #[OA\RequestBody(content: new Model(type: TopUpBalanceRequest::class))]
     #[OA\Tag(name: "Client: Client")]
@@ -117,6 +115,23 @@ final class ClientController extends AbstractController
     ): ItemResponse
     {
         $responseDto = $mapper->map($manager->topUpBalance($client, $requestDto));
+
+        return new ItemResponse(
+            data: $responseDto,
+            status: Response::HTTP_OK,
+        );
+    }
+
+    #[Route('/api/me/activate/', methods: ['POST'], format: 'json')]
+    #[OA\RequestBody(content: new Model(type: ClientActivateRequest::class))]
+    #[OA\Tag(name: "Client: Client")]
+    public function activate(
+        #[MapRequestPayload] ClientActivateRequest $requestDto,
+        ClientMapperInterface $mapper,
+        ClientManager $manager,
+    ): ItemResponse
+    {
+        $responseDto = $mapper->map($manager->activate($requestDto));
 
         return new ItemResponse(
             data: $responseDto,

@@ -9,8 +9,6 @@ use App\Client\Repository\ClientRepository;
 use App\ImportJob\DTO\CreateClientImport;
 use App\ImportJob\DTO\CreateClientImportBatch;
 use App\ImportJob\Entity\ImportJob;
-use App\ImportJob\Enum\ImportResultEnum;
-use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
 use Throwable;
@@ -36,7 +34,7 @@ final readonly class ImportService
     /**
      * @throws Throwable
      */
-    public function import(CreateClientImport $dto): ImportResultEnum
+    public function import(CreateClientImport $dto): ?Client
     {
         $context = [
             'domain' => 'client',
@@ -51,7 +49,7 @@ final readonly class ImportService
         ]);
 
         if ($existingClient) {
-            return ImportResultEnum::SKIPPED;
+            return null;
         }
 
         $client = new Client();
@@ -61,17 +59,14 @@ final readonly class ImportService
         $client->setPhone($dto->phone);
         $client->setAge($dto->age);
 
-        $client->setPassword(password_hash('temp1234', PASSWORD_BCRYPT));
+        $client->setIsActive(false);
+        $client->setActivationToken(bin2hex(random_bytes(32)));
 
         try {
             $this->em->persist($client);
             $this->em->flush();
 
-            $this->clientLogger->info('Client imported', $this->ctx($context + [
-                    'client_id' => $client->getId(),
-                ], 'created'));
-
-            return ImportResultEnum::CREATED;
+            return $client;
 
         } catch (Throwable $e) {
             $this->clientLogger->error('Client import failed', $this->ctx($context, 'failed', [

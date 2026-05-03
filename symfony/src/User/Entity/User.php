@@ -58,8 +58,14 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     /**
      * @var ?string The hashed password
      */
-    #[ORM\Column]
+    #[ORM\Column(length: 200, nullable: true)]
     private ?string $password = null;
+
+    #[ORM\Column]
+    private bool $isActive = true;
+
+    #[ORM\Column(length: 200, nullable: true)]
+    private ?string $activationToken = null;
 
     #[ORM\OneToMany(targetEntity: RefreshToken::class, mappedBy: 'user')]
     private Collection $refreshTokens;
@@ -191,6 +197,42 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function setBlockedAt(?DateTimeImmutable $blockedAt): static
     {
         $this->blockedAt = $blockedAt;
+
+        return $this;
+    }
+
+    public function isActive(): bool
+    {
+        return $this->isActive;
+    }
+
+    public function setIsActive(bool $isActive): static
+    {
+        $this->isActive = $isActive;
+
+        return $this;
+    }
+
+    public function getActivationToken(): ?string
+    {
+        return $this->activationToken;
+    }
+
+    public function setActivationToken(?string $activationToken): static
+    {
+        $this->activationToken = $activationToken;
+
+        return $this;
+    }
+
+    public function getRefreshTokens(): Collection
+    {
+        return $this->refreshTokens;
+    }
+
+    public function setRefreshTokens(Collection $refreshTokens): static
+    {
+        $this->refreshTokens = $refreshTokens;
 
         return $this;
     }
