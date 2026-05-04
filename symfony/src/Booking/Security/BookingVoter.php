@@ -33,7 +33,7 @@ class BookingVoter extends Voter
     {
         $user = $token->getUser();
 
-        if(!$user instanceof Client) return false;
+        if (!$user instanceof Client) return false;
 
         /** @var Booking $booking **/
         $booking = $subject;

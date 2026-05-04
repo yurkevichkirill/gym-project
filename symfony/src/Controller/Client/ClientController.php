@@ -11,10 +11,10 @@ use App\Client\Service\ClientManager;
 use App\Membership\Mapper\MembershipMapperInterface;
 use App\Payment\Mapper\PaymentMapperInterface;
 use App\Response\ItemResponse;
-use App\Response\OkResponse;
-use DateMalformedStringException;
 use Nelmio\ApiDocBundle\Attribute\Model;
 use OpenApi\Attributes as OA;
+use Psr\Container\ContainerExceptionInterface;
+use Psr\Container\NotFoundExceptionInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
@@ -58,6 +58,10 @@ final class ClientController extends AbstractController
         );
     }
 
+    /**
+     * @throws ContainerExceptionInterface
+     * @throws NotFoundExceptionInterface
+     */
     #[Route('/api/me/', methods: ['DELETE'], format: 'json')]
     #[IsGranted('ROLE_CLIENT')]
     #[OA\Tag(name: "Client: Client")]
