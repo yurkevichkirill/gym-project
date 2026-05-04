@@ -2,13 +2,10 @@
 
 namespace App\Payment\Repository;
 
-use App\Client\Entity\Client;
 use App\Payment\Entity\Payment;
 use App\Payment\Enum\PaymentStatusEnum;
 use DateTimeImmutable;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
-use Doctrine\ORM\Exception\ORMException;
-use Doctrine\ORM\OptimisticLockException;
 use Doctrine\Persistence\ManagerRegistry;
 
 /**

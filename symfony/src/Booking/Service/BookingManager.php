@@ -12,20 +12,18 @@ use App\Client\Entity\Client;
 use App\Client\Service\AvailabilityService;
 use App\Exception\DateRescheduledException;
 use App\Exception\DateTimeAlreadyTakenException;
+use App\Exception\InvalidBookingStatusException;
 use App\Exception\NoActiveMembershipException;
 use App\Infrastructure\ClickHouse\Publisher\AnalyticsPublisher;
 use App\Membership\Service\VisitingService;
-use App\Payment\Enum\PaymentCategoryEnum;
-use App\Payment\Enum\PaymentMethodEnum;
-use App\Payment\Enum\PaymentStatusEnum;
-use App\Payment\Service\PaymentService;
+use App\Payment\Repository\PaymentRepository;
+use App\Payment\Service\PaymentSettlementService;
 use App\Trainer\Repository\TrainerRepository;
 use App\Trainer\Service\TrainerManager;
 use App\TrainerWorkTime\Entity\TrainerWorkTime;
 use App\TrainerWorkTime\Repository\TrainerWorkTimeRepository;
 use App\Training\Entity\Training;
 use App\Training\Repository\TrainingRepository;
-use App\Training\Service\TrainingManager;
 use App\User\Service\AvailabilityService as UserAvailabilityService;
 use App\TrainerWorkTime\Service\AvailabilityService as WorktimeAvailabilityService;
 use DateMalformedIntervalStringException;
@@ -48,10 +46,11 @@ final readonly class BookingManager
         private VisitingService           $visitingService,
         private UserAvailabilityService   $userAvailabilityService,
         private WorktimeAvailabilityService $worktimeAvailabilityService,
-        private PaymentService            $paymentService,
         private AvailabilityService       $clientAvailabilityService,
+        private PaymentSettlementService  $paymentSettlementService,
         private EntityManagerInterface    $entityManager,
         private LoggerInterface           $bookingLogger,
+        private PaymentRepository         $paymentRepo,
         private AnalyticsPublisher        $analyticsPublisher,
     )
     {}
@@ -118,37 +117,16 @@ final readonly class BookingManager
                 $booking->setTraining($training);
                 $this->bookingRepo->create($booking);
 
-                if ($client->getBalance() >= $price) {
-                    $payment = $this->paymentService->createPayment(
-                        $client,
-                        $price,
-                        PaymentCategoryEnum::TRAINER,
-                        PaymentMethodEnum::BALANCE,
-                        $trainer
-                    );
+                $payment = $this->paymentSettlementService->createBookingPayment(
+                    $client,
+                    $price,
+                    $booking,
+                    $trainer,
+                );
 
-                    $booking->setPayment($payment);
-
-                    $this->paymentService->confirmPayment($payment, null, $booking);
-                } else {
-                    $payment = $this->paymentService->createPayment(
-                        $client,
-                        $price,
-                        PaymentCategoryEnum::TRAINER,
-                        PaymentMethodEnum::CARD,
-                        $trainer
-                    );
-
-                    $booking->setPayment($payment);
-                }
+                $this->paymentRepo->create($payment);
 
                 $this->entityManager->flush();
-
-                $this->bookingLogger->info('booking.succeeded', $this->bookingEventContext($loggingContext, 'book', 'succeeded', [
-                    'booking_id' => $booking->getId(),
-                    'trainer_id' => $trainer->getId(),
-                    'price' => $price,
-                ]));
 
                 $this->analyticsPublisher->publish('booking.created', [
                     'client_id' => $client->getId(),
@@ -178,8 +156,12 @@ final readonly class BookingManager
         }
     }
 
-    public function cancelBooking(Booking $booking, BookingStatusEnum $reason): void
+    public function cancel(Booking $booking, BookingStatusEnum $reason): void
     {
+        if ($booking->getStatus() !== BookingStatusEnum::SCHEDULED) {
+            throw new InvalidBookingStatusException("Only scheduled bookings can be canceled by client");
+        }
+
         $loggingContext = [
             'booking_id' => $booking->getId(),
             'client_id' => $booking->getClient()?->getId(),
@@ -195,27 +177,14 @@ final readonly class BookingManager
         ];
 
         $this->entityManager->wrapInTransaction(function () use ($booking, $reason, $loggingContext, $analyticalContext) {
-
             try {
                 $payment = $booking->getPayment();
 
-                if ($payment !== null) {
-                    if ($payment->getStatus() === PaymentStatusEnum::SUCCEEDED) {
-                        if ($payment->getMethod() === PaymentMethodEnum::CARD) {
-                            $this->paymentService->refundPaymentViaStripe($payment);
-                        } else {
-                            $this->paymentService->refundPayment($payment);
-                        }
-                    } else {
-                        $this->paymentService->cancelPaymentWithStripeIntent($payment);
-                    }
-                }
+                $this->paymentSettlementService->refund($payment);
 
-                $booking->cancel($reason);
+                $booking->cancel(BookingStatusEnum::CANCELED_BY_CLIENT);
 
-                $this->bookingLogger->info('booking.cancel.succeeded',
-                    $this->bookingEventContext($loggingContext, 'cancel', 'succeeded')
-                );
+                $this->entityManager->flush();
 
                 $this->analyticsPublisher->publish(
                     'booking.canceled',

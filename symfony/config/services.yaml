@@ -43,7 +43,7 @@ services:
         arguments:
             $bookingLogger: '@monolog.logger.booking'
 
-    App\Payment\Service\PaymentService:
+    App\Payment\Service\PaymentSettlementService:
         arguments:
             $paymentLogger: '@monolog.logger.payment'
 
@@ -58,7 +58,6 @@ services:
     App\Membership\Service\VisitingService:
         arguments:
             $membershipLogger: '@monolog.logger.membership'
-
 
     App\ImportJob\Service\ImportService:
         arguments:

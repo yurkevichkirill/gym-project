@@ -16,9 +16,7 @@ use App\Exception\NoActiveMembershipException;
 use App\Membership\Entity\Membership;
 use App\Membership\Service\VisitingService;
 use App\Payment\Entity\Payment;
-use App\Payment\Enum\PaymentCategoryEnum;
-use App\Payment\Enum\PaymentMethodEnum;
-use App\Payment\Service\PaymentService;
+use App\Payment\Service\PaymentSettlementService;
 use App\RefreshToken\Repository\RefreshTokenRepository;
 use App\User\Service\AvailabilityService;
 use DateTimeImmutable;
@@ -36,7 +34,7 @@ final readonly class ClientManager
         private UserPasswordHasherInterface $passwordHasher,
         private AvailabilityService $userAvailabilityService,
         private VisitingService $visitingService,
-        private PaymentService $paymentService,
+        private PaymentSettlementService $paymentSettlementService,
         private EntityManagerInterface $entityManager,
     )
     {}
@@ -188,11 +186,9 @@ final readonly class ClientManager
 
         $amount = $requestDto->amount;
 
-        $payment = $this->paymentService->createPayment(
+        $payment = $this->paymentSettlementService->createTopUpPayment(
             $client,
             $amount,
-            PaymentCategoryEnum::BALANCE_TOP_UP,
-            PaymentMethodEnum::BALANCE,
         );
 
         $this->entityManager->flush();

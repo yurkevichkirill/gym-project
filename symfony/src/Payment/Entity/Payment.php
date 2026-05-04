@@ -8,7 +8,6 @@ use App\Membership\Entity\Membership;
 use App\Payment\Enum\PaymentCategoryEnum;
 use App\Payment\Enum\PaymentMethodEnum;
 use App\Payment\Enum\PaymentStatusEnum;
-use App\Payment\Mapper\PaymentMapperInterface;
 use App\Payment\Repository\PaymentRepository;
 use App\Trainer\Entity\Trainer;
 use DateTimeImmutable;
@@ -33,9 +32,6 @@ class Payment
 
     #[ORM\OneToOne(targetEntity: Booking::class, mappedBy: 'payment')]
     private ?Booking $booking = null;
-
-    #[ORM\Column]
-    private ?bool $isRefund = null;
 
     #[ORM\Column(length: 200)]
     private ?string $clientFullName = null;
@@ -76,9 +72,6 @@ class Payment
 
     #[ORM\Column(type: Types::ENUM, length: 50)]
     private PaymentStatusEnum $status;
-
-    #[ORM\Column(nullable: true)]
-    private ?DateTimeImmutable $confirmedAt = null;
 
     #[ORM\Column(nullable: true)]
     private ?DateTimeImmutable $expiresAt = null;
@@ -123,18 +116,6 @@ class Payment
     public function setAmount(int $amount): static
     {
         $this->amount = $amount;
-
-        return $this;
-    }
-
-    public function getIsRefund(): ?bool
-    {
-        return $this->isRefund;
-    }
-
-    public function setIsRefund(?bool $isRefund): static
-    {
-        $this->isRefund = $isRefund;
 
         return $this;
     }
@@ -237,18 +218,6 @@ class Payment
         return $this;
     }
 
-    public function getConfirmedAt(): ?DateTimeImmutable
-    {
-        return $this->confirmedAt;
-    }
-
-    public function setConfirmedAt(?DateTimeImmutable $confirmedAt): static
-    {
-        $this->confirmedAt = $confirmedAt;
-
-        return $this;
-    }
-
     public function getCreatedAt(): ?DateTimeImmutable
     {
         return $this->createdAt;
@@ -301,6 +270,8 @@ class Payment
 
         return $this;
     }
+
+
 
     public function __construct(PaymentMethodEnum $method)
     {

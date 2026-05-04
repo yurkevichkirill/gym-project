@@ -45,7 +45,7 @@ final readonly class StripeService
                     'allow_redirects' => 'never',
                 ],
                 'metadata' => [
-                    'payment_id' => (string)$payment->getId(),
+                    'payment_id' => (string) $payment->getId(),
                 ],
             ], [
                 'idempotency_key' => $idempotencyKey,
@@ -54,86 +54,11 @@ final readonly class StripeService
             $payment->setStripePaymentIntentId($intent->id);
             $this->em->flush();
 
-            $this->stripeLogger->info('stripe.intent.created', [
-                'payment_id' => $payment->getId(),
-                'intent_id' => $intent->id,
-            ]);
-
             return $intent->client_secret;
 
         } catch (Throwable $e) {
             $this->stripeLogger->error('stripe.intent.failed', [
                 'payment_id' => $payment->getId(),
-                'error' => $e->getMessage(),
-                'exception_class' => $e::class,
-            ]);
-
-            throw $e;
-        }
-    }
-
-    /**
-     * @throws ApiErrorException
-     * @throws Throwable
-     */
-    public function refund(Payment $payment): void
-    {
-        $intentId = $payment->getStripePaymentIntentId();
-
-        if ($intentId === null) {
-            throw new BadRequestHttpException('Payment has no Stripe PaymentIntent');
-        }
-
-        $idempotencyKey = sprintf('refund_%d', $payment->getId());
-
-        try {
-            $this->stripe->refunds->create([
-                'payment_intent' => $intentId,
-            ], [
-                'idempotency_key' => $idempotencyKey,
-            ]);
-
-            $this->stripeLogger->info('stripe.refund.succeeded', [
-                'payment_id' => $payment->getId(),
-                'intent_id' => $intentId,
-            ]);
-
-        } catch (Throwable $e) {
-            $this->stripeLogger->error('stripe.refund.failed', [
-                'payment_id' => $payment->getId(),
-                'intent_id' => $intentId,
-                'error' => $e->getMessage(),
-                'exception_class' => $e::class,
-            ]);
-
-            throw $e;
-        }
-    }
-
-    /**
-     * @throws ApiErrorException
-     * @throws Throwable
-     */
-    public function cancelPaymentIntent(Payment $payment): void
-    {
-        $intentId = $payment->getStripePaymentIntentId();
-
-        if ($intentId === null) {
-            return;
-        }
-
-        try {
-            $this->stripe->paymentIntents->cancel($intentId);
-
-            $this->stripeLogger->info('stripe.intent.canceled', [
-                'payment_id' => $payment->getId(),
-                'intent_id' => $intentId,
-            ]);
-
-        } catch (Throwable $e) {
-            $this->stripeLogger->error('stripe.intent.cancel.failed', [
-                'payment_id' => $payment->getId(),
-                'intent_id' => $intentId,
                 'error' => $e->getMessage(),
                 'exception_class' => $e::class,
             ]);
