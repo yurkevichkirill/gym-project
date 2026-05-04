@@ -102,16 +102,16 @@ final class BookingController extends AbstractController
         );
     }
 
-    #[Route('/api/me/bookings/{id}/', methods: ['DELETE'], format: 'json')]
+    #[Route('/api/me/bookings/{id}/cancel/', methods: ['POST'], format: 'json')]
     #[OA\Tag(name: "Client: Bookings")]
-    public function remove(
+    public function cancel(
         Booking $booking,
         BookingManager $manager,
     ): NoContentResponse
     {
         $this->denyAccessUnlessGranted("BOOKING_REMOVE", $booking);
 
-        $manager->cancelBooking($booking, BookingStatusEnum::CANCELED_BY_CLIENT);
+        $manager->cancel($booking, BookingStatusEnum::CANCELED_BY_CLIENT);
 
         return new NoContentResponse();
     }

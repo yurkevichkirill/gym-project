@@ -6,9 +6,8 @@ namespace App\Controller\Payment;
 
 use App\Payment\Entity\Payment;
 use App\Payment\Enum\PaymentStatusEnum;
-use App\Payment\Service\StripeService;
+use App\Payment\Service\PaymentSettlementService;
 use App\Response\ItemResponse;
-use App\Response\OkResponse;
 use Stripe\Exception\ApiErrorException;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
@@ -27,7 +26,7 @@ class PaymentController extends AbstractController
     #[IsGranted('ROLE_CLIENT')]
     public function createIntent(
         Payment $payment,
-        StripeService $stripeService
+        PaymentSettlementService $paymentSettlementService,
     ): ItemResponse {
         $this->denyAccessUnlessGranted('PAYMENT_VIEW', $payment);
 
@@ -35,7 +34,7 @@ class PaymentController extends AbstractController
             throw new BadRequestHttpException('Payment already processed');
         }
 
-        $clientSecret = $stripeService->createPaymentIntent($payment);
+        $clientSecret = $paymentSettlementService->createStripeIntent($payment);
 
         return new ItemResponse([
             'clientSecret' => $clientSecret

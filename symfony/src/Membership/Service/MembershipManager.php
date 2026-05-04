@@ -6,7 +6,7 @@ namespace App\Membership\Service;
 
 use App\Client\Entity\Client;
 use App\Infrastructure\ClickHouse\Publisher\AnalyticsPublisher;
-use App\Payment\Enum\PaymentMethodEnum;
+use App\Payment\Service\PaymentSettlementService;
 use App\User\Service\AvailabilityService;
 use App\Exception\InvalidMembershipStatusException;
 use App\Exception\MembershipActiveException;
@@ -14,8 +14,7 @@ use App\Membership\Entity\Membership;
 use App\Membership\Enum\MembershipStatusEnum;
 use App\Membership\Repository\MembershipRepository;
 use App\MembershipPlan\Repository\MembershipPlanRepository;
-use App\Payment\Enum\PaymentCategoryEnum;
-use App\Payment\Service\PaymentService;
+use DateMalformedStringException;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Exception\ORMException;
@@ -33,14 +32,14 @@ final readonly class MembershipManager
         private EntityManagerInterface $entityManager,
         private AvailabilityService $userAvailabilityService,
         private VisitingService $visitingService,
-        private PaymentService $paymentService,
+        private PaymentSettlementService $paymentSettlementService,
         private LoggerInterface $membershipLogger,
         private AnalyticsPublisher $analyticsPublisher,
     )
     {}
 
     /**
-     * @throws \DateMalformedStringException
+     * @throws DateMalformedStringException
      * @throws Throwable
      * @throws ExceptionInterface
      */
@@ -76,37 +75,13 @@ final readonly class MembershipManager
 
                 $price = $plan->getPrice();
 
-                if ($client->getBalance() >= $price) {
-                    $payment = $this->paymentService->createPayment(
-                        $client,
-                        $price,
-                        PaymentCategoryEnum::MEMBERSHIP,
-                        PaymentMethodEnum::BALANCE,
-                    );
-
-                    $this->paymentService->confirmPayment(
-                        payment: $payment,
-                        membership: $membership,
-                    );
-                } else {
-                    $payment = $this->paymentService->createPayment(
-                        $client,
-                        $price,
-                        PaymentCategoryEnum::MEMBERSHIP,
-                        PaymentMethodEnum::CARD,
-                    );
-                }
-
-                $membership->setPayment($payment);
+                $this->paymentSettlementService->createMembershipPayment(
+                    $client,
+                    $price,
+                    $membership,
+                );
 
                 $this->entityManager->flush();
-
-                $this->membershipLogger->info('membership.succeeded',
-                    $this->membershipEventContext($loggingContext, 'create', 'succeeded', [
-                        'membership_id' => $membership->getId(),
-                        'price' => $price,
-                    ])
-                );
 
                 $this->analyticsPublisher->publish('membership.created', [
                     'client_id' => $client->getId(),
@@ -127,7 +102,6 @@ final readonly class MembershipManager
             );
 
             throw $e;
-
         } catch (Throwable $e) {
             $this->membershipLogger->error('membership.failed',
                 $this->membershipEventContext($loggingContext, 'create', 'failed', [
@@ -141,7 +115,7 @@ final readonly class MembershipManager
     }
 
     /**
-     * @throws \DateMalformedStringException
+     * @throws DateMalformedStringException
      * @throws Throwable
      * @throws ExceptionInterface
      */
@@ -161,10 +135,6 @@ final readonly class MembershipManager
             $membership->setStatus(MembershipStatusEnum::FROZEN);
 
             $this->entityManager->flush();
-
-            $this->membershipLogger->info('membership.freeze.succeeded',
-                $this->membershipEventContext($loggingContext, 'freeze', 'succeeded')
-            );
 
             $this->analyticsPublisher->publish(
                 'membership.froze',
@@ -200,7 +170,7 @@ final readonly class MembershipManager
     }
 
     /**
-     * @throws \DateMalformedStringException
+     * @throws DateMalformedStringException
      * @throws Throwable
      * @throws ExceptionInterface
      */
@@ -275,16 +245,7 @@ final readonly class MembershipManager
                 throw new NotFoundHttpException();
             }
 
-            $new = $this->create($membership->getClient(), $membership->getPlan()->getId());
-
-            $this->membershipLogger->info('membership.renew.succeeded',
-                $this->membershipEventContext($loggingContext, 'renew', 'succeeded', [
-                    'new_membership_id' => $new->getId(),
-                ])
-            );
-
-            return $new;
-
+            return $this->create($membership->getClient(), $membership->getPlan()->getId());
         } catch (Throwable $e) {
             $this->membershipLogger->error('membership.renew.failed',
                 $this->membershipEventContext($loggingContext, 'renew', 'failed', [
@@ -298,7 +259,7 @@ final readonly class MembershipManager
     }
 
     /**
-     * @throws \DateMalformedStringException
+     * @throws DateMalformedStringException
      * @throws Throwable
      * @throws ExceptionInterface
      */
@@ -318,10 +279,6 @@ final readonly class MembershipManager
             $membership->setStatus(MembershipStatusEnum::EXPIRED);
 
             $this->entityManager->flush();
-
-            $this->membershipLogger->info('membership.terminate.succeeded',
-                $this->membershipEventContext($loggingContext, 'terminate', 'succeeded')
-            );
 
             $this->analyticsPublisher->publish(
                 'membership.terminated',
@@ -372,10 +329,6 @@ final readonly class MembershipManager
         }
 
         $this->entityManager->flush();
-
-        $this->membershipLogger->info('membership.expire.succeeded', [
-            'count' => count($expiredMemberships),
-        ]);
 
         return count($expiredMemberships);
     }

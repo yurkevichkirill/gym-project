@@ -6,6 +6,7 @@ namespace App\Payment\DTO;
 
 use App\Payment\Entity\Payment;
 use App\Payment\Enum\PaymentCategoryEnum;
+use App\Payment\Enum\PaymentMethodEnum;
 use App\Payment\Enum\PaymentStatusEnum;
 use App\Trainer\DTO\TrainerResponse;
 
@@ -15,13 +16,12 @@ final readonly class PaymentResponse
         public int $id,
         public int $amount,
         public string $currency,
+        public PaymentMethodEnum $method,
         public PaymentCategoryEnum $category,
-        public bool $isRefund,
         public ?string $stripePaymentIntentId,
         public ?PaymentStatusEnum $status,
         public string $createdAt,
         public ?string $paidAt,
-        public ?string $confirmedAt,
         public ?string $expiresAt,
         public ?TrainerResponse $trainer = null,
     )
@@ -33,13 +33,12 @@ final readonly class PaymentResponse
             id: $payment->getId(),
             amount: $payment->getAmount(),
             currency: $payment->getCurrency(),
+            method: $payment->getMethod(),
             category: $payment->getCategory(),
-            isRefund: $payment->getIsRefund(),
             stripePaymentIntentId: $payment->getStripePaymentIntentId(),
             status: $payment->getStatus(),
             createdAt: $payment->getCreatedAt()->format(DATE_ATOM),
             paidAt: $payment->getPaidAt()?->format(DATE_ATOM) ?? '',
-            confirmedAt: $payment->getConfirmedAt()?->format(DATE_ATOM) ?? '',
             expiresAt: $payment->getExpiresAt()?->format(DATE_ATOM) ?? '',
             trainer: $payment->getTrainer() ? TrainerResponse::fromEntity($payment->getTrainer()) : null,
         );

@@ -17,7 +17,7 @@ final readonly class StripeWebhookService
 {
     public function __construct(
         private string $webhookSecret,
-        private PaymentService $paymentService,
+        private PaymentSettlementService $paymentSettlementService,
         private LoggerInterface $logger,
     ) {}
 
@@ -48,29 +48,19 @@ final readonly class StripeWebhookService
             switch ($event->type) {
                 case 'payment_intent.succeeded':
                     if ($paymentIntentId !== '') {
-                        $this->paymentService->confirmPaymentByStripeIntentId($paymentIntentId);
+                        $this->paymentSettlementService->handleStripeSuccess($paymentIntentId);
                     }
                     break;
                 case 'payment_intent.payment_failed':
                     if ($paymentIntentId !== '') {
-                        $this->paymentService->failPaymentByStripeIntentId($paymentIntentId);
+                        $this->paymentSettlementService->failPaymentByStripeIntentId($paymentIntentId);
                     }
                     break;
                 case 'payment_intent.canceled':
                     if ($paymentIntentId !== '') {
-                        $this->paymentService->cancelPaymentByStripeIntentId($paymentIntentId);
+                        $this->paymentSettlementService->cancelPaymentByStripeIntentId($paymentIntentId);
                     }
                     break;
-                case 'charge.refunded':
-                    $refundIntentId = (string) ($event->data->object->payment_intent ?? '');
-                    if ($refundIntentId !== '') {
-                        $this->paymentService->refundPaymentByStripeIntentId($refundIntentId);
-                    }
-                    break;
-                default:
-                    $this->logger->info('Unhandled Stripe webhook event', [
-                        'type' => $event->type,
-                    ]);
             }
         } catch (NotFoundHttpException $e) {
             $this->logger->warning('Stripe webhook payment record not found', [

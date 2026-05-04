@@ -187,7 +187,7 @@ final class BookingController extends AbstractController
         BookingManager $manager,
     ): NoContentResponse
     {
-        $manager->cancelBooking($booking, BookingStatusEnum::CANCELED_BY_SYSTEM);
+        $manager->cancel($booking, BookingStatusEnum::CANCELED_BY_SYSTEM);
 
         return new NoContentResponse();
     }
