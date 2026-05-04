@@ -72,6 +72,7 @@ final readonly class BookingManager
 
         try {
             $this->userAvailabilityService->ensureNotBlocked($client);
+            $this->userAvailabilityService->ensureActive($client);
 
             $trainer = $this->trainerRepo->find($dto->trainerId);
             if (!$trainer) {

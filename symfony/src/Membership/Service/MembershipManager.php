@@ -52,6 +52,7 @@ final readonly class MembershipManager
 
         try {
             $this->userAvailabilityService->ensureNotBlocked($client);
+            $this->userAvailabilityService->ensureActive($client);
 
             $plan = $this->membershipPlanRepo->find($membershipPlanId);
             if (!$plan) {
@@ -300,7 +301,6 @@ final readonly class MembershipManager
             );
 
             throw $e;
-
         } catch (Throwable $e) {
             $this->membershipLogger->error('membership.terminate.failed',
                 $this->membershipEventContext($loggingContext, 'terminate', 'failed', [

@@ -13,7 +13,6 @@ use App\Client\Entity\Client;
 use App\Response\CollectionResponse;
 use App\Response\ItemResponse;
 use App\Response\NoContentResponse;
-use App\Response\OkResponse;
 use DateMalformedStringException;
 use Nelmio\ApiDocBundle\Attribute\Model;
 use OpenApi\Attributes as OA;

@@ -11,7 +11,7 @@ use App\Membership\Query\MembershipQuery;
 use App\Membership\Service\MembershipManager;
 use App\Response\CollectionResponse;
 use App\Response\ItemResponse;
-use App\Response\OkResponse;
+use DateMalformedStringException;
 use Nelmio\ApiDocBundle\Attribute\Model;
 use OpenApi\Attributes as OA;
 use Psr\Cache\InvalidArgumentException;
@@ -23,6 +23,7 @@ use Symfony\Component\Messenger\Exception\ExceptionInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
+use Throwable;
 
 final class MembershipController extends AbstractController
 {
@@ -47,7 +48,6 @@ final class MembershipController extends AbstractController
         GetMembershipsFactory $factory,
     ): CollectionResponse
     {
-
         $queryDto = $factory->fromRequest(
             request: $request,
             client: $client,
@@ -81,8 +81,8 @@ final class MembershipController extends AbstractController
     }
 
     /**
-     * @throws \DateMalformedStringException
-     * @throws \Throwable
+     * @throws DateMalformedStringException
+     * @throws Throwable
      * @throws ExceptionInterface
      */
     #[Route('/api/me/membership/', methods: ['POST'], format: 'json')]
@@ -105,8 +105,8 @@ final class MembershipController extends AbstractController
     }
 
     /**
-     * @throws \DateMalformedStringException
-     * @throws \Throwable
+     * @throws DateMalformedStringException
+     * @throws Throwable
      * @throws ExceptionInterface
      */
     #[Route('/api/me/memberships/{id}/freeze/', methods: ['POST'], format: 'json')]
@@ -128,8 +128,8 @@ final class MembershipController extends AbstractController
     }
 
     /**
-     * @throws \DateMalformedStringException
-     * @throws \Throwable
+     * @throws DateMalformedStringException
+     * @throws Throwable
      * @throws ExceptionInterface
      */
     #[Route('/api/me/memberships/{id}/unfreeze/', methods: ['POST'], format: 'json')]
@@ -151,7 +151,7 @@ final class MembershipController extends AbstractController
     }
 
     /**
-     * @throws \Throwable
+     * @throws Throwable
      */
     #[Route('/api/me/memberships/{id}/renew/', methods: ['POST'], format: 'json')]
     #[OA\Tag(name: "Client: Membership")]
@@ -172,8 +172,8 @@ final class MembershipController extends AbstractController
     }
 
     /**
-     * @throws \DateMalformedStringException
-     * @throws \Throwable
+     * @throws DateMalformedStringException
+     * @throws Throwable
      * @throws ExceptionInterface
      */
     #[Route('/api/me/memberships/{id}/terminate/', methods: ['POST'], format: 'json')]
