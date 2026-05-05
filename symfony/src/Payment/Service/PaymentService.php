@@ -42,34 +42,4 @@ final readonly class PaymentService
 
         return $payment;
     }
-
-    public function markSucceeded(Payment $payment): void
-    {
-        if ($payment->getStatus() !== PaymentStatusEnum::PENDING) {
-            throw new LogicException('Invalid payment status transition');
-        }
-
-        $payment->setStatus(PaymentStatusEnum::SUCCEEDED);
-        $payment->setPaidAt(new DateTimeImmutable());
-        $payment->setExpiresAt(null);
-    }
-
-    public function markRefunded(Payment $payment): void
-    {
-        $payment->setStatus(PaymentStatusEnum::REFUNDED);
-        $payment->setPaidAt(new DateTimeImmutable());
-        $payment->setExpiresAt(null);
-    }
-
-    public function markCanceled(Payment $payment): void
-    {
-        $payment->setStatus(PaymentStatusEnum::CANCELED);
-        $payment->setExpiresAt(null);
-    }
-
-    public function markFailed(Payment $payment): void
-    {
-        $payment->setStatus(PaymentStatusEnum::FAILED);
-        $payment->setExpiresAt(null);
-    }
 }
