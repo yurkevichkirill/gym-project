@@ -28,6 +28,7 @@ final readonly class PaymentSettlementService
     public function __construct(
         private PaymentService $paymentService,
         private StripeService $stripeService,
+        private PaymentLifecycleService $paymentLifecycleService,
         private PaymentRepository $paymentRepo,
         private LoggerInterface $paymentLogger,
         private EntityManagerInterface $em,
@@ -82,7 +83,7 @@ final readonly class PaymentSettlementService
 
         $booking->confirm();
 
-        $this->paymentService->markSucceeded($payment);
+        $this->paymentLifecycleService->transitionTo($payment, PaymentStatusEnum::SUCCEEDED);
     }
 
     public function createTopUpPayment(
@@ -147,7 +148,7 @@ final readonly class PaymentSettlementService
 
         $membership->activate();
 
-        $this->paymentService->markSucceeded($payment);
+        $this->paymentLifecycleService->transitionTo($payment, PaymentStatusEnum::SUCCEEDED);
     }
 
     /**
@@ -165,25 +166,25 @@ final readonly class PaymentSettlementService
 
         $booking = $payment->getBooking();
 
-        if ($booking) {
-            $trainer = $payment->getTrainer();
-            $trainer->setBalance(
-                $trainer->getBalance() + $payment->getAmount()
-            );
+        $this->em->wrapInTransaction(function () use ($payment, $booking) {
+            if ($booking) {
+                $trainer = $payment->getTrainer();
+                $trainer->setBalance(
+                    $trainer->getBalance() + $payment->getAmount()
+                );
 
-            $booking->confirm();
-        }
+                $booking->confirm();
+            }
 
-        $membership = $payment->getMembership();
-        $membership?->activate();
+            $membership = $payment->getMembership();
+            $membership?->activate();
 
-        if ($payment->getCategory() === PaymentCategoryEnum::BALANCE_TOP_UP) {
-            $this->settleTopUpPayment($payment);
-        }
+            if ($payment->getCategory() === PaymentCategoryEnum::BALANCE_TOP_UP) {
+                $this->settleTopUpPayment($payment);
+            }
 
-        $this->paymentService->markSucceeded($payment);
-
-        $this->em->flush();
+            $this->paymentLifecycleService->transitionTo($payment, PaymentStatusEnum::SUCCEEDED);
+        });
     }
 
     /**
@@ -225,7 +226,7 @@ final readonly class PaymentSettlementService
             $payment->getTrainer(),
         );
 
-        $this->paymentService->markRefunded($refundPayment);
+        $this->paymentLifecycleService->transitionTo($refundPayment, PaymentStatusEnum::REFUNDED);
     }
 
     /**
@@ -238,7 +239,7 @@ final readonly class PaymentSettlementService
                 return;
             }
 
-            $this->paymentService->markFailed($payment);
+            $this->paymentLifecycleService->transitionTo($payment, PaymentStatusEnum::FAILED);
             $payment->getBooking()?->cancel(BookingStatusEnum::CANCELED_PAYMENT_FAILED);
             $payment->getMembership()?->cancel(MembershipStatusEnum::CANCELED_PAYMENT_FAILED);
 
@@ -294,7 +295,7 @@ final readonly class PaymentSettlementService
 
             $payment->getBooking()?->cancel(BookingStatusEnum::CANCELED_PAYMENT_FAILED);
             $payment->getMembership()?->cancel(MembershipStatusEnum::CANCELED_PAYMENT_FAILED);
-            $this->paymentService->markCanceled($payment);
+            $this->paymentLifecycleService->transitionTo($payment, PaymentStatusEnum::CANCELED);
 
             $this->em->flush();
         } catch (Throwable $e) {
