@@ -1,0 +1,235 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Booking\Service;
+
+use App\Booking\Entity\Booking;
+use App\Booking\Enum\BookingStatusEnum;
+use App\Booking\Repository\BookingRepository;
+use App\Client\Entity\Client;
+use App\Exception\DateRescheduledException;
+use App\Exception\DateTimeAlreadyTakenException;
+use App\Exception\NoActiveMembershipException;
+use App\Membership\Repository\MembershipRepository;
+use App\Trainer\Entity\Trainer;
+use App\TrainerWorkTime\Entity\TrainerWorkTime;
+use App\Training\Entity\Training;
+use App\User\Service\AvailabilityService as UserAvailabilityService;
+use DateInterval;
+use DateMalformedIntervalStringException;
+use DateMalformedStringException;
+use DateTimeImmutable;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
+use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+
+final readonly class BookingAvailabilityService
+{
+    public function __construct(
+        private UserAvailabilityService $userAvailabilityService,
+        private BookingRepository $bookingRepo,
+        private MembershipRepository $membershipRepo,
+    )
+    {}
+
+    /**
+     * @throws DateMalformedStringException
+     * @throws DateMalformedIntervalStringException
+     */
+    public function checkBookingAvailability(Client $client, ?Trainer $trainer, ?TrainerWorkTime $worktime, string $date, string $startTime, int $durationMinutes): void
+    {
+        $this->userAvailabilityService->ensureNotBlocked($client);
+        $this->userAvailabilityService->ensureActive($client);
+
+        if (!$trainer) {
+            throw new NotFoundHttpException('Trainer not found');
+        }
+
+        if (!$worktime) {
+            throw new NotFoundHttpException('Worktime not found');
+        }
+
+        $bookingDateTime = new DateTimeImmutable($date . ' ' . $startTime);
+        if ($bookingDateTime <= new DateTimeImmutable()) {
+            throw new BadRequestHttpException('Cannot book training in the past');
+        }
+
+        if (!$this->isClientAvailableInDate($client, new DateTimeImmutable($date), $startTime, $durationMinutes)) {
+            throw new DateRescheduledException("Client already have training at this time");
+        }
+
+        if (!$this->hasActiveMembership($client, new DateTimeImmutable($date))) {
+            throw new NoActiveMembershipException("Client has no active membership for this date");
+        }
+
+        if (!$this->isTimeAvailable($worktime, $startTime, $durationMinutes)) {
+            throw new DateTimeAlreadyTakenException();
+        }
+    }
+
+    /**
+     * @throws DateMalformedStringException
+     * @throws DateMalformedIntervalStringException
+     */
+    public function checkUpdateBookingAvailability(Training $training, Client $client, ?TrainerWorkTime $worktime, DateTimeImmutable $newDate, string $newStartTime): void
+    {
+        if ($training->getBooking()->getStatus() !== BookingStatusEnum::SCHEDULED) {
+            throw new ConflictHttpException("Only scheduled trainings can be updated");
+        }
+
+        $oldStartTime = $training->getStartTime()->format("H:i:s");
+
+        $durationMinutes = $training->getDurationMinutes();
+
+        if (!$this->hasActiveMembership($client, $newDate)) {
+            throw new NoActiveMembershipException('Client does not have an active membership for this date');
+        }
+
+        $newDateTime = new DateTimeImmutable(
+            $newDate->format('Y-m-d') . ' ' . $newStartTime
+        );
+
+        if ($newDateTime <= new DateTimeImmutable()) {
+            throw new BadRequestHttpException('Cannot book training in the past');
+        }
+
+        if ($newDate < new DateTimeImmutable()->add(new DateInterval('P' . 1 . 'D'))) {
+            throw new DateRescheduledException("The minimum reschedule date must be no earlier than tomorrow.");
+        }
+
+        if (!$worktime) {
+            throw new NotFoundHttpException("There is no work time for this date");
+        }
+
+        if (!$this->isTimeAvailable($worktime, $newStartTime, $durationMinutes, $oldStartTime)) {
+            throw new DateRescheduledException("This time is not available for this trainer");
+        }
+
+        if (!$this->isClientAvailableInDate($client, $newDate, $newStartTime, $durationMinutes,  $oldStartTime)) {
+            throw new DateRescheduledException("Client already have training at this time");
+        }
+    }
+
+    public function checkCompleteBookingAvailability(Training $training): void
+    {
+        if ($training->getTrainerWorkTime()->getDate() > new DateTimeImmutable()) {
+            throw new BadRequestHttpException('Training has not happened yet');
+        }
+
+        if ($training->getBooking()->getStatus() !== BookingStatusEnum::SCHEDULED) {
+            throw new ConflictHttpException("Only scheduled trainings can be completed");
+        }
+    }
+
+    /**
+     * @throws DateMalformedStringException
+     * @throws DateMalformedIntervalStringException
+     */
+    public function isClientAvailableInDate(Client $client, DateTimeImmutable $date, string $startTime, int $durationMinutes, ?string $oldStartTime = null): bool
+    {
+        $clientBusy = $this->getClientBusy($client, $date);
+        $clientBusyWithoutCurrent = array_filter($clientBusy, fn ($slot) => $slot['start'] !== $oldStartTime);
+        $endTime = new DateTimeImmutable($startTime)->add(new DateInterval("PT" . $durationMinutes . "M"))->format('H:i:s');
+
+        return array_all($clientBusyWithoutCurrent, fn($trainingSlot) => (
+                $startTime < $trainingSlot['start'] || $startTime >= $trainingSlot['end']) &&
+            ($endTime <= $trainingSlot['start'] || $endTime > $trainingSlot['end'])
+        );
+    }
+
+    /**
+     * @throws DateMalformedIntervalStringException
+     */
+    private function getClientBusy(Client $client, DateTimeImmutable $date): array
+    {
+        $bookings = $this->bookingRepo->getActiveClientBookingsByDate($client, $date);
+
+        $clientBusy = [];
+        foreach ($bookings as $booking) {
+            $clientBusy[] = [
+                'start' => $booking->getTraining()->getStartTime()->format('H:i:s'),
+                'end' => $booking->getTraining()->getStartTime()->add(new DateInterval("PT" . $booking->getTraining()->getDurationMinutes() . "M"))->format('H:i:s')
+            ];
+        }
+
+        return $clientBusy;
+    }
+
+    public function hasActiveMembership(Client $client, ?DateTimeImmutable $date = null): bool
+    {
+        $activeMembership = $this->membershipRepo->findActive($client);
+
+        if (
+            $activeMembership === null ||
+            $activeMembership->getSessionLimit() !== null && $activeMembership->getVisits() >= $activeMembership->getSessionLimit() ||
+            new DateTimeImmutable() > $activeMembership->getEndDate()
+        ) {
+            return false;
+        }
+
+        if ($date !== null) {
+            if ($activeMembership->getStartDate() > $date || $activeMembership->getEndDate() < $date) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * @throws DateMalformedIntervalStringException
+     * @throws DateMalformedStringException
+     */
+    public function isTimeAvailable(TrainerWorkTime $worktime, string $startTime, int $durationMinutes, ?string $oldStartTime = null): bool
+    {
+        $endTime = new DateTimeImmutable($startTime)
+            ->add(new DateInterval('PT' . $durationMinutes . 'M'))
+            ->format('H:i:s');
+
+        $freeSlots = $worktime->getFreeSlots();
+
+        if ($oldStartTime !== null) {
+            $freeSlots = $this->getFreeSlotsExcept($freeSlots, $oldStartTime, $durationMinutes);
+        }
+
+        return array_any($freeSlots, fn($slot) => $startTime >= $slot['start'] && $endTime <= $slot['end']);
+    }
+
+    /**
+     * @throws DateMalformedStringException
+     * @throws DateMalformedIntervalStringException
+     */
+    private function getFreeSlotsExcept(array $freeSlots, string $oldStartTime, int $durationMinutes): array
+    {
+        $excludeSlot = [
+            'start' => $oldStartTime,
+            'end' => new DateTimeImmutable($oldStartTime)
+                ->add(new DateInterval('PT' . $durationMinutes . 'M'))
+                ->format('H:i:s')
+        ];
+
+        $allSlots = array_merge($freeSlots, [$excludeSlot]);
+        usort($allSlots, fn($s1, $s2) => $s1['start'] <=> $s2['start']);
+        return $this->mergeOverlappingSlots($allSlots);
+    }
+
+    private function mergeOverlappingSlots(array $slots): array
+    {
+        if (empty($slots)) return [];
+
+        $merged = [$slots[0]];
+
+        foreach ($slots as $slot) {
+            $last = &$merged[count($merged) - 1];
+
+            if ($slot['start'] <= $last['end']) {
+                $last['end'] = max($last['end'], $slot['end']);
+            } else {
+                $merged[] = $slot;
+            }
+        }
+
+        return $merged;
+    }
+}

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Membership\Service;
 
+use App\Booking\Service\BookingAvailabilityService;
 use App\Client\Entity\Client;
 use App\Infrastructure\ClickHouse\Publisher\AnalyticsPublisher;
 use App\Payment\Service\PaymentSettlementService;
@@ -31,7 +32,7 @@ final readonly class MembershipManager
         private MembershipPlanRepository $membershipPlanRepo,
         private EntityManagerInterface $entityManager,
         private AvailabilityService $userAvailabilityService,
-        private VisitingService $visitingService,
+        private BookingAvailabilityService $bookingAvailabilityService,
         private PaymentSettlementService $paymentSettlementService,
         private LoggerInterface $membershipLogger,
         private AnalyticsPublisher $analyticsPublisher,
@@ -61,7 +62,7 @@ final readonly class MembershipManager
 
             return $this->entityManager->wrapInTransaction(function () use ($client, $plan, $loggingContext) {
 
-                if ($this->visitingService->hasActiveMembership($client)) {
+                if ($this->bookingAvailabilityService->hasActiveMembership($client)) {
                     throw new MembershipActiveException();
                 }
 

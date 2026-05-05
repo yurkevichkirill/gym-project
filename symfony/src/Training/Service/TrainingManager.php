@@ -5,131 +5,162 @@ declare(strict_types=1);
 namespace App\Training\Service;
 
 use App\Booking\Enum\BookingStatusEnum;
-use App\Exception\DateRescheduledException;
-use App\Exception\NoActiveMembershipException;
-use App\Membership\Service\VisitingService;
+use App\Booking\Service\BookingAvailabilityService;
 use App\TrainerWorkTime\Repository\TrainerWorkTimeRepository;
 use App\Training\DTO\TrainingUpdateRequest;
 use App\Training\Entity\Training;
-use App\Client\Service\AvailabilityService as ClientAvailabilityService;
-use App\TrainerWorkTime\Service\AvailabilityService as WorktimeAvailabilityService;
-use App\Training\Repository\TrainingRepository;
-use DateInterval;
 use DateMalformedIntervalStringException;
 use DateMalformedStringException;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
-use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
-use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
-use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Psr\Log\LoggerInterface;
+use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
+use Throwable;
 
 final readonly class TrainingManager
 {
-    const int MIN_DAY_CHANGE = 1;
     public function __construct(
         private TrainerWorkTimeRepository $worktimeRepo,
-        private ClientAvailabilityService $clientAvailabilityService,
-        private WorktimeAvailabilityService $worktimeAvailabilityService,
-        private VisitingService $visitingService,
+        private BookingAvailabilityService $bookingAvailabilityService,
         private EntityManagerInterface $entityManager,
+        private LoggerInterface $bookingLogger,
     )
     {}
 
     /**
+     * @throws HttpExceptionInterface
      * @throws DateMalformedStringException
+     * @throws Throwable
      * @throws DateMalformedIntervalStringException
-     * @throws DateRescheduledException
      */
     public function update(Training $training, TrainingUpdateRequest $requestDto): Training
     {
-        if ($training->getBooking()?->getStatus() !== BookingStatusEnum::SCHEDULED) {
-            throw new ConflictHttpException("Only scheduled trainings can be updated");
-        }
+        $loggingContext = [
+            'client_id' => $training->getBooking()?->getClient() ?? "",
+            'trainer_id' => $training->getTrainerWorkTime()?->getTrainer()?->getId() ?? "",
+            'date' => $training->getTrainerWorkTime()?->getDate() ?? "",
+            'start_time' => $training->getStartTime() ?? "",
+            'duration_minutes' => $training->getDurationMinutes() ?? "",
+        ];
 
-        $oldStartTime = $training->getStartTime()->format("H:i:s");
+        try {
+            $client = $training->getBooking()->getClient();
+            $trainer = $training->getTrainerWorkTime()->getTrainer();
 
-        $newStartTime = $requestDto->startTime
-            ?? $training->getStartTime()->format('H:i:s');
+            $newDate = $requestDto->date
+                ? new DateTimeImmutable($requestDto->date)
+                : $training->getTrainerWorkTime()->getDate();
 
-        $durationMinutes = $training->getDurationMinutes();
+            $newStartTime = $requestDto->startTime
+                ?? $training->getStartTime()->format('H:i:s');
 
-        $newDate = $requestDto->date
-            ? new DateTimeImmutable($requestDto->date)
-            : $training->getTrainerWorkTime()->getDate();
-
-        $client = $training->getBooking()->getClient();
-
-        if (!$this->visitingService->hasActiveMembership($client, $newDate)) {
-            throw new NoActiveMembershipException('Client does not have an active membership for this date');
-        }
-
-        $newDateTime = new DateTimeImmutable(
-            $newDate->format('Y-m-d') . ' ' . $newStartTime
-        );
-
-        if ($newDateTime <= new DateTimeImmutable()) {
-            throw new BadRequestHttpException('Cannot book training in the past');
-        }
-
-        if ($newDate->format('Y-m-d') === $training->getTrainerWorkTime()->getDate()->format("Y-m-d")) {
-            $worktime = $training->getTrainerWorkTime();
-        } else {
-            if ($newDate < new DateTimeImmutable()->add(new DateInterval('P' . self::MIN_DAY_CHANGE . 'D'))) {
-                throw new DateRescheduledException("The minimum reschedule date must be no earlier than tomorrow.");
-            }
-
-            $worktime = $this->worktimeRepo->findByDateForTrainer(
-                $training->getTrainerWorkTime()->getTrainer(),
-                new DateTimeImmutable($requestDto->date)
+            $newWorktime = $this->worktimeRepo->findByDateForTrainer(
+                $trainer,
+                $newDate
             );
 
-            if (!$worktime) {
-                throw new NotFoundHttpException("There is no work time for this date");
-            }
+            $this->bookingAvailabilityService->checkUpdateBookingAvailability($training, $client, $newWorktime, $newDate, $newStartTime);
 
-            $training->setTrainerWorkTime($worktime);
+            return $this->entityManager->wrapInTransaction(function () use ($training, $newWorktime, $newStartTime, $loggingContext) {
+                $training->setTrainerWorkTime($newWorktime);
+
+                $training->setStartTime(new DateTimeImmutable($newStartTime));
+
+                return $training;
+            });
+        } catch (HttpExceptionInterface $e) {
+            $this->bookingLogger->notice('update.rejected', $this->bookingEventContext($loggingContext, 'update', 'rejected', [
+                'reason' => $e::class,
+            ]));
+
+            throw $e;
+        } catch (Throwable $e) {
+            $this->bookingLogger->error('updating.failed', $this->bookingEventContext($loggingContext, 'update', 'failed', [
+                'error' => $e->getMessage(),
+                'exception_class' => $e::class,
+            ]));
+
+            throw $e;
         }
-
-        if (!$this->worktimeAvailabilityService->isTimeAvailable($worktime, $newStartTime, $durationMinutes, $oldStartTime)) {
-            throw new DateRescheduledException("Trainer doesn't work at this time");
-        }
-        if (!$this->clientAvailabilityService->isClientAvailableInDate($client, $newDate, $newStartTime, $durationMinutes,  $oldStartTime)) {
-            throw new DateRescheduledException("Client already have training at this time");
-        }
-
-        $training->setStartTime(new DateTimeImmutable($newStartTime));
-
-        $this->entityManager->flush();
-
-        return $training;
     }
 
+    /**
+     * @throws Throwable
+     */
     public function cancel(Training $training, bool $isAdmin = false): void
     {
-        $booking = $training->getBooking();
-        if ($isAdmin) {
-            $booking->cancel(BookingStatusEnum::CANCELED_BY_SYSTEM);
-        } else {
-            $booking->cancel(BookingStatusEnum::CANCELED_BY_TRAINER);
-        }
+        $reason = $isAdmin
+            ? BookingStatusEnum::CANCELED_BY_SYSTEM
+            : BookingStatusEnum::CANCELED_BY_TRAINER;
 
-        $this->entityManager->flush();
+        $loggingContext = [
+            'booking_id' => $training->getBooking()->getId(),
+            'client_id' => $training->getBooking()->getClient()?->getId(),
+            'reason' => $reason->value,
+        ];
+
+        try {
+            $booking = $training->getBooking();
+
+            $booking->cancel($reason);
+
+            $this->entityManager->flush();
+        } catch (Throwable $e) {
+            $this->bookingLogger->error('cancel.failed',
+                $this->bookingEventContext($loggingContext, 'cancel', 'failed', [
+                    'error' => $e->getMessage(),
+                    'exception_class' => $e::class,
+                ])
+            );
+
+            throw $e;
+        }
     }
 
+    /**
+     * @throws HttpExceptionInterface
+     * @throws Throwable
+     */
     public function complete(Training $training): Training
     {
-        if ($training->getTrainerWorkTime()->getDate() > new DateTimeImmutable()) {
-            throw new BadRequestHttpException('Training has not happened yet');
+        $loggingContext = [
+            'client_id' => $training->getBooking()?->getClient() ?? "",
+            'trainer_id' => $training->getTrainerWorkTime()?->getTrainer()?->getId() ?? "",
+            'date' => $training->getTrainerWorkTime()?->getDate() ?? "",
+            'start_time' => $training->getStartTime() ?? "",
+            'duration_minutes' => $training->getDurationMinutes() ?? "",
+        ];
+
+        try {
+            $this->bookingAvailabilityService->checkCompleteBookingAvailability($training);
+
+            $training->getBooking()->setStatus(BookingStatusEnum::COMPLETED);
+
+            $this->entityManager->flush();
+
+            return $training;
+        } catch (HttpExceptionInterface $e) {
+            $this->bookingLogger->notice('complete.rejected', $this->bookingEventContext($loggingContext, 'complete', 'rejected', [
+                'reason' => $e::class,
+            ]));
+
+            throw $e;
+        } catch (Throwable $e) {
+            $this->bookingLogger->error('complete.failed', $this->bookingEventContext($loggingContext, 'complete', 'failed', [
+                'error' => $e->getMessage(),
+                'exception_class' => $e::class,
+            ]));
+
+            throw $e;
         }
+    }
 
-        if ($training->getBooking()->getStatus() !== BookingStatusEnum::SCHEDULED) {
-            throw new ConflictHttpException("Only scheduled trainings can be completed");
-        }
-
-        $training->getBooking()->setStatus(BookingStatusEnum::COMPLETED);
-
-        $this->entityManager->flush();
-
-        return $training;
+    private function bookingEventContext(array $context, string $operation, string $outcome, array $extra = []): array
+    {
+        return $extra + $context + [
+                'domain' => 'booking',
+                'operation' => $operation,
+                'outcome' => $outcome,
+            ];
     }
 }

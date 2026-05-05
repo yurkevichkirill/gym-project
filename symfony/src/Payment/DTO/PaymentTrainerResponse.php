@@ -13,12 +13,10 @@ final readonly class PaymentTrainerResponse
         public int $id,
         public int $amount,
         public string $currency,
-        public bool $isRefund,
         public ?string $stripePaymentIntentId,
         public ?PaymentStatusEnum $status,
         public string $createdAt,
         public ?string $paidAt,
-        public ?string $confirmedAt,
         public ?string $expiresAt,
     )
     {}
@@ -29,12 +27,10 @@ final readonly class PaymentTrainerResponse
             id: $payment->getId(),
             amount: $payment->getAmount(),
             currency: $payment->getCurrency(),
-            isRefund: $payment->getIsRefund(),
             stripePaymentIntentId: $payment->getStripePaymentIntentId(),
             status: $payment->getStatus(),
             createdAt: $payment->getCreatedAt()->format(DATE_ATOM),
             paidAt: $payment->getPaidAt()?->format(DATE_ATOM) ?? '',
-            confirmedAt: $payment->getConfirmedAt()?->format(DATE_ATOM) ?? '',
             expiresAt: $payment->getExpiresAt()?->format(DATE_ATOM) ?? '',
         );
     }
