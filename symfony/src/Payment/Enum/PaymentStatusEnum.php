@@ -9,6 +9,5 @@ enum PaymentStatusEnum: string
     case SUCCEEDED = 'succeeded';
     case PENDING = 'pending';
     case FAILED = 'failed';
-    case REFUNDED = 'refunded';
     case CANCELED = 'canceled';
 }

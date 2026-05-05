@@ -17,11 +17,8 @@ final readonly class PaymentLifecycleService
             PaymentStatusEnum::CANCELED,
             PaymentStatusEnum::FAILED,
         ],
-        PaymentStatusEnum::SUCCEEDED->value => [
-            PaymentStatusEnum::REFUNDED,
-        ],
+        PaymentStatusEnum::SUCCEEDED->value => [],
         PaymentStatusEnum::FAILED->value => [],
-        PaymentStatusEnum::REFUNDED->value => [],
         PaymentStatusEnum::CANCELED->value => [],
     ];
 
@@ -42,7 +39,6 @@ final readonly class PaymentLifecycleService
         $payment->setStatus($newStatus);
 
         switch ($newStatus) {
-            case PaymentStatusEnum::REFUNDED:
             case PaymentStatusEnum::SUCCEEDED:
                 $payment->setPaidAt(new DateTimeImmutable());
                 $payment->setExpiresAt(null);

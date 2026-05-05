@@ -76,6 +76,9 @@ class Payment
     #[ORM\Column(nullable: true)]
     private ?DateTimeImmutable $expiresAt = null;
 
+    #[ORM\Column(nullable: true)]
+    private ?bool $isRefund = null;
+
     public function getId(): ?int
     {
         return $this->id;
@@ -271,7 +274,17 @@ class Payment
         return $this;
     }
 
+    public function getIsRefund(): ?bool
+    {
+        return $this->isRefund;
+    }
 
+    public function setIsRefund(?bool $isRefund): static
+    {
+        $this->isRefund = $isRefund;
+
+        return $this;
+    }
 
     public function __construct(PaymentMethodEnum $method)
     {
