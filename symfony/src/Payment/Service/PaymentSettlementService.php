@@ -192,7 +192,7 @@ final readonly class PaymentSettlementService
      */
     public function refund(Payment $payment): void
     {
-        if ($payment->getStatus() === PaymentStatusEnum::REFUNDED) {
+        if ($payment->getIsRefund()) {
             $this->paymentLogger->warning(
                 'payment.refund.rejected',
                 $this->paymentEventContext($payment, 'refund', 'rejected', [
@@ -225,8 +225,9 @@ final readonly class PaymentSettlementService
             PaymentMethodEnum::BALANCE,
             $payment->getTrainer(),
         );
+        $refundPayment->setIsRefund(true);
 
-        $this->paymentLifecycleService->transitionTo($refundPayment, PaymentStatusEnum::REFUNDED);
+        $this->paymentLifecycleService->transitionTo($refundPayment, PaymentStatusEnum::SUCCEEDED);
     }
 
     /**

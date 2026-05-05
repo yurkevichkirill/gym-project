@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Booking\Service;
 
-use App\Booking\Entity\Booking;
 use App\Booking\Enum\BookingStatusEnum;
 use App\Booking\Repository\BookingRepository;
 use App\Client\Entity\Client;
