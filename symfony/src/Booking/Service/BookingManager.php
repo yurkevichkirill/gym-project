@@ -9,30 +9,20 @@ use App\Booking\Entity\Booking;
 use App\Booking\Enum\BookingStatusEnum;
 use App\Booking\Repository\BookingRepository;
 use App\Client\Entity\Client;
-use App\Client\Service\AvailabilityService;
-use App\Exception\DateRescheduledException;
-use App\Exception\DateTimeAlreadyTakenException;
 use App\Exception\InvalidBookingStatusException;
-use App\Exception\NoActiveMembershipException;
 use App\Infrastructure\ClickHouse\Publisher\AnalyticsPublisher;
-use App\Membership\Service\VisitingService;
 use App\Payment\Repository\PaymentRepository;
 use App\Payment\Service\PaymentSettlementService;
 use App\Trainer\Repository\TrainerRepository;
 use App\Trainer\Service\TrainerManager;
-use App\TrainerWorkTime\Entity\TrainerWorkTime;
 use App\TrainerWorkTime\Repository\TrainerWorkTimeRepository;
 use App\Training\Entity\Training;
 use App\Training\Repository\TrainingRepository;
-use App\User\Service\AvailabilityService as UserAvailabilityService;
-use App\TrainerWorkTime\Service\AvailabilityService as WorktimeAvailabilityService;
-use DateMalformedIntervalStringException;
 use DateMalformedStringException;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
-use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
-use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 use Throwable;
 
 final readonly class BookingManager
@@ -43,10 +33,7 @@ final readonly class BookingManager
         private TrainerWorkTimeRepository $worktimeRepo,
         private TrainerManager            $trainerManager,
         private TrainerRepository         $trainerRepo,
-        private VisitingService           $visitingService,
-        private UserAvailabilityService   $userAvailabilityService,
-        private WorktimeAvailabilityService $worktimeAvailabilityService,
-        private AvailabilityService       $clientAvailabilityService,
+        private BookingAvailabilityService $bookingAvailabilityService,
         private PaymentSettlementService  $paymentSettlementService,
         private EntityManagerInterface    $entityManager,
         private LoggerInterface           $bookingLogger,
@@ -59,7 +46,6 @@ final readonly class BookingManager
      * @throws DateMalformedStringException
      * @throws Throwable
      */
-
     public function book(Client $client, BookingRequest $dto): Booking
     {
         $loggingContext = [
@@ -71,42 +57,18 @@ final readonly class BookingManager
         ];
 
         try {
-            $this->userAvailabilityService->ensureNotBlocked($client);
-            $this->userAvailabilityService->ensureActive($client);
-
             $trainer = $this->trainerRepo->find($dto->trainerId);
-            if (!$trainer) {
-                throw new NotFoundHttpException('Trainer not found');
-            }
 
             $worktime = $this->worktimeRepo->findOneBy([
                 'trainer' => $trainer,
                 'date' => new DateTimeImmutable($dto->date),
             ]);
 
-            if (!$worktime) {
-                throw new NotFoundHttpException('Worktime not found');
-            }
-
-            $bookingDateTime = new DateTimeImmutable($dto->date . ' ' . $dto->startTime);
-            if ($bookingDateTime <= new DateTimeImmutable()) {
-                throw new BadRequestHttpException('Cannot book training in the past');
-            }
-
-            if (!$this->clientAvailabilityService->isClientAvailableInDate($client, new DateTimeImmutable($dto->date), $dto->startTime, $dto->durationMinutes)) {
-                throw new DateRescheduledException("Client already have training at this time");
-            }
+            $this->bookingAvailabilityService->checkBookingAvailability($client, $trainer, $worktime, $dto->date, $dto->startTime, $dto->durationMinutes);
 
             $price = $this->trainerManager->countPrice($trainer, $dto->durationMinutes);
 
             return $this->entityManager->wrapInTransaction(function () use ($client, $dto, $trainer, $worktime, $price, $loggingContext) {
-
-                $this->validateTrainingTimeAvailable($worktime, $dto->startTime, $dto->durationMinutes);
-
-                if (!$this->visitingService->hasActiveMembership($client)) {
-                    throw new NoActiveMembershipException();
-                }
-
                 $training = new Training();
                 $training->setDurationMinutes($dto->durationMinutes);
                 $training->setStartTime(new DateTimeImmutable($dto->startTime));
@@ -139,14 +101,12 @@ final readonly class BookingManager
 
                 return $booking;
             });
-
-        } catch (NoActiveMembershipException|DateTimeAlreadyTakenException|BadRequestHttpException|NotFoundHttpException $e) {
+        } catch (HttpExceptionInterface $e) {
             $this->bookingLogger->notice('booking.rejected', $this->bookingEventContext($loggingContext, 'book', 'rejected', [
                 'reason' => $e::class,
             ]));
 
             throw $e;
-
         } catch (Throwable $e) {
             $this->bookingLogger->error('booking.failed', $this->bookingEventContext($loggingContext, 'book', 'failed', [
                 'error' => $e->getMessage(),
@@ -193,7 +153,7 @@ final readonly class BookingManager
                 );
 
             } catch (Throwable $e) {
-                $this->bookingLogger->error('booking.cancel.failed',
+                $this->bookingLogger->error('cancel.failed',
                     $this->bookingEventContext($loggingContext, 'cancel', 'failed', [
                         'error' => $e->getMessage(),
                         'exception_class' => $e::class,
@@ -203,17 +163,6 @@ final readonly class BookingManager
                 throw $e;
             }
         });
-    }
-
-    /**
-     * @throws DateMalformedStringException
-     * @throws DateMalformedIntervalStringException
-     */
-    private function validateTrainingTimeAvailable(TrainerWorkTime $worktime, string $startTime, int $durationMinutes): void
-    {
-        if (!$this->worktimeAvailabilityService->isTimeAvailable($worktime, $startTime, $durationMinutes)) {
-            throw new DateTimeAlreadyTakenException();
-        }
     }
 
     private function bookingEventContext(array $context, string $operation, string $outcome, array $extra = []): array
