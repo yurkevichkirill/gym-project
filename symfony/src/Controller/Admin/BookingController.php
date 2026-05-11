@@ -182,6 +182,7 @@ final class BookingController extends AbstractController
 
     #[Route('api/bookings/{id}/', methods: ['DELETE'], format: 'json')]
     #[OA\Tag(name: "Admin: Bookings")]
+    #[IsGranted('ROLE_ADMIN')]
     public function remove(
         Booking $booking,
         BookingManager $manager,
