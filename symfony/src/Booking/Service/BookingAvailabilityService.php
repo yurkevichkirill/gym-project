@@ -131,9 +131,9 @@ final readonly class BookingAvailabilityService
         $clientBusyWithoutCurrent = array_filter($clientBusy, fn ($slot) => $slot['start'] !== $oldStartTime);
         $endTime = new DateTimeImmutable($startTime)->add(new DateInterval("PT" . $durationMinutes . "M"))->format('H:i:s');
 
-        return array_all($clientBusyWithoutCurrent, fn($trainingSlot) => (
-                $startTime < $trainingSlot['start'] || $startTime >= $trainingSlot['end']) &&
-            ($endTime <= $trainingSlot['start'] || $endTime > $trainingSlot['end'])
+        return array_all(
+            $clientBusyWithoutCurrent,
+            fn($busy) => $endTime <= $busy['start'] || $startTime >= $busy['end']
         );
     }
 
