@@ -112,7 +112,15 @@ final readonly class BookingAvailabilityService
 
     public function checkCompleteBookingAvailability(Training $training): void
     {
-        if ($training->getTrainerWorkTime()->getDate() > new DateTimeImmutable()) {
+        $fullDate = $training->getTrainerWorkTime()->getDate()->setTime(
+            (int) $training->getStartTime()->format('H'),
+            (int) $training->getStartTime()->format('i'),
+            (int) $training->getStartTime()->format('s')
+        );
+
+        $endDateTime = $fullDate->add(new DateInterval("PT{$training->getDurationMinutes()}M"));
+
+        if ($endDateTime > new DateTimeImmutable()) {
             throw new BadRequestHttpException('Training has not happened yet');
         }
 
