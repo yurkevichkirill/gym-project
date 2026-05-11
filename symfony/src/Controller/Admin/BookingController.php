@@ -146,7 +146,7 @@ final class BookingController extends AbstractController
         );
     }
 
-    #[Route('api/bookings/{id}/', methods: ['GET'], format: 'json')]
+    #[Route('/api/bookings/{id}/', methods: ['GET'], format: 'json')]
     #[OA\Tag(name: "Admin: Bookings")]
     #[IsGranted('ROLE_ADMIN')]
     public function get(BookingAdminMapperInterface $mapper, Booking $booking): ItemResponse
@@ -161,7 +161,7 @@ final class BookingController extends AbstractController
      * @throws DateMalformedStringException
      * @throws Throwable
      */
-    #[Route('api/clients/{id}/bookings/', methods: ['POST'], format: 'json')]
+    #[Route('/api/clients/{id}/bookings/', methods: ['POST'], format: 'json')]
     #[OA\RequestBody(content: new Model(type: BookingRequest::class))]
     #[OA\Tag(name: "Admin: Bookings")]
     #[IsGranted('ROLE_ADMIN')]
@@ -180,7 +180,7 @@ final class BookingController extends AbstractController
         );
     }
 
-    #[Route('api/bookings/{id}/', methods: ['DELETE'], format: 'json')]
+    #[Route('/api/bookings/{id}/', methods: ['DELETE'], format: 'json')]
     #[OA\Tag(name: "Admin: Bookings")]
     #[IsGranted('ROLE_ADMIN')]
     public function remove(
