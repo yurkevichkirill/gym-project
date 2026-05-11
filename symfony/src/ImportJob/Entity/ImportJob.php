@@ -67,6 +67,7 @@ class ImportJob
         $this->createdAt = new DateTimeImmutable();
 
         $this->errors = new ArrayCollection();
+        $this->items = new ArrayCollection();
     }
 
     public function getId(): ?int
