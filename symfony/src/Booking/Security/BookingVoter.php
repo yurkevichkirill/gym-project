@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Booking\Security;
 
-use App\Admin\Entity\Admin;
 use App\Booking\Entity\Booking;
 use App\Client\Entity\Client;
 use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
