@@ -41,6 +41,10 @@ final readonly class ImportHandler
         $this->em->wrapInTransaction(function () use ($message) {
             try {
                 $jobItem = $this->jobItemManager->create($message);
+
+                if ($jobItem === null) {
+                    return;
+                }
             } catch (UniqueConstraintViolationException) {
                 return;
             }

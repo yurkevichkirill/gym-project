@@ -9,6 +9,7 @@ use App\ImportJob\Message\ImportMessage;
 use App\ImportJob\Repository\ImportJobRepository;
 use App\ImportJobItem\Entity\ImportJobItem;
 use App\ImportJobItem\Enum\ImportJobItemStatusEnum;
+use App\ImportJobItem\Repository\ImportJobItemRepository;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 
@@ -16,12 +17,22 @@ final readonly class ImportJobItemManager
 {
     public function __construct(
         private ImportJobRepository $jobRepo,
+        private ImportJobItemRepository $jobItemRepo,
         private EntityManagerInterface $em,
     )
     {}
 
-    public function create(ImportMessage $message): ImportJobItem
+    public function create(ImportMessage $message): ?ImportJobItem
     {
+        $existing = $this->jobItemRepo->findOneBy([
+            'job' => $this->jobRepo->find($message->jobId),
+            'rowId' => $message->rowIndex,
+        ]);
+
+        if ($existing) {
+            return null;
+        }
+
         $importJob = $this->jobRepo->find($message->jobId);
 
         $jobItem = new ImportJobItem();
