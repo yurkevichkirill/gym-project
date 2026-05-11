@@ -6,7 +6,7 @@ export default interface TrainerData {
     lastName: string,
     trainingType: TrainingTypeData,
     pricePerHour: number,
-    education: string,
-    about: string,
+    education: string | null,
+    about: string | null,
     photoUrl: string,
 }

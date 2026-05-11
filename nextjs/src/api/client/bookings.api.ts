@@ -4,13 +4,19 @@ import BookingCreateType from "@/types/booking/booking-create.type";
 import {ApiCollectionResponse} from "@/types/api-collection-response";
 import {ApiItemResponse} from "@/types/api-item-response.type";
 
-export const getMyBookingsApi = async (): Promise<BookingType[]> => {
+export const getMyBookings = async (): Promise<BookingType[]> => {
     const data = await apiGet<ApiCollectionResponse<BookingType[]>>('/me/bookings/');
 
     return data.data;
 }
 
-export const bookTrainingApi = async ({ trainerId, date, durationMinutes, startTime }: BookingCreateType): Promise<BookingType> => {
+export const getBooking = async (id: number): Promise<BookingType> => {
+    const data = await apiGet<ApiCollectionResponse<BookingType>>(`/me/bookings/${id}/`);
+
+    return data.data;
+}
+
+export const createBooking = async ({ trainerId, date, durationMinutes, startTime }: BookingCreateType): Promise<BookingType> => {
     const data = await apiPost<ApiItemResponse<BookingType>, BookingCreateType>('/me/bookings/', {
         trainerId,
         date,
@@ -21,6 +27,6 @@ export const bookTrainingApi = async ({ trainerId, date, durationMinutes, startT
     return data.data;
 }
 
-export const deleteBookingApi = async (id: number) => {
+export const cancelBooking = async (id: number) => {
     return apiDelete<null>(`/me/bookings/${id}/`);
 }

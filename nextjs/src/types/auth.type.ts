@@ -7,6 +7,9 @@ export interface User {
     lastName: string,
     phone: string,
     createdAt: string,
+    blockedAt: string | null,
+    deletedAt: string | null,
+    isActive: boolean,
 }
 
 export const UserTypes = {

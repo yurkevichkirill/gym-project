@@ -3,7 +3,7 @@ import {ApiCollectionResponse} from "@/types/api-collection-response";
 import {ApiItemResponse} from "@/types/api-item-response.type";
 
 export const getTrainers = async (): Promise<TrainerData[]> => {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/trainers/`);
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/trainers/?limit=21`);
     if (!response.ok) {
         throw new Error(`HTTP ${response.status}`);
     }

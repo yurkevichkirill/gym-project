@@ -275,11 +275,13 @@ class AppFixtures extends Fixture
 //        $manager->remove($manager->getRepository(Membership::class)->find(1));
 //        $manager->remove($manager->getRepository(Membership::class)->find(3));
 //        $manager->remove($manager->getRepository(Membership::class)->find(5));
-        foreach ($manager->getRepository(Payment::class)->findAll() as $item) {
-            if ($item->getStatus() === PaymentStatusEnum::REFUNDED) {
-                $item->setStatus(PaymentStatusEnum::SUCCEEDED);
-            }
-        }
+//        foreach ($manager->getRepository(Payment::class)->findAll() as $item) {
+//            if ($item->getStatus() === PaymentStatusEnum::REFUNDED) {
+//                $item->setStatus(PaymentStatusEnum::SUCCEEDED);
+//            }
+//        }
+
+        $manager->getRepository(Trainer::class)->find(16)->setPhotoUrl("http://nginx/uploads/trainers/arnold.jpg");
 
 //        foreach ($manager->getRepository(ImportError::class)->findAll() as $item) {
 //            $manager->remove($item);

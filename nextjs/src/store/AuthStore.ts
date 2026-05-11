@@ -1,8 +1,6 @@
 import {makeAutoObservable, runInAction} from "mobx";
 import {LoginRequest, LoginResponse, MeResponse, User} from "@/types/auth.type";
-import {apiDelete, apiGet, apiPatch, apiPost} from "@/lib/apiClient";
-import ClientEditType from "@/types/client/client-edit.type";
-import {ApiItemResponse} from "@/types/api-item-response.type";
+import {apiGet, apiPost} from "@/lib/apiClient";
 
 export interface AuthStore {
     user: User | null;
@@ -12,8 +10,6 @@ export interface AuthStore {
     login: (payload: LoginRequest) => Promise<LoginResponse>;
     checkAuth: () => Promise<void>;
     logout: () => Promise<void>;
-    editUser: (payload: ClientEditType) => Promise<void>;
-    deleteUser: () => Promise<void>;
 }
 
 export const authStore: AuthStore = {
@@ -71,50 +67,6 @@ export const authStore: AuthStore = {
         authStore.user = null;
         authStore.isAuth = false;
     },
-
-    editUser: async (data: ClientEditType) => {
-        runInAction(() => {
-            authStore.isLoading = true;
-        });
-
-        try {
-            const res = await apiPatch<ApiItemResponse<User>>('/me/', data);
-
-            runInAction(() => {
-                authStore.user = res.data;
-            });
-
-        } catch (e) {
-            console.error(e);
-            throw e;
-        } finally {
-            runInAction(() => {
-                authStore.isLoading = false;
-            });
-        }
-    },
-
-    deleteUser: async () => {
-        runInAction(() => {
-            authStore.isLoading = true;
-        });
-
-        try {
-            await apiDelete<null>('/me/');
-
-            runInAction(() => {
-                authStore.user = null;
-                authStore.isAuth = false;
-            });
-        } catch (e) {
-            console.error(e);
-            throw e;
-        } finally {
-            runInAction(() => {
-                authStore.isLoading = false;
-            });
-        }
-    }
 };
 
 makeAutoObservable(authStore);
