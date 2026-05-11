@@ -41,11 +41,19 @@ final readonly class PaymentsQuery
             $qb->setFirstResult($offset)
                 ->setMaxResults($dto->limit);
 
+            $tags = [];
+
             if ($dto->filter->client) {
-                $item->tag(['payments_list_' . $dto->filter->client->getId()]);
-            } else {
-                $item->tag(['payments_list_all']);
+                $tags[] = 'payments_list_' . $dto->filter->client->getId();
             }
+            if ($dto->filter->trainer) {
+                $tags[] = 'payments_list_trainer_' . $dto->filter->trainer->getId();
+            }
+            if (empty($tags)) {
+                $tags[] = 'payments_list_all';
+            }
+
+            $item->tag($tags);
 
             return $qb->getQuery()->getResult();
         });

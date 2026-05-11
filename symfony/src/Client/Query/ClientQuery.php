@@ -102,6 +102,6 @@ final readonly class ClientQuery
             'isDeleted' => $f->isDeleted,
         ];
 
-        return 'bookings_' . md5(json_encode($params));
+        return 'clients_' . md5(json_encode($params));
     }
 }
