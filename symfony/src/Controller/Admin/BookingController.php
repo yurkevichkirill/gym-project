@@ -9,12 +9,14 @@ use App\Booking\Factory\GetBookingsFactory;
 use App\Booking\Mapper\BookingAdminMapperInterface;
 use App\Booking\Mapper\BookingMapperInterface;
 use App\Booking\Query\BookingsQuery;
+use App\Booking\Service\BookingCancellationService;
 use App\Booking\Service\BookingManager;
 use App\Client\Entity\Client;
 use App\Response\CollectionResponse;
 use App\Response\ItemResponse;
 use App\Response\NoContentResponse;
 use App\Trainer\Entity\Trainer;
+use App\User\Entity\User;
 use DateMalformedStringException;
 use Nelmio\ApiDocBundle\Attribute\Model;
 use OpenApi\Attributes as OA;
@@ -24,6 +26,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Security\Http\Attribute\CurrentUser;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Throwable;
 
@@ -184,12 +187,13 @@ final class BookingController extends AbstractController
     #[OA\Tag(name: "Admin: Bookings")]
     public function cancel(
         Booking $booking,
-        BookingManager $manager,
+        #[CurrentUser] User $actor,
+        BookingCancellationService $bookingCancellationService,
     ): NoContentResponse
     {
         $this->denyAccessUnlessGranted('BOOKING_CANCEL_ADMIN', $booking);
 
-        $manager->cancel($booking, BookingStatusEnum::CANCELED_BY_SYSTEM);
+        $bookingCancellationService->cancel($booking, $actor);
 
         return new NoContentResponse();
     }
