@@ -1,3 +1,5 @@
+import PaymentType from "@/types/payment/payment.type";
+
 export default interface BookingType {
     id: number,
     trainerId: number,
@@ -6,4 +8,5 @@ export default interface BookingType {
     durationMinutes: number,
     startTime: string,
     status: string,
+    payment: PaymentType,
 }

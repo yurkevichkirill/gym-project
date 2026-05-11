@@ -43,7 +43,7 @@ const Memberships = () => {
             }
         }
 
-        fetchData();
+        void fetchData();
     }, []);
 
     if (loading) {
@@ -82,7 +82,7 @@ const Memberships = () => {
                 {/* MEMBERSHIPS */}
                 <div>
                     <div className="mt-10 h-[353px] w-full overflow-x-auto overflow-y-hidden">
-                        <ul className="flex gap-20 whitespace-nowrap">
+                        <ul className="flex justify-center gap-20 whitespace-nowrap">
                             {memberships.map((membership: MembershipPlanType) => (
                                 <Membership
                                     key = {membership.id}

@@ -1,5 +1,5 @@
 import {apiGet} from "@/lib/apiClient";
-import PaymentType from "@/types/payment.type";
+import PaymentType from "@/types/payment/payment.type";
 import {ApiCollectionResponse} from "@/types/api-collection-response";
 
 export const getMyPayments = async (): Promise<PaymentType[]> => {

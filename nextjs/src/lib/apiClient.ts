@@ -42,7 +42,7 @@ const request = async <T>(
         return null as T;
     }
 
-    return res.json() as Promise<T>;
+    return await res.json() as Promise<T>;
 };
 
 export const apiGet = <T>(url: string) => {
@@ -51,7 +51,7 @@ export const apiGet = <T>(url: string) => {
 
 export const apiPost = <T, B = unknown>(
     url: string,
-    body: B
+    body?: B
 ): Promise<T> => {
     return request<T>(url, {
         method: 'POST',

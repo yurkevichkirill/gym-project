@@ -1,6 +1,6 @@
 'use client'
 
-import PaymentType from "@/types/payment.type";
+import PaymentType from "@/types/payment/payment.type";
 import Payment from "@/scenes/clientPersonal/payment/Payment";
 import Section from "@/shared/Section";
 import {useStore} from "@/store/StoreProvider";
