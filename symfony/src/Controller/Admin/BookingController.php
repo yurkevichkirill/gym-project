@@ -14,7 +14,6 @@ use App\Client\Entity\Client;
 use App\Response\CollectionResponse;
 use App\Response\ItemResponse;
 use App\Response\NoContentResponse;
-use App\Response\OkResponse;
 use App\Trainer\Entity\Trainer;
 use DateMalformedStringException;
 use Nelmio\ApiDocBundle\Attribute\Model;
@@ -148,9 +147,10 @@ final class BookingController extends AbstractController
 
     #[Route('/api/bookings/{id}/', methods: ['GET'], format: 'json')]
     #[OA\Tag(name: "Admin: Bookings")]
-    #[IsGranted('ROLE_ADMIN')]
     public function get(BookingAdminMapperInterface $mapper, Booking $booking): ItemResponse
     {
+        $this->denyAccessUnlessGranted('BOOKING_VIEW_ADMIN', $booking);
+
         return new ItemResponse(
             data: $mapper->map($booking),
             status: Response::HTTP_OK,
@@ -182,12 +182,13 @@ final class BookingController extends AbstractController
 
     #[Route('/api/bookings/{id}/', methods: ['DELETE'], format: 'json')]
     #[OA\Tag(name: "Admin: Bookings")]
-    #[IsGranted('ROLE_ADMIN')]
-    public function remove(
+    public function cancel(
         Booking $booking,
         BookingManager $manager,
     ): NoContentResponse
     {
+        $this->denyAccessUnlessGranted('BOOKING_CANCEL_ADMIN', $booking);
+
         $manager->cancel($booking, BookingStatusEnum::CANCELED_BY_SYSTEM);
 
         return new NoContentResponse();

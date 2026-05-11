@@ -71,7 +71,7 @@ final class BookingController extends AbstractController
     #[OA\Tag(name: "Client: Bookings")]
     public function get(BookingMapperInterface $mapper, Booking $booking): ItemResponse
     {
-        $this->denyAccessUnlessGranted('BOOKING_VIEW', $booking);
+        $this->denyAccessUnlessGranted('BOOKING_VIEW_OWN', $booking);
 
         return new ItemResponse(
             data: $mapper->map($booking),
@@ -108,7 +108,7 @@ final class BookingController extends AbstractController
         BookingManager $manager,
     ): NoContentResponse
     {
-        $this->denyAccessUnlessGranted("BOOKING_REMOVE", $booking);
+        $this->denyAccessUnlessGranted("BOOKING_CANCEL_OWN", $booking);
 
         $manager->cancel($booking, BookingStatusEnum::CANCELED_BY_CLIENT);
 
