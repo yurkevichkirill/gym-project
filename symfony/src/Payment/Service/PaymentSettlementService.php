@@ -163,6 +163,9 @@ final readonly class PaymentSettlementService
     public function handleStripeSuccess(string $intentId): void
     {
         $payment = $this->paymentRepo->findOneByStripePaymentIntentId($intentId);
+        if ($payment === null) {
+            throw new NotFoundHttpException('Payment for Stripe intent was not found');
+        }
 
         $booking = $payment->getBooking();
 
