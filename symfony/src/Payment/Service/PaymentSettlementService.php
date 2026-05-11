@@ -206,9 +206,7 @@ final readonly class PaymentSettlementService
             return;
         }
 
-        if ($payment->getStatus() !== PaymentStatusEnum::SUCCEEDED) {
-            throw new InvalidPaymentStatusException('Cannot refund not succeeded payment');
-        }
+        $this->paymentLifecycleService->transitionTo($payment, PaymentStatusEnum::REFUNDED);
 
         $client = $payment->getClient();
         $client->setBalance(

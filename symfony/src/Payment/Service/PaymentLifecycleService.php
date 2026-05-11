@@ -17,9 +17,12 @@ final readonly class PaymentLifecycleService
             PaymentStatusEnum::CANCELED,
             PaymentStatusEnum::FAILED,
         ],
-        PaymentStatusEnum::SUCCEEDED->value => [],
+        PaymentStatusEnum::SUCCEEDED->value => [
+            PaymentStatusEnum::REFUNDED,
+        ],
         PaymentStatusEnum::FAILED->value => [],
         PaymentStatusEnum::CANCELED->value => [],
+        PaymentStatusEnum::REFUNDED->value => [],
     ];
 
     public function transitionTo(Payment $payment, PaymentStatusEnum $newStatus): void
