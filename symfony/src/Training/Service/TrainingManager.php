@@ -85,39 +85,6 @@ final readonly class TrainingManager
     }
 
     /**
-     * @throws Throwable
-     */
-    public function cancel(Training $training, bool $isAdmin = false): void
-    {
-        $reason = $isAdmin
-            ? BookingStatusEnum::CANCELED_BY_SYSTEM
-            : BookingStatusEnum::CANCELED_BY_TRAINER;
-
-        $loggingContext = [
-            'booking_id' => $training->getBooking()->getId(),
-            'client_id' => $training->getBooking()->getClient()?->getId(),
-            'reason' => $reason->value,
-        ];
-
-        try {
-            $booking = $training->getBooking();
-
-            $booking->cancel($reason);
-
-            $this->entityManager->flush();
-        } catch (Throwable $e) {
-            $this->bookingLogger->error('cancel.failed',
-                $this->bookingEventContext($loggingContext, 'cancel', 'failed', [
-                    'error' => $e->getMessage(),
-                    'exception_class' => $e::class,
-                ])
-            );
-
-            throw $e;
-        }
-    }
-
-    /**
      * @throws HttpExceptionInterface
      * @throws Throwable
      */

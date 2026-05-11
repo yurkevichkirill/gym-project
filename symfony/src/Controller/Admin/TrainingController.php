@@ -2,6 +2,8 @@
 
 namespace App\Controller\Admin;
 
+use App\Booking\Service\BookingCancellationService;
+use App\Booking\Service\BookingManager;
 use App\Response\CollectionResponse;
 use App\Response\ItemResponse;
 use App\Response\NoContentResponse;
@@ -22,6 +24,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Security\Http\Attribute\CurrentUser;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 final class TrainingController extends AbstractController
@@ -131,10 +134,11 @@ final class TrainingController extends AbstractController
     #[IsGranted('ROLE_ADMIN')]
     public function cancel(
         Training $training,
-        TrainingManager $trainingManager,
+        #[CurrentUser] $actor,
+        BookingCancellationService $bookingCancellationService,
     ): NoContentResponse
     {
-        $trainingManager->cancel($training, true);
+        $bookingCancellationService->cancel($training->getBooking(), $actor);
 
         return new NoContentResponse();
     }

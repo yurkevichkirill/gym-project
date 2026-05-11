@@ -47,6 +47,10 @@ services:
         arguments:
             $bookingLogger: '@monolog.logger.booking'
 
+    App\Booking\Service\BookingCancellationService:
+        arguments:
+            $bookingLogger: '@monolog.logger.booking'
+
     App\Payment\Service\PaymentSettlementService:
         arguments:
             $paymentLogger: '@monolog.logger.payment'

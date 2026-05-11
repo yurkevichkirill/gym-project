@@ -2,6 +2,7 @@
 
 namespace App\Controller\Trainer;
 
+use App\Booking\Service\BookingCancellationService;
 use App\Exception\DateRescheduledException;
 use App\Response\CollectionResponse;
 use App\Response\ItemResponse;
@@ -13,6 +14,7 @@ use App\Training\Factory\GetTrainingsFactory;
 use App\Training\Mapper\TrainingMapperInterface;
 use App\Training\Query\TrainingsQuery;
 use App\Training\Service\TrainingManager;
+use App\User\Entity\User;
 use DateMalformedIntervalStringException;
 use DateMalformedStringException;
 use Nelmio\ApiDocBundle\Attribute\Model;
@@ -22,9 +24,11 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
+use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
+use Throwable;
 
 final class TrainingController extends AbstractController
 {
@@ -84,8 +88,9 @@ final class TrainingController extends AbstractController
     }
 
     /**
-     * @throws DateRescheduledException
+     * @throws HttpExceptionInterface
      * @throws DateMalformedStringException
+     * @throws Throwable
      * @throws DateMalformedIntervalStringException
      */
     #[Route('/api/trainings/{id}/', methods: ['PUT', 'PATCH'], format: 'json')]
@@ -108,19 +113,27 @@ final class TrainingController extends AbstractController
         );
     }
 
+    /**
+     * @throws Throwable
+     */
     #[Route('/api/trainings/{id}/cancel/', methods: ['POST'], format: 'json')]
     #[OA\Tag(name: "Trainer: Training")]
     public function cancel(
         Training $training,
-        TrainingManager $trainingManager,
+        #[CurrentUser] User $actor,
+        BookingCancellationService $bookingCancellationService,
     ): NoContentResponse
     {
         $this->denyAccessUnlessGranted("TRAINING_REMOVE", $training);
-        $trainingManager->cancel($training);
+        $bookingCancellationService->cancel($training->getBooking(), $actor);
 
         return new NoContentResponse();
     }
 
+    /**
+     * @throws HttpExceptionInterface
+     * @throws Throwable
+     */
     #[Route('/api/trainings/{id}/complete/', methods: ['POST'], format: 'json')]
     #[OA\Tag(name: "Trainer: Training")]
     public function complete(

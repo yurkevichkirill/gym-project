@@ -33,9 +33,6 @@ class Membership
     #[ORM\Column]
     private string $name;
 
-    #[ORM\Column(nullable: true)]
-    private string $month;
-
     #[ORM\Column]
     private int $durationDays;
 

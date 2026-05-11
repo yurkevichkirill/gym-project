@@ -8,11 +8,13 @@ use App\Booking\Enum\BookingStatusEnum;
 use App\Booking\Factory\GetBookingsFactory;
 use App\Booking\Mapper\BookingMapperInterface;
 use App\Booking\Query\BookingsQuery;
+use App\Booking\Service\BookingCancellationService;
 use App\Booking\Service\BookingManager;
 use App\Client\Entity\Client;
 use App\Response\CollectionResponse;
 use App\Response\ItemResponse;
 use App\Response\NoContentResponse;
+use App\User\Entity\User;
 use DateMalformedStringException;
 use Nelmio\ApiDocBundle\Attribute\Model;
 use OpenApi\Attributes as OA;
@@ -105,12 +107,13 @@ final class BookingController extends AbstractController
     #[OA\Tag(name: "Client: Bookings")]
     public function cancel(
         Booking $booking,
-        BookingManager $manager,
+        #[CurrentUser] User $actor,
+        BookingCancellationService $bookingCancellationService,
     ): NoContentResponse
     {
         $this->denyAccessUnlessGranted("BOOKING_CANCEL_OWN", $booking);
 
-        $manager->cancel($booking, BookingStatusEnum::CANCELED_BY_CLIENT);
+        $bookingCancellationService->cancel($booking, $actor);
 
         return new NoContentResponse();
     }

@@ -117,54 +117,6 @@ final readonly class BookingManager
         }
     }
 
-    public function cancel(Booking $booking, BookingStatusEnum $reason): void
-    {
-        if ($booking->getStatus() !== BookingStatusEnum::SCHEDULED) {
-            throw new InvalidBookingStatusException("Only scheduled bookings can be canceled by client");
-        }
-
-        $loggingContext = [
-            'booking_id' => $booking->getId(),
-            'client_id' => $booking->getClient()?->getId(),
-            'reason' => $reason->value,
-        ];
-
-        $analyticalContext = [
-            'client_id' => $booking->getClient()->getId(),
-            'trainer_id' => $booking->getTraining()->getTrainerWorkTime()->getTrainer()->getId(),
-            'booking_id' => $booking->getId(),
-            'price' => $booking->getPayment()->getAmount(),
-            'payment_method' => $booking->getPayment()->getMethod()->value ?? 'unknown',
-        ];
-
-        $this->entityManager->wrapInTransaction(function () use ($booking, $reason, $loggingContext, $analyticalContext) {
-            try {
-                $payment = $booking->getPayment();
-
-                $this->paymentSettlementService->refund($payment);
-
-                $booking->cancel(BookingStatusEnum::CANCELED_BY_CLIENT);
-
-                $this->entityManager->flush();
-
-                $this->analyticsPublisher->publish(
-                    'booking.canceled',
-                    $analyticalContext,
-                );
-
-            } catch (Throwable $e) {
-                $this->bookingLogger->error('cancel.failed',
-                    $this->bookingEventContext($loggingContext, 'cancel', 'failed', [
-                        'error' => $e->getMessage(),
-                        'exception_class' => $e::class,
-                    ])
-                );
-
-                throw $e;
-            }
-        });
-    }
-
     private function bookingEventContext(array $context, string $operation, string $outcome, array $extra = []): array
     {
         return $extra + $context + [

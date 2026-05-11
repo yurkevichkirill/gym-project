@@ -126,9 +126,9 @@ class Booking
         $this->status = BookingStatusEnum::SCHEDULED;
     }
 
-    public function cancel(BookingStatusEnum $reason): void
+    public function cancel(BookingStatusEnum $status): void
     {
-        $this->status = $reason;
+        $this->status = $status;
 
         $this->training->setIsBusy(false);
     }
