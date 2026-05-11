@@ -29,6 +29,10 @@ final readonly class PaymentLifecycleService
     {
         $currentStatus = $payment->getStatus();
 
+        if ($currentStatus === $newStatus) {
+            return;
+        }
+
         $allowedStatuses = self::ALLOWED_TRANSITIONS[$currentStatus->value] ?? [];
 
         if (!in_array($newStatus, $allowedStatuses, true)) {
