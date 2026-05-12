@@ -3,6 +3,7 @@
 namespace App\Controller\Client;
 
 use App\Booking\DTO\BookingRequest;
+use App\Booking\DTO\BookingResponse;
 use App\Booking\Entity\Booking;
 use App\Booking\Enum\BookingStatusEnum;
 use App\Booking\Factory\GetBookingsFactory;
@@ -54,7 +55,7 @@ final class BookingController extends AbstractController
                 description: 'Success',
                 content: new OA\JsonContent(
                     properties: [
-                        new OA\Property(property: 'items', type: 'array', items: new OA\Items(ref: new Model(type: Booking::class))),
+                        new OA\Property(property: 'items', type: 'array', items: new OA\Items(ref: new Model(type: BookingResponse::class))),
                         new OA\Property(property: 'total', type: 'integer'),
                         new OA\Property(property: 'page', type: 'integer'),
                         new OA\Property(property: 'limit', type: 'integer'),
@@ -97,7 +98,7 @@ final class BookingController extends AbstractController
             new OA\Response(
                 response: 200,
                 description: 'Booking details',
-                content: new OA\JsonContent(ref: new Model(type: Booking::class))
+                content: new OA\JsonContent(ref: new Model(type: BookingResponse::class))
             ),
             new OA\Response(response: 403, description: 'Access Denied'),
             new OA\Response(response: 404, description: 'Booking not found')
@@ -130,7 +131,7 @@ final class BookingController extends AbstractController
             new OA\Response(
                 response: 201,
                 description: 'Booking created successfully',
-                content: new OA\JsonContent(ref: new Model(type: Booking::class))
+                content: new OA\JsonContent(ref: new Model(type: BookingResponse::class))
             ),
             new OA\Response(
                 response: 400,

@@ -3,6 +3,7 @@
 namespace App\Controller\Client;
 
 use App\Client\DTO\ClientActivateRequest;
+use App\Client\DTO\ClientResponse;
 use App\Client\DTO\TopUpBalanceRequest;
 use App\Client\DTO\UpdateClientRequest;
 use App\Client\Entity\Client;
@@ -35,7 +36,7 @@ final class ClientController extends AbstractController
             new OA\Response(
                 response: 200,
                 description: 'Client profile data.',
-                content: new OA\JsonContent(ref: new Model(type: Client::class))
+                content: new OA\JsonContent(ref: new Model(type: ClientResponse::class))
             ),
             new OA\Response(response: 401, description: 'Unauthorized')
         ]
@@ -60,7 +61,7 @@ final class ClientController extends AbstractController
             new OA\Response(
                 response: 200,
                 description: 'Profile updated successfully.',
-                content: new OA\JsonContent(ref: new Model(type: Client::class))
+                content: new OA\JsonContent(ref: new Model(type: ClientResponse::class))
             ),
             new OA\Response(response: 401, description: 'Unauthorized'),
             new OA\Response(response: 403, description: 'Forbidden - User is blocked or inactive'),
@@ -212,7 +213,7 @@ final class ClientController extends AbstractController
             new OA\Response(
                 response: 200,
                 description: 'Account activated successfully.',
-                content: new OA\JsonContent(ref: new Model(type: Client::class))
+                content: new OA\JsonContent(ref: new Model(type: ClientResponse::class))
             ),
             new OA\Response(
                 response: 404,

@@ -6,10 +6,8 @@ namespace App\Booking\Service;
 
 use App\Booking\DTO\BookingRequest;
 use App\Booking\Entity\Booking;
-use App\Booking\Enum\BookingStatusEnum;
 use App\Booking\Repository\BookingRepository;
 use App\Client\Entity\Client;
-use App\Exception\InvalidBookingStatusException;
 use App\Infrastructure\ClickHouse\Publisher\AnalyticsPublisher;
 use App\Payment\Repository\PaymentRepository;
 use App\Payment\Service\PaymentSettlementService;

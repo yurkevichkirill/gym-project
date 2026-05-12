@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Controller\All;
+namespace App\Controller\Public;
 
 use App\Response\CollectionResponse;
 use App\Response\ItemResponse;

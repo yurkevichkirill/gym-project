@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Controller\All;
+namespace App\Controller\Public;
 
 use App\MembershipPlan\Entity\MembershipPlan;
 use App\MembershipPlan\Factory\GetMembershipPlansFactory;
