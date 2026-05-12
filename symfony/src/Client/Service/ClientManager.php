@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Client\Service;
 
 use App\Admin\Entity\Admin;
+use App\Booking\Service\BookingAvailabilityService;
 use App\Client\DTO\AdminUpdateClientRequest;
 use App\Client\DTO\ClientActivateRequest;
 use App\Client\DTO\CreateClientRequest;
@@ -34,6 +35,7 @@ final readonly class ClientManager
         private UserPasswordHasherInterface $passwordHasher,
         private AvailabilityService $userAvailabilityService,
         private VisitingService $visitingService,
+        private BookingAvailabilityService $bookingAvailabilityService,
         private PaymentSettlementService $paymentSettlementService,
         private EntityManagerInterface $entityManager,
     )
@@ -168,7 +170,7 @@ final readonly class ClientManager
         $this->userAvailabilityService->ensureNotBlocked($client);
         $this->userAvailabilityService->ensureActive($client);
 
-        if (!$this->visitingService->hasActiveMembership($client)) {
+        if (!$this->bookingAvailabilityService->hasActiveMembership($client)) {
             throw new NoActiveMembershipException();
         }
 
