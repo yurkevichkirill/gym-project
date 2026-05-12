@@ -76,8 +76,8 @@ class Payment
     #[ORM\Column(nullable: true)]
     private ?DateTimeImmutable $expiresAt = null;
 
-    #[ORM\Column(nullable: true)]
-    private ?bool $isRefund = null;
+    #[ORM\Column]
+    private bool $isRefund = false;
 
     public function getId(): ?int
     {
