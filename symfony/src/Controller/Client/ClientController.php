@@ -26,6 +26,7 @@ final class ClientController extends AbstractController
 {
     #[Route('/api/me/', methods: ['GET'], format: 'json')]
     #[OA\Tag(name: "Client: Client")]
+    #[IsGranted('ROLE_CLIENT')]
     public function get(
         #[CurrentUser] Client $client,
         ClientMapperInterface $clientMapper,
