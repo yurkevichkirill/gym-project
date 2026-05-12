@@ -4,6 +4,7 @@ namespace App\Controller\Client;
 
 use App\Client\Entity\Client;
 use App\Membership\DTO\CreateMembershipRequest;
+use App\Membership\DTO\MembershipResponse;
 use App\Membership\Entity\Membership;
 use App\Membership\Enum\MembershipStatusEnum;
 use App\Membership\Factory\GetMembershipsFactory;
@@ -51,7 +52,7 @@ final class MembershipController extends AbstractController
                 description: 'Success',
                 content: new OA\JsonContent(
                     properties: [
-                        new OA\Property(property: 'items', type: 'array', items: new OA\Items(ref: new Model(type: Membership::class))),
+                        new OA\Property(property: 'items', type: 'array', items: new OA\Items(ref: new Model(type: MembershipResponse::class))),
                         new OA\Property(property: 'total', type: 'integer'),
                         new OA\Property(property: 'page', type: 'integer'),
                         new OA\Property(property: 'limit', type: 'integer'),
@@ -94,7 +95,7 @@ final class MembershipController extends AbstractController
             new OA\Response(
                 response: 200,
                 description: 'Membership details',
-                content: new OA\JsonContent(ref: new Model(type: Membership::class))
+                content: new OA\JsonContent(ref: new Model(type: MembershipResponse::class))
             ),
             new OA\Response(response: 403, description: 'Access Denied'),
             new OA\Response(response: 404, description: 'Membership not found')
@@ -124,7 +125,7 @@ final class MembershipController extends AbstractController
             new OA\Response(
                 response: 201,
                 description: 'Membership created successfully.',
-                content: new OA\JsonContent(ref: new Model(type: Membership::class))
+                content: new OA\JsonContent(ref: new Model(type: MembershipResponse::class))
             ),
             new OA\Response(
                 response: 400,
@@ -170,7 +171,7 @@ final class MembershipController extends AbstractController
             new OA\Response(
                 response: 200,
                 description: 'Membership frozen successfully.',
-                content: new OA\JsonContent(ref: new Model(type: Membership::class))
+                content: new OA\JsonContent(ref: new Model(type: MembershipResponse::class))
             ),
             new OA\Response(
                 response: 400,
@@ -206,7 +207,7 @@ final class MembershipController extends AbstractController
             new OA\Response(
                 response: 200,
                 description: 'Membership unfrozen successfully.',
-                content: new OA\JsonContent(ref: new Model(type: Membership::class))
+                content: new OA\JsonContent(ref: new Model(type: MembershipResponse::class))
             ),
             new OA\Response(
                 response: 400,
@@ -240,7 +241,7 @@ final class MembershipController extends AbstractController
             new OA\Response(
                 response: 200,
                 description: 'Membership renewed successfully (new membership created).',
-                content: new OA\JsonContent(ref: new Model(type: Membership::class))
+                content: new OA\JsonContent(ref: new Model(type: MembershipResponse::class))
             ),
             new OA\Response(response: 403, description: 'Access Denied'),
             new OA\Response(response: 404, description: 'Membership or Plan not found')
@@ -271,7 +272,7 @@ final class MembershipController extends AbstractController
             new OA\Response(
                 response: 200,
                 description: 'Membership terminated successfully.',
-                content: new OA\JsonContent(ref: new Model(type: Membership::class))
+                content: new OA\JsonContent(ref: new Model(type: MembershipResponse::class))
             ),
             new OA\Response(
                 response: 400,
