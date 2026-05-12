@@ -3,5 +3,5 @@ export interface MembershipPlanType {
     name: string;
     durationDays: number;
     sessionLimit: number | null;
-    price: string;
+    price: number;
 }

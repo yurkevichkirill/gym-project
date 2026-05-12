@@ -2,7 +2,7 @@ import TrainerData from "@/types/trainer/public/trainer.type";
 
 export default interface PaymentType {
     id: number,
-    amount: string,
+    amount: number,
     currency: string,
     method: string,
     category: string,

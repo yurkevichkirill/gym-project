@@ -218,7 +218,7 @@ final class ClientController extends AbstractController
     /**
      * @throws ExceptionInterface
      */
-    #[Route('/api/import/clients', methods: ['POST'])]
+    #[Route('/api/import/clients/', methods: ['POST'])]
     #[OA\RequestBody(content: new Model(type: CreateClientImportBatch::class))]
     #[OA\Tag(name: "Admin: Client")]
     #[IsGranted('ROLE_ADMIN')]
