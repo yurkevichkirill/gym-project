@@ -183,7 +183,7 @@ final class BookingController extends AbstractController
         );
     }
 
-    #[Route('/api/bookings/{id}/', methods: ['DELETE'], format: 'json')]
+    #[Route('/api/bookings/{id}/cancel/', methods: ['POST'], format: 'json')]
     #[OA\Tag(name: "Admin: Bookings")]
     public function cancel(
         Booking $booking,
