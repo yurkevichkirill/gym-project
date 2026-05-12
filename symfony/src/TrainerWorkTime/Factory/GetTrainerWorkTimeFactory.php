@@ -45,8 +45,8 @@ final readonly class GetTrainerWorkTimeFactory
                 trainer: $trainer,
                 date: $date,
             ),
-            page: $this->parser->toInt($request->query->get('page')) ?? 1,
-            limit: $this->parser->toInt($request->query->get('limit')) ?? 20,
+            page: $this->parser->toPositiveInt($request->query->get('page'), 'page', 1),
+            limit: min($this->parser->toPositiveInt($request->query->get('limit'), 'limit', 20), 20),
         );
     }
 }
