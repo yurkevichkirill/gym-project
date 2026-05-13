@@ -4,7 +4,7 @@ namespace App\Controller\Trainer;
 
 use App\Response\ItemResponse;
 use App\Response\NoContentResponse;
-use App\Response\OkResponse;
+use App\Trainer\DTO\TrainerResponsePrivate;
 use App\Trainer\DTO\UpdateTrainerRequest;
 use App\Trainer\Entity\Trainer;
 use App\Trainer\Mapper\TrainerMapperInterface;
@@ -23,13 +23,25 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 final class TrainerController extends AbstractController
 {
     #[Route('/api/trainer/me/', methods: ['GET'], format: 'json')]
-    #[OA\Tag(name: "Trainer: Trainer")]
+    #[OA\Get(
+        operationId: 'getTrainerMe',
+        summary: 'Get current trainer profile details.',
+        tags: ['Trainer: Trainer'],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Current trainer profile retrieved successfully.',
+                content: new OA\JsonContent(ref: new Model(type: TrainerResponsePrivate::class))
+            ),
+            new OA\Response(response: 401, description: 'Unauthorized'),
+            new OA\Response(response: 403, description: 'Forbidden - Trainer access required')
+        ]
+    )]
     #[IsGranted('ROLE_TRAINER')]
     public function get(
         #[CurrentUser] Trainer                    $trainer,
         TrainerMapperInterface                    $mapper,
-    ): ItemResponse
-    {
+    ): ItemResponse {
         $responseDto = $mapper->map($trainer, true);
 
         return new ItemResponse(
@@ -39,16 +51,30 @@ final class TrainerController extends AbstractController
     }
 
     #[Route('/api/trainer/me/', methods: ['PUT', 'PATCH'], format: 'json')]
-    #[OA\RequestBody(content: new Model(type: UpdateTrainerRequest::class))]
-    #[OA\Tag(name: "Trainer: Trainer")]
+    #[OA\Put(
+        operationId: 'updateTrainerMe',
+        summary: 'Update current trainer profile.',
+        requestBody: new OA\RequestBody(
+            content: new OA\JsonContent(ref: new Model(type: UpdateTrainerRequest::class))
+        ),
+        tags: ['Trainer: Trainer'],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Trainer profile updated successfully.',
+                content: new OA\JsonContent(ref: new Model(type: TrainerResponsePrivate::class))
+            ),
+            new OA\Response(response: 401, description: 'Unauthorized'),
+            new OA\Response(response: 422, description: 'Validation failed')
+        ]
+    )]
     #[IsGranted('ROLE_TRAINER')]
     public function update(
         #[CurrentUser] Trainer                    $trainer,
         #[MapRequestPayload] UpdateTrainerRequest $requestDto,
         TrainerMapperInterface                    $mapper,
         TrainerManager                            $manager,
-    ): ItemResponse
-    {
+    ): ItemResponse {
         $responseDto = $mapper->map($manager->update($trainer, $requestDto), true);
 
         return new ItemResponse(
@@ -62,13 +88,25 @@ final class TrainerController extends AbstractController
      * @throws NotFoundExceptionInterface
      */
     #[Route('/api/trainer/me/', methods: ['DELETE'], format: 'json')]
-    #[OA\Tag(name: "Trainer: Trainer")]
+    #[OA\Delete(
+        operationId: 'deleteTrainerMe',
+        summary: 'Deactivate (soft delete) current trainer account.',
+        tags: ['Trainer: Trainer'],
+        responses: [
+            new OA\Response(response: 204, description: 'Account deactivated successfully.'),
+            new OA\Response(response: 401, description: 'Unauthorized'),
+            new OA\Response(
+                response: 409,
+                description: 'Conflict - Trainer already deleted',
+                content: new OA\JsonContent(properties: [new OA\Property(property: 'message', type: 'string')])
+            )
+        ]
+    )]
     #[IsGranted('ROLE_TRAINER')]
     public function remove(
         #[CurrentUser] Trainer $trainer,
         TrainerManager $manager,
-    ): NoContentResponse
-    {
+    ): NoContentResponse {
         $manager->softDelete($trainer);
         $this->container->get('security.token_storage')->setToken(null);
 

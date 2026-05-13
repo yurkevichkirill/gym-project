@@ -8,7 +8,7 @@ use App\Booking\Validator\MultipleOf30;
 use DateTimeImmutable;
 use Symfony\Component\Validator\Constraints as Assert;
 
-final readonly class BookingRequest
+final readonly class BookingRequestDTO
 {
     public function __construct(
         #[Assert\NotBlank]

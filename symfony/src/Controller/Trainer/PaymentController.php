@@ -10,7 +10,6 @@ use App\Payment\Mapper\PaymentMapperInterface;
 use App\Payment\Query\PaymentsQuery;
 use App\Response\CollectionResponse;
 use App\Response\ItemResponse;
-use App\Response\OkResponse;
 use App\Trainer\Entity\Trainer;
 use Psr\Cache\InvalidArgumentException;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;

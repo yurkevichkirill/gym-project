@@ -2,8 +2,8 @@
 
 namespace App\Controller\Admin;
 
-use App\Booking\DTO\BookingRequest;
-use App\Booking\DTO\BookingResponse;
+use App\Booking\DTO\BookingRequestDTO;
+use App\Booking\DTO\BookingResponseDTO;
 use App\Booking\Entity\Booking;
 use App\Booking\Enum\BookingStatusEnum;
 use App\Booking\Factory\GetBookingsFactory;
@@ -55,7 +55,7 @@ final class BookingController extends AbstractController
                 description: 'Collection of bookings',
                 content: new OA\JsonContent(
                     properties: [
-                        new OA\Property(property: 'items', type: 'array', items: new OA\Items(ref: new Model(type: BookingResponse::class))),
+                        new OA\Property(property: 'items', type: 'array', items: new OA\Items(ref: new Model(type: BookingResponseDTO::class))),
                         new OA\Property(property: 'total', type: 'integer'),
                         new OA\Property(property: 'page', type: 'integer'),
                         new OA\Property(property: 'limit', type: 'integer'),
@@ -101,7 +101,7 @@ final class BookingController extends AbstractController
         ],
         responses: [
             new OA\Response(response: 200, description: 'Success', content: new OA\JsonContent(properties: [
-                new OA\Property(property: 'items', type: 'array', items: new OA\Items(ref: new Model(type: BookingResponse::class)))
+                new OA\Property(property: 'items', type: 'array', items: new OA\Items(ref: new Model(type: BookingResponseDTO::class)))
             ])),
             new OA\Response(response: 404, description: 'Client not found')
         ]
@@ -140,7 +140,7 @@ final class BookingController extends AbstractController
         ],
         responses: [
             new OA\Response(response: 200, description: 'Success', content: new OA\JsonContent(properties: [
-                new OA\Property(property: 'items', type: 'array', items: new OA\Items(ref: new Model(type: BookingResponse::class)))
+                new OA\Property(property: 'items', type: 'array', items: new OA\Items(ref: new Model(type: BookingResponseDTO::class)))
             ]))
         ]
     )]
@@ -174,7 +174,7 @@ final class BookingController extends AbstractController
             new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'string'))
         ],
         responses: [
-            new OA\Response(response: 200, description: 'Success', content: new OA\JsonContent(ref: new Model(type: BookingResponse::class))),
+            new OA\Response(response: 200, description: 'Success', content: new OA\JsonContent(ref: new Model(type: BookingResponseDTO::class))),
             new OA\Response(response: 404, description: 'Booking not found')
         ]
     )]
@@ -193,10 +193,10 @@ final class BookingController extends AbstractController
     #[OA\Post(
         operationId: 'adminCreateBookingForClient',
         summary: 'Create a booking for a specific client (Admin).',
-        requestBody: new OA\RequestBody(content: new OA\JsonContent(ref: new Model(type: BookingRequest::class))),
+        requestBody: new OA\RequestBody(content: new OA\JsonContent(ref: new Model(type: BookingRequestDTO::class))),
         tags: ['Admin: Bookings'],
         responses: [
-            new OA\Response(response: 201, description: 'Created', content: new OA\JsonContent(ref: new Model(type: BookingResponse::class))),
+            new OA\Response(response: 201, description: 'Created', content: new OA\JsonContent(ref: new Model(type: BookingResponseDTO::class))),
             new OA\Response(response: 400, description: 'Bad Request', content: new OA\JsonContent(properties: [
                 new OA\Property(property: 'message', type: 'string')
             ])),
@@ -205,10 +205,10 @@ final class BookingController extends AbstractController
     )]
     #[IsGranted('ROLE_ADMIN')]
     public function create(
-        BookingAdminMapperInterface         $mapper,
-        Client                              $client,
-        #[MapRequestPayload] BookingRequest $requestDto,
-        BookingManager                      $manager
+        BookingAdminMapperInterface            $mapper,
+        Client                                 $client,
+        #[MapRequestPayload] BookingRequestDTO $requestDto,
+        BookingManager                         $manager
     ): ItemResponse {
         $responseDto = $mapper->map($manager->book($client, $requestDto));
 

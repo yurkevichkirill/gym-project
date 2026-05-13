@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Booking\Query;
 
-use App\Booking\DTO\BookingFilter;
-use App\Booking\DTO\GetBookings;
+use App\Booking\DTO\BookingFilterDTO;
+use App\Booking\DTO\GetBookingsDTO;
 use App\Booking\Repository\BookingRepository;
 use Doctrine\ORM\QueryBuilder;
 use Psr\Cache\InvalidArgumentException;
@@ -30,7 +30,7 @@ final readonly class BookingsQuery
     /**
      * @throws InvalidArgumentException
      */
-    public function handle(GetBookings $dto): array
+    public function handle(GetBookingsDTO $dto): array
     {
         $cacheKey = $this->generateCacheKey($dto);
 
@@ -59,7 +59,7 @@ final readonly class BookingsQuery
         });
     }
 
-    public function getTotal(BookingFilter $filter): int
+    public function getTotal(BookingFilterDTO $filter): int
     {
         return (int) $this->createQuery($filter, true)
             ->select("COUNT(b.id)")
@@ -67,7 +67,7 @@ final readonly class BookingsQuery
             ->getSingleScalarResult();
     }
 
-    private function createQuery(BookingFilter $filter, bool $isCount = false): QueryBuilder
+    private function createQuery(BookingFilterDTO $filter, bool $isCount = false): QueryBuilder
     {
         $qb = $this->bookingRepo->createQueryBuilder('b')
             ->innerJoin("b.payment", 'p')
@@ -113,7 +113,7 @@ final readonly class BookingsQuery
         return $qb;
     }
 
-    private function generateCacheKey(GetBookings $query): string
+    private function generateCacheKey(GetBookingsDTO $query): string
     {
         $f = $query->filter;
 

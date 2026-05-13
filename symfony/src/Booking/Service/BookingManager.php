@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Booking\Service;
 
-use App\Booking\DTO\BookingRequest;
+use App\Booking\DTO\BookingRequestDTO;
 use App\Booking\Entity\Booking;
 use App\Booking\Repository\BookingRepository;
 use App\Client\Entity\Client;
@@ -44,7 +44,7 @@ final readonly class BookingManager
      * @throws DateMalformedStringException
      * @throws Throwable
      */
-    public function book(Client $client, BookingRequest $dto): Booking
+    public function book(Client $client, BookingRequestDTO $dto): Booking
     {
         $loggingContext = [
             'client_id' => $client->getId(),
