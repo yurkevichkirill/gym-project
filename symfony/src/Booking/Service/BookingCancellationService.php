@@ -24,6 +24,9 @@ final readonly class BookingCancellationService
     )
     {}
 
+    /**
+     * @throws InvalidBookingStatusException
+     */
     public function cancel(Booking $booking, User $actor): void
     {
         $roles = $actor->getRoles();

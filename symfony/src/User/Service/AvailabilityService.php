@@ -9,6 +9,9 @@ use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
 final readonly class AvailabilityService
 {
+    /**
+     * @throws AccessDeniedHttpException
+     */
     public function ensureNotBlocked(User $user): void
     {
         if ($user->getBlockedAt() !== null) {
@@ -16,6 +19,9 @@ final readonly class AvailabilityService
         }
     }
 
+    /**
+     * @throws AccessDeniedHttpException
+     */
     public function ensureActive(User $user): void
     {
         if (!$user->isActive()) {
