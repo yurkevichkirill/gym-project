@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Booking\Factory;
 
 use App\Booking\DTO\BookingFilterDTO;
-use App\Booking\DTO\GetBookingsDTO;
+use App\Booking\DTO\GetBookingsRequestDTO;
 use App\Booking\Enum\BookingStatusEnum;
 use App\Client\Entity\Client;
 use App\Client\Repository\ClientRepository;
@@ -30,7 +30,7 @@ final readonly class GetBookingsFactory
      * @throws NotFoundHttpException
      * @throws BadRequestException
      */
-    public function fromRequest(Request $request, ?Client $client = null, ?Trainer $trainer = null): GetBookingsDTO
+    public function fromRequest(Request $request, ?Client $client = null, ?Trainer $trainer = null): GetBookingsRequestDTO
     {
         if ($trainer === null) {
             if ($trainerId = $request->query->get('trainerId')) {
@@ -75,7 +75,7 @@ final readonly class GetBookingsFactory
 
         $allowedSortParams = ['bookedAt', 'status', 'trainingId', 'date', 'startTime', 'durationMinutes'];
 
-        return new GetBookingsDTO(
+        return new GetBookingsRequestDTO(
             sort: $this->parser->parseSort($request->query->get('sort', 'bookedAt:ASC'),$allowedSortParams),
             filter: $filter,
             page: $this->parser->toPositiveInt($request->query->get('page'), 'page', 1),

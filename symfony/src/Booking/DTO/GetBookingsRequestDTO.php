@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Booking\DTO;
 
-final readonly class GetBookingsDTO
+final readonly class GetBookingsRequestDTO
 {
     public function __construct(
         public array            $sort,

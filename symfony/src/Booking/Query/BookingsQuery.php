@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Booking\Query;
 
 use App\Booking\DTO\BookingFilterDTO;
-use App\Booking\DTO\GetBookingsDTO;
+use App\Booking\DTO\GetBookingsRequestDTO;
 use App\Booking\Repository\BookingRepository;
 use Doctrine\ORM\QueryBuilder;
 use Psr\Cache\InvalidArgumentException;
@@ -30,7 +30,7 @@ final readonly class BookingsQuery
     /**
      * @throws InvalidArgumentException
      */
-    public function handle(GetBookingsDTO $dto): array
+    public function handle(GetBookingsRequestDTO $dto): array
     {
         $cacheKey = $this->generateCacheKey($dto);
 
@@ -113,7 +113,7 @@ final readonly class BookingsQuery
         return $qb;
     }
 
-    private function generateCacheKey(GetBookingsDTO $query): string
+    private function generateCacheKey(GetBookingsRequestDTO $query): string
     {
         $f = $query->filter;
 
