@@ -6,11 +6,13 @@ namespace App\Booking\Resolver;
 
 use App\Booking\DTO\GetBookingsRequestDTO;
 use App\Booking\DTO\ResolvedBookingsRequestDTO;
+use App\Client\Entity\Client;
 use App\Client\Repository\ClientRepository;
 use App\Request\Utils\RequestParser;
 use App\Trainer\Repository\TrainerRepository;
 use DateMalformedStringException;
 use DateTimeImmutable;
+use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\HttpFoundation\Exception\BadRequestException;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Controller\ValueResolverInterface;
@@ -29,6 +31,7 @@ final readonly class GetBookingsDTOResolver implements ValueResolverInterface
         private RequestParser $parser,
         private SerializerInterface $serializer,
         private ValidatorInterface $validator,
+        private Security $security,
     ) {}
 
     /**
@@ -56,8 +59,14 @@ final readonly class GetBookingsDTOResolver implements ValueResolverInterface
             throw new BadRequestHttpException((string) $errors);
         }
 
+        $user = $this->security->getUser();
         $client = null;
-        if ($rawDto->clientId) {
+
+        if ($user instanceof Client) {
+            $client = $user;
+        }
+
+        elseif ($rawDto->clientId) {
             $client = $this->clientRepo->find($rawDto->clientId)
                 ?? throw new NotFoundHttpException("Client with ID {$rawDto->clientId} not found");
         }
