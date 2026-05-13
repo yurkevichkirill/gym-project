@@ -6,6 +6,7 @@ namespace App\EventListener;
 
 use Psr\Log\LoggerInterface;
 use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
+use Symfony\Component\HttpFoundation\Exception\SuspiciousOperationException;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpKernel\Event\ExceptionEvent;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
@@ -19,6 +20,9 @@ final readonly class ExceptionListener
         private KernelInterface $kernel,
     ) {}
 
+    /**
+     * @throws SuspiciousOperationException
+     */
     #[AsEventListener(event: KernelEvents::EXCEPTION)]
     public function __invoke(ExceptionEvent $event): void
     {
@@ -29,9 +33,6 @@ final readonly class ExceptionListener
             ? $exception->getStatusCode()
             : 500;
 
-        $requestId = $request->attributes->get('_request_id');
-        $correlationId = $request->attributes->get('_correlation_id', $requestId);
-
         $context = [
             'domain' => 'request',
             'operation' => 'http_exception',
@@ -41,8 +42,6 @@ final readonly class ExceptionListener
             'message' => $exception->getMessage(),
             'method' => $request->getMethod(),
             'path' => $request->getPathInfo(),
-            'request_id' => is_string($requestId) && $requestId !== '' ? $requestId : null,
-            'correlation_id' => is_string($correlationId) && $correlationId !== '' ? $correlationId : null,
         ];
 
         if ($statusCode >= 500) {
@@ -55,7 +54,6 @@ final readonly class ExceptionListener
 
         $responseData = [
             'message' => $exception->getMessage(),
-            'request_id' => is_string($requestId) && $requestId !== '' ? $requestId : null,
         ];
 
         if ($this->kernel->getEnvironment() === 'dev') {
