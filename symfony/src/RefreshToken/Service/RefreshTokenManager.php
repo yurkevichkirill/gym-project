@@ -41,6 +41,8 @@ final readonly class RefreshTokenManager
      * @throws OptimisticLockException
      * @throws RandomException
      * @throws ORMException
+     * @throws UnauthorizedHttpException
+     * @throws AccessDeniedHttpException
      */
     public function refresh(?string $refreshToken): array
     {
@@ -79,6 +81,9 @@ final readonly class RefreshTokenManager
         return bin2hex(random_bytes(64));
     }
 
+    /**
+     * @throws AccessDeniedHttpException
+     */
     public function generateAccessToken(User $user): string
     {
         if ($user->getDeletedAt()) {

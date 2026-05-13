@@ -8,12 +8,13 @@ use App\Booking\Entity\Booking;
 use App\Booking\Enum\BookingStatusEnum;
 use App\Payment\DTO\PaymentResponse;
 
-readonly class BookingResponse
+readonly class BookingAdminResponseDTO
 {
     public function __construct(
         public int $id,
+        public int $clientId,
         public int $trainerId,
-        public ?string $bookedAt,
+        public string $bookedAt,
         public string $date,
         public int $durationMinutes,
         public string $startTime,
@@ -26,6 +27,7 @@ readonly class BookingResponse
     {
         return new self(
             id: $b->getId(),
+            clientId: $b->getClient()->getId(),
             trainerId: $b->getTraining()->getTrainerWorkTime()->getTrainer()->getId(),
             bookedAt: $b->getBookedAt()?->format(DATE_ATOM) ?? '',
             date: $b->getTraining()->getTrainerWorkTime()->getDate()->format("Y-m-d"),

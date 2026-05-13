@@ -4,14 +4,15 @@ declare(strict_types=1);
 
 namespace App\Booking\Factory;
 
-use App\Booking\DTO\BookingFilter;
-use App\Booking\DTO\GetBookings;
+use App\Booking\DTO\BookingFilterDTO;
+use App\Booking\DTO\GetBookingsDTO;
 use App\Booking\Enum\BookingStatusEnum;
 use App\Client\Entity\Client;
 use App\Client\Repository\ClientRepository;
 use App\Request\Utils\RequestParser;
 use App\Trainer\Entity\Trainer;
 use App\Trainer\Repository\TrainerRepository;
+use Symfony\Component\HttpFoundation\Exception\BadRequestException;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -24,7 +25,12 @@ final readonly class GetBookingsFactory
         private RequestParser $parser,
     ) {}
 
-    public function fromRequest(Request $request, ?Client $client = null, ?Trainer $trainer = null): GetBookings
+    /**
+     * @throws BadRequestHttpException
+     * @throws NotFoundHttpException
+     * @throws BadRequestException
+     */
+    public function fromRequest(Request $request, ?Client $client = null, ?Trainer $trainer = null): GetBookingsDTO
     {
         if ($trainer === null) {
             if ($trainerId = $request->query->get('trainerId')) {
@@ -58,7 +64,7 @@ final readonly class GetBookingsFactory
 
         $durationMinutes = $this->parser->toInt($request->query->get('durationMinutes'));
 
-        $filter = new BookingFilter(
+        $filter = new BookingFilterDTO(
             client: $client,
             trainer: $trainer,
             status: $status,
@@ -69,7 +75,7 @@ final readonly class GetBookingsFactory
 
         $allowedSortParams = ['bookedAt', 'status', 'trainingId', 'date', 'startTime', 'durationMinutes'];
 
-        return new GetBookings(
+        return new GetBookingsDTO(
             sort: $this->parser->parseSort($request->query->get('sort', 'bookedAt:ASC'),$allowedSortParams),
             filter: $filter,
             page: $this->parser->toPositiveInt($request->query->get('page'), 'page', 1),

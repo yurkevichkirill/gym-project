@@ -4,13 +4,12 @@ namespace App\Controller\Public;
 
 use App\Response\CollectionResponse;
 use App\Response\ItemResponse;
-use App\Response\OkResponse;
-use App\TrainingType\DTO\GetTrainingTypes;
+use App\TrainingType\DTO\TrainingTypeResponseDto;
 use App\TrainingType\Entity\TrainingType;
 use App\TrainingType\Factory\GetTrainingTypesFactory;
 use App\TrainingType\Mapper\TrainingTypeMapperInterface;
 use App\TrainingType\Query\TrainingTypeQuery;
-use App\TrainingType\Repository\TrainingTypeRepository;
+use Nelmio\ApiDocBundle\Attribute\Model;
 use OpenApi\Attributes as OA;
 use Psr\Cache\InvalidArgumentException;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -25,11 +24,35 @@ final class TrainingTypeController extends AbstractController
      * @throws InvalidArgumentException
      */
     #[Route('/api/training/types/', methods: ['GET'], format: 'json')]
-    #[Cache(public: true)]
-    #[OA\Parameter(name: 'sort', in: 'query', example: 'name:ASC')]
-    #[OA\Parameter(name: 'page', in: 'query', example: 1)]
-    #[OA\Parameter(name: 'limit', in: 'query', example: 20)]
-    #[OA\Tag(name: "All: TrainingType")]
+    #[Cache(maxage: 3600, public: true, mustRevalidate: true)]
+    #[OA\Get(
+        operationId: 'getTrainingTypes',
+        summary: 'Get all available training types.',
+        tags: ['All: TrainingType'],
+        parameters: [
+            new OA\Parameter(name: 'sort', in: 'query', schema: new OA\Schema(type: 'string'), example: 'name:ASC'),
+            new OA\Parameter(name: 'page', in: 'query', schema: new OA\Schema(type: 'integer', default: 1)),
+            new OA\Parameter(name: 'limit', in: 'query', schema: new OA\Schema(type: 'integer', default: 20)),
+        ],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Success',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(
+                            property: 'items',
+                            type: 'array',
+                            items: new OA\Items(ref: new Model(type: TrainingTypeResponseDto::class))
+                        ),
+                        new OA\Property(property: 'total', type: 'integer'),
+                        new OA\Property(property: 'page', type: 'integer'),
+                        new OA\Property(property: 'limit', type: 'integer'),
+                    ]
+                )
+            )
+        ]
+    )]
     public function getAll(
         TrainingTypeQuery $handler,
         GetTrainingTypesFactory $factory,
@@ -52,7 +75,22 @@ final class TrainingTypeController extends AbstractController
     }
 
     #[Route('/api/training/types/{id}/', methods: ['GET'], format: 'json')]
-    #[OA\Tag(name: "All: TrainingType")]
+    #[OA\Get(
+        operationId: 'getTrainingType',
+        summary: 'Get a specific training type by ID.',
+        tags: ['All: TrainingType'],
+        parameters: [
+            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'integer'))
+        ],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Success',
+                content: new OA\JsonContent(ref: new Model(type: TrainingTypeResponseDto::class))
+            ),
+            new OA\Response(response: 404, description: 'Training type not found')
+        ]
+    )]
     public function get(
         TrainingType $trainingType,
         TrainingTypeMapperInterface $mapper,

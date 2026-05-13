@@ -9,7 +9,7 @@ use App\Client\Entity\Client;
 use App\Trainer\Entity\Trainer;
 use DateTimeImmutable;
 
-final readonly class BookingFilter
+final readonly class BookingFilterDTO
 {
     public function __construct(
         public ?Client $client,

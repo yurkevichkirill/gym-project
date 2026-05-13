@@ -18,6 +18,9 @@ final readonly class UserManager
     )
     {}
 
+    /**
+     * @throws UnauthorizedHttpException
+     */
     public function login(?LoginUserRequest $dto): User
     {
         $user = $this->repo->findOneBy(['email' => $dto->email ?? null]);

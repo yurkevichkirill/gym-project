@@ -2,13 +2,14 @@
 
 namespace App\Controller\Public;
 
+use App\MembershipPlan\DTO\MembershipPlanResponse;
 use App\MembershipPlan\Entity\MembershipPlan;
 use App\MembershipPlan\Factory\GetMembershipPlansFactory;
 use App\MembershipPlan\Mapper\MembershipPlanMapperInterface;
 use App\MembershipPlan\Query\MembershipPlansQuery;
 use App\Response\CollectionResponse;
 use App\Response\ItemResponse;
-use App\Response\OkResponse;
+use Nelmio\ApiDocBundle\Attribute\Model;
 use OpenApi\Attributes as OA;
 use Psr\Cache\InvalidArgumentException;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -23,27 +24,47 @@ final class MembershipPlanController extends AbstractController
      * @throws InvalidArgumentException
      */
     #[Route('/api/membership/plans/', methods: ['GET'], format: 'json')]
-    #[Cache(public: true)]
-    #[OA\Parameter(name: 'minPrice', in: 'query', example: 50)]
-    #[OA\Parameter(name: 'maxPrice', in: 'query', example: 100)]
-    #[OA\Parameter(name: 'minDurationDays', in: 'query', example: 30)]
-    #[OA\Parameter(name: 'maxDurationDays', in: 'query', example: 30)]
-    #[OA\Parameter(name: 'minSessionLimit', in: 'query', example: 8)]
-    #[OA\Parameter(name: 'maxSessionLimit', in: 'query', example: 8)]
-    #[OA\Parameter(name: 'isUnlimited', in: 'query', example: 'true')]
-    #[OA\Parameter(name: 'sort', in: 'query', example: 'durationDays:ASC')]
-    #[OA\Parameter(name: 'page', in: 'query', example: 1)]
-    #[OA\Parameter(name: 'limit', in: 'query', example: 20)]
-    #[OA\Tag(name: "All: MembershipPlan")]
+    #[Cache(maxage: 3600, public: true, mustRevalidate: true)]
+    #[OA\Get(
+        operationId: 'getMembershipPlans',
+        summary: 'Get all available membership plans.',
+        tags: ['All: MembershipPlan'],
+        parameters: [
+            new OA\Parameter(name: 'minPrice', in: 'query', schema: new OA\Schema(type: 'integer')),
+            new OA\Parameter(name: 'maxPrice', in: 'query', schema: new OA\Schema(type: 'integer')),
+            new OA\Parameter(name: 'minDurationDays', in: 'query', schema: new OA\Schema(type: 'integer')),
+            new OA\Parameter(name: 'minSessionLimit', in: 'query', schema: new OA\Schema(type: 'integer')),
+            new OA\Parameter(name: 'isUnlimited', in: 'query', schema: new OA\Schema(type: 'boolean')),
+            new OA\Parameter(name: 'sort', in: 'query', schema: new OA\Schema(type: 'string'), example: 'durationDays:ASC'),
+            new OA\Parameter(name: 'page', in: 'query', schema: new OA\Schema(type: 'integer', default: 1)),
+            new OA\Parameter(name: 'limit', in: 'query', schema: new OA\Schema(type: 'integer', default: 20)),
+        ],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Success',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(
+                            property: 'items',
+                            type: 'array',
+                            items: new OA\Items(ref: new Model(type: MembershipPlanResponse::class))
+                        ),
+                        new OA\Property(property: 'total', type: 'integer'),
+                        new OA\Property(property: 'page', type: 'integer'),
+                        new OA\Property(property: 'limit', type: 'integer'),
+                    ]
+                )
+            )
+        ]
+    )]
     public function getAll(
         Request $request,
         MembershipPlanMapperInterface $mapper,
         MembershipPlansQuery $handler,
         GetMembershipPlansFactory $factory,
-    ): CollectionResponse
-    {
+    ): CollectionResponse {
         $queryDto = $factory->fromRequest($request);
-
         $plans = $handler->handle($queryDto);
 
         return new CollectionResponse(
@@ -57,12 +78,26 @@ final class MembershipPlanController extends AbstractController
     }
 
     #[Route('/api/membership/plans/{id}/', methods: ['GET'], format: 'json')]
-    #[OA\Tag(name: "All: MembershipPlan")]
+    #[OA\Get(
+        operationId: 'getMembershipPlan',
+        summary: 'Get a specific membership plan by ID.',
+        tags: ['All: MembershipPlan'],
+        parameters: [
+            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'integer'))
+        ],
+        responses: [
+            new OA\Response(
+                response: Response::HTTP_OK,
+                description: 'Success',
+                content: new OA\JsonContent(ref: new Model(type: MembershipPlanResponse::class))
+            ),
+            new OA\Response(response: 404, description: 'Membership plan not found')
+        ]
+    )]
     public function get(
         MembershipPlan $membershipPlan,
         MembershipPlanMapperInterface $mapper,
-    ): ItemResponse
-    {
+    ): ItemResponse {
         return new ItemResponse(
             data: $mapper->map($membershipPlan),
             status: Response::HTTP_OK,
