@@ -1,12 +1,16 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Controller\Authentication;
 
 use App\RefreshToken\Service\RefreshTokenManager;
+use App\Response\DTO\ErrorResponseDTO;
 use App\User\DTO\LoginUserRequest;
 use App\User\Service\UserManager;
 use Doctrine\ORM\Exception\ORMException;
 use Doctrine\ORM\OptimisticLockException;
+use Nelmio\ApiDocBundle\Attribute\Model;
 use OpenApi\Attributes as OA;
 use Random\RandomException;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -25,7 +29,6 @@ final class ApiLoginController extends AbstractController
      * @throws OptimisticLockException
      * @throws RandomException
      * @throws ORMException
-     *
      * @throws UnauthorizedHttpException
      * @throws AccessDeniedHttpException
      */
@@ -48,15 +51,18 @@ final class ApiLoginController extends AbstractController
             ),
             new OA\Response(
                 response: 401,
-                description: 'Invalid credentials'
+                description: 'Invalid credentials',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
             ),
             new OA\Response(
                 response: 403,
-                description: 'User account is deleted/blocked'
+                description: 'User account is deleted/blocked',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
             ),
             new OA\Response(
                 response: 422,
-                description: 'Validation failed (invalid JSON or DTO constraints)'
+                description: 'Validation failed (invalid JSON or DTO constraints)',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
             ),
         ]
     )]
@@ -101,15 +107,18 @@ final class ApiLoginController extends AbstractController
             ),
             new OA\Response(
                 response: 401,
-                description: 'Invalid, missing or expired refresh token.'
+                description: 'Invalid, missing or expired refresh token.',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
             ),
             new OA\Response(
                 response: 403,
-                description: 'Access denied. User might be deleted or blocked.'
+                description: 'Access denied. User might be deleted or blocked.',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
             ),
             new OA\Response(
                 response: 400,
-                description: 'Bad request - invalid data provided.'
+                description: 'Bad request - invalid data provided.',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
             )
         ]
     )]

@@ -81,6 +81,9 @@ final readonly class RequestParser
         throw new BadRequestHttpException('Invalid boolean value, expected true or false');
     }
 
+    /**
+     * @throws BadRequestHttpException
+     */
     public function parseSort(string $sortRaw, $allowedParams): array
     {
         $sort = [];

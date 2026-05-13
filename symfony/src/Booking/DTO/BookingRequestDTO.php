@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Booking\DTO;
 
-use App\Booking\Validator\MultipleOf30;
+use App\Booking\Validator\MultipleOf;
 use DateTimeImmutable;
 use Symfony\Component\Validator\Constraints as Assert;
 
@@ -14,7 +14,7 @@ final readonly class BookingRequestDTO
         #[Assert\NotBlank]
         #[Assert\Positive]
         #[Assert\GreaterThanOrEqual(30)]
-        #[MultipleOf30]
+        #[MultipleOf(multiple: 30)]
         public int $durationMinutes,
         #[Assert\Time]
         public string $startTime,

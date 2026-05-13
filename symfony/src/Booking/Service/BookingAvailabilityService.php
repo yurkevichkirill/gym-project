@@ -19,6 +19,7 @@ use DateInterval;
 use DateMalformedIntervalStringException;
 use DateMalformedStringException;
 use DateTimeImmutable;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -35,6 +36,12 @@ final readonly class BookingAvailabilityService
     /**
      * @throws DateMalformedStringException
      * @throws DateMalformedIntervalStringException
+     * @throws AccessDeniedHttpException
+     * @throws NotFoundHttpException
+     * @throws BadRequestHttpException
+     * @throws DateRescheduledException
+     * @throws NoActiveMembershipException
+     * @throws DateTimeAlreadyTakenException
      */
     public function checkBookingAvailability(Client $client, ?Trainer $trainer, ?TrainerWorkTime $worktime, string $date, string $startTime, int $durationMinutes): void
     {
@@ -70,6 +77,9 @@ final readonly class BookingAvailabilityService
     /**
      * @throws DateMalformedStringException
      * @throws DateMalformedIntervalStringException
+     * @throws ConflictHttpException
+     * @throws BadRequestHttpException
+     * @throws NotFoundHttpException
      */
     public function checkUpdateBookingAvailability(Training $training, Client $client, ?TrainerWorkTime $worktime, DateTimeImmutable $newDate, string $newStartTime): void
     {
@@ -110,6 +120,10 @@ final readonly class BookingAvailabilityService
         }
     }
 
+    /**
+     * @throws BadRequestHttpException
+     * @throws ConflictHttpException
+     */
     public function checkCompleteBookingAvailability(Training $training): void
     {
         $fullDate = $training->getTrainerWorkTime()->getDate()->setTime(

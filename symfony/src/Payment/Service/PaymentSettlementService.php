@@ -42,6 +42,9 @@ final readonly class PaymentSettlementService
             : PaymentMethodEnum::CARD;
     }
 
+    /**
+     * @throws InvalidPaymentStatusException
+     */
     public function createBookingPayment(
         Client $client,
         int $price,
@@ -68,6 +71,9 @@ final readonly class PaymentSettlementService
         return $payment;
     }
 
+    /**
+     * @throws InvalidPaymentStatusException
+     */
     public function settleBookingBalancePayment(Payment $payment, Booking $booking): void
     {
         if ($payment->getStatus() !== PaymentStatusEnum::PENDING) {
@@ -99,6 +105,9 @@ final readonly class PaymentSettlementService
         );
     }
 
+    /**
+     * @throws InvalidPaymentStatusException
+     */
     public function settleTopUpPayment(Payment $payment): void
     {
         if ($payment->getStatus() !== PaymentStatusEnum::PENDING) {
@@ -111,6 +120,9 @@ final readonly class PaymentSettlementService
         $client->setBalance($client->getBalance() + $amount);
     }
 
+    /**
+     * @throws InvalidPaymentStatusException
+     */
     public function createMembershipPayment(
         Client $client,
         int $price,
@@ -135,6 +147,9 @@ final readonly class PaymentSettlementService
         return $payment;
     }
 
+    /**
+     * @throws InvalidPaymentStatusException
+     */
     public function settleMembershipBalancePayment(Payment $payment, Membership $membership): void
     {
         if ($payment->getStatus() !== PaymentStatusEnum::PENDING) {
@@ -160,6 +175,9 @@ final readonly class PaymentSettlementService
         return $this->stripeService->createPaymentIntent($payment);
     }
 
+    /**
+     * @throws NotFoundHttpException
+     */
     public function handleStripeSuccess(string $intentId): void
     {
         $payment = $this->paymentRepo->findOneByStripePaymentIntentId($intentId);

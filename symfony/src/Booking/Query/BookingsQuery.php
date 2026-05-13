@@ -4,8 +4,7 @@ declare(strict_types=1);
 
 namespace App\Booking\Query;
 
-use App\Booking\DTO\BookingFilterDTO;
-use App\Booking\DTO\GetBookingsRequestDTO;
+use App\Booking\DTO\ResolvedBookingsRequestDTO;
 use App\Booking\Repository\BookingRepository;
 use Doctrine\ORM\QueryBuilder;
 use Psr\Cache\InvalidArgumentException;
@@ -30,14 +29,14 @@ final readonly class BookingsQuery
     /**
      * @throws InvalidArgumentException
      */
-    public function handle(GetBookingsRequestDTO $dto): array
+    public function handle(ResolvedBookingsRequestDTO $dto): array
     {
         $cacheKey = $this->generateCacheKey($dto);
 
         return $this->gymCache->get($cacheKey, function (ItemInterface $item, bool $save) use ($dto): array {
             $item->expiresAfter(3600);
 
-            $qb = $this->createQuery($dto->filter);
+            $qb = $this->createQuery($dto);
 
             $offset = ($dto->page - 1) * $dto->limit;
 
@@ -49,8 +48,8 @@ final readonly class BookingsQuery
             $qb->setFirstResult($offset)
                 ->setMaxResults($dto->limit);
 
-            if ($dto->filter->client) {
-                $item->tag(['bookings_list_' . $dto->filter->client->getId()]);
+            if ($dto->client) {
+                $item->tag(['bookings_list_' . $dto->client->getId()]);
             } else {
                 $item->tag(['bookings_list_all']);
             }
@@ -59,74 +58,75 @@ final readonly class BookingsQuery
         });
     }
 
-    public function getTotal(BookingFilterDTO $filter): int
+    public function getTotal(ResolvedBookingsRequestDTO $dto): int
     {
-        return (int) $this->createQuery($filter, true)
+        return (int) $this->createQuery($dto, true)
             ->select("COUNT(b.id)")
             ->getQuery()
             ->getSingleScalarResult();
     }
 
-    private function createQuery(BookingFilterDTO $filter, bool $isCount = false): QueryBuilder
+    private function createQuery(ResolvedBookingsRequestDTO $dto, bool $isCount = false): QueryBuilder
     {
-        $qb = $this->bookingRepo->createQueryBuilder('b')
+        $qb = $this->bookingRepo->createQueryBuilder('b');
+
+        $qb->innerJoin('b.training', 't')
+            ->innerJoin('t.trainerWorkTime', 'w')
             ->innerJoin("b.payment", 'p')
-            ->innerJoin("p.trainer", "trainer")
-            ->innerJoin("trainer.trainingType", 'type')
-            ->innerJoin('b.training', 't')
-            ->innerJoin('t.trainerWorkTime', 'w');
+            ->innerJoin("p.trainer", "trainer");
 
         if (!$isCount) {
-            $qb->addSelect('p', 'trainer', 'type', 't', 'w');
+            $qb->addSelect('p', 'trainer', 't', 'w')
+                ->innerJoin("trainer.trainingType", 'type')
+                ->addSelect('type');
         }
 
-        if ($filter->client) {
+        if ($dto->client) {
             $qb->andWhere('b.client = :client')
-                ->setParameter('client', $filter->client);
+                ->setParameter('client', $dto->client);
         }
 
-        if ($filter->trainer) {
+        if ($dto->trainer) {
             $qb->andWhere('trainer = :trainer')
-                ->setParameter('trainer', $filter->trainer);
+                ->setParameter('trainer', $dto->trainer);
         }
 
-        if ($filter->status) {
+        if ($dto->status) {
             $qb->andWhere('b.status = :status')
-                ->setParameter('status', $filter->status);
+                ->setParameter('status', $dto->status);
         }
 
-        if ($filter->date) {
+        if ($dto->date) {
             $qb->andWhere('w.date = :date')
-                ->setParameter('date', $filter->date);
+                ->setParameter('date', $dto->date);
         }
 
-        if ($filter->startTime) {
+        if ($dto->startTime) {
             $qb->andWhere('t.startTime = :startTime')
-                ->setParameter('startTime', $filter->startTime);
+                ->setParameter('startTime', $dto->startTime);
         }
 
-        if ($filter->durationMinutes !== null) {
+        if ($dto->durationMinutes !== null) {
             $qb->andWhere('t.durationMinutes = :durationMinutes')
-                ->setParameter('durationMinutes', $filter->durationMinutes);
+                ->setParameter('durationMinutes', $dto->durationMinutes);
         }
 
         return $qb;
     }
 
-    private function generateCacheKey(GetBookingsRequestDTO $query): string
+    private function generateCacheKey(ResolvedBookingsRequestDTO $dto): string
     {
-        $f = $query->filter;
 
         $params = [
-            'sort' => $query->sort,
-            'page' => $query->page,
-            'limit' => $query->limit,
-            'clientId' => $f->client?->getId(),
-            'trainerId' => $f->trainer?->getId(),
-            'status' => $f->status,
-            'date' => $f->date?->format('Y-m-d'),
-            'startTime' => $f->startTime?->format('H:i:s'),
-            'durationMinutes' => $f->durationMinutes,
+            'sort' => $dto->sort,
+            'page' => $dto->page,
+            'limit' => $dto->limit,
+            'clientId' => $dto->client?->getId(),
+            'trainerId' => $dto->trainer?->getId(),
+            'status' => $dto->status,
+            'date' => $dto->date?->format('Y-m-d'),
+            'startTime' => $dto->startTime?->format('H:i:s'),
+            'durationMinutes' => $dto->durationMinutes,
         ];
 
         return 'bookings_' . md5(json_encode($params));

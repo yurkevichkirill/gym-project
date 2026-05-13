@@ -8,15 +8,15 @@ use Symfony\Component\Validator\Constraint;
 use Symfony\Component\Validator\ConstraintValidator;
 use Symfony\Component\Validator\Exception\UnexpectedTypeException;
 
-class MultipleOf30Validator extends ConstraintValidator
+class MultipleOfValidator extends ConstraintValidator
 {
     /**
      * @inheritDoc
      */
     public function validate(mixed $value, Constraint $constraint): void
     {
-        if (!$constraint instanceof MultipleOf30) {
-            throw new UnexpectedTypeException($constraint, MultipleOf30::class);
+        if (!$constraint instanceof MultipleOf) {
+            throw new UnexpectedTypeException($constraint, MultipleOf::class);
         }
 
         if (null === $value || '' === $value) {
