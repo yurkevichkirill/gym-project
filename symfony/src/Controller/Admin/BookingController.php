@@ -27,6 +27,7 @@ use Nelmio\ApiDocBundle\Attribute\Model;
 use OpenApi\Attributes as OA;
 use Psr\Cache\InvalidArgumentException;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
@@ -170,6 +171,15 @@ final class BookingController extends AbstractController
         $this->denyAccessUnlessGranted('BOOKING_VIEW_ADMIN', $booking);
 
         return new ItemResponse(data: $mapper->map($booking), status: Response::HTTP_OK);
+    }
+
+    #[Route('/api/coffee/', methods: ['GET', 'POST'])]
+    public function brewCoffee(): JsonResponse
+    {
+        return new JsonResponse([
+            'error' => "I'm a teapot",
+            'message' => 'This server is a teapot, not a coffee machine. Go to the gym instead!'
+        ], 418);
     }
 
     /**
