@@ -1,28 +1,36 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Controller\Client;
 
 use App\Client\Entity\Client;
 use App\Membership\DTO\CreateMembershipRequest;
 use App\Membership\DTO\MembershipResponse;
+use App\Membership\DTO\ResolvedMembershipsRequestDTO;
 use App\Membership\Entity\Membership;
 use App\Membership\Enum\MembershipStatusEnum;
-use App\Membership\Factory\GetMembershipsFactory;
 use App\Membership\Mapper\MembershipMapperInterface;
 use App\Membership\Query\MembershipQuery;
 use App\Membership\Service\MembershipManager;
 use App\Response\CollectionResponse;
+use App\Response\DTO\AbstractCollectionResponseDTO;
+use App\Response\DTO\AbstractItemResponseDTO;
+use App\Response\DTO\ErrorResponseDTO;
 use App\Response\ItemResponse;
 use DateMalformedStringException;
+use Doctrine\ORM\NonUniqueResultException;
+use Doctrine\ORM\NoResultException;
 use Nelmio\ApiDocBundle\Attribute\Model;
 use OpenApi\Attributes as OA;
 use Psr\Cache\InvalidArgumentException;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\Messenger\Exception\ExceptionInterface;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Throwable;
@@ -31,17 +39,20 @@ final class MembershipController extends AbstractController
 {
     /**
      * @throws InvalidArgumentException
+     * @throws BadRequestHttpException
+     * @throws NonUniqueResultException
+     * @throws NoResultException
      */
     #[Route('/api/me/memberships/', methods: ['GET'], format: 'json')]
     #[OA\Get(
         operationId: 'getClientMemberships',
         summary: 'Get a list of current client memberships.',
-        tags: ['Client: Membership'],
+        tags: ['Client: Memberships'],
         parameters: [
-            new OA\Parameter(name: 'membershipPlanId', in: 'query', schema: new OA\Schema(type: 'integer'), example: 6),
-            new OA\Parameter(name: 'status', in: 'query', schema: new OA\Schema(type: 'string', enum: MembershipStatusEnum::class), example: 'active'),
-            new OA\Parameter(name: 'minVisits', in: 'query', schema: new OA\Schema(type: 'integer'), example: 10),
-            new OA\Parameter(name: 'maxVisits', in: 'query', schema: new OA\Schema(type: 'integer'), example: 100),
+            new OA\Parameter(name: 'membershipPlanId', in: 'query', schema: new OA\Schema(type: 'integer')),
+            new OA\Parameter(name: 'status', in: 'query', schema: new OA\Schema(type: 'string', enum: MembershipStatusEnum::class)),
+            new OA\Parameter(name: 'minVisits', in: 'query', schema: new OA\Schema(type: 'integer')),
+            new OA\Parameter(name: 'maxVisits', in: 'query', schema: new OA\Schema(type: 'integer')),
             new OA\Parameter(name: 'sort', in: 'query', schema: new OA\Schema(type: 'string'), example: 'startDate:ASC'),
             new OA\Parameter(name: 'page', in: 'query', schema: new OA\Schema(type: 'integer', default: 1)),
             new OA\Parameter(name: 'limit', in: 'query', schema: new OA\Schema(type: 'integer', default: 20)),
@@ -49,58 +60,117 @@ final class MembershipController extends AbstractController
         responses: [
             new OA\Response(
                 response: 200,
-                description: 'Success',
+                description: 'Collection of client memberships',
                 content: new OA\JsonContent(
-                    properties: [
-                        new OA\Property(property: 'items', type: 'array', items: new OA\Items(ref: new Model(type: MembershipResponse::class))),
-                        new OA\Property(property: 'total', type: 'integer'),
-                        new OA\Property(property: 'page', type: 'integer'),
-                        new OA\Property(property: 'limit', type: 'integer'),
+                    allOf: [
+                        new OA\Schema(ref: new Model(type: AbstractCollectionResponseDTO::class)),
+                        new OA\Schema(
+                            properties: [
+                                new OA\Property(
+                                    property: 'data',
+                                    type: 'array',
+                                    items: new OA\Items(ref: new Model(type: MembershipResponse::class))
+                                )
+                            ]
+                        )
                     ]
                 )
             ),
-            new OA\Response(response: 401, description: 'Unauthorized')
+            new OA\Response(
+                response: 400,
+                description: 'Invalid query parameters',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
+            ),
+            new OA\Response(
+                response: 401,
+                description: 'Unauthorized',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
+            ),
+            new OA\Response(
+                response: 403,
+                description: 'Forbidden',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
+            ),
+            new OA\Response(
+                response: 404,
+                description: 'Membership Plan not found',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
+            )
         ]
     )]
     #[IsGranted('ROLE_CLIENT')]
     public function getAll(
-        #[CurrentUser] Client $client,
-        Request $request,
+        ResolvedMembershipsRequestDTO $resolvedDto,
         MembershipMapperInterface $mapper,
         MembershipQuery $handler,
-        GetMembershipsFactory $factory,
     ): CollectionResponse {
-        $queryDto = $factory->fromRequest($request, $client);
-        $memberships = $handler->handle($queryDto);
+
+        $parsedSort = $handler->getParsedSort($resolvedDto);
+
+        $memberships = $handler->handle($resolvedDto, $parsedSort);
 
         return new CollectionResponse(
-            array_map(fn($membership) => $mapper->map($membership), $memberships),
-            $queryDto->page,
-            $queryDto->limit,
-            $handler->getTotal($queryDto->filter),
-            $queryDto->sort,
+            array_map(fn ($membership) => $mapper->map($membership), $memberships),
+            $resolvedDto->page,
+            $resolvedDto->limit,
+            $handler->getTotal($resolvedDto),
+            $parsedSort,
             Response::HTTP_OK,
         );
     }
 
+    /**
+     * @throws AccessDeniedException
+     */
     #[Route('/api/me/memberships/{id}/', methods: ['GET'], format: 'json')]
     #[OA\Get(
-        operationId: 'getMembershipById',
-        summary: 'Get details of a specific membership.',
-        tags: ['Client: Membership'],
+        operationId: 'getClientMembershipById',
+        summary: 'Get membership details (Client).',
+        tags: ['Client: Memberships'],
         parameters: [
-            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'string'))
+            new OA\Parameter(
+                name: 'id',
+                in: 'path',
+                required: true,
+                schema: new OA\Schema(type: 'integer')
+            )
         ],
         responses: [
             new OA\Response(
                 response: 200,
                 description: 'Membership details',
-                content: new OA\JsonContent(ref: new Model(type: MembershipResponse::class))
+                content: new OA\JsonContent(
+                    allOf: [
+                        new OA\Schema(ref: new Model(type: AbstractItemResponseDTO::class)),
+                        new OA\Schema(
+                            properties: [
+                                new OA\Property(
+                                    property: 'data',
+                                    ref: new Model(type: MembershipResponse::class)
+                                )
+                            ]
+                        )
+                    ]
+                )
             ),
-            new OA\Response(response: 403, description: 'Access Denied'),
-            new OA\Response(response: 404, description: 'Membership not found')
+            new OA\Response(
+                response: 401,
+                description: 'Unauthorized',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
+            ),
+            new OA\Response(
+                response: 403,
+                description: 'Forbidden - Access denied',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
+            ),
+            new OA\Response(
+                response: 404,
+                description: 'Membership not found',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
+            )
         ]
     )]
+    #[IsGranted('ROLE_CLIENT')]
     public function get(Membership $membership, MembershipMapperInterface $mapper): ItemResponse
     {
         $this->denyAccessUnlessGranted("MEMBERSHIP_VIEW", $membership);
@@ -116,30 +186,61 @@ final class MembershipController extends AbstractController
     #[Route('/api/me/membership/', methods: ['POST'], format: 'json')]
     #[OA\Post(
         operationId: 'createMembership',
+        description: 'Creates a new membership for the authenticated client and initiates the payment process.',
         summary: 'Purchase a new membership plan.',
         requestBody: new OA\RequestBody(
+            required: true,
             content: new OA\JsonContent(ref: new Model(type: CreateMembershipRequest::class))
         ),
-        tags: ['Client: Membership'],
+        tags: ['Client: Memberships'],
         responses: [
             new OA\Response(
                 response: 201,
-                description: 'Membership created successfully.',
-                content: new OA\JsonContent(ref: new Model(type: MembershipResponse::class))
-            ),
-            new OA\Response(
-                response: 400,
-                description: 'Bad Request - Already has active membership (MembershipActiveException).',
+                description: 'Membership purchased successfully.',
                 content: new OA\JsonContent(
-                    properties: [
-                        new OA\Property(property: 'message', type: 'string', example: 'Client already has an active membership'),
-                        new OA\Property(property: 'request_id', type: 'string', nullable: true)
+                    allOf: [
+                        new OA\Schema(ref: new Model(type: AbstractItemResponseDTO::class)),
+                        new OA\Schema(
+                            properties: [
+                                new OA\Property(
+                                    property: 'data',
+                                    ref: new Model(type: MembershipResponse::class)
+                                )
+                            ]
+                        )
                     ]
                 )
             ),
-            new OA\Response(response: 403, description: 'Forbidden - User is blocked or inactive'),
-            new OA\Response(response: 404, description: 'Membership plan not found'),
-            new OA\Response(response: 422, description: 'Validation failed')
+            new OA\Response(
+                response: 400,
+                description: 'Bad Request - Invalid input data',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
+            ),
+            new OA\Response(
+                response: 401,
+                description: 'Unauthorized',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
+            ),
+            new OA\Response(
+                response: 403,
+                description: 'Forbidden - User is blocked or inactive',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
+            ),
+            new OA\Response(
+                response: 404,
+                description: 'Membership plan not found',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
+            ),
+            new OA\Response(
+                response: 409,
+                description: 'Conflict - Client already has an active membership',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
+            ),
+            new OA\Response(
+                response: 422,
+                description: 'Validation failed',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
+            )
         ]
     )]
     #[IsGranted('ROLE_CLIENT')]
@@ -161,30 +262,67 @@ final class MembershipController extends AbstractController
      */
     #[Route('/api/me/memberships/{id}/freeze/', methods: ['POST'], format: 'json')]
     #[OA\Post(
-        operationId: 'freezeMembership',
-        summary: 'Freeze an active membership.',
-        tags: ['Client: Membership'],
+        operationId: 'getClientFreezeMembership',
+        description: 'Suspends an active membership and changes its status to frozen.',
+        summary: 'Freeze membership (Client).',
+        tags: ['Client: Memberships'],
         parameters: [
-            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'string'))
+            new OA\Parameter(
+                name: 'id',
+                description: 'Membership ID',
+                in: 'path',
+                required: true,
+                schema: new OA\Schema(type: 'integer')
+            )
         ],
         responses: [
             new OA\Response(
                 response: 200,
-                description: 'Membership frozen successfully.',
-                content: new OA\JsonContent(ref: new Model(type: MembershipResponse::class))
+                description: 'Membership successfully frozen',
+                content: new OA\JsonContent(
+                    allOf: [
+                        new OA\Schema(ref: new Model(type: AbstractItemResponseDTO::class)),
+                        new OA\Schema(
+                            properties: [
+                                new OA\Property(
+                                    property: 'data',
+                                    ref: new Model(type: MembershipResponse::class)
+                                )
+                            ]
+                        )
+                    ]
+                )
             ),
             new OA\Response(
-                response: 400,
-                description: 'Bad Request - Membership is not ACTIVE.',
-                content: new OA\JsonContent(properties: [new OA\Property(property: 'message', type: 'string')])
+                response: 401,
+                description: 'Unauthorized',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
             ),
-            new OA\Response(response: 403, description: 'Access Denied'),
-            new OA\Response(response: 404, description: 'Membership not found')
+            new OA\Response(
+                response: 403,
+                description: 'Forbidden - Access denied',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
+            ),
+            new OA\Response(
+                response: 404,
+                description: 'Membership not found',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
+            ),
+            new OA\Response(
+                response: 409,
+                description: 'Conflict - Membership is not in ACTIVE status',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
+            )
         ]
     )]
-    public function freeze(Membership $membership, MembershipMapperInterface $mapper, MembershipManager $manager): ItemResponse
-    {
+    #[IsGranted('ROLE_CLIENT')]
+    public function freeze(
+        Membership $membership,
+        MembershipMapperInterface $mapper,
+        MembershipManager $manager
+    ): ItemResponse {
         $this->denyAccessUnlessGranted("MEMBERSHIP_EDIT", $membership);
+
         $responseDto = $mapper->map($manager->freeze($membership));
 
         return new ItemResponse(data: $responseDto, status: Response::HTTP_OK);
@@ -197,30 +335,67 @@ final class MembershipController extends AbstractController
      */
     #[Route('/api/me/memberships/{id}/unfreeze/', methods: ['POST'], format: 'json')]
     #[OA\Post(
-        operationId: 'unfreezeMembership',
-        summary: 'Unfreeze a frozen membership.',
-        tags: ['Client: Membership'],
+        operationId: 'getClientUnfreezeMembership',
+        description: 'Calculates the freeze duration, extends the membership end date, and restores ACTIVE status.',
+        summary: 'Unfreeze a frozen membership (Client).',
+        tags: ['Client: Memberships'],
         parameters: [
-            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'string'))
+            new OA\Parameter(
+                name: 'id',
+                description: 'Membership ID',
+                in: 'path',
+                required: true,
+                schema: new OA\Schema(type: 'integer')
+            )
         ],
         responses: [
             new OA\Response(
                 response: 200,
                 description: 'Membership unfrozen successfully.',
-                content: new OA\JsonContent(ref: new Model(type: MembershipResponse::class))
+                content: new OA\JsonContent(
+                    allOf: [
+                        new OA\Schema(ref: new Model(type: AbstractItemResponseDTO::class)),
+                        new OA\Schema(
+                            properties: [
+                                new OA\Property(
+                                    property: 'data',
+                                    ref: new Model(type: MembershipResponse::class)
+                                )
+                            ]
+                        )
+                    ]
+                )
             ),
             new OA\Response(
-                response: 400,
-                description: 'Bad Request - Membership is not FROZEN.',
-                content: new OA\JsonContent(properties: [new OA\Property(property: 'message', type: 'string')])
+                response: 401,
+                description: 'Unauthorized',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
             ),
-            new OA\Response(response: 403, description: 'Access Denied'),
-            new OA\Response(response: 404, description: 'Membership not found')
+            new OA\Response(
+                response: 403,
+                description: 'Forbidden - Access denied',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
+            ),
+            new OA\Response(
+                response: 404,
+                description: 'Membership not found',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
+            ),
+            new OA\Response(
+                response: 409,
+                description: 'Conflict - Membership is not currently frozen',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
+            )
         ]
     )]
-    public function unfreeze(Membership $membership, MembershipMapperInterface $mapper, MembershipManager $manager): ItemResponse
-    {
+    #[IsGranted('ROLE_CLIENT')]
+    public function unfreeze(
+        Membership $membership,
+        MembershipMapperInterface $mapper,
+        MembershipManager $manager
+    ): ItemResponse {
         $this->denyAccessUnlessGranted("MEMBERSHIP_EDIT", $membership);
+
         $responseDto = $mapper->map($manager->unfreeze($membership));
 
         return new ItemResponse(data: $responseDto, status: Response::HTTP_OK);
@@ -231,25 +406,67 @@ final class MembershipController extends AbstractController
      */
     #[Route('/api/me/memberships/{id}/renew/', methods: ['POST'], format: 'json')]
     #[OA\Post(
-        operationId: 'renewMembership',
-        summary: 'Renew a membership based on its plan.',
-        tags: ['Client: Membership'],
+        operationId: 'getClientRenewMembership',
+        description: 'Extends or creates a renewal for an existing membership based on its current plan.',
+        summary: 'Renew a membership (Client).',
+        tags: ['Client: Memberships'],
         parameters: [
-            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'string'))
+            new OA\Parameter(
+                name: 'id',
+                description: 'Membership ID',
+                in: 'path',
+                required: true,
+                schema: new OA\Schema(type: 'integer')
+            )
         ],
         responses: [
             new OA\Response(
                 response: 200,
-                description: 'Membership renewed successfully (new membership created).',
-                content: new OA\JsonContent(ref: new Model(type: MembershipResponse::class))
+                description: 'Membership successfully renewed',
+                content: new OA\JsonContent(
+                    allOf: [
+                        new OA\Schema(ref: new Model(type: AbstractItemResponseDTO::class)),
+                        new OA\Schema(
+                            properties: [
+                                new OA\Property(
+                                    property: 'data',
+                                    ref: new Model(type: MembershipResponse::class)
+                                )
+                            ]
+                        )
+                    ]
+                )
             ),
-            new OA\Response(response: 403, description: 'Access Denied'),
-            new OA\Response(response: 404, description: 'Membership or Plan not found')
+            new OA\Response(
+                response: 401,
+                description: 'Unauthorized',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
+            ),
+            new OA\Response(
+                response: 403,
+                description: 'Forbidden - Access denied',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
+            ),
+            new OA\Response(
+                response: 404,
+                description: 'Membership or Plan not found',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
+            ),
+            new OA\Response(
+                response: 409,
+                description: 'Conflict - Membership cannot be renewed in its current state',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
+            )
         ]
     )]
-    public function renew(Membership $membership, MembershipMapperInterface $mapper, MembershipManager $manager): ItemResponse
-    {
+    #[IsGranted('ROLE_CLIENT')]
+    public function renew(
+        Membership $membership,
+        MembershipMapperInterface $mapper,
+        MembershipManager $manager
+    ): ItemResponse {
         $this->denyAccessUnlessGranted("MEMBERSHIP_EDIT", $membership);
+
         $responseDto = $mapper->map($manager->renew($membership));
 
         return new ItemResponse(data: $responseDto, status: Response::HTTP_OK);
@@ -262,31 +479,67 @@ final class MembershipController extends AbstractController
      */
     #[Route('/api/me/memberships/{id}/terminate/', methods: ['POST'], format: 'json')]
     #[OA\Post(
-        operationId: 'terminateMembership',
-        summary: 'Terminate a membership (sets status to EXPIRED and end date to now).',
-        tags: ['Client: Membership'],
+        operationId: 'getClientTerminateMembership',
+        description: 'Immediately terminates the membership by setting its status to EXPIRED and end date to now.',
+        summary: 'Terminate a membership (Client).',
+        tags: ['Client: Memberships'],
         parameters: [
-            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'string'))
+            new OA\Parameter(
+                name: 'id',
+                description: 'Membership ID',
+                in: 'path',
+                required: true,
+                schema: new OA\Schema(type: 'integer')
+            )
         ],
         responses: [
             new OA\Response(
                 response: 200,
-                description: 'Membership terminated successfully.',
-                content: new OA\JsonContent(ref: new Model(type: MembershipResponse::class))
+                description: 'Membership successfully terminated.',
+                content: new OA\JsonContent(
+                    allOf: [
+                        new OA\Schema(ref: new Model(type: AbstractItemResponseDTO::class)),
+                        new OA\Schema(
+                            properties: [
+                                new OA\Property(
+                                    property: 'data',
+                                    ref: new Model(type: MembershipResponse::class)
+                                )
+                            ]
+                        )
+                    ]
+                )
             ),
             new OA\Response(
-                response: 400,
-                description: 'Bad Request - Membership already EXPIRED.',
-                content: new OA\JsonContent(properties: [new OA\Property(property: 'message', type: 'string')])
+                response: 401,
+                description: 'Unauthorized',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
             ),
-            new OA\Response(response: 403, description: 'Access Denied'),
-            new OA\Response(response: 404, description: 'Membership not found')
+            new OA\Response(
+                response: 403,
+                description: 'Forbidden - Access denied',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
+            ),
+            new OA\Response(
+                response: 404,
+                description: 'Membership not found',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
+            ),
+            new OA\Response(
+                response: 409,
+                description: 'Conflict - Membership already EXPIRED.',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
+            )
         ]
     )]
     #[IsGranted('ROLE_CLIENT')]
-    public function terminate(Membership $membership, MembershipMapperInterface $mapper, MembershipManager $manager): ItemResponse
-    {
+    public function terminate(
+        Membership $membership,
+        MembershipMapperInterface $mapper,
+        MembershipManager $manager
+    ): ItemResponse {
         $this->denyAccessUnlessGranted("MEMBERSHIP_EDIT", $membership);
+
         $responseDto = $mapper->map($manager->terminate($membership));
 
         return new ItemResponse(data: $responseDto, status: Response::HTTP_OK);

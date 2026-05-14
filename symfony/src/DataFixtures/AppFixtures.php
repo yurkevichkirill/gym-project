@@ -281,7 +281,7 @@ class AppFixtures extends Fixture
 //            }
 //        }
 
-        $manager->getRepository(Trainer::class)->find(16)->setPhotoUrl("http://nginx/uploads/trainers/arnold.jpg");
+//        $manager->getRepository(Trainer::class)->find(16)->setPhotoUrl("http://nginx/uploads/trainers/arnold.jpg");
 
 //        foreach ($manager->getRepository(ImportError::class)->findAll() as $item) {
 //            $manager->remove($item);
@@ -354,6 +354,7 @@ class AppFixtures extends Fixture
 //        foreach ($membership_plans as $membership_plan) {
 //            $membership_plan->setPrice($membership_plan->getPrice() * 100);
 //        }
+        $manager->getRepository(Payment::class)->find(177)->setIsRefund(false);
 
         $manager->flush();
     }

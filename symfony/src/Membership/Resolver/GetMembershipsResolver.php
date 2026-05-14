@@ -2,15 +2,13 @@
 
 declare(strict_types=1);
 
-namespace App\Booking\Resolver;
+namespace App\Membership\Resolver;
 
-use App\Booking\DTO\GetBookingsRequestDTO;
-use App\Booking\DTO\ResolvedBookingsRequestDTO;
 use App\Client\Entity\Client;
 use App\Client\Repository\ClientRepository;
-use App\Trainer\Repository\TrainerRepository;
-use DateMalformedStringException;
-use DateTimeImmutable;
+use App\Membership\DTO\GetMembershipsRequestDTO;
+use App\Membership\DTO\ResolvedMembershipsRequestDTO;
+use App\MembershipPlan\Repository\MembershipPlanRepository;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\HttpFoundation\Exception\BadRequestException;
 use Symfony\Component\HttpFoundation\Request;
@@ -23,33 +21,33 @@ use Symfony\Component\Serializer\SerializerInterface;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 use Throwable;
 
-final readonly class GetBookingsResolver implements ValueResolverInterface
+final readonly class GetMembershipsResolver implements ValueResolverInterface
 {
     public function __construct(
-        private ClientRepository $clientRepo,
-        private TrainerRepository $trainerRepo,
         private SerializerInterface $serializer,
         private ValidatorInterface $validator,
+        private ClientRepository $clientRepo,
+        private MembershipPlanRepository $membershipPlanRepo,
         private Security $security,
-    ) {}
+    )
+    {}
 
     /**
-     * @throws DateMalformedStringException
-     * @throws NotFoundHttpException
-     * @throws BadRequestHttpException
      * @throws BadRequestException
+     * @throws BadRequestHttpException
+     * @throws NotFoundHttpException
      */
     public function resolve(Request $request, ArgumentMetadata $argument): iterable
     {
-        if ($argument->getType() !== ResolvedBookingsRequestDTO::class) {
+        if ($argument->getType() !== ResolvedMembershipsRequestDTO::class) {
             return [];
         }
 
         try {
-            /** @var GetBookingsRequestDTO $rawDto */
+            /** @var GetMembershipsRequestDTO $rawDto */
             $rawDto = $this->serializer->denormalize(
                 $request->query->all(),
-                GetBookingsRequestDTO::class,
+                GetMembershipsRequestDTO::class,
                 null,
                 [AbstractObjectNormalizer::DISABLE_TYPE_ENFORCEMENT => true]
             );
@@ -74,19 +72,18 @@ final readonly class GetBookingsResolver implements ValueResolverInterface
                 ?? throw new NotFoundHttpException("Client with ID $rawDto->clientId not found");
         }
 
-        $trainer = null;
-        if ($rawDto->trainerId) {
-            $trainer = $this->trainerRepo->find($rawDto->trainerId)
-                ?? throw new NotFoundHttpException("Trainer with ID $rawDto->trainerId not found");
+        $membershipPlan = null;
+        if ($rawDto->membershipPlanId) {
+            $membershipPlan = $this->membershipPlanRepo->find($rawDto->membershipPlanId)
+                ?? throw new NotFoundHttpException("Membership plan with ID $rawDto->membershipPlanId not found");
         }
 
-        yield new ResolvedBookingsRequestDTO(
-            trainer: $trainer,
+        yield new ResolvedMembershipsRequestDTO(
+            membershipPlan: $membershipPlan,
             client: $client,
             status: $rawDto->status,
-            date: $rawDto->date ? new DateTimeImmutable($rawDto->date) : null,
-            startTime: $rawDto->startTime ? DateTimeImmutable::createFromFormat('H:i:s', $rawDto->startTime) : null,
-            durationMinutes: $rawDto->durationMinutes,
+            minVisits: $rawDto->minVisits,
+            maxVisits: $rawDto->maxVisits,
             sort: $rawDto->sort,
             page: $rawDto->page,
             limit: $rawDto->limit,
