@@ -6,8 +6,11 @@ namespace App\Booking\Query;
 
 use App\Booking\DTO\ResolvedBookingsRequestDTO;
 use App\Booking\Repository\BookingRepository;
+use App\Client\DTO\GetClientsRequestDTO;
+use App\Request\SortParser;
 use Doctrine\ORM\QueryBuilder;
 use Psr\Cache\InvalidArgumentException;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Contracts\Cache\ItemInterface;
 use Symfony\Contracts\Cache\TagAwareCacheInterface;
 
@@ -29,18 +32,18 @@ final readonly class BookingsQuery
     /**
      * @throws InvalidArgumentException
      */
-    public function handle(ResolvedBookingsRequestDTO $dto): array
+    public function handle(ResolvedBookingsRequestDTO $dto, array $parsedSort): array
     {
         $cacheKey = $this->generateCacheKey($dto);
 
-        return $this->gymCache->get($cacheKey, function (ItemInterface $item, bool $save) use ($dto): array {
+        return $this->gymCache->get($cacheKey, function (ItemInterface $item, bool $save) use ($dto, $parsedSort): array {
             $item->expiresAfter(3600);
 
             $qb = $this->createQuery($dto);
 
             $offset = ($dto->page - 1) * $dto->limit;
 
-            foreach ($dto->sort as $alias => $order) {
+            foreach ($parsedSort as $alias => $order) {
                 $field = self::SORT_MAP[$alias] ?? "b.$alias";
                 $qb->addOrderBy($field, $order);
             }
@@ -112,6 +115,14 @@ final readonly class BookingsQuery
         }
 
         return $qb;
+    }
+
+    /**
+     * @throws BadRequestHttpException
+     */
+    public function getParsedSort(ResolvedBookingsRequestDTO $dto): array
+    {
+        return SortParser::parseSort($dto->sort, ResolvedBookingsRequestDTO::ALLOWED_SORT_FIELDS);
     }
 
     private function generateCacheKey(ResolvedBookingsRequestDTO $dto): string

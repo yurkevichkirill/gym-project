@@ -11,6 +11,7 @@ use DateTimeImmutable;
 
 final readonly class ResolvedBookingsRequestDTO
 {
+    public const array ALLOWED_SORT_FIELDS = ['bookedAt', 'status', 'trainingId', 'date', 'startTime', 'durationMinutes'];
     public function __construct(
         public ?Trainer           $trainer = null,
         public ?Client            $client = null,
@@ -18,7 +19,7 @@ final readonly class ResolvedBookingsRequestDTO
         public ?DateTimeImmutable $date = null,
         public ?DateTimeImmutable $startTime = null,
         public ?int               $durationMinutes = null,
-        public array              $sort,
+        public string             $sort,
         public int                $page = 1,
         public int                $limit = 20,
     ) {}

@@ -8,7 +8,6 @@ use App\Booking\DTO\GetBookingsRequestDTO;
 use App\Booking\DTO\ResolvedBookingsRequestDTO;
 use App\Client\Entity\Client;
 use App\Client\Repository\ClientRepository;
-use App\Request\Utils\RequestParser;
 use App\Trainer\Repository\TrainerRepository;
 use DateMalformedStringException;
 use DateTimeImmutable;
@@ -28,7 +27,6 @@ final readonly class GetBookingsResolver implements ValueResolverInterface
     public function __construct(
         private ClientRepository $clientRepo,
         private TrainerRepository $trainerRepo,
-        private RequestParser $parser,
         private SerializerInterface $serializer,
         private ValidatorInterface $validator,
         private Security $security,
@@ -68,17 +66,14 @@ final readonly class GetBookingsResolver implements ValueResolverInterface
 
         elseif ($rawDto->clientId) {
             $client = $this->clientRepo->find($rawDto->clientId)
-                ?? throw new NotFoundHttpException("Client with ID {$rawDto->clientId} not found");
+                ?? throw new NotFoundHttpException("Client with ID $rawDto->clientId not found");
         }
 
         $trainer = null;
         if ($rawDto->trainerId) {
             $trainer = $this->trainerRepo->find($rawDto->trainerId)
-                ?? throw new NotFoundHttpException("Trainer with ID {$rawDto->trainerId} not found");
+                ?? throw new NotFoundHttpException("Trainer with ID $rawDto->trainerId not found");
         }
-
-        $allowedSortParams = ['bookedAt', 'status', 'trainingId', 'date', 'startTime', 'durationMinutes'];
-        $sortArray = $this->parser->parseSort($rawDto->sort, $allowedSortParams);
 
         yield new ResolvedBookingsRequestDTO(
             trainer: $trainer,
@@ -87,7 +82,7 @@ final readonly class GetBookingsResolver implements ValueResolverInterface
             date: $rawDto->date ? new DateTimeImmutable($rawDto->date) : null,
             startTime: $rawDto->startTime ? DateTimeImmutable::createFromFormat('H:i:s', $rawDto->startTime) : null,
             durationMinutes: $rawDto->durationMinutes,
-            sort: $sortArray,
+            sort: $rawDto->sort,
             page: $rawDto->page,
             limit: $rawDto->limit,
         );

@@ -7,6 +7,8 @@ namespace App\Client\Query;
 use App\Client\DTO\GetClientsRequestDTO;
 use App\Client\Repository\ClientRepository;
 use App\Request\SortParser;
+use Doctrine\ORM\NonUniqueResultException;
+use Doctrine\ORM\NoResultException;
 use Doctrine\ORM\QueryBuilder;
 use Psr\Cache\InvalidArgumentException;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
@@ -45,15 +47,19 @@ final readonly class ClientQuery
         });
     }
 
+    /**
+     * @throws NonUniqueResultException
+     * @throws NoResultException
+     */
     public function getTotal(GetClientsRequestDTO $dto): int
     {
-        return (int) $this->createQuery($dto, true)
+        return (int) $this->createQuery($dto)
             ->select('COUNT(c.id)')
             ->getQuery()
             ->getSingleScalarResult();
     }
 
-    private function createQuery(GetClientsRequestDTO $dto, bool $isCount = false): QueryBuilder
+    private function createQuery(GetClientsRequestDTO $dto): QueryBuilder
     {
         $qb = $this->clientRepo->createQueryBuilder('c');
 
