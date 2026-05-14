@@ -4,8 +4,14 @@ declare(strict_types=1);
 
 namespace App\Controller\Authentication;
 
+use App\Client\DTO\ClientActivateRequest;
+use App\Client\DTO\ClientResponse;
+use App\Client\Mapper\ClientMapperInterface;
+use App\Client\Service\ClientManager;
 use App\RefreshToken\Service\RefreshTokenManager;
+use App\Response\DTO\AbstractItemResponseDTO;
 use App\Response\DTO\ErrorResponseDTO;
+use App\Response\ItemResponse;
 use App\User\DTO\LoginUserRequest;
 use App\User\Service\UserManager;
 use Doctrine\ORM\Exception\ORMException;
@@ -18,6 +24,7 @@ use Symfony\Component\HttpFoundation\Cookie;
 use Symfony\Component\HttpFoundation\Exception\BadRequestException;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\UnauthorizedHttpException;
@@ -163,5 +170,69 @@ final class ApiLoginController extends AbstractController
         $response->headers->setCookie(Cookie::create(
             'refresh_token', $refreshToken, time() + 604800, '/', '.evogym.local', true, true, false, 'none'
         ));
+    }
+
+    #[Route('/api/clients/activate/', methods: ['POST'], format: 'json')]
+    #[OA\Post(
+        operationId: 'activateClient',
+        summary: 'Activate client account using token and set password.',
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(ref: new Model(type: ClientActivateRequest::class))
+        ),
+        tags: ['Authentication'],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Account activated successfully.',
+                content: new OA\JsonContent(
+                    allOf: [
+                        new OA\Schema(ref: new Model(type: AbstractItemResponseDTO::class)),
+                        new OA\Schema(
+                            properties: [
+                                new OA\Property(
+                                    property: 'data',
+                                    ref: new Model(type: ClientResponse::class)
+                                )
+                            ]
+                        )
+                    ]
+                )
+            ),
+            new OA\Response(
+                response: 400,
+                description: 'Invalid JSON payload',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
+            ),
+            new OA\Response(
+                response: 403,
+                description: 'Forbidden - Account is blocked',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
+            ),
+            new OA\Response(
+                response: 404,
+                description: 'Not Found - Invalid activation token',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
+            ),
+            new OA\Response(
+                response: 409,
+                description: 'Conflict - Account is already activated',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
+            ),
+            new OA\Response(
+                response: 422,
+                description: 'Validation failed (e.g. weak password)',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
+            )
+        ]
+    )]
+    public function activate(
+        #[MapRequestPayload] ClientActivateRequest $requestDto,
+        ClientMapperInterface $mapper,
+        ClientManager $manager,
+    ): ItemResponse {
+        $responseDto = $mapper->map($manager->activate($requestDto));
+
+        return new ItemResponse(data: $responseDto, status: Response::HTTP_OK);
     }
 }
