@@ -102,10 +102,6 @@ final readonly class ClientManager
             $client->setAge($requestDto->age);
         }
 
-        if ($requestDto->balance !== null) {
-            $client->setBalance($requestDto->balance);
-        }
-
         if ($requestDto->password !== null) {
             $hashed = $this->passwordHasher->hashPassword($client, $requestDto->password);
             $client->setPassword($hashed);
