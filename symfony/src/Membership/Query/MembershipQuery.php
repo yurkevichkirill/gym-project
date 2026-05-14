@@ -4,11 +4,14 @@ declare(strict_types=1);
 
 namespace App\Membership\Query;
 
-use App\Membership\DTO\GetMemberships;
-use App\Membership\DTO\MembershipFilter;
+use App\Membership\DTO\ResolvedMembershipsRequestDTO;
 use App\Membership\Repository\MembershipRepository;
+use App\Request\SortParser;
+use Doctrine\ORM\NonUniqueResultException;
+use Doctrine\ORM\NoResultException;
 use Doctrine\ORM\QueryBuilder;
 use Psr\Cache\InvalidArgumentException;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Contracts\Cache\ItemInterface;
 use Symfony\Contracts\Cache\TagAwareCacheInterface;
 
@@ -27,19 +30,19 @@ final readonly class MembershipQuery
     /**
      * @throws InvalidArgumentException
      */
-    public function handle(GetMemberships $dto): array
+    public function handle(ResolvedMembershipsRequestDTO $dto, array $parsedSort): array
     {
         $cacheKey = $this->generateCacheKey($dto);
 
-        return $this->gymCache->get($cacheKey, function (ItemInterface $item, bool $save) use ($dto): array {
+        return $this->gymCache->get($cacheKey, function (ItemInterface $item, bool $save) use ($dto, $parsedSort): array {
 
             $item->expiresAfter(3600);
 
-            $qb = $this->createQuery($dto->filter);
+            $qb = $this->createQuery($dto);
 
             $offset = ($dto->page - 1) * $dto->limit;
 
-            foreach ($dto->sort as $alias => $order) {
+            foreach ($parsedSort as $alias => $order) {
                 $field = self::SORT_MAP[$alias] ?? "m.$alias";
                 $qb->addOrderBy($field, $order);
             }
@@ -47,8 +50,8 @@ final readonly class MembershipQuery
             $qb->setFirstResult($offset)
                 ->setMaxResults($dto->limit);
 
-            if ($dto->filter->client) {
-                $item->tag(["memberships_list_" . $dto->filter->client->getId()]);
+            if ($dto->client) {
+                $item->tag(["memberships_list_" . $dto->client->getId()]);
             } else {
                 $item->tag(["memberships_list_all"]);
             }
@@ -57,15 +60,19 @@ final readonly class MembershipQuery
         });
     }
 
-    public function getTotal(MembershipFilter $filter): int
+    /**
+     * @throws NonUniqueResultException
+     * @throws NoResultException
+     */
+    public function getTotal(ResolvedMembershipsRequestDTO $dto): int
     {
-        return (int) $this->createQuery($filter)
+        return (int) $this->createQuery($dto)
             ->select('COUNT(m.id)')
             ->getQuery()
             ->getSingleScalarResult();
     }
 
-    private function createQuery(MembershipFilter $filter): QueryBuilder
+    private function createQuery(ResolvedMembershipsRequestDTO $dto): QueryBuilder
     {
         $qb = $this->membershipRepo->createQueryBuilder('m')
             ->leftJoin('m.plan', 'plan')
@@ -73,47 +80,53 @@ final readonly class MembershipQuery
             ->leftJoin('m.payment', 'p')
             ->addSelect('p');
 
-        if ($filter->client) {
+        if ($dto->client) {
             $qb->andWhere('m.client = :client')
-                ->setParameter('client', $filter->client);
+                ->setParameter('client', $dto->client);
         }
 
-        if ($filter->status !== null) {
+        if ($dto->status !== null) {
             $qb->andWhere('m.status = :status')
-                ->setParameter('status', $filter->status);
+                ->setParameter('status', $dto->status);
         }
 
-        if ($filter->membershipPlan) {
+        if ($dto->membershipPlan) {
             $qb->andWhere('m.plan = :plan')
-                ->setParameter('plan', $filter->membershipPlan);
+                ->setParameter('plan', $dto->membershipPlan);
         }
 
-        if ($filter->minVisits !== null) {
+        if ($dto->minVisits !== null) {
             $qb->andWhere('m.visits >= :minVisits')
-                ->setParameter('minVisits', $filter->minVisits);
+                ->setParameter('minVisits', $dto->minVisits);
         }
 
-        if ($filter->maxVisits !== null) {
+        if ($dto->maxVisits !== null) {
             $qb->andWhere('m.visits <= :maxVisits')
-                ->setParameter('maxVisits', $filter->maxVisits);
+                ->setParameter('maxVisits', $dto->maxVisits);
         }
 
         return $qb;
     }
 
-    private function generateCacheKey(GetMemberships $query): string
+    /**
+     * @throws BadRequestHttpException
+     */
+    public function getParsedSort(ResolvedMembershipsRequestDTO $dto): array
     {
-        $f = $query->filter;
+        return SortParser::parseSort($dto->sort, ResolvedMembershipsRequestDTO::ALLOWED_SORT_FIELDS);
+    }
 
+    private function generateCacheKey(ResolvedMembershipsRequestDTO $dto): string
+    {
         $params = [
-            'sort' => $query->sort,
-            'page' => $query->page,
-            'limit' => $query->limit,
-            'clientId' => $f->client?->getId(),
-            'membershipPlanId' => $f->membershipPlan?->getId(),
-            'status' => $f->status,
-            'minVisits' => $f->minVisits,
-            'maxVisits' => $f->maxVisits,
+            'sort' => $dto->sort,
+            'page' => $dto->page,
+            'limit' => $dto->limit,
+            'clientId' => $dto->client?->getId(),
+            'membershipPlanId' => $dto->membershipPlan?->getId(),
+            'status' => $dto->status,
+            'minVisits' => $dto->minVisits,
+            'maxVisits' => $dto->maxVisits,
         ];
 
         return 'memberships_' . md5(json_encode($params));

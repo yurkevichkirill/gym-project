@@ -274,7 +274,7 @@ class Payment
         return $this;
     }
 
-    public function getIsRefund(): ?bool
+    public function getIsRefund(): bool
     {
         return $this->isRefund;
     }

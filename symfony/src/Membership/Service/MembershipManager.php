@@ -96,7 +96,7 @@ final readonly class MembershipManager
                 return $membership;
             });
 
-        } catch (MembershipActiveException|NotFoundHttpException $e) {
+        } catch (NotFoundHttpException $e) {
             $this->membershipLogger->notice('membership.rejected',
                 $this->membershipEventContext($loggingContext, 'create', 'rejected', [
                     'reason' => $e::class,
