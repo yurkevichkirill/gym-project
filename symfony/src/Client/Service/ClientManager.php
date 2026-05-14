@@ -35,7 +35,6 @@ final readonly class ClientManager
         private UserPasswordHasherInterface $passwordHasher,
         private AvailabilityService $userAvailabilityService,
         private VisitingService $visitingService,
-        private BookingAvailabilityService $bookingAvailabilityService,
         private PaymentSettlementService $paymentSettlementService,
         private EntityManagerInterface $entityManager,
     )
@@ -64,6 +63,9 @@ final readonly class ClientManager
         return $client;
     }
 
+    /**
+     * @throws AccessDeniedHttpException
+     */
     public function update(Client $client, UpdateClientRequest $requestDto): Client
     {
         $this->userAvailabilityService->ensureNotBlocked($client);
@@ -114,12 +116,11 @@ final readonly class ClientManager
         return $client;
     }
 
-    public function softDelete(Client $client, ?Admin $admin = null): void
+    /**
+     * @throws ConflictHttpException
+     */
+    public function softDelete(Client $client): void
     {
-        if ($admin !== null && $admin->getId() === $client->getId()) {
-            throw new AccessDeniedHttpException('You cannot delete yourself');
-        }
-
         if ($client->getDeletedAt()) {
             throw new ConflictHttpException("Client already deleted");
         }
@@ -140,6 +141,10 @@ final readonly class ClientManager
         return $client;
     }
 
+    /**
+     * @throws AccessDeniedHttpException
+     * @throws ConflictHttpException
+     */
     public function block(Admin $admin, Client $client): Client
     {
         if ($admin->getId() === $client->getId()) {
@@ -157,22 +162,29 @@ final readonly class ClientManager
         return $client;
     }
 
+    /**
+     * @throws ConflictHttpException
+     */
     public function unblock(Client $client): Client
     {
+        if ($client->getBlockedAt() === null) {
+            throw new ConflictHttpException('Client is not blocked');
+        }
+
         $client->setBlockedAt(null);
         $this->entityManager->flush();
 
         return $client;
     }
 
+    /**
+     * @throws AccessDeniedHttpException
+     * @throws NoActiveMembershipException
+     */
     public function visit(Client $client): Membership
     {
         $this->userAvailabilityService->ensureNotBlocked($client);
         $this->userAvailabilityService->ensureActive($client);
-
-        if (!$this->bookingAvailabilityService->hasActiveMembership($client)) {
-            throw new NoActiveMembershipException();
-        }
 
         $membership = $this->visitingService->visit($client);
 
@@ -181,6 +193,9 @@ final readonly class ClientManager
         return $membership;
     }
 
+    /**
+     * @throws AccessDeniedHttpException
+     */
     public function topUpBalance(Client $client, TopUpBalanceRequest $requestDto): Payment
     {
         $this->userAvailabilityService->ensureNotBlocked($client);

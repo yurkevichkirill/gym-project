@@ -10,7 +10,6 @@ use App\ImportJob\DTO\CreateClientImport;
 use App\ImportJob\DTO\CreateClientImportBatch;
 use App\ImportJob\Entity\ImportJob;
 use Doctrine\ORM\EntityManagerInterface;
-use Psr\Log\LoggerInterface;
 use Throwable;
 
 final readonly class ImportService
@@ -18,7 +17,6 @@ final readonly class ImportService
     public function __construct(
         private EntityManagerInterface $em,
         private ClientRepository $clientRepo,
-        private LoggerInterface $clientLogger,
     ) {}
 
     public function create(CreateClientImportBatch $dto): ImportJob
@@ -36,12 +34,6 @@ final readonly class ImportService
      */
     public function import(CreateClientImport $dto): ?Client
     {
-        $context = [
-            'domain' => 'client',
-            'operation' => 'import_client',
-            'email' => $dto->email,
-        ];
-
         $email = strtolower(trim($dto->email));
 
         $existingClient = $this->clientRepo->findOneBy([
@@ -62,28 +54,9 @@ final readonly class ImportService
         $client->setIsActive(false);
         $client->setActivationToken(bin2hex(random_bytes(32)));
 
-        try {
-            $this->em->persist($client);
-            $this->em->flush();
+        $this->em->persist($client);
 
-            return $client;
+        return $client;
 
-        } catch (Throwable $e) {
-            $this->clientLogger->error('Client import failed', $this->ctx($context, 'failed', [
-                'exception_class' => $e::class,
-                'error' => $e->getMessage(),
-                'exception' => $e,
-            ]));
-
-            throw $e;
-        }
-    }
-
-    private function ctx(array $context, string $outcome, array $extra = []): array
-    {
-        return $extra + $context + [
-                'domain' => 'client',
-                'outcome' => $outcome,
-            ];
     }
 }
