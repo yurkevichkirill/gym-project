@@ -29,6 +29,7 @@ use Psr\Cache\InvalidArgumentException;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
@@ -39,6 +40,7 @@ final class BookingController extends AbstractController
 {
     /**
      * @throws InvalidArgumentException
+     * @throws BadRequestHttpException
      */
     #[Route('/api/bookings/', methods: ['GET'], format: 'json')]
     #[OA\Get(
@@ -103,14 +105,16 @@ final class BookingController extends AbstractController
         BookingAdminMapperInterface             $mapper,
         BookingsQuery                           $handler,
     ): CollectionResponse {
-        $bookings = $handler->handle($resolvedDto);
+        $parsedSort = $handler->getParsedSort($resolvedDto);
+
+        $bookings = $handler->handle($resolvedDto, $parsedSort);
 
         return new CollectionResponse(
             array_map(fn($booking) => $mapper->map($booking), $bookings),
             $resolvedDto->page,
             $resolvedDto->limit,
             $handler->getTotal($resolvedDto),
-            $resolvedDto->sort,
+            $parsedSort,
             Response::HTTP_OK
         );
     }
