@@ -4,11 +4,12 @@ declare(strict_types=1);
 
 namespace App\Client\Query;
 
-use App\Client\DTO\ClientFilter;
-use App\Client\DTO\GetClients;
+use App\Client\DTO\GetClientsRequestDTO;
 use App\Client\Repository\ClientRepository;
+use App\Request\SortParser;
 use Doctrine\ORM\QueryBuilder;
 use Psr\Cache\InvalidArgumentException;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Contracts\Cache\ItemInterface;
 use Symfony\Contracts\Cache\TagAwareCacheInterface;
 
@@ -22,16 +23,16 @@ final readonly class ClientQuery
     /**
      * @throws InvalidArgumentException
      */
-    public function handle(GetClients $dto): array
+    public function handle(GetClientsRequestDTO $dto, array $parsedSort): array
     {
         $cacheKey = $this->generateCacheKey($dto);
 
-        return $this->gymCache->get($cacheKey, function (ItemInterface $item, bool $save) use ($dto): array {
+        return $this->gymCache->get($cacheKey, function (ItemInterface $item, bool $save) use ($dto, $parsedSort): array {
             $item->expiresAfter(3600);
 
-            $qb = $this->createQuery($dto->filter);
+            $qb = $this->createQuery($dto);
 
-            foreach ($dto->sort as $field => $order) {
+            foreach ($parsedSort as $field => $order) {
                 $qb->addOrderBy("c.$field", $order);
             }
 
@@ -44,40 +45,40 @@ final readonly class ClientQuery
         });
     }
 
-    public function getTotal(ClientFilter $filter): int
+    public function getTotal(GetClientsRequestDTO $dto): int
     {
-        return (int) $this->createQuery($filter, true)
+        return (int) $this->createQuery($dto, true)
             ->select('COUNT(c.id)')
             ->getQuery()
             ->getSingleScalarResult();
     }
 
-    private function createQuery(ClientFilter $filter, bool $isCount = false): QueryBuilder
+    private function createQuery(GetClientsRequestDTO $dto, bool $isCount = false): QueryBuilder
     {
         $qb = $this->clientRepo->createQueryBuilder('c');
 
-        if ($filter->minAge !== null) {
+        if ($dto->minAge !== null) {
             $qb->andWhere('c.age >= :minAge')
-                ->setParameter('minAge', $filter->minAge);
+                ->setParameter('minAge', $dto->minAge);
         }
 
-        if ($filter->maxAge !== null) {
+        if ($dto->maxAge !== null) {
             $qb->andWhere('c.age <= :maxAge')
-                ->setParameter('maxAge', $filter->maxAge);
+                ->setParameter('maxAge', $dto->maxAge);
         }
 
-        if ($filter->minBalance !== null) {
+        if ($dto->minBalance !== null) {
             $qb->andWhere('c.balance >= :minBalance')
-                ->setParameter('minBalance', $filter->minBalance);
+                ->setParameter('minBalance', $dto->minBalance);
         }
 
-        if ($filter->maxBalance !== null) {
+        if ($dto->maxBalance !== null) {
             $qb->andWhere('c.balance <= :maxBalance')
-                ->setParameter('maxBalance', $filter->maxBalance);
+                ->setParameter('maxBalance', $dto->maxBalance);
         }
 
-        if ($filter->isDeleted !== null) {
-            if ($filter->isDeleted) {
+        if ($dto->isDeleted !== null) {
+            if ($dto->isDeleted) {
                 $qb->andWhere('c.deletedAt IS NOT NULL');
             } else {
                 $qb->andWhere('c.deletedAt IS NULL');
@@ -87,19 +88,25 @@ final readonly class ClientQuery
         return $qb;
     }
 
-    private function generateCacheKey(GetClients $query): string
+    /**
+     * @throws BadRequestHttpException
+     */
+    public function getParsedSort(GetClientsRequestDTO $dto): array
     {
-        $f = $query->filter;
+        return SortParser::parseSort($dto->sort, GetClientsRequestDTO::ALLOWED_SORT_FIELDS);
+    }
 
+    private function generateCacheKey(GetClientsRequestDTO $dto): string
+    {
         $params = [
-            'sort' => $query->sort,
-            'page' => $query->page,
-            'limit' => $query->limit,
-            'minAge' => $f->minAge,
-            'maxAge' => $f->maxAge,
-            'minBalance' => $f->minBalance,
-            'maxBalance' => $f->maxBalance,
-            'isDeleted' => $f->isDeleted,
+            'sort' => $dto->sort,
+            'page' => $dto->page,
+            'limit' => $dto->limit,
+            'minAge' => $dto->minAge,
+            'maxAge' => $dto->maxAge,
+            'minBalance' => $dto->minBalance,
+            'maxBalance' => $dto->maxBalance,
+            'isDeleted' => $dto->isDeleted,
         ];
 
         return 'clients_' . md5(json_encode($params));

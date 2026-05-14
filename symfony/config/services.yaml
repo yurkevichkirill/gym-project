@@ -67,10 +67,6 @@ services:
         arguments:
             $membershipLogger: '@monolog.logger.membership'
 
-    App\ImportJob\Service\ImportService:
-        arguments:
-            $clientLogger: '@monolog.logger.client'
-
     App\ImportJob\MessageHandler\ImportHandler:
         arguments:
             $clientLogger: '@monolog.logger.client'

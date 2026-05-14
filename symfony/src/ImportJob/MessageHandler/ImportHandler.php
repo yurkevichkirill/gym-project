@@ -5,13 +5,11 @@ declare(strict_types=1);
 namespace App\ImportJob\MessageHandler;
 
 use App\ImportError\Service\ImportErrorService;
-use App\ImportJob\Enum\ImportResultEnum;
 use App\ImportJob\Message\ImportMessage;
 use App\ImportJob\Message\SendActivationEmailMessage;
 use App\ImportJob\Repository\ImportJobRepository;
 use App\ImportJob\Service\ImportService;
 use App\ImportJobItem\Service\ImportJobItemManager;
-use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
@@ -38,14 +36,11 @@ final readonly class ImportHandler
      */
     public function __invoke(ImportMessage $message): void
     {
-        $this->em->wrapInTransaction(function () use ($message) {
-            try {
-                $jobItem = $this->jobItemManager->create($message);
+        $emailMessage = null;
+        $this->em->wrapInTransaction(function () use ($message, &$emailMessage) {
+            $jobItem = $this->jobItemManager->create($message);
 
-                if ($jobItem === null) {
-                    return;
-                }
-            } catch (UniqueConstraintViolationException) {
+            if ($jobItem === null) {
                 return;
             }
 
@@ -83,9 +78,7 @@ final readonly class ImportHandler
                     $this->jobRepo->incrementProcessed($message->jobId);
                     $this->jobItemManager->success($jobItem);
 
-                    $this->bus->dispatch(
-                        new SendActivationEmailMessage($client->getId())
-                    );
+                    $emailMessage = new SendActivationEmailMessage($client->getId());
                 } else {
                     $this->jobRepo->incrementSkipped($message->jobId);
                     $this->jobItemManager->skip($jobItem);
@@ -95,6 +88,10 @@ final readonly class ImportHandler
             $this->jobRepo->markFinishedIfDone($message->jobId);
 
         });
+
+        if ($emailMessage !== null) {
+            $this->bus->dispatch($emailMessage);
+        }
     }
 
     private function ctx(array $context, string $outcome, array $extra = []): array

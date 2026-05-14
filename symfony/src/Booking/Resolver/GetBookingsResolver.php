@@ -23,7 +23,7 @@ use Symfony\Component\Serializer\Normalizer\AbstractObjectNormalizer;
 use Symfony\Component\Serializer\SerializerInterface;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 
-final readonly class GetBookingsDTOResolver implements ValueResolverInterface
+final readonly class GetBookingsResolver implements ValueResolverInterface
 {
     public function __construct(
         private ClientRepository $clientRepo,
