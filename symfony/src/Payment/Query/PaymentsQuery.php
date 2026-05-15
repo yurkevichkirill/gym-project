@@ -4,50 +4,42 @@ declare(strict_types=1);
 
 namespace App\Payment\Query;
 
-use App\Payment\DTO\GetPayments;
-use App\Payment\DTO\PaymentFilter;
+use App\Payment\DTO\ResolvedPaymentsRequestDTO;
+use App\Payment\Mapper\PaymentMapperInterface;
 use App\Payment\Repository\PaymentRepository;
+use App\Request\SortParser;
 use Doctrine\ORM\QueryBuilder;
 use Psr\Cache\InvalidArgumentException;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Contracts\Cache\ItemInterface;
 use Symfony\Contracts\Cache\TagAwareCacheInterface;
 
 final readonly class PaymentsQuery
 {
     public function __construct(
+        private PaymentMapperInterface $mapper,
         private PaymentRepository $paymentRepo,
-        private TagAwareCacheInterface $gymCache
+        private TagAwareCacheInterface $cache,
     )
     {}
 
     /**
      * @throws InvalidArgumentException
      */
-    public function handle(GetPayments $dto): array
+    public function getCachedData(ResolvedPaymentsRequestDTO $dto, array $parsedSort): array
     {
         $cacheKey = $this->generateCacheKey($dto);
 
-        return $this->gymCache->get($cacheKey, function (ItemInterface $item, bool $save) use ($dto): array {
+        return $this->cache->get($cacheKey, function (ItemInterface $item, bool $save) use ($dto, $parsedSort): array {
             $item->expiresAfter(3600);
-
-            $qb = $this->createQuery($dto->filter);
-
-            $offset = ($dto->page - 1) * $dto->limit;
-
-            foreach ($dto->sort as $field => $order) {
-                $qb->addOrderBy("p.$field", $order);
-            }
-
-            $qb->setFirstResult($offset)
-                ->setMaxResults($dto->limit);
 
             $tags = [];
 
-            if ($dto->filter->client) {
-                $tags[] = 'payments_list_' . $dto->filter->client->getId();
+            if ($dto->client) {
+                $tags[] = 'payments_list_' . $dto->client->getId();
             }
-            if ($dto->filter->trainer) {
-                $tags[] = 'payments_list_trainer_' . $dto->filter->trainer->getId();
+            if ($dto->trainer) {
+                $tags[] = 'payments_list_trainer_' . $dto->trainer->getId();
             }
             if (empty($tags)) {
                 $tags[] = 'payments_list_all';
@@ -55,85 +47,107 @@ final readonly class PaymentsQuery
 
             $item->tag($tags);
 
-            return $qb->getQuery()->getResult();
+            $qb = $this->createQuery($dto);
+
+            $totalQb = $this->createQuery($dto, true);
+            $total = (int) $totalQb->select('COUNT(p.id)')->getQuery()->getSingleScalarResult();
+
+            $offset = ($dto->page - 1) * $dto->limit;
+
+            foreach ($parsedSort as $field => $order) {
+                $qb->addOrderBy("p.$field", $order);
+            }
+
+            $qb->setFirstResult($offset)
+                ->setMaxResults($dto->limit);
+
+            $payments = $qb->getQuery()->getResult();
+
+            $items = array_map(fn ($payment) => $this->mapper->map($payment), $payments);
+
+            return [
+                'items' => $items,
+                'total' => $total,
+            ];
         });
     }
 
-    public function getTotal(PaymentFilter $filter): int
+    private function createQuery(ResolvedPaymentsRequestDTO $dto, bool $isCount = false): QueryBuilder
     {
-        return (int) $this->createQuery($filter)
-            ->select("COUNT(p.id)")
-            ->getQuery()
-            ->getSingleScalarResult();
-    }
+        $qb = $this->paymentRepo->createQueryBuilder('p');
 
-    private function createQuery(PaymentFilter $filter): QueryBuilder
-    {
-        $qb = $this->paymentRepo->createQueryBuilder('p')
-            ->leftJoin("p.trainer", "t")
-            ->addSelect("t")
-            ->leftJoin("t.trainingType", 'type')
-            ->addSelect("type");
+        if (!$isCount) {
+            $qb->leftJoin("p.trainer", "t")
+                ->addSelect("t")
+                ->leftJoin("t.trainingType", 'type')
+                ->addSelect("type");
+        }
 
-        if ($filter->client) {
+        if ($dto->client) {
             $qb->andWhere('p.client = :client')
-                ->setParameter('client', $filter->client);
+                ->setParameter('client', $dto->client);
         }
 
-        if ($filter->trainer) {
+        if ($dto->trainer) {
             $qb->andWhere('p.trainer = :trainer')
-                ->setParameter('trainer', $filter->trainer);
+                ->setParameter('trainer', $dto->trainer);
         }
 
-        if ($filter->minAmount !== null) {
+        if ($dto->minAmount !== null) {
             $qb->andWhere('p.amount >= :minAmount')
-                ->setParameter('minAmount', $filter->minAmount);
+                ->setParameter('minAmount', $dto->minAmount);
         }
 
-        if ($filter->maxAmount !== null) {
+        if ($dto->maxAmount !== null) {
             $qb->andWhere('p.amount <= :maxAmount')
-                ->setParameter('maxAmount', $filter->maxAmount);
+                ->setParameter('maxAmount', $dto->maxAmount);
         }
 
-        if ($filter->isRefund !== null) {
+        if ($dto->isRefund !== null) {
             $qb->andWhere('p.isRefund = :isRefund')
-                ->setParameter('isRefund', $filter->isRefund);
+                ->setParameter('isRefund', $dto->isRefund);
         }
 
-        if ($filter->status) {
+        if ($dto->status) {
             $qb->andWhere('p.status = :status')
-                ->setParameter('status', $filter->status);
+                ->setParameter('status', $dto->status);
         }
 
-        if ($filter->minCreatedAt) {
+        if ($dto->minCreatedAt) {
             $qb->andWhere('p.createdAt >= :minCreatedAt')
-                ->setParameter('minCreatedAt', $filter->minCreatedAt);
+                ->setParameter('minCreatedAt', $dto->minCreatedAt);
         }
 
-        if ($filter->maxCreatedAt) {
+        if ($dto->maxCreatedAt) {
             $qb->andWhere('p.createdAt <= :maxCreatedAt')
-                ->setParameter('maxCreatedAt', $filter->maxCreatedAt);
+                ->setParameter('maxCreatedAt', $dto->maxCreatedAt);
         }
 
         return $qb;
     }
 
-    private function generateCacheKey(GetPayments $query): string
+    /**
+     * @throws BadRequestHttpException
+     */
+    public function getParsedSort(ResolvedPaymentsRequestDTO $dto): array
     {
-        $f = $query->filter;
+        return SortParser::parseSort($dto->sort, ResolvedPaymentsRequestDTO::ALLOWED_SORT_FIELDS);
+    }
 
+    private function generateCacheKey(ResolvedPaymentsRequestDTO $dto): string
+    {
         $params = [
-            'sort' => $query->sort,
-            'page' => $query->page,
-            'limit' => $query->limit,
-            'clientId' => $f->client?->getId(),
-            'trainerId' => $f->trainer?->getId(),
-            'minAmount' => $f->minAmount,
-            'maxAmount' => $f->maxAmount,
-            'isRefund' => $f->isRefund,
-            'status' => $f->status?->value,
-            'minCreatedAt' => $f->minCreatedAt?->format('Y-m-d'),
-            'maxCreatedAt' => $f->maxCreatedAt?->format('Y-m-d'),
+            'sort' => $dto->sort,
+            'page' => $dto->page,
+            'limit' => $dto->limit,
+            'clientId' => $dto->client?->getId(),
+            'trainerId' => $dto->trainer?->getId(),
+            'minAmount' => $dto->minAmount,
+            'maxAmount' => $dto->maxAmount,
+            'isRefund' => $dto->isRefund,
+            'status' => $dto->status?->value,
+            'minCreatedAt' => $dto->minCreatedAt?->format('Y-m-d'),
+            'maxCreatedAt' => $dto->maxCreatedAt?->format('Y-m-d'),
         ];
 
         return 'payments_' . md5(json_encode($params));
