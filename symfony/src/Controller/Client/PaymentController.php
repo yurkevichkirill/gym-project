@@ -1,30 +1,35 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Controller\Client;
 
-use App\Client\Entity\Client;
 use App\Payment\DTO\PaymentResponse;
+use App\Payment\DTO\ResolvedPaymentsRequestDTO;
 use App\Payment\Entity\Payment;
 use App\Payment\Enum\PaymentStatusEnum;
-use App\Payment\Factory\GetPaymentsFactory;
 use App\Payment\Mapper\PaymentMapperInterface;
 use App\Payment\Query\PaymentsQuery;
 use App\Response\CollectionResponse;
+use App\Response\DTO\AbstractCollectionResponseDTO;
+use App\Response\DTO\AbstractItemResponseDTO;
+use App\Response\DTO\ErrorResponseDTO;
 use App\Response\ItemResponse;
 use Nelmio\ApiDocBundle\Attribute\Model;
 use OpenApi\Attributes as OA;
 use Psr\Cache\InvalidArgumentException;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\Routing\Attribute\Route;
-use Symfony\Component\Security\Http\Attribute\CurrentUser;
+use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 final class PaymentController extends AbstractController
 {
     /**
      * @throws InvalidArgumentException
+     * @throws BadRequestHttpException
      */
     #[Route('/api/me/payments/', methods: ['GET'], format: 'json')]
     #[OA\Get(
@@ -37,8 +42,8 @@ final class PaymentController extends AbstractController
             new OA\Parameter(name: 'maxAmount', in: 'query', schema: new OA\Schema(type: 'integer'), example: 10000),
             new OA\Parameter(name: 'isRefund', in: 'query', schema: new OA\Schema(type: 'boolean'), example: false),
             new OA\Parameter(name: 'status', in: 'query', schema: new OA\Schema(type: 'string', enum: PaymentStatusEnum::class), example: "succeeded"),
-            new OA\Parameter(name: 'minCreateAt', in: 'query', schema: new OA\Schema(type: 'string', format: 'date'), example: "2026-01-01"),
-            new OA\Parameter(name: 'maxCreateAt', in: 'query', schema: new OA\Schema(type: 'string', format: 'date'), example: "2026-01-01"),
+            new OA\Parameter(name: 'minCreatedAt', in: 'query', schema: new OA\Schema(type: 'string', format: 'date'), example: "2026-01-01"),
+            new OA\Parameter(name: 'maxCreatedAt', in: 'query', schema: new OA\Schema(type: 'string', format: 'date'), example: "2026-05-12"),
             new OA\Parameter(name: 'sort', in: 'query', schema: new OA\Schema(type: 'string'), example: 'paidAt:ASC'),
             new OA\Parameter(name: 'page', in: 'query', schema: new OA\Schema(type: 'integer', default: 1)),
             new OA\Parameter(name: 'limit', in: 'query', schema: new OA\Schema(type: 'integer', default: 20)),
@@ -46,69 +51,115 @@ final class PaymentController extends AbstractController
         responses: [
             new OA\Response(
                 response: 200,
-                description: 'Success',
+                description: 'Collection of client payments',
                 content: new OA\JsonContent(
-                    properties: [
-                        new OA\Property(property: 'items', type: 'array', items: new OA\Items(ref: new Model(type: PaymentResponse::class))),
-                        new OA\Property(property: 'total', type: 'integer'),
-                        new OA\Property(property: 'page', type: 'integer'),
-                        new OA\Property(property: 'limit', type: 'integer'),
+                    allOf: [
+                        new OA\Schema(ref: new Model(type: AbstractCollectionResponseDTO::class)),
+                        new OA\Schema(
+                            properties: [
+                                new OA\Property(
+                                    property: 'data',
+                                    type: 'array',
+                                    items: new OA\Items(ref: new Model(type: PaymentResponse::class))
+                                )
+                            ]
+                        )
                     ]
                 )
             ),
-            new OA\Response(response: 401, description: 'Unauthorized')
+            new OA\Response(
+                response: 400,
+                description: 'Invalid query parameters',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
+            ),
+            new OA\Response(
+                response: 401,
+                description: 'Unauthorized',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
+            ),
+            new OA\Response(
+                response: 403,
+                description: 'Forbidden',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
+            ),
+            new OA\Response(
+                response: 404,
+                description: 'Trainer not found',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
+            )
         ]
     )]
     #[IsGranted('ROLE_CLIENT')]
     public function getAll(
-        #[CurrentUser] Client $client,
-        Request $request,
-        PaymentMapperInterface $mapper,
-        GetPaymentsFactory $factory,
+        ResolvedPaymentsRequestDTO $resolvedDto,
         PaymentsQuery $handler,
-    ): CollectionResponse
-    {
-        $queryDto = $factory->fromRequest(
-            request: $request,
-            client: $client,
-        );
+    ): CollectionResponse {
+        $parsedSort = $handler->getParsedSort($resolvedDto);
 
-        $payments = $handler->handle($queryDto);
+        $cachedData = $handler->getCachedData($resolvedDto, $parsedSort);
 
         return new CollectionResponse(
-            array_map(fn ($payment) => $mapper->map($payment), $payments),
-            $queryDto->page,
-            $queryDto->limit,
-            $handler->getTotal($queryDto->filter),
-            $queryDto->sort,
+            $cachedData['items'],
+            $resolvedDto->page,
+            $resolvedDto->limit,
+            $cachedData['total'],
+            $parsedSort,
             Response::HTTP_OK,
         );
     }
 
+    /**
+     * @throws AccessDeniedException
+     * @throws AccessDeniedException
+     */
     #[Route('/api/me/payments/{id}/', methods: ['GET'], format: 'json')]
     #[OA\Get(
-        operationId: 'getPaymentById',
+        operationId: 'getClientPaymentById',
         summary: 'Get details of a specific payment.',
         tags: ['Client: Payments'],
         parameters: [
-            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'string'))
+            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'integer'))
         ],
         responses: [
             new OA\Response(
                 response: 200,
                 description: 'Payment details',
-                content: new OA\JsonContent(ref: new Model(type: PaymentResponse::class))
+                content: new OA\JsonContent(
+                    allOf: [
+                        new OA\Schema(ref: new Model(type: AbstractItemResponseDTO::class)),
+                        new OA\Schema(
+                            properties: [
+                                new OA\Property(
+                                    property: 'data',
+                                    ref: new Model(type: PaymentResponse::class)
+                                )
+                            ]
+                        )
+                    ]
+                )
             ),
-            new OA\Response(response: 401, description: 'Unauthorized'),
-            new OA\Response(response: 403, description: 'Forbidden - Access Denied'),
-            new OA\Response(response: 404, description: 'Payment not found')
+            new OA\Response(
+                response: 401,
+                description: 'Unauthorized',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
+            ),
+            new OA\Response(
+                response: 403,
+                description: 'Forbidden',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
+            ),
+            new OA\Response(
+                response: 404,
+                description: 'Payment not found',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
+            )
         ]
     )]
+    #[IsGranted('ROLE_CLIENT')]
     public function get(
         Payment $payment,
         PaymentMapperInterface $mapper,
-    ): ItemResponse
-    {
+    ): ItemResponse {
         $this->denyAccessUnlessGranted("PAYMENT_VIEW", $payment);
 
         return new ItemResponse(
