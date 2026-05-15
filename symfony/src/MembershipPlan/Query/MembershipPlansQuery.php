@@ -8,8 +8,6 @@ use App\MembershipPlan\DTO\GetMembershipPlansRequestDTO;
 use App\MembershipPlan\Mapper\MembershipPlanMapperInterface;
 use App\MembershipPlan\Repository\MembershipPlanRepository;
 use App\Request\SortParser;
-use Doctrine\ORM\NonUniqueResultException;
-use Doctrine\ORM\NoResultException;
 use Doctrine\ORM\QueryBuilder;
 use Psr\Cache\InvalidArgumentException;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
@@ -33,6 +31,7 @@ final readonly class MembershipPlansQuery
 
         return $this->cache->get($cacheKey, function (ItemInterface $item, bool $save) use ($dto, $parsedSort) {
             $item->expiresAfter(3600);
+
             $item->tag(['membership_plans_list']);
 
             $qb = $this->createQuery($dto);
@@ -56,18 +55,6 @@ final readonly class MembershipPlansQuery
                 'total' => $total,
             ];
         });
-    }
-
-    /**
-     * @throws NonUniqueResultException
-     * @throws NoResultException
-     */
-    public function getTotal(GetMembershipPlansRequestDTO $dto): int
-    {
-        return (int) $this->createQuery($dto)
-            ->select('COUNT(m.id)')
-            ->getQuery()
-            ->getSingleScalarResult();
     }
 
     private function createQuery(GetMembershipPlansRequestDTO $dto): QueryBuilder

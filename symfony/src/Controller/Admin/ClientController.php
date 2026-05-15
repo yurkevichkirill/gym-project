@@ -107,19 +107,19 @@ final class ClientController extends AbstractController
     )]
     #[IsGranted('ROLE_ADMIN')]
     public function getAll(
-        #[MapQueryString] GetClientsRequestDTO $requestDTO,
-        ClientMapperInterface $mapper,
+        #[MapQueryString(validationFailedStatusCode: Response::HTTP_BAD_REQUEST)]
+        GetClientsRequestDTO $requestDTO,
         ClientQuery $handler,
     ): CollectionResponse {
         $parsedSort = $handler->getParsedSort($requestDTO);
 
-        $clients = $handler->handle($requestDTO, $parsedSort);
+        $cachedData = $handler->getCachedData($requestDTO, $parsedSort);
 
         return new CollectionResponse(
-            array_map(fn($client) => $mapper->map($client), $clients),
+            $cachedData['items'],
             $requestDTO->page,
             $requestDTO->limit,
-            $handler->getTotal($requestDTO),
+            $cachedData['total'],
             $parsedSort,
             Response::HTTP_OK
         );

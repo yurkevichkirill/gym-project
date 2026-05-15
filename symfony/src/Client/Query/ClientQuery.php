@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Client\Query;
 
 use App\Client\DTO\GetClientsRequestDTO;
+use App\Client\Mapper\ClientMapperInterface;
 use App\Client\Repository\ClientRepository;
 use App\Request\SortParser;
 use Doctrine\ORM\NonUniqueResultException;
@@ -18,21 +19,27 @@ use Symfony\Contracts\Cache\TagAwareCacheInterface;
 final readonly class ClientQuery
 {
     public function __construct(
-        private ClientRepository $clientRepo,
-        private TagAwareCacheInterface $gymCache
+        private ClientRepository       $clientRepo,
+        private ClientMapperInterface  $mapper,
+        private TagAwareCacheInterface $cache,
     ) {}
 
     /**
      * @throws InvalidArgumentException
      */
-    public function handle(GetClientsRequestDTO $dto, array $parsedSort): array
+    public function getCachedData(GetClientsRequestDTO $dto, array $parsedSort): array
     {
         $cacheKey = $this->generateCacheKey($dto);
 
-        return $this->gymCache->get($cacheKey, function (ItemInterface $item, bool $save) use ($dto, $parsedSort): array {
+        return $this->cache->get($cacheKey, function (ItemInterface $item, bool $save) use ($dto, $parsedSort): array {
             $item->expiresAfter(3600);
 
+            $item->tag(['clients_list']);
+
             $qb = $this->createQuery($dto);
+
+            $totalQb = clone $qb;
+            $total = (int) $totalQb->select('COUNT(c.id)')->getQuery()->getSingleScalarResult();
 
             foreach ($parsedSort as $field => $order) {
                 $qb->addOrderBy("c.$field", $order);
@@ -41,22 +48,15 @@ final readonly class ClientQuery
             $qb->setFirstResult(($dto->page - 1) * $dto->limit)
                 ->setMaxResults($dto->limit);
 
-            $item->tag(['clients_list']);
+            $clients = $qb->getQuery()->getResult();
 
-            return $qb->getQuery()->getResult();
+            $items = array_map(fn ($client) => $this->mapper->map($client), $clients);
+
+            return [
+                'items' => $items,
+                'total' => $total,
+            ];
         });
-    }
-
-    /**
-     * @throws NonUniqueResultException
-     * @throws NoResultException
-     */
-    public function getTotal(GetClientsRequestDTO $dto): int
-    {
-        return (int) $this->createQuery($dto)
-            ->select('COUNT(c.id)')
-            ->getQuery()
-            ->getSingleScalarResult();
     }
 
     private function createQuery(GetClientsRequestDTO $dto): QueryBuilder
