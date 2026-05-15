@@ -1,8 +1,9 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Controller\Client;
 
-use App\Client\DTO\ClientActivateRequest;
 use App\Client\DTO\ClientResponse;
 use App\Client\DTO\TopUpBalanceRequest;
 use App\Client\DTO\UpdateClientRequest;

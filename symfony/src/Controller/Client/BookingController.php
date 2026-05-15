@@ -9,7 +9,6 @@ use App\Booking\DTO\BookingResponseDTO;
 use App\Booking\DTO\ResolvedBookingsRequestDTO;
 use App\Booking\Entity\Booking;
 use App\Booking\Enum\BookingStatusEnum;
-use App\Booking\Mapper\BookingAdminMapperInterface;
 use App\Booking\Mapper\BookingMapperInterface;
 use App\Booking\Query\BookingsQuery;
 use App\Booking\Service\BookingCancellationService;
@@ -143,6 +142,7 @@ final class BookingController extends AbstractController
             )
         ]
     )]
+    #[IsGranted('ROLE_CLIENT')]
     public function get(BookingMapperInterface $mapper, Booking $booking): ItemResponse
     {
         $this->denyAccessUnlessGranted('BOOKING_VIEW_OWN', $booking);
@@ -270,6 +270,7 @@ final class BookingController extends AbstractController
             )
         ]
     )]
+    #[IsGranted('ROLE_CLIENT')]
     public function cancel(
         Booking $booking,
         #[CurrentUser] User $actor,

@@ -165,6 +165,7 @@ final class BookingController extends AbstractController
             )
         ]
     )]
+    #[IsGranted('ROLE_ADMIN')]
     public function get(BookingAdminMapperInterface $mapper, Booking $booking): ItemResponse
     {
         $this->denyAccessUnlessGranted('BOOKING_VIEW_ADMIN', $booking);
@@ -292,6 +293,7 @@ final class BookingController extends AbstractController
             )
         ]
     )]
+    #[IsGranted('ROLE_ADMIN')]
     public function cancel(
         Booking                    $booking,
         #[CurrentUser] User        $actor,
