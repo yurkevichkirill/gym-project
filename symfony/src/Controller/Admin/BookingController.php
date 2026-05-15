@@ -102,19 +102,18 @@ final class BookingController extends AbstractController
     )]
     #[IsGranted('ROLE_ADMIN')]
     public function getAll(
-        ResolvedBookingsRequestDTO              $resolvedDto,
-        BookingAdminMapperInterface             $mapper,
-        BookingsQuery                           $handler,
+        ResolvedBookingsRequestDTO $resolvedDto,
+        BookingsQuery              $handler,
     ): CollectionResponse {
         $parsedSort = $handler->getParsedSort($resolvedDto);
 
-        $bookings = $handler->handle($resolvedDto, $parsedSort);
+        $cachedData = $handler->getCachedData($resolvedDto, $parsedSort);
 
         return new CollectionResponse(
-            array_map(fn($booking) => $mapper->map($booking), $bookings),
+            $cachedData['items'],
             $resolvedDto->page,
             $resolvedDto->limit,
-            $handler->getTotal($resolvedDto),
+            $cachedData['total'],
             $parsedSort,
             Response::HTTP_OK
         );

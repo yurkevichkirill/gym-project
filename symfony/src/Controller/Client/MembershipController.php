@@ -40,8 +40,6 @@ final class MembershipController extends AbstractController
     /**
      * @throws InvalidArgumentException
      * @throws BadRequestHttpException
-     * @throws NonUniqueResultException
-     * @throws NoResultException
      */
     #[Route('/api/me/memberships/', methods: ['GET'], format: 'json')]
     #[OA\Get(
@@ -101,19 +99,18 @@ final class MembershipController extends AbstractController
     #[IsGranted('ROLE_CLIENT')]
     public function getAll(
         ResolvedMembershipsRequestDTO $resolvedDto,
-        MembershipMapperInterface $mapper,
         MembershipQuery $handler,
     ): CollectionResponse {
 
         $parsedSort = $handler->getParsedSort($resolvedDto);
 
-        $memberships = $handler->handle($resolvedDto, $parsedSort);
+        $cachedData = $handler->getCachedData($resolvedDto, $parsedSort);
 
         return new CollectionResponse(
-            array_map(fn ($membership) => $mapper->map($membership), $memberships),
+            $cachedData['items'],
             $resolvedDto->page,
             $resolvedDto->limit,
-            $handler->getTotal($resolvedDto),
+            $cachedData['total'],
             $parsedSort,
             Response::HTTP_OK,
         );

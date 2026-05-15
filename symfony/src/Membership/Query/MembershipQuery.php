@@ -5,10 +5,9 @@ declare(strict_types=1);
 namespace App\Membership\Query;
 
 use App\Membership\DTO\ResolvedMembershipsRequestDTO;
+use App\Membership\Mapper\MembershipMapperInterface;
 use App\Membership\Repository\MembershipRepository;
 use App\Request\SortParser;
-use Doctrine\ORM\NonUniqueResultException;
-use Doctrine\ORM\NoResultException;
 use Doctrine\ORM\QueryBuilder;
 use Psr\Cache\InvalidArgumentException;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
@@ -18,27 +17,36 @@ use Symfony\Contracts\Cache\TagAwareCacheInterface;
 final readonly class MembershipQuery
 {
     private const array SORT_MAP = [
-        'membershipPlanId' => 'p.id',
+        'membershipPlanId' => 'plan.id',
     ];
 
     public function __construct(
         private MembershipRepository $membershipRepo,
-        private TagAwareCacheInterface $gymCache
+        private MembershipMapperInterface $mapper,
+        private TagAwareCacheInterface $cache,
     )
     {}
 
     /**
      * @throws InvalidArgumentException
      */
-    public function handle(ResolvedMembershipsRequestDTO $dto, array $parsedSort): array
+    public function getCachedData(ResolvedMembershipsRequestDTO $dto, array $parsedSort): array
     {
         $cacheKey = $this->generateCacheKey($dto);
 
-        return $this->gymCache->get($cacheKey, function (ItemInterface $item, bool $save) use ($dto, $parsedSort): array {
-
+        return $this->cache->get($cacheKey, function (ItemInterface $item, bool $save) use ($dto, $parsedSort): array {
             $item->expiresAfter(3600);
 
+            if ($dto->client) {
+                $item->tag(["memberships_list_" . $dto->client->getId()]);
+            } else {
+                $item->tag(["memberships_list_all"]);
+            }
+
             $qb = $this->createQuery($dto);
+
+            $totalQb = $this->createQuery($dto, true);
+            $total = (int) $totalQb->select('COUNT(m.id)')->getQuery()->getSingleScalarResult();
 
             $offset = ($dto->page - 1) * $dto->limit;
 
@@ -50,35 +58,26 @@ final readonly class MembershipQuery
             $qb->setFirstResult($offset)
                 ->setMaxResults($dto->limit);
 
-            if ($dto->client) {
-                $item->tag(["memberships_list_" . $dto->client->getId()]);
-            } else {
-                $item->tag(["memberships_list_all"]);
-            }
+            $memberships = $qb->getQuery()->getResult();
 
-            return $qb->getQuery()->getResult();
+            $items = array_map(fn ($membership) => $this->mapper->map($membership), $memberships);
+
+            return [
+                'items' => $items,
+                'total' => $total,
+            ];
         });
     }
 
-    /**
-     * @throws NonUniqueResultException
-     * @throws NoResultException
-     */
-    public function getTotal(ResolvedMembershipsRequestDTO $dto): int
-    {
-        return (int) $this->createQuery($dto)
-            ->select('COUNT(m.id)')
-            ->getQuery()
-            ->getSingleScalarResult();
-    }
-
-    private function createQuery(ResolvedMembershipsRequestDTO $dto): QueryBuilder
+    private function createQuery(ResolvedMembershipsRequestDTO $dto, bool $isCount = false): QueryBuilder
     {
         $qb = $this->membershipRepo->createQueryBuilder('m')
             ->leftJoin('m.plan', 'plan')
-            ->addSelect('plan')
-            ->leftJoin('m.payment', 'p')
-            ->addSelect('p');
+            ->leftJoin('m.payment', 'p');
+
+        if (!$isCount) {
+            $qb->addSelect('plan', 'p');
+        }
 
         if ($dto->client) {
             $qb->andWhere('m.client = :client')

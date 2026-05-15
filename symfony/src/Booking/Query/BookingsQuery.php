@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\Booking\Query;
 
 use App\Booking\DTO\ResolvedBookingsRequestDTO;
+use App\Booking\Mapper\BookingAdminMapperInterface;
 use App\Booking\Repository\BookingRepository;
-use App\Client\DTO\GetClientsRequestDTO;
 use App\Request\SortParser;
 use Doctrine\ORM\QueryBuilder;
 use Psr\Cache\InvalidArgumentException;
@@ -24,22 +24,32 @@ final readonly class BookingsQuery
     ];
 
     public function __construct(
-        private BookingRepository      $bookingRepo,
-        private TagAwareCacheInterface $gymCache
+        private BookingRepository $bookingRepo,
+        private BookingAdminMapperInterface $mapper,
+        private TagAwareCacheInterface $cache,
     )
     {}
 
     /**
      * @throws InvalidArgumentException
      */
-    public function handle(ResolvedBookingsRequestDTO $dto, array $parsedSort): array
+    public function getCachedData(ResolvedBookingsRequestDTO $dto, array $parsedSort): array
     {
         $cacheKey = $this->generateCacheKey($dto);
 
-        return $this->gymCache->get($cacheKey, function (ItemInterface $item, bool $save) use ($dto, $parsedSort): array {
+        return $this->cache->get($cacheKey, function (ItemInterface $item, bool $save) use ($dto, $parsedSort): array {
             $item->expiresAfter(3600);
 
+            if ($dto->client) {
+                $item->tag(['bookings_list_' . $dto->client->getId()]);
+            } else {
+                $item->tag(['bookings_list_all']);
+            }
+
             $qb = $this->createQuery($dto);
+
+            $totalQb = $this->createQuery($dto, true);
+            $total = (int) $totalQb->select('COUNT(b.id)')->getQuery()->getSingleScalarResult();
 
             $offset = ($dto->page - 1) * $dto->limit;
 
@@ -51,22 +61,15 @@ final readonly class BookingsQuery
             $qb->setFirstResult($offset)
                 ->setMaxResults($dto->limit);
 
-            if ($dto->client) {
-                $item->tag(['bookings_list_' . $dto->client->getId()]);
-            } else {
-                $item->tag(['bookings_list_all']);
-            }
+            $bookings = $qb->getQuery()->getResult();
 
-            return $qb->getQuery()->getResult();
+            $items = array_map(fn ($booking) => $this->mapper->map($booking), $bookings);
+
+            return [
+                'items' => $items,
+                'total' => $total,
+            ];
         });
-    }
-
-    public function getTotal(ResolvedBookingsRequestDTO $dto): int
-    {
-        return (int) $this->createQuery($dto, true)
-            ->select("COUNT(b.id)")
-            ->getQuery()
-            ->getSingleScalarResult();
     }
 
     private function createQuery(ResolvedBookingsRequestDTO $dto, bool $isCount = false): QueryBuilder
