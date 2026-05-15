@@ -88,8 +88,8 @@ final class MembershipPlanController extends AbstractController
         );
     }
 
-    #[Route('/api/membership/plans/{id}/', methods: ['PATCH', 'PUT'], format: 'json')]
-    #[OA\Put(
+    #[Route('/api/membership/plans/{id}/', methods: ['PATCH'], format: 'json')]
+    #[OA\Patch(
         operationId: 'adminUpdateMembershipPlan',
         description: 'Updates specific fields of an existing membership plan.',
         summary: 'Update an existing membership plan (Admin).',

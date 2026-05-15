@@ -24,7 +24,7 @@ final class TrainingTypeController extends AbstractController
      * @throws InvalidArgumentException
      */
     #[Route('/api/training/types/', methods: ['GET'], format: 'json')]
-    #[Cache(maxage: 3600, public: true, mustRevalidate: true)]
+    #[Cache(maxage: 0, smaxage: 3600, public: true, mustRevalidate: true)]
     #[OA\Get(
         operationId: 'getTrainingTypes',
         summary: 'Get all available training types.',

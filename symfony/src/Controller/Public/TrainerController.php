@@ -24,7 +24,7 @@ final class TrainerController extends AbstractController
      * @throws InvalidArgumentException
      */
     #[Route('/api/trainers/', methods: ['GET'], format: 'json')]
-    #[Cache(maxage: 3600, public: true, mustRevalidate: true)]
+    #[Cache(maxage: 0, smaxage: 3600, public: true, mustRevalidate: true)]
     #[OA\Get(
         operationId: 'getTrainers',
         summary: 'Get list of trainers with filters.',
