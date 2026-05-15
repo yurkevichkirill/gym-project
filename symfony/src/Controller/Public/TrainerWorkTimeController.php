@@ -25,7 +25,7 @@ final class TrainerWorkTimeController extends AbstractController
      * @throws InvalidArgumentException
      */
     #[Route('/api/worktime/', methods: ['GET'], format: 'json')]
-    #[Cache(maxage: 300, public: true, mustRevalidate: true)]
+    #[Cache(maxage: 0, smaxage: 3600, public: true, mustRevalidate: true)]
     #[OA\Get(
         operationId: 'getWorkTimes',
         summary: 'Get all available work time slots.',
