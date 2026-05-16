@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace App\Trainer\DTO;
 
-use Symfony\Component\Validator\Constraints as Assert;
-
 final readonly class AdminUpdateTrainerRequest
 {
     public function __construct(
@@ -18,7 +16,6 @@ final readonly class AdminUpdateTrainerRequest
         public ?string $photoUrl,
         public ?string $education,
         public ?string $about,
-        public ?int $balance,
     )
     {}
 }

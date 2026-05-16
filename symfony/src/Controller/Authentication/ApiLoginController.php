@@ -40,19 +40,30 @@ final class ApiLoginController extends AbstractController
      * @throws AccessDeniedHttpException
      */
     #[Route('/api/login/', name: 'app_api_login', methods: ['POST'])]
-    #[OA\Tag(name: "Authentication")]
     #[OA\Post(
         operationId: 'authLogin',
         summary: 'Authenticate user and set JWT cookies.',
+        requestBody: new OA\RequestBody(
+            content: new OA\JsonContent(ref: new Model(type: LoginUserRequest::class))
+        ),
+        tags: ['Authentication'],
         responses: [
             new OA\Response(
                 response: 200,
                 description: 'Login success. Tokens are set in HttpOnly cookies.',
                 content: new OA\JsonContent(
-                    properties: [
-                        new OA\Property(property: 'data', properties: [
-                            new OA\Property(property: 'user', type: 'string', example: 'user@example.com')
-                        ])
+                    allOf: [
+                        new OA\Schema(ref: new Model(type: AbstractItemResponseDTO::class)),
+                        new OA\Schema(
+                            properties: [
+                                new OA\Property(
+                                    property: 'data',
+                                    properties: [
+                                        new OA\Property(property: 'user', type: 'string', example: 'user@example.com')
+                                    ]
+                                )
+                            ]
+                        )
                     ]
                 )
             ),
@@ -63,7 +74,7 @@ final class ApiLoginController extends AbstractController
             ),
             new OA\Response(
                 response: 403,
-                description: 'User account is deleted/blocked',
+                description: 'User account is deleted or blocked',
                 content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
             ),
             new OA\Response(

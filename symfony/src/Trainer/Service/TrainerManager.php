@@ -12,6 +12,7 @@ use App\Trainer\DTO\UpdateTrainerRequest;
 use App\Trainer\Entity\Trainer;
 use App\Trainer\Repository\TrainerRepository;
 use App\TrainingType\Repository\TrainingTypeRepository;
+use App\User\Repository\UserRepository;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
@@ -25,6 +26,7 @@ final readonly class TrainerManager
     const int TRAINER_PRICE_DIVIDER = 2;
     public function __construct(
         private TrainerRepository $trainerRepo,
+        private UserRepository $userRepo,
         private TrainingTypeRepository $trainingTypeRepo,
         private UserPasswordHasherInterface $passwordHasher,
         private RefreshTokenRepository $refreshTokenRepo,
@@ -32,8 +34,22 @@ final readonly class TrainerManager
     )
     {}
 
+    /**
+     * @throws NotFoundHttpException
+     * @throws ConflictHttpException
+     */
     public function create(CreateTrainerRequest $requestDto): Trainer
     {
+        $existingTrainer = $this->userRepo->findOneBy(['email' => $requestDto->email]);
+        if ($existingTrainer) {
+            throw new ConflictHttpException("User with this email already exists");
+        }
+
+        $existingTrainerByPhone = $this->userRepo->findOneBy(['phone' => $requestDto->phone]);
+        if ($existingTrainerByPhone) {
+            throw new ConflictHttpException("User with this phone already exists");
+        }
+
         $trainer = new Trainer();
 
         $trainingType = $this->trainingTypeRepo->find($requestDto->trainingTypeId);
@@ -68,22 +84,33 @@ final readonly class TrainerManager
         return $trainer;
     }
 
+    /**
+     * @throws ConflictHttpException
+     */
     public function updateByAdmin(AdminUpdateTrainerRequest $requestDto, Trainer $trainer): Trainer
     {
+        if ($requestDto->email !== null && $requestDto->email !== $trainer->getEmail()) {
+            $existing = $this->userRepo->findOneBy(['email' => $requestDto->email]);
+            if ($existing) {
+                throw new ConflictHttpException("Email is already taken by another user.");
+            }
+            $trainer->setEmail($requestDto->email);
+        }
+
+        if ($requestDto->phone !== null && $requestDto->phone !== $trainer->getPhone()) {
+            $existing = $this->userRepo->findOneBy(['phone' => $requestDto->phone]);
+            if ($existing) {
+                throw new ConflictHttpException("Phone number is already taken.");
+            }
+            $trainer->setPhone($requestDto->phone);
+        }
+
         if ($requestDto->firstName !== null) {
             $trainer->setFirstName($requestDto->firstName);
         }
 
         if ($requestDto->lastName !== null) {
             $trainer->setLastName($requestDto->lastName);
-        }
-
-        if ($requestDto->email !== null) {
-            $trainer->setEmail($requestDto->email);
-        }
-
-        if ($requestDto->phone !== null) {
-            $trainer->setPhone($requestDto->phone);
         }
 
         if ($requestDto->password !== null) {
@@ -101,10 +128,6 @@ final readonly class TrainerManager
 
         if ($requestDto->photoUrl !== null) {
             $trainer->setPhotoUrl($requestDto->photoUrl);
-        }
-
-        if ($requestDto->balance !== null) {
-            $trainer->setBalance($requestDto->balance);
         }
 
         $this->entityManager->flush();
@@ -126,6 +149,10 @@ final readonly class TrainerManager
         return $trainer;
     }
 
+    /**
+     * @throws AccessDeniedHttpException
+     * @throws ConflictHttpException
+     */
     public function softDelete(Trainer $trainer, ?Admin $admin = null): void
     {
         if ($admin !== null && $admin->getId() === $trainer->getId()) {
@@ -152,6 +179,10 @@ final readonly class TrainerManager
         return $trainer;
     }
 
+    /**
+     * @throws AccessDeniedHttpException
+     * @throws ConflictHttpException
+     */
     public function block(Admin $admin, Trainer $trainer): Trainer
     {
         if ($admin->getId() === $trainer->getId()) {
@@ -169,8 +200,15 @@ final readonly class TrainerManager
         return $trainer;
     }
 
+    /**
+     * @throws ConflictHttpException
+     */
     public function unblock(Trainer $trainer): Trainer
     {
+        if ($trainer->getBlockedAt() === null) {
+            throw new ConflictHttpException('Trainer is not currently blocked');
+        }
+
         $trainer->setBlockedAt(null);
         $this->entityManager->flush();
 
@@ -182,5 +220,17 @@ final readonly class TrainerManager
         $pricePerHour = $trainer->getPricePerHour();
 
         return $durationMinutes / self::MIN_DURATION * $pricePerHour / self::TRAINER_PRICE_DIVIDER;
+    }
+
+    /**
+     * @throws NotFoundHttpException
+     */
+    public function getAvailable(Trainer $trainer): Trainer
+    {
+        if ($trainer->getDeletedAt() !== null || $trainer->getBlockedAt() !== null) {
+            throw new NotFoundHttpException('Trainer not found');
+        }
+
+        return $trainer;
     }
 }

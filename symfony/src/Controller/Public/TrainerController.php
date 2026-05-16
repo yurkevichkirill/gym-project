@@ -1,34 +1,42 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Controller\Public;
 
 use App\Response\CollectionResponse;
+use App\Response\DTO\AbstractCollectionResponseDTO;
+use App\Response\DTO\AbstractItemResponseDTO;
+use App\Response\DTO\ErrorResponseDTO;
 use App\Response\ItemResponse;
+use App\Trainer\DTO\ResolvedTrainersRequestDTO;
 use App\Trainer\DTO\TrainerResponse;
 use App\Trainer\Entity\Trainer;
-use App\Trainer\Factory\GetTrainersFactory;
 use App\Trainer\Mapper\TrainerMapperInterface;
 use App\Trainer\Query\TrainersQuery;
+use App\Trainer\Service\TrainerManager;
 use Nelmio\ApiDocBundle\Attribute\Model;
 use OpenApi\Attributes as OA;
 use Psr\Cache\InvalidArgumentException;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Attribute\Cache;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Routing\Attribute\Route;
 
 final class TrainerController extends AbstractController
 {
     /**
      * @throws InvalidArgumentException
+     * @throws BadRequestHttpException
      */
     #[Route('/api/trainers/', methods: ['GET'], format: 'json')]
     #[Cache(maxage: 0, smaxage: 3600, public: true, mustRevalidate: true)]
     #[OA\Get(
         operationId: 'getTrainers',
         summary: 'Get list of trainers with filters.',
-        tags: ['All: Trainers'],
+        tags: ['Public: Trainers'],
         parameters: [
             new OA\Parameter(name: 'minPricePerHour', in: 'query', schema: new OA\Schema(type: 'integer'), example: 30),
             new OA\Parameter(name: 'maxPricePerHour', in: 'query', schema: new OA\Schema(type: 'integer'), example: 50),
@@ -40,62 +48,96 @@ final class TrainerController extends AbstractController
         responses: [
             new OA\Response(
                 response: 200,
-                description: 'Success',
+                description: 'Collection of trainers',
                 content: new OA\JsonContent(
-                    properties: [
-                        new OA\Property(
-                            property: 'items',
-                            type: 'array',
-                            items: new OA\Items(ref: new Model(type: TrainerResponse::class))
-                        ),
-                        new OA\Property(property: 'total', type: 'integer'),
-                        new OA\Property(property: 'page', type: 'integer'),
-                        new OA\Property(property: 'limit', type: 'integer'),
+                    allOf: [
+                        new OA\Schema(ref: new Model(type: AbstractCollectionResponseDTO::class)),
+                        new OA\Schema(
+                            properties: [
+                                new OA\Property(
+                                    property: 'data',
+                                    type: 'array',
+                                    items: new OA\Items(ref: new Model(type: TrainerResponse::class))
+                                )
+                            ]
+                        )
                     ]
                 )
+            ),
+            new OA\Response(
+                response: 400,
+                description: 'Invalid query parameters',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
+            ),
+            new OA\Response(
+                response: 404,
+                description: 'Training type not found',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
             )
         ]
     )]
     public function getAll(
-        Request $request,
-        TrainerMapperInterface $mapper,
+        ResolvedTrainersRequestDTO $resolvedDto,
         TrainersQuery $handler,
-        GetTrainersFactory $factory,
     ): CollectionResponse {
-        $queryDto = $factory->fromRequest($request);
-        $trainers = $handler->handle($queryDto);
+        $parsedSort = $handler->getParsedSort($resolvedDto);
+
+        $cachedData = $handler->getCachedData($resolvedDto, $parsedSort);
 
         return new CollectionResponse(
-            array_map(fn ($trainer) => $mapper->map($trainer), $trainers),
-            $queryDto->page,
-            $queryDto->limit,
-            $handler->getTotal($queryDto->filter),
-            $queryDto->sort,
+            $cachedData['items'],
+            $resolvedDto->page,
+            $resolvedDto->limit,
+            $cachedData['total'],
+            $parsedSort,
             Response::HTTP_OK,
         );
     }
 
+    /**
+     * @throws NotFoundHttpException
+     */
     #[Route('/api/trainers/{id}/', methods: ['GET'], format: 'json')]
     #[OA\Get(
         operationId: 'getTrainer',
         summary: 'Get public trainer profile.',
-        tags: ['All: Trainers'],
+        tags: ['Public: Trainers'],
         parameters: [
             new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'integer'))
         ],
         responses: [
             new OA\Response(
                 response: 200,
-                description: 'Success',
-                content: new OA\JsonContent(ref: new Model(type: TrainerResponse::class))
+                description: 'Trainer details',
+                content: new OA\JsonContent(
+                    allOf: [
+                        new OA\Schema(ref: new Model(type: AbstractItemResponseDTO::class)),
+                        new OA\Schema(
+                            properties: [
+                                new OA\Property(
+                                    property: 'data',
+                                    ref: new Model(type: TrainerResponse::class)
+                                )
+                            ]
+                        )
+                    ]
+                )
             ),
-            new OA\Response(response: 404, description: 'Trainer not found')
+            new OA\Response(
+                response: 404,
+                description: 'Trainer not found',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
+            )
         ]
     )]
-    public function get(Trainer $trainer, TrainerMapperInterface $mapper): ItemResponse
+    public function get(
+        Trainer $trainer,
+        TrainerMapperInterface $mapper,
+        TrainerManager $manager,
+    ): ItemResponse
     {
         return new ItemResponse(
-            data: $mapper->map($trainer),
+            data: $mapper->map($manager->getAvailable($trainer)),
             status: Response::HTTP_OK,
         );
     }

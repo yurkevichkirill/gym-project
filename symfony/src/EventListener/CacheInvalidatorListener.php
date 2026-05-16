@@ -69,6 +69,7 @@ class CacheInvalidatorListener
             }
             elseif ($entity instanceof Trainer) {
                 $this->tagsToInvalidate[] = 'trainers_list';
+                $this->tagsToInvalidate[] = 'trainers_list_public';
                 $this->groupsToBump[] = 'trainers';
             }
             elseif ($entity instanceof TrainerWorkTime) {

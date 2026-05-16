@@ -1,36 +1,44 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Controller\Admin;
 
 use App\Admin\Entity\Admin;
 use App\Response\CollectionResponse;
+use App\Response\DTO\AbstractCollectionResponseDTO;
+use App\Response\DTO\AbstractItemResponseDTO;
+use App\Response\DTO\ErrorResponseDTO;
 use App\Response\ItemResponse;
 use App\Response\NoContentResponse;
 use App\Trainer\DTO\AdminUpdateTrainerRequest;
 use App\Trainer\DTO\CreateTrainerRequest;
+use App\Trainer\DTO\ResolvedTrainersRequestAdminDTO;
 use App\Trainer\DTO\TrainerResponsePrivate;
 use App\Trainer\Entity\Trainer;
-use App\Trainer\Factory\GetTrainersFactory;
 use App\Trainer\Mapper\TrainerMapperInterface;
-use App\Trainer\Query\TrainersQuery;
+use App\Trainer\Query\TrainersQueryAdmin;
 use App\Trainer\Service\TrainerManager;
 use Nelmio\ApiDocBundle\Attribute\Model;
 use OpenApi\Attributes as OA;
 use Psr\Cache\InvalidArgumentException;
-use Psr\Container\ContainerExceptionInterface;
-use Psr\Container\NotFoundExceptionInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
+use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
+use Throwable;
 
 final class TrainerController extends AbstractController
 {
     /**
      * @throws InvalidArgumentException
+     * @throws BadRequestHttpException
      */
     #[Route('/api/admin/trainers/', methods: ['GET'], format: 'json')]
     #[OA\Get(
@@ -41,6 +49,10 @@ final class TrainerController extends AbstractController
             new OA\Parameter(name: 'minPricePerHour', in: 'query', schema: new OA\Schema(type: 'integer'), example: 30),
             new OA\Parameter(name: 'maxPricePerHour', in: 'query', schema: new OA\Schema(type: 'integer'), example: 50),
             new OA\Parameter(name: 'trainingTypeId', in: 'query', schema: new OA\Schema(type: 'integer'), example: 1),
+            new OA\Parameter(name: 'minBalance', in: 'query', schema: new OA\Schema(type: 'integer'), example: 0),
+            new OA\Parameter(name: 'maxBalance', in: 'query', schema: new OA\Schema(type: 'integer'), example: 10000),
+            new OA\Parameter(name: 'isDeleted', in: 'query', schema: new OA\Schema(type: 'boolean')),
+            new OA\Parameter(name: 'isBlocked', in: 'query', schema: new OA\Schema(type: 'boolean')),
             new OA\Parameter(name: 'sort', in: 'query', schema: new OA\Schema(type: 'string'), example: 'lastName:ASC'),
             new OA\Parameter(name: 'page', in: 'query', schema: new OA\Schema(type: 'integer', default: 1)),
             new OA\Parameter(name: 'limit', in: 'query', schema: new OA\Schema(type: 'integer', default: 20)),
@@ -48,35 +60,59 @@ final class TrainerController extends AbstractController
         responses: [
             new OA\Response(
                 response: 200,
-                description: 'Success',
+                description: 'Collection of trainers',
                 content: new OA\JsonContent(
-                    properties: [
-                        new OA\Property(property: 'items', type: 'array', items: new OA\Items(ref: new Model(type: TrainerResponsePrivate::class))),
-                        new OA\Property(property: 'total', type: 'integer'),
-                        new OA\Property(property: 'page', type: 'integer'),
-                        new OA\Property(property: 'limit', type: 'integer'),
+                    allOf: [
+                        new OA\Schema(ref: new Model(type: AbstractCollectionResponseDTO::class)),
+                        new OA\Schema(
+                            properties: [
+                                new OA\Property(
+                                    property: 'data',
+                                    type: 'array',
+                                    items: new OA\Items(ref: new Model(type: TrainerResponsePrivate::class))
+                                )
+                            ]
+                        )
                     ]
                 )
             ),
-            new OA\Response(response: 401, description: 'Unauthorized')
+            new OA\Response(
+                response: 400,
+                description: 'Invalid query parameters',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
+            ),
+            new OA\Response(
+                response: 401,
+                description: 'Unauthorized',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
+            ),
+            new OA\Response(
+                response: 403,
+                description: 'Forbidden',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
+            ),
+            new OA\Response(
+                response: 404,
+                description: 'Training type not found',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
+            )
         ]
     )]
     #[IsGranted('ROLE_ADMIN')]
     public function getAll(
-        Request $request,
-        TrainerMapperInterface $mapper,
-        TrainersQuery $handler,
-        GetTrainersFactory $factory,
+        ResolvedTrainersRequestAdminDTO $resolvedDto,
+        TrainersQueryAdmin $handler,
     ): CollectionResponse {
-        $queryDto = $factory->fromRequest($request);
-        $trainers = $handler->handle($queryDto);
+        $parsedSort = $handler->getParsedSort($resolvedDto);
+
+        $cachedData = $handler->getCachedData($resolvedDto, $parsedSort);
 
         return new CollectionResponse(
-            array_map(fn ($trainer) => $mapper->map($trainer, true), $trainers),
-            $queryDto->page,
-            $queryDto->limit,
-            $handler->getTotal($queryDto->filter),
-            $queryDto->sort,
+            $cachedData['items'],
+            $resolvedDto->page,
+            $resolvedDto->limit,
+            $cachedData['total'],
+            $parsedSort,
             Response::HTTP_OK,
         );
     }
@@ -92,10 +128,36 @@ final class TrainerController extends AbstractController
         responses: [
             new OA\Response(
                 response: 200,
-                description: 'Success',
-                content: new OA\JsonContent(ref: new Model(type: TrainerResponsePrivate::class))
+                description: 'Trainer details',
+                content: new OA\JsonContent(
+                    allOf: [
+                        new OA\Schema(ref: new Model(type: AbstractItemResponseDTO::class)),
+                        new OA\Schema(
+                            properties: [
+                                new OA\Property(
+                                    property: 'data',
+                                    ref: new Model(type: TrainerResponsePrivate::class)
+                                )
+                            ]
+                        )
+                    ]
+                )
             ),
-            new OA\Response(response: 404, description: 'Trainer not found')
+            new OA\Response(
+                response: 401,
+                description: 'Unauthorized',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
+            ),
+            new OA\Response(
+                response: 403,
+                description: 'Forbidden',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
+            ),
+            new OA\Response(
+                response: 404,
+                description: 'Trainer not found',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
+            )
         ]
     )]
     #[IsGranted('ROLE_ADMIN')]
@@ -107,6 +169,10 @@ final class TrainerController extends AbstractController
         );
     }
 
+    /**
+     * @throws NotFoundHttpException
+     * @throws Throwable
+     */
     #[Route('/api/trainers/', methods: ['POST'], format: 'json')]
     #[OA\Post(
         operationId: 'adminCreateTrainer',
@@ -117,16 +183,52 @@ final class TrainerController extends AbstractController
         tags: ['Admin: Trainer'],
         responses: [
             new OA\Response(
-                response: 200,
-                description: 'Trainer created successfully.',
-                content: new OA\JsonContent(ref: new Model(type: TrainerResponsePrivate::class))
+                response: 201,
+                description: 'Trainer successfully created',
+                content: new OA\JsonContent(
+                    allOf: [
+                        new OA\Schema(ref: new Model(type: AbstractItemResponseDTO::class)),
+                        new OA\Schema(
+                            properties: [
+                                new OA\Property(
+                                    property: 'data',
+                                    ref: new Model(type: TrainerResponsePrivate::class)
+                                )
+                            ]
+                        )
+                    ]
+                )
             ),
             new OA\Response(
                 response: 400,
-                description: 'Bad Request - Training type not found',
-                content: new OA\JsonContent(properties: [new OA\Property(property: 'message', type: 'string')])
+                description: 'Bad Request (e.g. Invalid training type or malformed data)',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
             ),
-            new OA\Response(response: 422, description: 'Validation failed')
+            new OA\Response(
+                response: 401,
+                description: 'Unauthorized',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
+            ),
+            new OA\Response(
+                response: 403,
+                description: 'Forbidden (Insufficient admin rights)',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
+            ),
+            new OA\Response(
+                response: 404,
+                description: 'Not Found (Training type with provided ID not found)',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
+            ),
+            new OA\Response(
+                response: 409,
+                description: 'Conflict (User with this email or phone already exists)',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
+            ),
+            new OA\Response(
+                response: 422,
+                description: 'Validation error (Payload format or constraint violations)',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
+            )
         ]
     )]
     #[IsGranted('ROLE_ADMIN')]
@@ -139,10 +241,13 @@ final class TrainerController extends AbstractController
 
         return new ItemResponse(
             data: $responseDto,
-            status: Response::HTTP_OK,
+            status: Response::HTTP_CREATED,
         );
     }
 
+    /**
+     * @throws ConflictHttpException
+     */
     #[Route('/api/trainers/{id}/', methods: ['PATCH'], format: 'json')]
     #[OA\Patch(
         operationId: 'adminUpdateTrainer',
@@ -157,11 +262,51 @@ final class TrainerController extends AbstractController
         responses: [
             new OA\Response(
                 response: 200,
-                description: 'Trainer updated successfully.',
-                content: new OA\JsonContent(ref: new Model(type: TrainerResponsePrivate::class))
+                description: 'Trainer updated successfully',
+                content: new OA\JsonContent(
+                    allOf: [
+                        new OA\Schema(ref: new Model(type: AbstractItemResponseDTO::class)),
+                        new OA\Schema(
+                            properties: [
+                                new OA\Property(
+                                    property: 'data',
+                                    ref: new Model(type: TrainerResponsePrivate::class)
+                                )
+                            ]
+                        )
+                    ]
+                )
             ),
-            new OA\Response(response: 404, description: 'Trainer not found'),
-            new OA\Response(response: 422, description: 'Validation failed')
+            new OA\Response(
+                response: 400,
+                description: 'Bad Request (e.g. Invalid data format)',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
+            ),
+            new OA\Response(
+                response: 401,
+                description: 'Unauthorized',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
+            ),
+            new OA\Response(
+                response: 403,
+                description: 'Forbidden (Insufficient admin rights)',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
+            ),
+            new OA\Response(
+                response: 404,
+                description: 'Not Found (Trainer not found)',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
+            ),
+            new OA\Response(
+                response: 409,
+                description: 'Conflict (Email or phone already taken by another user)',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
+            ),
+            new OA\Response(
+                response: 422,
+                description: 'Validation failed',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
+            )
         ]
     )]
     #[IsGranted('ROLE_ADMIN')]
@@ -180,8 +325,8 @@ final class TrainerController extends AbstractController
     }
 
     /**
-     * @throws ContainerExceptionInterface
-     * @throws NotFoundExceptionInterface
+     * @throws AccessDeniedHttpException
+     * @throws ConflictHttpException
      */
     #[Route('/api/trainers/{id}/', methods: ['DELETE'], format: 'json')]
     #[OA\Delete(
@@ -192,12 +337,29 @@ final class TrainerController extends AbstractController
             new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'integer'))
         ],
         responses: [
-            new OA\Response(response: 204, description: 'Trainer deleted successfully.'),
-            new OA\Response(response: 403, description: 'Forbidden - Cannot delete yourself'),
+            new OA\Response(
+                response: 204,
+                description: 'Trainer deleted successfully'
+            ),
+            new OA\Response(
+                response: 401,
+                description: 'Unauthorized',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
+            ),
+            new OA\Response(
+                response: 403,
+                description: 'Forbidden (Insufficient admin rights or trying to delete yourself)',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
+            ),
+            new OA\Response(
+                response: 404,
+                description: 'Not Found (Trainer with this ID does not exist)',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
+            ),
             new OA\Response(
                 response: 409,
-                description: 'Conflict - Already deleted',
-                content: new OA\JsonContent(properties: [new OA\Property(property: 'message', type: 'string')])
+                description: 'Conflict (Trainer is already deleted)',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
             )
         ]
     )]
@@ -208,7 +370,6 @@ final class TrainerController extends AbstractController
         TrainerManager $manager,
     ): NoContentResponse {
         $manager->softDelete($trainer, $admin);
-        $this->container->get('security.token_storage')->setToken(null);
 
         return new NoContentResponse();
     }
@@ -216,7 +377,7 @@ final class TrainerController extends AbstractController
     #[Route('/api/trainers/{id}/restore/', methods: ['POST'], format: 'json')]
     #[OA\Post(
         operationId: 'adminRestoreTrainer',
-        summary: 'Restore a deleted trainer account.',
+        summary: 'Restore a deleted trainer account (Admin).',
         tags: ['Admin: Trainer'],
         parameters: [
             new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'integer'))
@@ -224,10 +385,41 @@ final class TrainerController extends AbstractController
         responses: [
             new OA\Response(
                 response: 200,
-                description: 'Trainer restored successfully.',
-                content: new OA\JsonContent(ref: new Model(type: TrainerResponsePrivate::class))
+                description: 'Trainer restored successfully',
+                content: new OA\JsonContent(
+                    allOf: [
+                        new OA\Schema(ref: new Model(type: AbstractItemResponseDTO::class)),
+                        new OA\Schema(
+                            properties: [
+                                new OA\Property(
+                                    property: 'data',
+                                    ref: new Model(type: TrainerResponsePrivate::class)
+                                )
+                            ]
+                        )
+                    ]
+                )
             ),
-            new OA\Response(response: 404, description: 'Trainer not found')
+            new OA\Response(
+                response: 401,
+                description: 'Unauthorized',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
+            ),
+            new OA\Response(
+                response: 403,
+                description: 'Forbidden (Insufficient admin rights)',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
+            ),
+            new OA\Response(
+                response: 404,
+                description: 'Not Found (Trainer not found)',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
+            ),
+            new OA\Response(
+                response: 409,
+                description: 'Conflict (Trainer is not currently deleted)',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
+            )
         ]
     )]
     #[IsGranted('ROLE_ADMIN')]
@@ -244,10 +436,14 @@ final class TrainerController extends AbstractController
         );
     }
 
+    /**
+     * @throws AccessDeniedHttpException
+     * @throws ConflictHttpException
+     */
     #[Route('/api/trainers/{id}/block/', methods: ['POST'], format: 'json')]
     #[OA\Post(
         operationId: 'adminBlockTrainer',
-        summary: 'Block trainer account.',
+        summary: 'Block a trainer account (Admin).',
         tags: ['Admin: Trainer'],
         parameters: [
             new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'integer'))
@@ -255,14 +451,40 @@ final class TrainerController extends AbstractController
         responses: [
             new OA\Response(
                 response: 200,
-                description: 'Trainer blocked successfully.',
-                content: new OA\JsonContent(ref: new Model(type: TrainerResponsePrivate::class))
+                description: 'Trainer blocked successfully',
+                content: new OA\JsonContent(
+                    allOf: [
+                        new OA\Schema(ref: new Model(type: AbstractItemResponseDTO::class)),
+                        new OA\Schema(
+                            properties: [
+                                new OA\Property(
+                                    property: 'data',
+                                    ref: new Model(type: TrainerResponsePrivate::class)
+                                )
+                            ]
+                        )
+                    ]
+                )
             ),
-            new OA\Response(response: 403, description: 'Forbidden - Cannot block yourself'),
+            new OA\Response(
+                response: 401,
+                description: 'Unauthorized',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
+            ),
+            new OA\Response(
+                response: 403,
+                description: 'Forbidden (Insufficient admin rights or trying to block yourself)',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
+            ),
+            new OA\Response(
+                response: 404,
+                description: 'Not Found (Trainer not found)',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
+            ),
             new OA\Response(
                 response: 409,
-                description: 'Conflict - Already blocked',
-                content: new OA\JsonContent(properties: [new OA\Property(property: 'message', type: 'string')])
+                description: 'Conflict (Trainer is already blocked)',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
             )
         ]
     )]
@@ -281,10 +503,13 @@ final class TrainerController extends AbstractController
         );
     }
 
+    /**
+     * @throws ConflictHttpException
+     */
     #[Route('/api/trainers/{id}/unblock/', methods: ['POST'], format: 'json')]
     #[OA\Post(
         operationId: 'adminUnblockTrainer',
-        summary: 'Unblock trainer account.',
+        summary: 'Unblock a trainer account (Admin).',
         tags: ['Admin: Trainer'],
         parameters: [
             new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'integer'))
@@ -292,8 +517,40 @@ final class TrainerController extends AbstractController
         responses: [
             new OA\Response(
                 response: 200,
-                description: 'Trainer unblocked successfully.',
-                content: new OA\JsonContent(ref: new Model(type: TrainerResponsePrivate::class))
+                description: 'Trainer unblocked successfully',
+                content: new OA\JsonContent(
+                    allOf: [
+                        new OA\Schema(ref: new Model(type: AbstractItemResponseDTO::class)),
+                        new OA\Schema(
+                            properties: [
+                                new OA\Property(
+                                    property: 'data',
+                                    ref: new Model(type: TrainerResponsePrivate::class)
+                                )
+                            ]
+                        )
+                    ]
+                )
+            ),
+            new OA\Response(
+                response: 401,
+                description: 'Unauthorized',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
+            ),
+            new OA\Response(
+                response: 403,
+                description: 'Forbidden (Insufficient admin rights)',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
+            ),
+            new OA\Response(
+                response: 404,
+                description: 'Not Found (Trainer not found)',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
+            ),
+            new OA\Response(
+                response: 409,
+                description: 'Conflict (Trainer is not currently blocked)',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
             )
         ]
     )]
