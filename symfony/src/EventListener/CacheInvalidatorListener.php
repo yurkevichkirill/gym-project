@@ -71,17 +71,23 @@ class CacheInvalidatorListener
                 $this->tagsToInvalidate[] = 'trainers_list';
                 $this->tagsToInvalidate[] = 'trainers_list_public';
                 $this->groupsToBump[] = 'trainers';
+                $this->tagsToInvalidate[] = "trainer_worktimes_list_{$entity->getId()}";
+                $this->tagsToInvalidate[] = "trainer_worktimes_list_all";
+                $this->groupsToBump[] = 'worktime';
             }
             elseif ($entity instanceof TrainerWorkTime) {
                 $this->tagsToInvalidate[] = "trainer_worktimes_list_{$entity->getTrainer()->getId()}";
                 $this->tagsToInvalidate[] = "trainer_worktimes_list_all";
                 $this->groupsToBump[] = 'trainers';
+                $this->groupsToBump[] = 'worktime';
             }
             elseif ($entity instanceof Training) {
                 $trainerId = $entity->getTrainerWorkTime()->getTrainer()->getId();
                 $this->tagsToInvalidate[] = "trainer_worktimes_list_$trainerId";
                 $this->tagsToInvalidate[] = "trainings_list_$trainerId";
                 $this->tagsToInvalidate[] = "trainings_list_all";
+                $this->groupsToBump[] = 'worktime';
+                $this->groupsToBump[] = 'training';
             }
             elseif ($entity instanceof TrainingType) {
                 $this->tagsToInvalidate[] = 'training_types_list';
