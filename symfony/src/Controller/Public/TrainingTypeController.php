@@ -10,7 +10,7 @@ use App\Response\DTO\AbstractItemResponseDTO;
 use App\Response\DTO\ErrorResponseDTO;
 use App\Response\ItemResponse;
 use App\TrainingType\DTO\GetTrainingTypesRequestDTO;
-use App\TrainingType\DTO\TrainingTypeResponseDto;
+use App\TrainingType\DTO\TrainingTypeResponseDTO;
 use App\TrainingType\Entity\TrainingType;
 use App\TrainingType\Mapper\TrainingTypeMapperInterface;
 use App\TrainingType\Query\TrainingTypeQuery;
@@ -53,7 +53,7 @@ final class TrainingTypeController extends AbstractController
                                 new OA\Property(
                                     property: 'data',
                                     type: 'array',
-                                    items: new OA\Items(ref: new Model(type: TrainingTypeResponseDto::class))
+                                    items: new OA\Items(ref: new Model(type: TrainingTypeResponseDTO::class))
                                 )
                             ]
                         )
@@ -105,7 +105,7 @@ final class TrainingTypeController extends AbstractController
                             properties: [
                                 new OA\Property(
                                     property: 'data',
-                                    ref: new Model(type: TrainingTypeResponseDto::class)
+                                    ref: new Model(type: TrainingTypeResponseDTO::class)
                                 )
                             ]
                         )

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\User\Service;
 
-use App\User\DTO\LoginUserRequest;
+use App\User\DTO\LoginUserRequestDTO;
 use App\User\Entity\User;
 use App\User\Repository\UserRepository;
 use Symfony\Component\HttpKernel\Exception\UnauthorizedHttpException;
@@ -21,7 +21,7 @@ final readonly class UserManager
     /**
      * @throws UnauthorizedHttpException
      */
-    public function login(?LoginUserRequest $dto): User
+    public function login(?LoginUserRequestDTO $dto): User
     {
         $user = $this->repo->findOneBy(['email' => $dto->email ?? null]);
 

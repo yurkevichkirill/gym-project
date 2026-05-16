@@ -5,27 +5,27 @@ declare(strict_types=1);
 namespace App\Trainer\DTO;
 
 use App\Trainer\Entity\Trainer;
-use App\TrainingType\DTO\TrainingTypeResponseDto;
+use App\TrainingType\DTO\TrainingTypeResponseDTO;
 
 final readonly class TrainerResponsePrivate
 {
     public function __construct(
-        public int    $id,
-        public string $firstName,
-        public string $lastName,
-        public string $phone,
-        public string $email,
-        public TrainingTypeResponseDto $trainingType,
-        public int $pricePerHour,
-        public string $photoUrl,
-        public ?string $education,
-        public ?string $about,
-        public int $balance,
-        public string $createdAt,
-        public string $deletedAt,
-        public string $updatedAt,
-        public string $blockedAt,
-        public string $type,
+        public int                     $id,
+        public string                  $firstName,
+        public string                  $lastName,
+        public string                  $phone,
+        public string                  $email,
+        public TrainingTypeResponseDTO $trainingType,
+        public int                     $pricePerHour,
+        public string                  $photoUrl,
+        public ?string                 $education,
+        public ?string                 $about,
+        public int                     $balance,
+        public string                  $createdAt,
+        public string                  $deletedAt,
+        public string                  $updatedAt,
+        public string                  $blockedAt,
+        public string                  $type,
     )
     {}
 
@@ -37,7 +37,7 @@ final readonly class TrainerResponsePrivate
             lastName: $trainer->getLastName(),
             phone: $trainer->getPhone(),
             email: $trainer->getEmail(),
-            trainingType:  TrainingTypeResponseDto::fromEntity($trainer->getTrainingType()),
+            trainingType:  TrainingTypeResponseDTO::fromEntity($trainer->getTrainingType()),
             pricePerHour: $trainer->getPricePerHour(),
             photoUrl: $trainer->getPhotoUrl(),
             education: $trainer->getEducation(),

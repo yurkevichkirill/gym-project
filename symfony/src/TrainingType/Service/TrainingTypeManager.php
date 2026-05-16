@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\TrainingType\Service;
 
-use App\TrainingType\DTO\CreateTrainingTypeRequest;
+use App\TrainingType\DTO\CreateTrainingTypeRequestDTO;
 use App\TrainingType\DTO\UpdateTrainingTypeRequest;
 use App\TrainingType\Entity\TrainingType;
 use App\TrainingType\Repository\TrainingTypeRepository;
@@ -18,7 +18,7 @@ final readonly class TrainingTypeManager
     )
     {}
 
-    public function create(CreateTrainingTypeRequest $requestDto): TrainingType
+    public function create(CreateTrainingTypeRequestDTO $requestDto): TrainingType
     {
         $trainingType = new TrainingType();
         $trainingType->setName($requestDto->name);

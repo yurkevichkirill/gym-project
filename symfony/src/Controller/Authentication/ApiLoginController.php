@@ -12,7 +12,7 @@ use App\RefreshToken\Service\RefreshTokenManager;
 use App\Response\DTO\AbstractItemResponseDTO;
 use App\Response\DTO\ErrorResponseDTO;
 use App\Response\ItemResponse;
-use App\User\DTO\LoginUserRequest;
+use App\User\DTO\LoginUserRequestDTO;
 use App\User\Service\UserManager;
 use Doctrine\ORM\Exception\ORMException;
 use Doctrine\ORM\OptimisticLockException;
@@ -44,7 +44,7 @@ final class ApiLoginController extends AbstractController
         operationId: 'authLogin',
         summary: 'Authenticate user and set JWT cookies.',
         requestBody: new OA\RequestBody(
-            content: new OA\JsonContent(ref: new Model(type: LoginUserRequest::class))
+            content: new OA\JsonContent(ref: new Model(type: LoginUserRequestDTO::class))
         ),
         tags: ['Authentication'],
         responses: [
@@ -85,9 +85,9 @@ final class ApiLoginController extends AbstractController
         ]
     )]
     public function login(
-        #[MapRequestPayload] LoginUserRequest $dto,
-        UserManager $userManager,
-        RefreshTokenManager $refreshTokenManager,
+        #[MapRequestPayload] LoginUserRequestDTO $dto,
+        UserManager                              $userManager,
+        RefreshTokenManager                      $refreshTokenManager,
     ): JsonResponse {
         $user = $userManager->login($dto);
 

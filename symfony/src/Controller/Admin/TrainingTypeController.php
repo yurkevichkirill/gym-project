@@ -8,8 +8,8 @@ use App\Response\DTO\AbstractItemResponseDTO;
 use App\Response\DTO\ErrorResponseDTO;
 use App\Response\ItemResponse;
 use App\Response\NoContentResponse;
-use App\TrainingType\DTO\CreateTrainingTypeRequest;
-use App\TrainingType\DTO\TrainingTypeResponseDto;
+use App\TrainingType\DTO\CreateTrainingTypeRequestDTO;
+use App\TrainingType\DTO\TrainingTypeResponseDTO;
 use App\TrainingType\DTO\UpdateTrainingTypeRequest;
 use App\TrainingType\Entity\TrainingType;
 use App\TrainingType\Mapper\TrainingTypeMapperInterface;
@@ -30,7 +30,7 @@ final class TrainingTypeController extends AbstractController
         summary: 'Create a new training type (Admin).',
         requestBody: new OA\RequestBody(
             required: true,
-            content: new OA\JsonContent(ref: new Model(type: CreateTrainingTypeRequest::class))
+            content: new OA\JsonContent(ref: new Model(type: CreateTrainingTypeRequestDTO::class))
         ),
         tags: ['Admin: TrainingType'],
         responses: [
@@ -44,7 +44,7 @@ final class TrainingTypeController extends AbstractController
                             properties: [
                                 new OA\Property(
                                     property: 'data',
-                                    ref: new Model(type: TrainingTypeResponseDto::class)
+                                    ref: new Model(type: TrainingTypeResponseDTO::class)
                                 )
                             ]
                         )
@@ -70,9 +70,9 @@ final class TrainingTypeController extends AbstractController
     )]
     #[IsGranted('ROLE_ADMIN')]
     public function create(
-        #[MapRequestPayload] CreateTrainingTypeRequest $requestDto,
-        TrainingTypeManager $manager,
-        TrainingTypeMapperInterface $mapper,
+        #[MapRequestPayload] CreateTrainingTypeRequestDTO $requestDto,
+        TrainingTypeManager                               $manager,
+        TrainingTypeMapperInterface                       $mapper,
     ): ItemResponse {
         $responseDto = $mapper->map($manager->create($requestDto));
 
@@ -111,7 +111,7 @@ final class TrainingTypeController extends AbstractController
                             properties: [
                                 new OA\Property(
                                     property: 'data',
-                                    ref: new Model(type: TrainingTypeResponseDto::class)
+                                    ref: new Model(type: TrainingTypeResponseDTO::class)
                                 )
                             ]
                         )
