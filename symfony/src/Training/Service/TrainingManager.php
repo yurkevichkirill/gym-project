@@ -7,7 +7,7 @@ namespace App\Training\Service;
 use App\Booking\Enum\BookingStatusEnum;
 use App\Booking\Service\BookingAvailabilityService;
 use App\TrainerWorkTime\Repository\TrainerWorkTimeRepository;
-use App\Training\DTO\TrainingUpdateRequest;
+use App\Training\DTO\TrainingUpdateRequestDTO;
 use App\Training\Entity\Training;
 use DateMalformedIntervalStringException;
 use DateMalformedStringException;
@@ -33,7 +33,7 @@ final readonly class TrainingManager
      * @throws Throwable
      * @throws DateMalformedIntervalStringException
      */
-    public function update(Training $training, TrainingUpdateRequest $requestDto): Training
+    public function update(Training $training, TrainingUpdateRequestDTO $requestDto): Training
     {
         $loggingContext = [
             'client_id' => $training->getBooking()?->getClient()?->getId() ?? "",

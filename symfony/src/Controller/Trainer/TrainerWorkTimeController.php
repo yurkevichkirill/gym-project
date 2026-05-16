@@ -4,17 +4,17 @@ declare(strict_types=1);
 
 namespace App\Controller\Trainer;
 
-use App\Response\CollectionResponse;
-use App\Response\DTO\AbstractCollectionResponseDTO;
-use App\Response\DTO\AbstractItemResponseDTO;
-use App\Response\DTO\ErrorResponseDTO;
-use App\Response\ItemResponse;
-use App\Response\NoContentResponse;
+use App\Response\ResponseTypeDTO\CollectionResponse;
+use App\Response\ResponseTypeDTO\ItemResponse;
+use App\Response\ResponseTypeDTO\NoContentResponse;
+use App\Response\SwaggerDocDTO\AbstractCollectionResponseDTO;
+use App\Response\SwaggerDocDTO\AbstractItemResponseDTO;
+use App\Response\SwaggerDocDTO\ErrorResponseDTO;
 use App\Trainer\Entity\Trainer;
-use App\TrainerWorkTime\DTO\CreateWorkTimeRequest;
+use App\TrainerWorkTime\DTO\CreateWorkTimeRequestDTO;
 use App\TrainerWorkTime\DTO\ResolvedWorktimesRequestDTO;
-use App\TrainerWorkTime\DTO\UpdateWorkTimeRequest;
-use App\TrainerWorkTime\DTO\WorkTimeResponse;
+use App\TrainerWorkTime\DTO\UpdateWorkTimeRequestDTO;
+use App\TrainerWorkTime\DTO\WorkTimeResponseDTO;
 use App\TrainerWorkTime\Entity\TrainerWorkTime;
 use App\TrainerWorkTime\Mapper\WorkTimeMapperInterface;
 use App\TrainerWorkTime\Query\WorkTimeQuery;
@@ -22,13 +22,13 @@ use App\TrainerWorkTime\Service\WorkTimeManager;
 use DateMalformedIntervalStringException;
 use DateMalformedStringException;
 use Nelmio\ApiDocBundle\Attribute\Model;
+use OpenApi\Attributes as OA;
 use Psr\Cache\InvalidArgumentException;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\Routing\Attribute\Route;
-use OpenApi\Attributes as OA;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Throwable;
@@ -62,7 +62,7 @@ final class TrainerWorkTimeController extends AbstractController
                                 new OA\Property(
                                     property: 'data',
                                     type: 'array',
-                                    items: new OA\Items(ref: new Model(type: WorkTimeResponse::class))
+                                    items: new OA\Items(ref: new Model(type: WorkTimeResponseDTO::class))
                                 )
                             ]
                         )
@@ -115,7 +115,7 @@ final class TrainerWorkTimeController extends AbstractController
         summary: 'Create a new work time slot for current trainer.',
         requestBody: new OA\RequestBody(
             required: true,
-            content: new OA\JsonContent(ref: new Model(type: CreateWorkTimeRequest::class))
+            content: new OA\JsonContent(ref: new Model(type: CreateWorkTimeRequestDTO::class))
         ),
         tags: ['Trainer: WorkTime'],
         responses: [
@@ -129,7 +129,7 @@ final class TrainerWorkTimeController extends AbstractController
                             properties: [
                                 new OA\Property(
                                     property: 'data',
-                                    ref: new Model(type: WorkTimeResponse::class)
+                                    ref: new Model(type: WorkTimeResponseDTO::class)
                                 )
                             ]
                         )
@@ -165,10 +165,10 @@ final class TrainerWorkTimeController extends AbstractController
     )]
     #[IsGranted('ROLE_TRAINER')]
     public function create(
-        #[CurrentUser] Trainer                     $trainer,
-        #[MapRequestPayload] CreateWorkTimeRequest $requestDto,
-        WorkTimeMapperInterface                    $mapper,
-        WorkTimeManager                            $manager
+        #[CurrentUser] Trainer                        $trainer,
+        #[MapRequestPayload] CreateWorkTimeRequestDTO $requestDto,
+        WorkTimeMapperInterface                       $mapper,
+        WorkTimeManager                               $manager
     ): ItemResponse {
         $responseDto = $mapper->map($manager->create($trainer, $requestDto));
 
@@ -189,7 +189,7 @@ final class TrainerWorkTimeController extends AbstractController
         summary: 'Update existing work time slot.',
         requestBody: new OA\RequestBody(
             required: true,
-            content: new OA\JsonContent(ref: new Model(type: UpdateWorkTimeRequest::class))
+            content: new OA\JsonContent(ref: new Model(type: UpdateWorkTimeRequestDTO::class))
         ),
         tags: ['Trainer: WorkTime'],
         parameters: [
@@ -206,7 +206,7 @@ final class TrainerWorkTimeController extends AbstractController
                             properties: [
                                 new OA\Property(
                                     property: 'data',
-                                    ref: new Model(type: WorkTimeResponse::class)
+                                    ref: new Model(type: WorkTimeResponseDTO::class)
                                 )
                             ]
                         )
@@ -247,10 +247,10 @@ final class TrainerWorkTimeController extends AbstractController
     )]
     #[IsGranted('ROLE_TRAINER')]
     public function update(
-        TrainerWorkTime $worktime,
-        #[MapRequestPayload] UpdateWorkTimeRequest $requestDto,
-        WorkTimeMapperInterface $mapper,
-        WorkTimeManager $manager,
+        TrainerWorkTime                               $worktime,
+        #[MapRequestPayload] UpdateWorkTimeRequestDTO $requestDto,
+        WorkTimeMapperInterface                       $mapper,
+        WorkTimeManager                               $manager,
     ): ItemResponse {
         $this->denyAccessUnlessGranted('WORKTIME_EDIT', $worktime);
 

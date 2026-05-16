@@ -5,14 +5,14 @@ declare(strict_types=1);
 namespace App\Controller\Payment;
 
 use App\Payment\Service\StripeWebhookService;
-use App\Response\DTO\ErrorResponseDTO;
-use App\Response\NoContentResponse;
+use App\Response\ResponseTypeDTO\NoContentResponse;
+use App\Response\SwaggerDocDTO\ErrorResponseDTO;
 use Nelmio\ApiDocBundle\Attribute\Model;
+use OpenApi\Attributes as OA;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\Routing\Attribute\Route;
-use OpenApi\Attributes as OA;
 
 final class WebhookController extends AbstractController
 {

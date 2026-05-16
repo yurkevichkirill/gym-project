@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Response\DTO;
+namespace App\Response\SwaggerDocDTO;
 
 use OpenApi\Attributes as OA;
 

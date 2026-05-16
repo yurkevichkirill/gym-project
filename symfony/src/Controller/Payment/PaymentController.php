@@ -8,17 +8,17 @@ use App\Payment\DTO\StripeIntentResponseDTO;
 use App\Payment\Entity\Payment;
 use App\Payment\Enum\PaymentStatusEnum;
 use App\Payment\Service\PaymentSettlementService;
-use App\Response\DTO\AbstractItemResponseDTO;
-use App\Response\DTO\ErrorResponseDTO;
-use App\Response\ItemResponse;
+use App\Response\ResponseTypeDTO\ItemResponse;
+use App\Response\SwaggerDocDTO\AbstractItemResponseDTO;
+use App\Response\SwaggerDocDTO\ErrorResponseDTO;
 use Nelmio\ApiDocBundle\Attribute\Model;
+use OpenApi\Attributes as OA;
 use Stripe\Exception\ApiErrorException;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
-use OpenApi\Attributes as OA;
 use Throwable;
 
 final class PaymentController extends AbstractController

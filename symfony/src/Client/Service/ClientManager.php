@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace App\Client\Service;
 
 use App\Admin\Entity\Admin;
-use App\Client\DTO\AdminUpdateClientRequest;
-use App\Client\DTO\ClientActivateRequest;
-use App\Client\DTO\CreateClientRequest;
-use App\Client\DTO\TopUpBalanceRequest;
-use App\Client\DTO\UpdateClientRequest;
+use App\Client\DTO\AdminUpdateClientRequestDTO;
+use App\Client\DTO\ClientActivateRequestDTO;
+use App\Client\DTO\CreateClientRequestDTO;
+use App\Client\DTO\TopUpBalanceRequestDTO;
+use App\Client\DTO\UpdateClientRequestDTO;
 use App\Client\Entity\Client;
 use App\Client\Repository\ClientRepository;
 use App\Membership\Entity\Membership;
@@ -44,7 +44,7 @@ final readonly class ClientManager
     /**
      * @throws ConflictHttpException
      */
-    public function create(CreateClientRequest $dto): Client
+    public function create(CreateClientRequestDTO $dto): Client
     {
         $existingClientByEmail = $this->userRepo->findOneBy(['email' => $dto->email]);
         if ($existingClientByEmail) {
@@ -80,7 +80,7 @@ final readonly class ClientManager
     /**
      * @throws AccessDeniedHttpException
      */
-    public function update(Client $client, UpdateClientRequest $requestDto): Client
+    public function update(Client $client, UpdateClientRequestDTO $requestDto): Client
     {
         $this->userAvailabilityService->ensureNotBlocked($client);
         $this->userAvailabilityService->ensureActive($client);
@@ -94,7 +94,7 @@ final readonly class ClientManager
         return $client;
     }
 
-    public function updateByAdmin(Client $client, AdminUpdateClientRequest $requestDto): Client
+    public function updateByAdmin(Client $client, AdminUpdateClientRequestDTO $requestDto): Client
     {
         if ($requestDto->firstName !== null) {
             $client->setFirstName($requestDto->firstName);
@@ -206,7 +206,7 @@ final readonly class ClientManager
     /**
      * @throws AccessDeniedHttpException
      */
-    public function topUpBalance(Client $client, TopUpBalanceRequest $requestDto): Payment
+    public function topUpBalance(Client $client, TopUpBalanceRequestDTO $requestDto): Payment
     {
         $this->userAvailabilityService->ensureNotBlocked($client);
         $this->userAvailabilityService->ensureActive($client);
@@ -223,7 +223,7 @@ final readonly class ClientManager
         return $payment;
     }
 
-    public function activate(ClientActivateRequest $requestDto): Client
+    public function activate(ClientActivateRequestDTO $requestDto): Client
     {
         return $this->entityManager->wrapInTransaction(function () use ($requestDto) {
             $client = $this->clientRepo->findOneBy(['activationToken' => $requestDto->activationToken]);

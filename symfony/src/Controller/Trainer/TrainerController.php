@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Controller\Trainer;
 
-use App\Response\ItemResponse;
-use App\Response\NoContentResponse;
-use App\Trainer\DTO\TrainerResponsePrivate;
-use App\Trainer\DTO\UpdateTrainerRequest;
+use App\Response\ResponseTypeDTO\ItemResponse;
+use App\Response\ResponseTypeDTO\NoContentResponse;
+use App\Trainer\DTO\TrainerResponsePrivateDTO;
+use App\Trainer\DTO\UpdateTrainerRequestDTO;
 use App\Trainer\Entity\Trainer;
 use App\Trainer\Mapper\TrainerMapperInterface;
 use App\Trainer\Service\TrainerManager;
@@ -35,7 +35,7 @@ final class TrainerController extends AbstractController
             new OA\Response(
                 response: 200,
                 description: 'Current trainer profile retrieved successfully.',
-                content: new OA\JsonContent(ref: new Model(type: TrainerResponsePrivate::class))
+                content: new OA\JsonContent(ref: new Model(type: TrainerResponsePrivateDTO::class))
             ),
             new OA\Response(response: 401, description: 'Unauthorized'),
             new OA\Response(response: 403, description: 'Forbidden - Trainer access required')
@@ -59,14 +59,14 @@ final class TrainerController extends AbstractController
         operationId: 'updateTrainerMe',
         summary: 'Update current trainer profile.',
         requestBody: new OA\RequestBody(
-            content: new OA\JsonContent(ref: new Model(type: UpdateTrainerRequest::class))
+            content: new OA\JsonContent(ref: new Model(type: UpdateTrainerRequestDTO::class))
         ),
         tags: ['Trainer: Trainer'],
         responses: [
             new OA\Response(
                 response: 200,
                 description: 'Trainer profile updated successfully.',
-                content: new OA\JsonContent(ref: new Model(type: TrainerResponsePrivate::class))
+                content: new OA\JsonContent(ref: new Model(type: TrainerResponsePrivateDTO::class))
             ),
             new OA\Response(response: 401, description: 'Unauthorized'),
             new OA\Response(response: 422, description: 'Validation failed')
@@ -74,10 +74,10 @@ final class TrainerController extends AbstractController
     )]
     #[IsGranted('ROLE_TRAINER')]
     public function update(
-        #[CurrentUser] Trainer                    $trainer,
-        #[MapRequestPayload] UpdateTrainerRequest $requestDto,
-        TrainerMapperInterface                    $mapper,
-        TrainerManager                            $manager,
+        #[CurrentUser] Trainer                       $trainer,
+        #[MapRequestPayload] UpdateTrainerRequestDTO $requestDto,
+        TrainerMapperInterface                       $mapper,
+        TrainerManager                               $manager,
     ): ItemResponse {
         $responseDto = $mapper->map($manager->update($trainer, $requestDto), true);
 

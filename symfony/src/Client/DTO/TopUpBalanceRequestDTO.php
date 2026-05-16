@@ -6,7 +6,7 @@ namespace App\Client\DTO;
 
 use Symfony\Component\Validator\Constraints as Assert;
 
-final readonly class TopUpBalanceRequest
+final readonly class TopUpBalanceRequestDTO
 {
     public function __construct(
         #[Assert\NotBlank]

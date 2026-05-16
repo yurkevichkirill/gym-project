@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace App\Controller\Admin;
 
-use App\Response\DTO\AbstractItemResponseDTO;
-use App\Response\DTO\ErrorResponseDTO;
-use App\Response\ItemResponse;
-use App\Response\NoContentResponse;
+use App\Response\ResponseTypeDTO\ItemResponse;
+use App\Response\ResponseTypeDTO\NoContentResponse;
+use App\Response\SwaggerDocDTO\AbstractItemResponseDTO;
+use App\Response\SwaggerDocDTO\ErrorResponseDTO;
 use App\Trainer\Entity\Trainer;
-use App\TrainerWorkTime\DTO\CreateWorkTimeRequest;
-use App\TrainerWorkTime\DTO\UpdateWorkTimeRequest;
-use App\TrainerWorkTime\DTO\WorkTimeResponse;
+use App\TrainerWorkTime\DTO\CreateWorkTimeRequestDTO;
+use App\TrainerWorkTime\DTO\UpdateWorkTimeRequestDTO;
+use App\TrainerWorkTime\DTO\WorkTimeResponseDTO;
 use App\TrainerWorkTime\Entity\TrainerWorkTime;
 use App\TrainerWorkTime\Mapper\WorkTimeMapperInterface;
 use App\TrainerWorkTime\Service\WorkTimeManager;
@@ -35,7 +35,7 @@ final class TrainerWorkTimeController extends AbstractController
         summary: 'Add work time slots for a trainer (Admin).',
         requestBody: new OA\RequestBody(
             required: true,
-            content: new OA\JsonContent(ref: new Model(type: CreateWorkTimeRequest::class))
+            content: new OA\JsonContent(ref: new Model(type: CreateWorkTimeRequestDTO::class))
         ),
         tags: ['Admin: WorkTime'],
         parameters: [
@@ -52,7 +52,7 @@ final class TrainerWorkTimeController extends AbstractController
                             properties: [
                                 new OA\Property(
                                     property: 'data',
-                                    ref: new Model(type: WorkTimeResponse::class)
+                                    ref: new Model(type: WorkTimeResponseDTO::class)
                                 )
                             ]
                         )
@@ -93,10 +93,10 @@ final class TrainerWorkTimeController extends AbstractController
     )]
     #[IsGranted('ROLE_ADMIN')]
     public function create(
-        Trainer $trainer,
-        #[MapRequestPayload] CreateWorkTimeRequest $requestDto,
-        WorkTimeMapperInterface $mapper,
-        WorkTimeManager $manager,
+        Trainer                                       $trainer,
+        #[MapRequestPayload] CreateWorkTimeRequestDTO $requestDto,
+        WorkTimeMapperInterface                       $mapper,
+        WorkTimeManager                               $manager,
     ): ItemResponse {
         $responseDto = $mapper->map($manager->create($trainer, $requestDto));
 
@@ -115,7 +115,7 @@ final class TrainerWorkTimeController extends AbstractController
         summary: 'Update work time slot (Admin).',
         requestBody: new OA\RequestBody(
             required: true,
-            content: new OA\JsonContent(ref: new Model(type: UpdateWorkTimeRequest::class))
+            content: new OA\JsonContent(ref: new Model(type: UpdateWorkTimeRequestDTO::class))
         ),
         tags: ['Admin: WorkTime'],
         parameters: [
@@ -132,7 +132,7 @@ final class TrainerWorkTimeController extends AbstractController
                             properties: [
                                 new OA\Property(
                                     property: 'data',
-                                    ref: new Model(type: WorkTimeResponse::class)
+                                    ref: new Model(type: WorkTimeResponseDTO::class)
                                 )
                             ]
                         )
@@ -173,10 +173,10 @@ final class TrainerWorkTimeController extends AbstractController
     )]
     #[IsGranted('ROLE_ADMIN')]
     public function update(
-        TrainerWorkTime $worktime,
-        #[MapRequestPayload] UpdateWorkTimeRequest $requestDto,
-        WorkTimeMapperInterface $mapper,
-        WorkTimeManager $manager,
+        TrainerWorkTime                               $worktime,
+        #[MapRequestPayload] UpdateWorkTimeRequestDTO $requestDto,
+        WorkTimeMapperInterface                       $mapper,
+        WorkTimeManager                               $manager,
     ): ItemResponse {
         $responseDto = $mapper->map($manager->update($worktime, $requestDto, true));
 

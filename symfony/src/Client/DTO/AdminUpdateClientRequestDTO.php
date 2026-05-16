@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Client\DTO;
 
-final readonly class AdminUpdateClientRequest
+final readonly class AdminUpdateClientRequestDTO
 {
     public function __construct(
         public ?int $age = null,

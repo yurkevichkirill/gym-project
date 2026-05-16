@@ -5,16 +5,16 @@ declare(strict_types=1);
 namespace App\Controller\Admin;
 
 use App\Admin\Entity\Admin;
-use App\Response\CollectionResponse;
-use App\Response\DTO\AbstractCollectionResponseDTO;
-use App\Response\DTO\AbstractItemResponseDTO;
-use App\Response\DTO\ErrorResponseDTO;
-use App\Response\ItemResponse;
-use App\Response\NoContentResponse;
-use App\Trainer\DTO\AdminUpdateTrainerRequest;
-use App\Trainer\DTO\CreateTrainerRequest;
+use App\Response\ResponseTypeDTO\CollectionResponse;
+use App\Response\ResponseTypeDTO\ItemResponse;
+use App\Response\ResponseTypeDTO\NoContentResponse;
+use App\Response\SwaggerDocDTO\AbstractCollectionResponseDTO;
+use App\Response\SwaggerDocDTO\AbstractItemResponseDTO;
+use App\Response\SwaggerDocDTO\ErrorResponseDTO;
+use App\Trainer\DTO\AdminUpdateTrainerRequestDTO;
+use App\Trainer\DTO\CreateTrainerRequestDTO;
 use App\Trainer\DTO\ResolvedTrainersRequestAdminDTO;
-use App\Trainer\DTO\TrainerResponsePrivate;
+use App\Trainer\DTO\TrainerResponsePrivateDTO;
 use App\Trainer\Entity\Trainer;
 use App\Trainer\Mapper\TrainerMapperInterface;
 use App\Trainer\Query\TrainersQueryAdmin;
@@ -69,7 +69,7 @@ final class TrainerController extends AbstractController
                                 new OA\Property(
                                     property: 'data',
                                     type: 'array',
-                                    items: new OA\Items(ref: new Model(type: TrainerResponsePrivate::class))
+                                    items: new OA\Items(ref: new Model(type: TrainerResponsePrivateDTO::class))
                                 )
                             ]
                         )
@@ -136,7 +136,7 @@ final class TrainerController extends AbstractController
                             properties: [
                                 new OA\Property(
                                     property: 'data',
-                                    ref: new Model(type: TrainerResponsePrivate::class)
+                                    ref: new Model(type: TrainerResponsePrivateDTO::class)
                                 )
                             ]
                         )
@@ -178,7 +178,7 @@ final class TrainerController extends AbstractController
         operationId: 'adminCreateTrainer',
         summary: 'Create a new trainer (Admin).',
         requestBody: new OA\RequestBody(
-            content: new OA\JsonContent(ref: new Model(type: CreateTrainerRequest::class))
+            content: new OA\JsonContent(ref: new Model(type: CreateTrainerRequestDTO::class))
         ),
         tags: ['Admin: Trainer'],
         responses: [
@@ -192,7 +192,7 @@ final class TrainerController extends AbstractController
                             properties: [
                                 new OA\Property(
                                     property: 'data',
-                                    ref: new Model(type: TrainerResponsePrivate::class)
+                                    ref: new Model(type: TrainerResponsePrivateDTO::class)
                                 )
                             ]
                         )
@@ -233,9 +233,9 @@ final class TrainerController extends AbstractController
     )]
     #[IsGranted('ROLE_ADMIN')]
     public function create(
-        #[MapRequestPayload] CreateTrainerRequest $requestDto,
-        TrainerMapperInterface $mapper,
-        TrainerManager $manager,
+        #[MapRequestPayload] CreateTrainerRequestDTO $requestDto,
+        TrainerMapperInterface                       $mapper,
+        TrainerManager                               $manager,
     ): ItemResponse {
         $responseDto = $mapper->map($manager->create($requestDto), true);
 
@@ -253,7 +253,7 @@ final class TrainerController extends AbstractController
         operationId: 'adminUpdateTrainer',
         summary: 'Update trainer profile (Admin).',
         requestBody: new OA\RequestBody(
-            content: new OA\JsonContent(ref: new Model(type: AdminUpdateTrainerRequest::class))
+            content: new OA\JsonContent(ref: new Model(type: AdminUpdateTrainerRequestDTO::class))
         ),
         tags: ['Admin: Trainer'],
         parameters: [
@@ -270,7 +270,7 @@ final class TrainerController extends AbstractController
                             properties: [
                                 new OA\Property(
                                     property: 'data',
-                                    ref: new Model(type: TrainerResponsePrivate::class)
+                                    ref: new Model(type: TrainerResponsePrivateDTO::class)
                                 )
                             ]
                         )
@@ -311,10 +311,10 @@ final class TrainerController extends AbstractController
     )]
     #[IsGranted('ROLE_ADMIN')]
     public function update(
-        Trainer $trainer,
-        #[MapRequestPayload] AdminUpdateTrainerRequest $requestDto,
-        TrainerManager $manager,
-        TrainerMapperInterface $mapper,
+        Trainer                                           $trainer,
+        #[MapRequestPayload] AdminUpdateTrainerRequestDTO $requestDto,
+        TrainerManager                                    $manager,
+        TrainerMapperInterface                            $mapper,
     ): ItemResponse {
         $responseDto = $mapper->map($manager->updateByAdmin($requestDto, $trainer), true);
 
@@ -393,7 +393,7 @@ final class TrainerController extends AbstractController
                             properties: [
                                 new OA\Property(
                                     property: 'data',
-                                    ref: new Model(type: TrainerResponsePrivate::class)
+                                    ref: new Model(type: TrainerResponsePrivateDTO::class)
                                 )
                             ]
                         )
@@ -459,7 +459,7 @@ final class TrainerController extends AbstractController
                             properties: [
                                 new OA\Property(
                                     property: 'data',
-                                    ref: new Model(type: TrainerResponsePrivate::class)
+                                    ref: new Model(type: TrainerResponsePrivateDTO::class)
                                 )
                             ]
                         )
@@ -525,7 +525,7 @@ final class TrainerController extends AbstractController
                             properties: [
                                 new OA\Property(
                                     property: 'data',
-                                    ref: new Model(type: TrainerResponsePrivate::class)
+                                    ref: new Model(type: TrainerResponsePrivateDTO::class)
                                 )
                             ]
                         )

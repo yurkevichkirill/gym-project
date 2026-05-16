@@ -6,7 +6,7 @@ namespace App\Membership\DTO;
 
 use App\Membership\Enum\MembershipStatusEnum;
 
-final readonly class UpdateMembershipRequest
+final readonly class UpdateMembershipRequestDTO
 {
     public function __construct(
         public ?MembershipStatusEnum $status,

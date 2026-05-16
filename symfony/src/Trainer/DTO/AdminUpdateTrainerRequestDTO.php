@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Trainer\DTO;
 
-final readonly class AdminUpdateTrainerRequest
+final readonly class AdminUpdateTrainerRequestDTO
 {
     public function __construct(
         public ?string $firstName,

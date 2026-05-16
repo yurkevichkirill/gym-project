@@ -4,18 +4,19 @@ declare(strict_types=1);
 
 namespace App\Controller\Trainer;
 
-use App\Payment\DTO\PaymentResponse;
+use App\Payment\DTO\PaymentResponseDTO;
 use App\Payment\DTO\ResolvedPaymentsRequestDTO;
 use App\Payment\Entity\Payment;
 use App\Payment\Enum\PaymentStatusEnum;
 use App\Payment\Mapper\PaymentMapperInterface;
 use App\Payment\Query\PaymentsQuery;
-use App\Response\CollectionResponse;
-use App\Response\DTO\AbstractCollectionResponseDTO;
-use App\Response\DTO\AbstractItemResponseDTO;
-use App\Response\DTO\ErrorResponseDTO;
-use App\Response\ItemResponse;
+use App\Response\ResponseTypeDTO\CollectionResponse;
+use App\Response\ResponseTypeDTO\ItemResponse;
+use App\Response\SwaggerDocDTO\AbstractCollectionResponseDTO;
+use App\Response\SwaggerDocDTO\AbstractItemResponseDTO;
+use App\Response\SwaggerDocDTO\ErrorResponseDTO;
 use Nelmio\ApiDocBundle\Attribute\Model;
+use OpenApi\Attributes as OA;
 use Psr\Cache\InvalidArgumentException;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
@@ -23,7 +24,6 @@ use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
-use OpenApi\Attributes as OA;
 
 class PaymentController extends AbstractController
 {
@@ -60,7 +60,7 @@ class PaymentController extends AbstractController
                                 new OA\Property(
                                     property: 'data',
                                     type: 'array',
-                                    items: new OA\Items(ref: new Model(type: PaymentResponse::class))
+                                    items: new OA\Items(ref: new Model(type: PaymentResponseDTO::class))
                                 )
                             ]
                         )
@@ -130,7 +130,7 @@ class PaymentController extends AbstractController
                             properties: [
                                 new OA\Property(
                                     property: 'data',
-                                    ref: new Model(type: PaymentResponse::class)
+                                    ref: new Model(type: PaymentResponseDTO::class)
                                 )
                             ]
                         )

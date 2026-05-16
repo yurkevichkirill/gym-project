@@ -6,8 +6,8 @@ namespace App\TrainerWorkTime\Service;
 
 use App\Booking\Exception\DateTimeAlreadyTakenException;
 use App\Trainer\Entity\Trainer;
-use App\TrainerWorkTime\DTO\CreateWorkTimeRequest;
-use App\TrainerWorkTime\DTO\UpdateWorkTimeRequest;
+use App\TrainerWorkTime\DTO\CreateWorkTimeRequestDTO;
+use App\TrainerWorkTime\DTO\UpdateWorkTimeRequestDTO;
 use App\TrainerWorkTime\Entity\TrainerWorkTime;
 use App\TrainerWorkTime\Repository\TrainerWorkTimeRepository;
 use App\User\Service\AvailabilityService;
@@ -34,7 +34,7 @@ final readonly class WorkTimeManager
     /**
      * @throws DateMalformedStringException|DateTimeAlreadyTakenException|Throwable
      */
-    public function create(Trainer $trainer, CreateWorkTimeRequest $requestDto): TrainerWorkTime
+    public function create(Trainer $trainer, CreateWorkTimeRequestDTO $requestDto): TrainerWorkTime
     {
         $context = $this->context($trainer, $requestDto);
 
@@ -125,7 +125,7 @@ final readonly class WorkTimeManager
      * @throws DateTimeAlreadyTakenException
      * @throws DateMalformedIntervalStringException|Throwable
      */
-    public function update(TrainerWorkTime $worktime, UpdateWorkTimeRequest $dto, $byAdmin = false): TrainerWorkTime
+    public function update(TrainerWorkTime $worktime, UpdateWorkTimeRequestDTO $dto, $byAdmin = false): TrainerWorkTime
     {
         $context = $this->contextFromEntity($worktime);
 
@@ -265,7 +265,7 @@ final readonly class WorkTimeManager
         return $worktime;
     }
 
-    private function context(?Trainer $trainer = null, ?CreateWorkTimeRequest $dto = null): array
+    private function context(?Trainer $trainer = null, ?CreateWorkTimeRequestDTO $dto = null): array
     {
         return [
             'domain' => 'worktime',

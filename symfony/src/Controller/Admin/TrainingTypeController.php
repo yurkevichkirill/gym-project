@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace App\Controller\Admin;
 
-use App\Response\DTO\AbstractItemResponseDTO;
-use App\Response\DTO\ErrorResponseDTO;
-use App\Response\ItemResponse;
-use App\Response\NoContentResponse;
+use App\Response\ResponseTypeDTO\ItemResponse;
+use App\Response\ResponseTypeDTO\NoContentResponse;
+use App\Response\SwaggerDocDTO\AbstractItemResponseDTO;
+use App\Response\SwaggerDocDTO\ErrorResponseDTO;
 use App\TrainingType\DTO\CreateTrainingTypeRequestDTO;
 use App\TrainingType\DTO\TrainingTypeResponseDTO;
-use App\TrainingType\DTO\UpdateTrainingTypeRequest;
+use App\TrainingType\DTO\UpdateTrainingTypeRequestDTO;
 use App\TrainingType\Entity\TrainingType;
 use App\TrainingType\Mapper\TrainingTypeMapperInterface;
 use App\TrainingType\Service\TrainingTypeManager;
@@ -88,7 +88,7 @@ final class TrainingTypeController extends AbstractController
         summary: 'Update an existing training type (Admin).',
         requestBody: new OA\RequestBody(
             required: true,
-            content: new OA\JsonContent(ref: new Model(type: UpdateTrainingTypeRequest::class))
+            content: new OA\JsonContent(ref: new Model(type: UpdateTrainingTypeRequestDTO::class))
         ),
         tags: ['Admin: TrainingType'],
         parameters: [
@@ -147,10 +147,10 @@ final class TrainingTypeController extends AbstractController
     )]
     #[IsGranted('ROLE_ADMIN')]
     public function update(
-        #[MapRequestPayload] UpdateTrainingTypeRequest $requestDto,
-        TrainingType $trainingType,
-        TrainingTypeManager $manager,
-        TrainingTypeMapperInterface $mapper,
+        #[MapRequestPayload] UpdateTrainingTypeRequestDTO $requestDto,
+        TrainingType                                      $trainingType,
+        TrainingTypeManager                               $manager,
+        TrainingTypeMapperInterface                       $mapper,
     ): ItemResponse {
         $responseDto = $mapper->map($manager->update($requestDto, $trainingType));
 

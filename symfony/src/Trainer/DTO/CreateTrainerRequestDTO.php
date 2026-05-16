@@ -6,7 +6,7 @@ namespace App\Trainer\DTO;
 
 use Symfony\Component\Validator\Constraints as Assert;
 
-final readonly class CreateTrainerRequest
+final readonly class CreateTrainerRequestDTO
 {
     public function __construct(
         #[Assert\NotBlank]

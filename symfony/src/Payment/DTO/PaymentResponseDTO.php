@@ -8,23 +8,23 @@ use App\Payment\Entity\Payment;
 use App\Payment\Enum\PaymentCategoryEnum;
 use App\Payment\Enum\PaymentMethodEnum;
 use App\Payment\Enum\PaymentStatusEnum;
-use App\Trainer\DTO\TrainerResponse;
+use App\Trainer\DTO\TrainerResponseDTO;
 
-final readonly class PaymentResponse
+final readonly class PaymentResponseDTO
 {
     public function __construct(
         public int $id,
-        public int $amount,
-        public string $currency,
-        public PaymentMethodEnum $method,
+        public int                 $amount,
+        public string              $currency,
+        public PaymentMethodEnum   $method,
         public PaymentCategoryEnum $category,
-        public ?string $stripePaymentIntentId,
-        public ?PaymentStatusEnum $status,
-        public bool $isRefund,
-        public string $createdAt,
-        public ?string $paidAt,
-        public ?string $expiresAt,
-        public ?TrainerResponse $trainer = null,
+        public ?string             $stripePaymentIntentId,
+        public ?PaymentStatusEnum  $status,
+        public bool                $isRefund,
+        public string              $createdAt,
+        public ?string             $paidAt,
+        public ?string             $expiresAt,
+        public ?TrainerResponseDTO $trainer = null,
     )
     {}
 
@@ -42,7 +42,7 @@ final readonly class PaymentResponse
             createdAt: $payment->getCreatedAt()->format(DATE_ATOM),
             paidAt: $payment->getPaidAt()?->format(DATE_ATOM) ?? '',
             expiresAt: $payment->getExpiresAt()?->format(DATE_ATOM) ?? '',
-            trainer: $payment->getTrainer() ? TrainerResponse::fromEntity($payment->getTrainer()) : null,
+            trainer: $payment->getTrainer() ? TrainerResponseDTO::fromEntity($payment->getTrainer()) : null,
         );
     }
 }

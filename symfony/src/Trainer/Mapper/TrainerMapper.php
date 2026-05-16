@@ -4,15 +4,15 @@ declare(strict_types=1);
 
 namespace App\Trainer\Mapper;
 
-use App\Trainer\DTO\TrainerResponse;
-use App\Trainer\DTO\TrainerResponsePrivate;
+use App\Trainer\DTO\TrainerResponseDTO;
+use App\Trainer\DTO\TrainerResponsePrivateDTO;
 use App\Trainer\Entity\Trainer;
 use App\Trainer\Mapper\TrainerMapperInterface;
 
 class TrainerMapper implements TrainerMapperInterface
 {
-    public function map(Trainer $trainer, bool $private = false): TrainerResponse|TrainerResponsePrivate
+    public function map(Trainer $trainer, bool $private = false): TrainerResponseDTO|TrainerResponsePrivateDTO
     {
-        return $private ? TrainerResponsePrivate::fromEntity($trainer) : TrainerResponse::fromEntity($trainer);
+        return $private ? TrainerResponsePrivateDTO::fromEntity($trainer) : TrainerResponseDTO::fromEntity($trainer);
     }
 }

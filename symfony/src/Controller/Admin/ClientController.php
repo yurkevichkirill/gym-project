@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace App\Controller\Admin;
 
 use App\Admin\Entity\Admin;
-use App\Client\DTO\AdminUpdateClientRequest;
-use App\Client\DTO\ClientResponse;
-use App\Client\DTO\CreateClientRequest;
+use App\Client\DTO\AdminUpdateClientRequestDTO;
+use App\Client\DTO\ClientResponseDTO;
+use App\Client\DTO\CreateClientRequestDTO;
 use App\Client\DTO\GetClientsRequestDTO;
 use App\Client\Entity\Client;
 use App\Client\Mapper\ClientMapperInterface;
@@ -17,15 +17,15 @@ use App\ImportJob\DTO\ClientImportResponseDTO;
 use App\ImportJob\DTO\CreateClientImportBatch;
 use App\ImportJob\Message\ImportMessage;
 use App\ImportJob\Service\ImportService;
-use App\Membership\DTO\MembershipResponse;
+use App\Membership\DTO\MembershipResponseDTO;
 use App\Membership\Exception\NoActiveMembershipException;
 use App\Membership\Mapper\MembershipMapperInterface;
-use App\Response\CollectionResponse;
-use App\Response\DTO\AbstractCollectionResponseDTO;
-use App\Response\DTO\AbstractItemResponseDTO;
-use App\Response\DTO\ErrorResponseDTO;
-use App\Response\ItemResponse;
-use App\Response\NoContentResponse;
+use App\Response\ResponseTypeDTO\CollectionResponse;
+use App\Response\ResponseTypeDTO\ItemResponse;
+use App\Response\ResponseTypeDTO\NoContentResponse;
+use App\Response\SwaggerDocDTO\AbstractCollectionResponseDTO;
+use App\Response\SwaggerDocDTO\AbstractItemResponseDTO;
+use App\Response\SwaggerDocDTO\ErrorResponseDTO;
 use Nelmio\ApiDocBundle\Attribute\Model;
 use OpenApi\Attributes as OA;
 use Psr\Cache\InvalidArgumentException;
@@ -81,7 +81,7 @@ final class ClientController extends AbstractController
                                 new OA\Property(
                                     property: 'data',
                                     type: 'array',
-                                    items: new OA\Items(ref: new Model(type: ClientResponse::class))
+                                    items: new OA\Items(ref: new Model(type: ClientResponseDTO::class))
                                 )
                             ]
                         )
@@ -144,7 +144,7 @@ final class ClientController extends AbstractController
                             properties: [
                                 new OA\Property(
                                     property: 'data',
-                                    ref: new Model(type: ClientResponse::class)
+                                    ref: new Model(type: ClientResponseDTO::class)
                                 )
                             ]
                         )
@@ -180,7 +180,7 @@ final class ClientController extends AbstractController
         summary: 'Create a new client (Admin).',
         requestBody: new OA\RequestBody(
             required: true,
-            content: new OA\JsonContent(ref: new Model(type: CreateClientRequest::class))
+            content: new OA\JsonContent(ref: new Model(type: CreateClientRequestDTO::class))
         ),
         tags: ['Admin: Clients'],
         responses: [
@@ -194,7 +194,7 @@ final class ClientController extends AbstractController
                             properties: [
                                 new OA\Property(
                                     property: 'data',
-                                    ref: new Model(type: ClientResponse::class)
+                                    ref: new Model(type: ClientResponseDTO::class)
                                 )
                             ]
                         )
@@ -225,9 +225,9 @@ final class ClientController extends AbstractController
     )]
     #[IsGranted('ROLE_ADMIN')]
     public function create(
-        #[MapRequestPayload] CreateClientRequest $requestDto,
-        ClientMapperInterface $mapper,
-        ClientManager $manager,
+        #[MapRequestPayload] CreateClientRequestDTO $requestDto,
+        ClientMapperInterface                       $mapper,
+        ClientManager                               $manager,
     ): ItemResponse {
         $responseDto = $mapper->map($manager->create($requestDto));
 
@@ -240,7 +240,7 @@ final class ClientController extends AbstractController
         summary: 'Update client details (Admin).',
         requestBody: new OA\RequestBody(
             required: true,
-            content: new OA\JsonContent(ref: new Model(type: AdminUpdateClientRequest::class))
+            content: new OA\JsonContent(ref: new Model(type: AdminUpdateClientRequestDTO::class))
         ),
         tags: ['Admin: Clients'],
         parameters: [
@@ -257,7 +257,7 @@ final class ClientController extends AbstractController
                             properties: [
                                 new OA\Property(
                                     property: 'data',
-                                    ref: new Model(type: ClientResponse::class)
+                                    ref: new Model(type: ClientResponseDTO::class)
                                 )
                             ]
                         )
@@ -293,10 +293,10 @@ final class ClientController extends AbstractController
     )]
     #[IsGranted('ROLE_ADMIN')]
     public function update(
-        Client $client,
-        #[MapRequestPayload] AdminUpdateClientRequest $requestDto,
-        ClientMapperInterface $mapper,
-        ClientManager $manager,
+        Client                                           $client,
+        #[MapRequestPayload] AdminUpdateClientRequestDTO $requestDto,
+        ClientMapperInterface                            $mapper,
+        ClientManager                                    $manager,
     ): ItemResponse {
         $responseDto = $mapper->map($manager->updateByAdmin($client, $requestDto));
 
@@ -370,7 +370,7 @@ final class ClientController extends AbstractController
                             properties: [
                                 new OA\Property(
                                     property: 'data',
-                                    ref: new Model(type: ClientResponse::class)
+                                    ref: new Model(type: ClientResponseDTO::class)
                                 )
                             ]
                         )
@@ -428,7 +428,7 @@ final class ClientController extends AbstractController
                             properties: [
                                 new OA\Property(
                                     property: 'data',
-                                    ref: new Model(type: ClientResponse::class)
+                                    ref: new Model(type: ClientResponseDTO::class)
                                 )
                             ]
                         )
@@ -487,7 +487,7 @@ final class ClientController extends AbstractController
                             properties: [
                                 new OA\Property(
                                     property: 'data',
-                                    ref: new Model(type: ClientResponse::class)
+                                    ref: new Model(type: ClientResponseDTO::class)
                                 )
                             ]
                         )
@@ -550,7 +550,7 @@ final class ClientController extends AbstractController
                             properties: [
                                 new OA\Property(
                                     property: 'data',
-                                    ref: new Model(type: MembershipResponse::class)
+                                    ref: new Model(type: MembershipResponseDTO::class)
                                 )
                             ]
                         )
