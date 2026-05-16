@@ -36,7 +36,7 @@ final class MembershipPlanController extends AbstractController
         operationId: 'getMembershipPlans',
         description: 'Retrieves a paginated and filterable list of all active membership plans. Available to all users (public).',
         summary: 'Get all available membership plans.',
-        tags: ['All: Membership Plans'],
+        tags: ['Public: Membership Plans'],
         responses: [
             new OA\Response(
                 response: 200,
@@ -92,7 +92,7 @@ final class MembershipPlanController extends AbstractController
         operationId: 'getMembershipPlanById',
         description: 'Retrieves detailed information about a specific membership plan. Available to all users.',
         summary: 'Get a specific membership plan by ID.',
-        tags: ['All: Membership Plans'],
+        tags: ['Public: Membership Plans'],
         parameters: [
             new OA\Parameter(
                 name: 'id',
