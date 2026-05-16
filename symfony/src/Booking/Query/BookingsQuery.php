@@ -79,16 +79,17 @@ final readonly class BookingsQuery
         $qb->innerJoin('b.training', 't')
             ->innerJoin('t.trainerWorkTime', 'w')
             ->innerJoin("b.payment", 'p')
-            ->innerJoin("p.trainer", "trainer");
+            ->innerJoin("p.trainer", "trainer")
+            ->innerJoin('b.client', 'c');
 
         if (!$isCount) {
-            $qb->addSelect('p', 'trainer', 't', 'w')
+            $qb->addSelect('p', 'trainer', 't', 'w', 'c')
                 ->innerJoin("trainer.trainingType", 'type')
                 ->addSelect('type');
         }
 
         if ($dto->client) {
-            $qb->andWhere('b.client = :client')
+            $qb->andWhere('c = :client')
                 ->setParameter('client', $dto->client);
         }
 

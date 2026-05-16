@@ -183,8 +183,8 @@ final class TrainerWorkTimeController extends AbstractController
      * @throws Throwable
      * @throws DateMalformedIntervalStringException
      */
-    #[Route('/api/worktime/{id}/', methods: ['PUT', 'PATCH'], format: 'json')]
-    #[OA\Put(
+    #[Route('/api/worktime/{id}/', methods: ['PATCH'], format: 'json')]
+    #[OA\Patch(
         operationId: 'updateTrainerWorkTime',
         summary: 'Update existing work time slot.',
         requestBody: new OA\RequestBody(

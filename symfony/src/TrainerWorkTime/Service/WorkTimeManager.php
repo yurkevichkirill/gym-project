@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\TrainerWorkTime\Service;
 
-use App\Exception\DateTimeAlreadyTakenException;
+use App\Booking\Exception\DateTimeAlreadyTakenException;
 use App\Trainer\Entity\Trainer;
 use App\TrainerWorkTime\DTO\CreateWorkTimeRequest;
 use App\TrainerWorkTime\DTO\UpdateWorkTimeRequest;

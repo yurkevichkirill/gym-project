@@ -54,8 +54,8 @@ final class TrainerController extends AbstractController
         );
     }
 
-    #[Route('/api/trainer/me/', methods: ['PUT', 'PATCH'], format: 'json')]
-    #[OA\Put(
+    #[Route('/api/trainer/me/', methods: ['PATCH'], format: 'json')]
+    #[OA\Patch(
         operationId: 'updateTrainerMe',
         summary: 'Update current trainer profile.',
         requestBody: new OA\RequestBody(

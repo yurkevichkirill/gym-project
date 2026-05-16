@@ -1,16 +1,22 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Controller\Admin;
 
+use App\Booking\Enum\BookingStatusEnum;
+use App\Booking\Exception\InvalidBookingStatusException;
 use App\Booking\Service\BookingCancellationService;
 use App\Response\CollectionResponse;
+use App\Response\DTO\AbstractCollectionResponseDTO;
+use App\Response\DTO\AbstractItemResponseDTO;
+use App\Response\DTO\ErrorResponseDTO;
 use App\Response\ItemResponse;
 use App\Response\NoContentResponse;
-use App\Trainer\Entity\Trainer;
+use App\Training\DTO\ResolvedTrainingsRequestDTO;
 use App\Training\DTO\TrainingResponse;
 use App\Training\DTO\TrainingUpdateRequest;
 use App\Training\Entity\Training;
-use App\Training\Factory\GetTrainingsFactory;
 use App\Training\Mapper\TrainingMapperInterface;
 use App\Training\Query\TrainingsQuery;
 use App\Training\Service\TrainingManager;
@@ -20,9 +26,9 @@ use Nelmio\ApiDocBundle\Attribute\Model;
 use OpenApi\Attributes as OA;
 use Psr\Cache\InvalidArgumentException;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
@@ -33,6 +39,7 @@ final class TrainingController extends AbstractController
 {
     /**
      * @throws InvalidArgumentException
+     * @throws BadRequestHttpException
      */
     #[Route('/api/trainer/trainings/', methods: ['GET'], format: 'json')]
     #[OA\Get(
@@ -41,7 +48,8 @@ final class TrainingController extends AbstractController
         tags: ['Admin: Training'],
         parameters: [
             new OA\Parameter(name: 'clientId', in: 'query', schema: new OA\Schema(type: 'integer')),
-            new OA\Parameter(name: 'status', in: 'query', schema: new OA\Schema(type: 'string', example: 'scheduled')),
+            new OA\Parameter(name: 'trainerId', in: 'query', schema: new OA\Schema(type: 'integer')),
+            new OA\Parameter(name: 'status', in: 'query', schema: new OA\Schema(type: 'string', enum: BookingStatusEnum::class)),
             new OA\Parameter(name: 'date', in: 'query', schema: new OA\Schema(type: 'string', format: 'date')),
             new OA\Parameter(name: 'startTime', in: 'query', schema: new OA\Schema(type: 'string', format: 'time')),
             new OA\Parameter(name: 'durationMinutes', in: 'query', schema: new OA\Schema(type: 'integer')),
@@ -53,80 +61,54 @@ final class TrainingController extends AbstractController
         responses: [
             new OA\Response(
                 response: 200,
-                description: 'Success',
+                description: 'List of trainings',
                 content: new OA\JsonContent(
-                    properties: [
-                        new OA\Property(property: 'items', type: 'array', items: new OA\Items(ref: new Model(type: TrainingResponse::class))),
-                        new OA\Property(property: 'total', type: 'integer'),
-                        new OA\Property(property: 'page', type: 'integer'),
-                        new OA\Property(property: 'limit', type: 'integer'),
+                    allOf: [
+                        new OA\Schema(ref: new Model(type: AbstractCollectionResponseDTO::class)),
+                        new OA\Schema(
+                            properties: [
+                                new OA\Property(
+                                    property: 'data',
+                                    type: 'array',
+                                    items: new OA\Items(ref: new Model(type: TrainingResponse::class))
+                                )
+                            ]
+                        )
                     ]
                 )
             ),
-            new OA\Response(response: 401, description: 'Unauthorized')
+            new OA\Response(
+                response: 400,
+                description: 'Invalid query parameters',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
+            ),
+            new OA\Response(
+                response: 401,
+                description: 'Unauthorized',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
+            ),
+            new OA\Response(
+                response: 403,
+                description: 'Forbidden (Insufficient admin rights)',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
+            )
         ]
     )]
     #[IsGranted('ROLE_ADMIN')]
     public function getAll(
-        TrainingMapperInterface $mapper,
+        ResolvedTrainingsRequestDTO $resolvedDto,
         TrainingsQuery $handler,
-        Request $request,
-        GetTrainingsFactory $factory,
     ): CollectionResponse {
-        $queryDto = $factory->fromRequest($request);
-        $trainings = $handler->handle($queryDto);
+        $parsedSort = $handler->getParsedSort($resolvedDto);
+
+        $cachedData = $handler->getCachedData($resolvedDto, $parsedSort);
 
         return new CollectionResponse(
-            array_map(fn ($training) => $mapper->map($training), $trainings),
-            $queryDto->page,
-            $queryDto->limit,
-            $handler->getTotal($queryDto->filter),
-            $queryDto->sort,
-            Response::HTTP_OK,
-        );
-    }
-
-    /**
-     * @throws InvalidArgumentException
-     */
-    #[Route('/api/trainer/{id}/trainings/', methods: ['GET'], format: 'json')]
-    #[OA\Get(
-        operationId: 'adminGetTrainerTrainings',
-        summary: 'Get trainings for a specific trainer (Admin).',
-        tags: ['Admin: Training'],
-        parameters: [
-            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'integer')),
-            new OA\Parameter(name: 'status', in: 'query', schema: new OA\Schema(type: 'string', example: 'scheduled')),
-            new OA\Parameter(name: 'page', in: 'query', schema: new OA\Schema(type: 'integer', default: 1)),
-        ],
-        responses: [
-            new OA\Response(
-                response: 200,
-                description: 'Trainer trainings list',
-                content: new OA\JsonContent(properties: [
-                    new OA\Property(property: 'items', type: 'array', items: new OA\Items(ref: new Model(type: TrainingResponse::class)))
-                ])
-            ),
-            new OA\Response(response: 404, description: 'Trainer not found')
-        ]
-    )]
-    #[IsGranted('ROLE_ADMIN')]
-    public function getAllByTrainer(
-        TrainingMapperInterface $mapper,
-        Trainer $trainer,
-        TrainingsQuery $handler,
-        Request $request,
-        GetTrainingsFactory $factory,
-    ): CollectionResponse {
-        $queryDto = $factory->fromRequest($request, $trainer);
-        $trainings = $handler->handle($queryDto);
-
-        return new CollectionResponse(
-            array_map(fn ($training) => $mapper->map($training), $trainings),
-            $queryDto->page,
-            $queryDto->limit,
-            $handler->getTotal($queryDto->filter),
-            $queryDto->sort,
+            $cachedData['items'],
+            $resolvedDto->page,
+            $resolvedDto->limit,
+            $cachedData['total'],
+            $parsedSort,
             Response::HTTP_OK,
         );
     }
@@ -137,8 +119,8 @@ final class TrainingController extends AbstractController
      * @throws Throwable
      * @throws DateMalformedIntervalStringException
      */
-    #[Route('/api/admin/trainings/{id}/', methods: ['PUT', 'PATCH'], format: 'json')]
-    #[OA\Put(
+    #[Route('/api/admin/trainings/{id}/', methods: ['PATCH'], format: 'json')]
+    #[OA\Patch(
         operationId: 'adminUpdateTraining',
         summary: 'Update/Reschedule training details (Admin).',
         requestBody: new OA\RequestBody(
@@ -147,30 +129,56 @@ final class TrainingController extends AbstractController
         ),
         tags: ['Admin: Training'],
         parameters: [
-            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'integer'))
+            new OA\Parameter(name: 'id', description: 'Training ID', in: 'path', required: true, schema: new OA\Schema(type: 'integer'))
         ],
         responses: [
             new OA\Response(
                 response: 200,
                 description: 'Training updated successfully',
-                content: new OA\JsonContent(ref: new Model(type: TrainingResponse::class))
+                content: new OA\JsonContent(
+                    allOf: [
+                        new OA\Schema(ref: new Model(type: AbstractItemResponseDTO::class)),
+                        new OA\Schema(
+                            properties: [
+                                new OA\Property(
+                                    property: 'data',
+                                    ref: new Model(type: TrainingResponse::class)
+                                )
+                            ]
+                        )
+                    ]
+                )
             ),
             new OA\Response(
                 response: 400,
-                description: 'Bad Request - Date in past or rescheduling too late',
-                content: new OA\JsonContent(properties: [
-                    new OA\Property(property: 'message', type: 'string', example: 'The minimum reschedule date must be no earlier than tomorrow.')
-                ])
+                description: 'Bad Request (e.g., Date in past or rescheduling too late)',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
             ),
-            new OA\Response(response: 404, description: 'Training or trainer work time not found'),
+            new OA\Response(
+                response: 401,
+                description: 'Unauthorized',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
+            ),
+            new OA\Response(
+                response: 403,
+                description: 'Forbidden (Insufficient admin rights)',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
+            ),
+            new OA\Response(
+                response: 404,
+                description: 'Training or trainer work time not found',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
+            ),
             new OA\Response(
                 response: 409,
-                description: 'Conflict - Training is not in scheduled state',
-                content: new OA\JsonContent(properties: [
-                    new OA\Property(property: 'message', type: 'string', example: 'Only scheduled trainings can be updated')
-                ])
+                description: 'Conflict (e.g., Training is not in scheduled state)',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
             ),
-            new OA\Response(response: 422, description: 'Validation failed')
+            new OA\Response(
+                response: 422,
+                description: 'Validation failed (Invalid input data)',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
+            )
         ]
     )]
     #[IsGranted('ROLE_ADMIN')]
@@ -188,18 +196,53 @@ final class TrainingController extends AbstractController
         );
     }
 
+    /**
+     * @throws InvalidBookingStatusException
+     */
     #[Route('/api/admin/trainings/{id}/cancel/', methods: ['POST'], format: 'json')]
     #[OA\Post(
         operationId: 'adminCancelTraining',
         summary: 'Cancel a training (Admin).',
         tags: ['Admin: Training'],
         parameters: [
-            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'integer'))
+            new OA\Parameter(
+                name: 'id',
+                description: 'Training ID',
+                in: 'path',
+                required: true,
+                schema: new OA\Schema(type: 'integer')
+            )
         ],
         responses: [
-            new OA\Response(response: 204, description: 'Training cancelled successfully'),
-            new OA\Response(response: 403, description: 'Access Denied'),
-            new OA\Response(response: 404, description: 'Training not found')
+            new OA\Response(
+                response: 204,
+                description: 'Training cancelled successfully'
+            ),
+            new OA\Response(
+                response: 400,
+                description: 'Bad Request (e.g., Training is already cancelled or completed)',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
+            ),
+            new OA\Response(
+                response: 401,
+                description: 'Unauthorized',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
+            ),
+            new OA\Response(
+                response: 403,
+                description: 'Forbidden (Insufficient admin rights)',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
+            ),
+            new OA\Response(
+                response: 404,
+                description: 'Training not found (or invalid ID format)',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
+            ),
+            new OA\Response(
+                response: 409,
+                description: 'Conflict (e.g., Training is not in valid state)',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
+            ),
         ]
     )]
     #[IsGranted('ROLE_ADMIN')]
@@ -223,27 +266,56 @@ final class TrainingController extends AbstractController
         summary: 'Mark training as completed (Admin).',
         tags: ['Admin: Training'],
         parameters: [
-            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'integer'))
+            new OA\Parameter(
+                name: 'id',
+                description: 'Training ID',
+                in: 'path',
+                required: true,
+                schema: new OA\Schema(type: 'integer')
+            )
         ],
         responses: [
             new OA\Response(
                 response: 200,
                 description: 'Training completed successfully',
-                content: new OA\JsonContent(ref: new Model(type: TrainingResponse::class))
+                content: new OA\JsonContent(
+                    allOf: [
+                        new OA\Schema(ref: new Model(type: AbstractItemResponseDTO::class)),
+                        new OA\Schema(
+                            properties: [
+                                new OA\Property(
+                                    property: 'data',
+                                    ref: new Model(type: TrainingResponse::class)
+                                )
+                            ]
+                        )
+                    ]
+                )
             ),
             new OA\Response(
                 response: 400,
-                description: 'Bad Request - Training has not happened yet',
-                content: new OA\JsonContent(properties: [
-                    new OA\Property(property: 'message', type: 'string', example: 'Training has not happened yet')
-                ])
+                description: 'Bad Request (e.g., Training has not happened yet)',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
+            ),
+            new OA\Response(
+                response: 401,
+                description: 'Unauthorized',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
+            ),
+            new OA\Response(
+                response: 403,
+                description: 'Forbidden (Insufficient admin rights)',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
+            ),
+            new OA\Response(
+                response: 404,
+                description: 'Training not found (or invalid ID format)',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
             ),
             new OA\Response(
                 response: 409,
-                description: 'Conflict - Training state is not scheduled',
-                content: new OA\JsonContent(properties: [
-                    new OA\Property(property: 'message', type: 'string', example: 'Only scheduled trainings can be completed')
-                ])
+                description: 'Conflict (e.g., Training state is not scheduled)',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
             )
         ]
     )]

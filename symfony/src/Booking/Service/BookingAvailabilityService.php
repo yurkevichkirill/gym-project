@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace App\Booking\Service;
 
 use App\Booking\Enum\BookingStatusEnum;
+use App\Booking\Exception\DateRescheduledException;
+use App\Booking\Exception\DateTimeAlreadyTakenException;
 use App\Booking\Repository\BookingRepository;
 use App\Client\Entity\Client;
-use App\Exception\DateRescheduledException;
-use App\Exception\DateTimeAlreadyTakenException;
 use App\Exception\NoActiveMembershipException;
 use App\Membership\Repository\MembershipRepository;
 use App\Trainer\Entity\Trainer;
@@ -103,7 +103,9 @@ final readonly class BookingAvailabilityService
             throw new BadRequestHttpException('Cannot book training in the past');
         }
 
-        if ($newDate < new DateTimeImmutable()->add(new DateInterval('P' . 1 . 'D'))) {
+        $tomorrow = new DateTimeImmutable('tomorrow');
+
+        if ($newDate->setTime(0, 0, 0) < $tomorrow) {
             throw new DateRescheduledException("The minimum reschedule date must be no earlier than tomorrow.");
         }
 
@@ -126,6 +128,10 @@ final readonly class BookingAvailabilityService
      */
     public function checkCompleteBookingAvailability(Training $training): void
     {
+        if ($training->getBooking()->getStatus() !== BookingStatusEnum::SCHEDULED) {
+            throw new ConflictHttpException("Only scheduled trainings can be completed");
+        }
+
         $fullDate = $training->getTrainerWorkTime()->getDate()->setTime(
             (int) $training->getStartTime()->format('H'),
             (int) $training->getStartTime()->format('i'),
@@ -136,10 +142,6 @@ final readonly class BookingAvailabilityService
 
         if ($endDateTime > new DateTimeImmutable()) {
             throw new BadRequestHttpException('Training has not happened yet');
-        }
-
-        if ($training->getBooking()->getStatus() !== BookingStatusEnum::SCHEDULED) {
-            throw new ConflictHttpException("Only scheduled trainings can be completed");
         }
     }
 

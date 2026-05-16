@@ -4,15 +4,17 @@ declare(strict_types=1);
 
 namespace App\Training\Query;
 
-use App\Training\DTO\GetTrainings;
-use App\Training\DTO\TrainingFilter;
+use App\Request\SortParser;
+use App\Training\DTO\ResolvedTrainingsRequestDTO;
+use App\Training\Mapper\TrainingMapperInterface;
 use App\Training\Repository\TrainingRepository;
 use Doctrine\ORM\QueryBuilder;
 use Psr\Cache\InvalidArgumentException;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Contracts\Cache\ItemInterface;
 use Symfony\Contracts\Cache\TagAwareCacheInterface;
 
-class TrainingsQuery
+final readonly class TrainingsQuery
 {
     private const array SORT_MAP = [
         'clientId' => 'c.id',
@@ -22,27 +24,36 @@ class TrainingsQuery
     ];
 
     public function __construct(
-        private readonly TrainingRepository $trainingRepo,
-        private readonly TagAwareCacheInterface $gymCache
+        private TrainingRepository $trainingRepo,
+        private TrainingMapperInterface $mapper,
+        private TagAwareCacheInterface $cache
     )
     {}
 
     /**
      * @throws InvalidArgumentException
      */
-    public function handle(GetTrainings $dto): array
+    public function getCachedData(ResolvedTrainingsRequestDTO $dto, array $parsedSort): array
     {
         $cacheKey = $this->generateCacheKey($dto);
 
-        return $this->gymCache->get($cacheKey, function (ItemInterface $item, bool $save) use ($dto): array {
-
+        return $this->cache->get($cacheKey, function (ItemInterface $item, bool $save) use ($dto, $parsedSort): array {
             $item->expiresAfter(3600);
 
-            $qb = $this->createQuery($dto->filter);
+            if ($dto->trainer !== null) {
+                $item->tag(['trainings_list_' . $dto->trainer->getId()]);
+            } else {
+                $item->tag(['trainings_list_all']);
+            }
+
+            $qb = $this->createQuery($dto);
+
+            $totalQb = $this->createQuery($dto, true);
+            $total = (int) $totalQb->select('COUNT(t.id)')->getQuery()->getSingleScalarResult();
 
             $offset = ($dto->page - 1) * $dto->limit;
 
-            foreach ($dto->sort as $alias => $order) {
+            foreach ($parsedSort as $alias => $order) {
                 $field = self::SORT_MAP[$alias] ?? "t.$alias";
                 $qb->addOrderBy($field, $order);
             }
@@ -50,88 +61,89 @@ class TrainingsQuery
             $qb->setFirstResult($offset)
                 ->setMaxResults($dto->limit);
 
-            if ($dto->filter->trainer !== null) {
-                $item->tag(['trainings_list_' . $dto->filter->trainer->getId()]);
-            } else {
-                $item->tag(['trainings_list_all']);
-            }
+            $trainings = $qb->getQuery()->getResult();
 
-            return $qb->getQuery()->getResult();
+            $items = array_map(fn ($training) => $this->mapper->map($training), $trainings);
+
+            return [
+                'items' => $items,
+                'total' => $total,
+            ];
         });
     }
 
-    public function getTotal(TrainingFilter $filter): int
-    {
-        return (int) $this->createQuery($filter, true)
-            ->select('COUNT(t.id)')
-            ->getQuery()
-            ->getSingleScalarResult();
-    }
-
-    private function createQuery(TrainingFilter $filter, bool $isCount = false): QueryBuilder
+    private function createQuery(ResolvedTrainingsRequestDTO $dto, bool $isCount = false): QueryBuilder
     {
         $qb = $this->trainingRepo->createQueryBuilder('t')
             ->innerJoin('t.booking', 'b')
             ->innerJoin('t.trainerWorkTime', 'w')
-            ->innerJoin('b.payment', 'p');
+            ->innerJoin('b.payment', 'p')
+            ->innerJoin("b.client", 'c');
 
         if (!$isCount) {
-            $qb->addSelect('b', 'w', 'p');
+            $qb->addSelect('b', 'w', 'p', 'c');
         }
 
-        if ($filter->trainer) {
+        if ($dto->trainer) {
             $qb->andWhere('w.trainer = :trainer')
-                ->setParameter('trainer', $filter->trainer);
+                ->setParameter('trainer', $dto->trainer);
         }
 
-        if ($filter->client) {
-            $qb->andWhere('b.client = :client')
-                ->setParameter('client', $filter->client);
+        if ($dto->client) {
+            $qb->andWhere('c = :client')
+                ->setParameter('client', $dto->client);
         }
 
-        if ($filter->status !== null) {
+        if ($dto->status !== null) {
             $qb->andWhere('b.status = :status')
-                ->setParameter('status', $filter->status);
+                ->setParameter('status', $dto->status);
         }
 
-        if ($filter->date !== null) {
+        if ($dto->date !== null) {
             $qb->andWhere('w.date = :date')
-                ->setParameter('date', $filter->date);
+                ->setParameter('date', $dto->date);
         }
 
-        if ($filter->startTime !== null) {
+        if ($dto->startTime !== null) {
             $qb->andWhere('t.startTime = :startTime')
-                ->setParameter('startTime', $filter->startTime);
+                ->setParameter('startTime', $dto->startTime);
         }
 
-        if ($filter->durationMinutes !== null) {
+        if ($dto->durationMinutes !== null) {
             $qb->andWhere('t.durationMinutes = :durationMinutes')
-                ->setParameter('durationMinutes', $filter->durationMinutes);
+                ->setParameter('durationMinutes', $dto->durationMinutes);
         }
 
-        if ($filter->isBusy !== null) {
+        if ($dto->isBusy !== null) {
             $qb->andWhere('t.isBusy = :isBusy')
-                ->setParameter('isBusy', $filter->isBusy);
+                ->setParameter('isBusy', $dto->isBusy);
         }
 
         return $qb;
     }
 
-    private function generateCacheKey(GetTrainings $query): string
-    {
-        $f = $query->filter;
 
+    /**
+     * @throws BadRequestHttpException
+     */
+    public function getParsedSort(ResolvedTrainingsRequestDTO $dto): array
+    {
+        return SortParser::parseSort($dto->sort, ResolvedTrainingsRequestDTO::ALLOWED_SORT_FIELDS);
+    }
+
+    private function generateCacheKey(ResolvedTrainingsRequestDTO $dto): string
+    {
         $params = [
-            'sort' => $query->sort,
-            'page' => $query->page,
-            'limit' => $query->limit,
-            'trainerId' => $f->trainer?->getId(),
-            'clientId' => $f->client?->getId(),
-            'status' => $f->status,
-            'date' => $f->date?->format('Y-m-d'),
-            'startTime' => $f->startTime?->format('H:i:s'),
-            'durationMinutes' => $f->durationMinutes,
-            'isBusy' => $f->isBusy,
+            'sort' => $dto->sort,
+            'page' => $dto->page,
+            'limit' => $dto->limit,
+            'trainerId' => $dto->trainer?->getId(),
+            'clientId' => $dto->client?->getId(),
+            'status' => $dto->status,
+            'date' => $dto->date?->format('Y-m-d'),
+            'startTime' => $dto->startTime?->format('H:i:s'),
+            'durationMinutes' => $dto->durationMinutes,
+            'isBusy' => $dto->isBusy,
         ];
 
         return 'trainings_' . md5(json_encode($params));
