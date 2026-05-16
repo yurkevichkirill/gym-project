@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Payment\Service;
 
-use App\Exception\InvalidPaymentStatusException;
 use App\Payment\Entity\Payment;
 use App\Payment\Enum\PaymentStatusEnum;
+use App\Payment\Exception\InvalidPaymentStatusException;
 use DateTimeImmutable;
 
 final readonly class PaymentLifecycleService

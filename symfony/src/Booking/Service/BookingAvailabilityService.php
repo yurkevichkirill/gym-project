@@ -9,7 +9,7 @@ use App\Booking\Exception\DateRescheduledException;
 use App\Booking\Exception\DateTimeAlreadyTakenException;
 use App\Booking\Repository\BookingRepository;
 use App\Client\Entity\Client;
-use App\Exception\NoActiveMembershipException;
+use App\Membership\Exception\NoActiveMembershipException;
 use App\Membership\Repository\MembershipRepository;
 use App\Trainer\Entity\Trainer;
 use App\TrainerWorkTime\Entity\TrainerWorkTime;

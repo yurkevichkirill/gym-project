@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Exception;
+namespace App\Payment\Exception;
 
 use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 use Throwable;

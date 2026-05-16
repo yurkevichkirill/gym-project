@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Client\Service;
 
 use App\Admin\Entity\Admin;
-use App\Booking\Service\BookingAvailabilityService;
 use App\Client\DTO\AdminUpdateClientRequest;
 use App\Client\DTO\ClientActivateRequest;
 use App\Client\DTO\CreateClientRequest;
@@ -13,8 +12,8 @@ use App\Client\DTO\TopUpBalanceRequest;
 use App\Client\DTO\UpdateClientRequest;
 use App\Client\Entity\Client;
 use App\Client\Repository\ClientRepository;
-use App\Exception\NoActiveMembershipException;
 use App\Membership\Entity\Membership;
+use App\Membership\Exception\NoActiveMembershipException;
 use App\Membership\Service\VisitingService;
 use App\Payment\Entity\Payment;
 use App\Payment\Service\PaymentSettlementService;

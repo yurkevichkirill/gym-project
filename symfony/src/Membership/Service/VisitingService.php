@@ -6,9 +6,9 @@ namespace App\Membership\Service;
 
 use App\Booking\Service\BookingAvailabilityService;
 use App\Client\Entity\Client;
-use App\Exception\NoActiveMembershipException;
 use App\Membership\Entity\Membership;
 use App\Membership\Enum\MembershipStatusEnum;
+use App\Membership\Exception\NoActiveMembershipException;
 use App\Membership\Repository\MembershipRepository;
 use DateTimeImmutable;
 use Psr\Log\LoggerInterface;
