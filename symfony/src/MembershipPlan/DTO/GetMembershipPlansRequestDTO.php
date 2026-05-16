@@ -11,8 +11,6 @@ final readonly class GetMembershipPlansRequestDTO
     const array ALLOWED_SORT_FIELDS = ['durationDays', 'price', 'sessionLimit'];
 
     public function __construct(
-        public ?string $name = null,
-
         #[Assert\GreaterThanOrEqual(0)]
         public ?int $minDurationDays = null,
 
@@ -33,7 +31,7 @@ final readonly class GetMembershipPlansRequestDTO
 
         public ?bool $isUnlimited = null,
 
-        public string $sort = 'bookedAt:ASC',
+        public string $sort = 'price:ASC',
 
         #[Assert\Positive]
         public int $page = 1,

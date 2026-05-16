@@ -37,7 +37,7 @@ final readonly class MembershipPlansQuery
             $qb = $this->createQuery($dto);
 
             $totalQb = clone $qb;
-            $total = (int) $totalQb->select('COUNT(b.id)')->getQuery()->getSingleScalarResult();
+            $total = (int) $totalQb->select('COUNT(m.id)')->getQuery()->getSingleScalarResult();
 
             foreach ($parsedSort as $field => $order) {
                 $qb->addOrderBy("m.$field", $order);
