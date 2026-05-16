@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace App\TrainingType\Query;
 
-use App\TrainingType\DTO\GetTrainingTypes;
+use App\Request\SortParser;
+use App\TrainingType\DTO\GetTrainingTypesRequestDTO;
+use App\TrainingType\Mapper\TrainingTypeMapperInterface;
 use App\TrainingType\Repository\TrainingTypeRepository;
 use Psr\Cache\InvalidArgumentException;
-use Symfony\Component\Cache\CacheItem;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Contracts\Cache\ItemInterface;
 use Symfony\Contracts\Cache\TagAwareCacheInterface;
 
@@ -15,43 +17,54 @@ final readonly class TrainingTypeQuery
 {
     public function __construct(
         private TrainingTypeRepository $repo,
+        private TrainingTypeMapperInterface $mapper,
         private TagAwareCacheInterface $cache
     ) {}
 
     /**
      * @throws InvalidArgumentException
      */
-    public function handle(GetTrainingTypes $dto): array
+    public function getCachedData(GetTrainingTypesRequestDTO $dto, array $parsedSort): array
     {
         $cacheKey = $this->generateCacheKey($dto);
 
-        return $this->cache->get($cacheKey, function (ItemInterface $item, bool $save) use ($dto) {
+        return $this->cache->get($cacheKey, function (ItemInterface $item, bool $save) use ($dto, $parsedSort) {
             $item->expiresAfter(3600);
+
+            $item->tag(['training_types_list']);
 
             $qb = $this->repo->createQueryBuilder('t');
 
-            foreach ($dto->sort as $field => $order) {
+            $totalQb = clone $qb;
+            $total = (int) $totalQb->select('COUNT(t.id)')->getQuery()->getSingleScalarResult();
+
+            foreach ($parsedSort as $field => $order) {
                 $qb->addOrderBy("t.$field", $order);
             }
 
             $qb->setFirstResult(($dto->page - 1) * $dto->limit)
                 ->setMaxResults($dto->limit);
 
-            $item->tag(['training_types_list']);
+            $trainingTypes = $qb->getQuery()->getResult();
 
-            return $qb->getQuery()->getResult();
+            $items = array_map(fn ($trainingType) => $this->mapper->map($trainingType), $trainingTypes);
+
+            return [
+                'items' => $items,
+                'total' => $total,
+            ];
         });
     }
 
-    public function getTotal(): int
+    /**
+     * @throws BadRequestHttpException
+     */
+    public function getParsedSort(GetTrainingTypesRequestDTO $dto): array
     {
-        return (int) $this->repo->createQueryBuilder('t')
-            ->select('COUNT(t.id)')
-            ->getQuery()
-            ->getSingleScalarResult();
+        return SortParser::parseSort($dto->sort, GetTrainingTypesRequestDTO::ALLOWED_SORT_FIELDS);
     }
 
-    private function generateCacheKey(GetTrainingTypes $dto): string
+    private function generateCacheKey(GetTrainingTypesRequestDTO $dto): string
     {
         return 'training_types_' . md5(serialize([
                 'sort' => $dto->sort,

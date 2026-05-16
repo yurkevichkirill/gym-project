@@ -1,7 +1,11 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Controller\Admin;
 
+use App\Response\DTO\AbstractItemResponseDTO;
+use App\Response\DTO\ErrorResponseDTO;
 use App\Response\ItemResponse;
 use App\Response\NoContentResponse;
 use App\TrainingType\DTO\CreateTrainingTypeRequest;
@@ -32,12 +36,36 @@ final class TrainingTypeController extends AbstractController
         responses: [
             new OA\Response(
                 response: 201,
-                description: 'Training type created successfully.',
-                content: new OA\JsonContent(ref: new Model(type: TrainingTypeResponseDto::class))
+                description: 'Training type created successfully',
+                content: new OA\JsonContent(
+                    allOf: [
+                        new OA\Schema(ref: new Model(type: AbstractItemResponseDTO::class)),
+                        new OA\Schema(
+                            properties: [
+                                new OA\Property(
+                                    property: 'data',
+                                    ref: new Model(type: TrainingTypeResponseDto::class)
+                                )
+                            ]
+                        )
+                    ]
+                )
             ),
-            new OA\Response(response: 401, description: 'Unauthorized'),
-            new OA\Response(response: 403, description: 'Forbidden'),
-            new OA\Response(response: 422, description: 'Validation failed')
+            new OA\Response(
+                response: 401,
+                description: 'Unauthorized',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
+            ),
+            new OA\Response(
+                response: 403,
+                description: 'Forbidden (Insufficient admin rights)',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
+            ),
+            new OA\Response(
+                response: 422,
+                description: 'Validation failed (Invalid input data)',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
+            )
         ]
     )]
     #[IsGranted('ROLE_ADMIN')]
@@ -54,8 +82,8 @@ final class TrainingTypeController extends AbstractController
         );
     }
 
-    #[Route('/api/training/types/{id}/', methods: ['PATCH', 'PUT'], format: 'json')]
-    #[OA\Put(
+    #[Route('/api/training/types/{id}/', methods: ['PATCH'], format: 'json')]
+    #[OA\Patch(
         operationId: 'adminUpdateTrainingType',
         summary: 'Update an existing training type (Admin).',
         requestBody: new OA\RequestBody(
@@ -66,7 +94,7 @@ final class TrainingTypeController extends AbstractController
         parameters: [
             new OA\Parameter(
                 name: 'id',
-                description: 'Training Type ID',
+                description: 'Training type ID',
                 in: 'path',
                 required: true,
                 schema: new OA\Schema(type: 'integer')
@@ -74,13 +102,47 @@ final class TrainingTypeController extends AbstractController
         ],
         responses: [
             new OA\Response(
-                response: 201,
-                description: 'Training type updated successfully.',
-                content: new OA\JsonContent(ref: new Model(type: TrainingTypeResponseDto::class))
+                response: 200,
+                description: 'Training type updated successfully',
+                content: new OA\JsonContent(
+                    allOf: [
+                        new OA\Schema(ref: new Model(type: AbstractItemResponseDTO::class)),
+                        new OA\Schema(
+                            properties: [
+                                new OA\Property(
+                                    property: 'data',
+                                    ref: new Model(type: TrainingTypeResponseDto::class)
+                                )
+                            ]
+                        )
+                    ]
+                )
             ),
-            new OA\Response(response: 403, description: 'Forbidden'),
-            new OA\Response(response: 404, description: 'Training type not found'),
-            new OA\Response(response: 422, description: 'Validation failed')
+            new OA\Response(
+                response: 400,
+                description: 'Bad Request',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
+            ),
+            new OA\Response(
+                response: 401,
+                description: 'Unauthorized',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
+            ),
+            new OA\Response(
+                response: 403,
+                description: 'Forbidden (Insufficient admin rights)',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
+            ),
+            new OA\Response(
+                response: 404,
+                description: 'Training type not found (or invalid ID format)',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
+            ),
+            new OA\Response(
+                response: 422,
+                description: 'Validation failed (Invalid input data)',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
+            )
         ]
     )]
     #[IsGranted('ROLE_ADMIN')]
@@ -94,7 +156,7 @@ final class TrainingTypeController extends AbstractController
 
         return new ItemResponse(
             data: $responseDto,
-            status: Response::HTTP_CREATED,
+            status: Response::HTTP_OK,
         );
     }
 
@@ -106,6 +168,7 @@ final class TrainingTypeController extends AbstractController
         parameters: [
             new OA\Parameter(
                 name: 'id',
+                description: 'Training type ID',
                 in: 'path',
                 required: true,
                 schema: new OA\Schema(type: 'integer')
@@ -114,16 +177,23 @@ final class TrainingTypeController extends AbstractController
         responses: [
             new OA\Response(
                 response: 204,
-                description: 'Training type deleted successfully.'
+                description: 'Training type deleted successfully'
             ),
-            new OA\Response(response: 401, description: 'Unauthorized'),
             new OA\Response(
-                response: 409,
-                description: 'Conflict - Training type is currently assigned to trainers or sessions.',
-                content: new OA\JsonContent(properties: [
-                    new OA\Property(property: 'message', type: 'string', example: 'Cannot remove training type with active trainers')
-                ])
-            )
+                response: 401,
+                description: 'Unauthorized',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
+            ),
+            new OA\Response(
+                response: 403,
+                description: 'Forbidden (Insufficient admin rights)',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
+            ),
+            new OA\Response(
+                response: 404,
+                description: 'Training type not found (or invalid ID format)',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
+            ),
         ]
     )]
     #[IsGranted('ROLE_ADMIN')]
