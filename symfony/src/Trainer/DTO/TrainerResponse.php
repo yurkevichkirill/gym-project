@@ -5,19 +5,19 @@ declare(strict_types=1);
 namespace App\Trainer\DTO;
 
 use App\Trainer\Entity\Trainer;
-use App\TrainingType\DTO\TrainingTypeResponseDto;
+use App\TrainingType\DTO\TrainingTypeResponseDTO;
 
 final readonly class TrainerResponse
 {
     public function __construct(
-        public int    $id,
-        public string $firstName,
-        public string $lastName,
-        public TrainingTypeResponseDto    $trainingType,
-        public int $pricePerHour,
-        public string $photoUrl,
-        public ?string $education,
-        public ?string $about,
+        public int                     $id,
+        public string                  $firstName,
+        public string                  $lastName,
+        public TrainingTypeResponseDTO $trainingType,
+        public int                     $pricePerHour,
+        public string                  $photoUrl,
+        public ?string                 $education,
+        public ?string                 $about,
     )
     {}
 
@@ -27,7 +27,7 @@ final readonly class TrainerResponse
             id: $trainer->getId(),
             firstName: $trainer->getFirstName(),
             lastName: $trainer->getLastName(),
-            trainingType:  TrainingTypeResponseDto::fromEntity($trainer->getTrainingType()),
+            trainingType:  TrainingTypeResponseDTO::fromEntity($trainer->getTrainingType()),
             pricePerHour: $trainer->getPricePerHour(),
             photoUrl: $trainer->getPhotoUrl(),
             education: $trainer->getEducation(),

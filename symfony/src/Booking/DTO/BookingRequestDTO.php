@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Booking\DTO;
 
 use App\Booking\Validator\MultipleOf;
-use DateTimeImmutable;
 use Symfony\Component\Validator\Constraints as Assert;
 
 final readonly class BookingRequestDTO

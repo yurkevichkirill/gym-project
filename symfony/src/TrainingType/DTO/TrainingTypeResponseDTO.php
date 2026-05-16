@@ -6,7 +6,7 @@ namespace App\TrainingType\DTO;
 
 use App\TrainingType\Entity\TrainingType;
 
-final readonly class TrainingTypeResponseDto
+final readonly class TrainingTypeResponseDTO
 {
     public function __construct(
         public int $id,
