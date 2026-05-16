@@ -79,6 +79,11 @@ final class BookingController extends AbstractController
                 response: 401,
                 description: 'Unauthorized',
                 content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
+            ),
+            new OA\Response(
+                response: 403,
+                description: 'Forbidden',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
             )
         ]
     )]

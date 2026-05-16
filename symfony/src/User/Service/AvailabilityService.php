@@ -22,6 +22,16 @@ final readonly class AvailabilityService
     /**
      * @throws AccessDeniedHttpException
      */
+    public function ensureNotDeleted(User $user): void
+    {
+        if ($user->getDeletedAt() !== null) {
+            throw new AccessDeniedHttpException("User is deleted");
+        }
+    }
+
+    /**
+     * @throws AccessDeniedHttpException
+     */
     public function ensureActive(User $user): void
     {
         if (!$user->isActive()) {

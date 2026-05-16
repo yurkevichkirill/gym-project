@@ -1,7 +1,11 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Controller\Admin;
 
+use App\Response\DTO\AbstractItemResponseDTO;
+use App\Response\DTO\ErrorResponseDTO;
 use App\Response\ItemResponse;
 use App\Response\NoContentResponse;
 use App\Trainer\Entity\Trainer;
@@ -40,50 +44,59 @@ final class TrainerWorkTimeController extends AbstractController
         responses: [
             new OA\Response(
                 response: 201,
-                description: 'Work time created successfully.',
-                content: new OA\JsonContent(ref: new Model(type: WorkTimeResponse::class))
+                description: 'Work time created successfully',
+                content: new OA\JsonContent(
+                    allOf: [
+                        new OA\Schema(ref: new Model(type: AbstractItemResponseDTO::class)),
+                        new OA\Schema(
+                            properties: [
+                                new OA\Property(
+                                    property: 'data',
+                                    ref: new Model(type: WorkTimeResponse::class)
+                                )
+                            ]
+                        )
+                    ]
+                )
             ),
             new OA\Response(
                 response: 400,
-                description: 'Bad Request - Cannot create worktime in the past.',
-                content: new OA\JsonContent(
-                    properties: [
-                        new OA\Property(property: 'message', type: 'string', example: 'Cannot create worktime in the past'),
-                        new OA\Property(property: 'request_id', type: 'string', nullable: true)
-                    ]
-                )
+                description: 'Bad Request (e.g., Cannot create worktime in the past)',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
+            ),
+            new OA\Response(
+                response: 401,
+                description: 'Unauthorized',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
             ),
             new OA\Response(
                 response: 403,
-                description: 'Forbidden - Trainer is blocked.',
-                content: new OA\JsonContent(
-                    properties: [
-                        new OA\Property(property: 'message', type: 'string', example: 'User is blocked')
-                    ]
-                )
+                description: 'Forbidden (Trainer is blocked or insufficient admin rights)',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
             ),
             new OA\Response(
                 response: 404,
-                description: 'Trainer not found.'
+                description: 'Trainer not found',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
             ),
             new OA\Response(
                 response: 409,
-                description: 'Conflict - Worktime already exists for this date.',
-                content: new OA\JsonContent(
-                    properties: [
-                        new OA\Property(property: 'message', type: 'string', example: 'Trainer already have worktime in this date')
-                    ]
-                )
+                description: 'Conflict (Worktime already exists for this date)',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
             ),
-            new OA\Response(response: 422, description: 'Validation failed')
+            new OA\Response(
+                response: 422,
+                description: 'Validation failed (Invalid input data)',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
+            )
         ]
     )]
     #[IsGranted('ROLE_ADMIN')]
     public function create(
-        Trainer                                    $trainer,
+        Trainer $trainer,
         #[MapRequestPayload] CreateWorkTimeRequest $requestDto,
-        WorkTimeMapperInterface                    $mapper,
-        WorkTimeManager                            $manager,
+        WorkTimeMapperInterface $mapper,
+        WorkTimeManager $manager,
     ): ItemResponse {
         $responseDto = $mapper->map($manager->create($trainer, $requestDto));
 
@@ -96,8 +109,8 @@ final class TrainerWorkTimeController extends AbstractController
     /**
      * @throws Throwable
      */
-    #[Route('/api/admin/worktime/{id}/', methods: ['PUT', 'PATCH'], format: 'json')]
-    #[OA\Put(
+    #[Route('/api/admin/worktime/{id}/', methods: ['PATCH'], format: 'json')]
+    #[OA\Patch(
         operationId: 'adminUpdateWorkTime',
         summary: 'Update work time slot (Admin).',
         requestBody: new OA\RequestBody(
@@ -111,27 +124,51 @@ final class TrainerWorkTimeController extends AbstractController
         responses: [
             new OA\Response(
                 response: 200,
-                description: 'Work time updated successfully.',
-                content: new OA\JsonContent(ref: new Model(type: WorkTimeResponse::class))
-            ),
-            new OA\Response(
-                response: 403,
-                description: 'Forbidden - Access denied.'
-            ),
-            new OA\Response(
-                response: 404,
-                description: 'Work time slot not found.'
-            ),
-            new OA\Response(
-                response: 409,
-                description: 'Conflict - New interval intersects with existing trainings.',
+                description: 'Work time updated successfully',
                 content: new OA\JsonContent(
-                    properties: [
-                        new OA\Property(property: 'message', type: 'string', example: 'OurTrainer already have training in this time')
+                    allOf: [
+                        new OA\Schema(ref: new Model(type: AbstractItemResponseDTO::class)),
+                        new OA\Schema(
+                            properties: [
+                                new OA\Property(
+                                    property: 'data',
+                                    ref: new Model(type: WorkTimeResponse::class)
+                                )
+                            ]
+                        )
                     ]
                 )
             ),
-            new OA\Response(response: 422, description: 'Validation failed')
+            new OA\Response(
+                response: 400,
+                description: 'Bad Request (e.g., End time is before start time)',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
+            ),
+            new OA\Response(
+                response: 401,
+                description: 'Unauthorized',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
+            ),
+            new OA\Response(
+                response: 403,
+                description: 'Forbidden (Insufficient admin rights)',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
+            ),
+            new OA\Response(
+                response: 404,
+                description: 'Work time slot not found',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
+            ),
+            new OA\Response(
+                response: 409,
+                description: 'Conflict (New interval intersects with existing trainings)',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
+            ),
+            new OA\Response(
+                response: 422,
+                description: 'Validation failed (Invalid input data)',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
+            )
         ]
     )]
     #[IsGranted('ROLE_ADMIN')]
@@ -163,20 +200,27 @@ final class TrainerWorkTimeController extends AbstractController
         responses: [
             new OA\Response(
                 response: 204,
-                description: 'Work time slot removed.'
+                description: 'Work time slot removed successfully'
             ),
             new OA\Response(
                 response: 401,
-                description: 'Unauthorized.'
+                description: 'Unauthorized',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
+            ),
+            new OA\Response(
+                response: 403,
+                description: 'Forbidden (Insufficient admin rights)',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
+            ),
+            new OA\Response(
+                response: 404,
+                description: 'Work time slot not found',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
             ),
             new OA\Response(
                 response: 409,
-                description: 'Conflict - Cannot remove work time with active bookings.',
-                content: new OA\JsonContent(
-                    properties: [
-                        new OA\Property(property: 'message', type: 'string', example: 'This date already taken')
-                    ]
-                )
+                description: 'Conflict (Cannot remove work time with active bookings)',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
             )
         ]
     )]
