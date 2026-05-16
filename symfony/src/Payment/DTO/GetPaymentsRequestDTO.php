@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Payment\DTO;
 
 use App\Payment\Enum\PaymentStatusEnum;
-use DateTimeImmutable;
 use Symfony\Component\Validator\Constraints as Assert;
 
 final readonly class GetPaymentsRequestDTO

@@ -19,6 +19,7 @@ use App\Membership\Service\VisitingService;
 use App\Payment\Entity\Payment;
 use App\Payment\Service\PaymentSettlementService;
 use App\RefreshToken\Repository\RefreshTokenRepository;
+use App\User\Repository\UserRepository;
 use App\User\Service\AvailabilityService;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
@@ -31,6 +32,7 @@ final readonly class ClientManager
 {
     public function __construct(
         private ClientRepository $clientRepo,
+        private UserRepository $userRepo,
         private RefreshTokenRepository $refreshTokenRepo,
         private UserPasswordHasherInterface $passwordHasher,
         private AvailabilityService $userAvailabilityService,
@@ -40,8 +42,21 @@ final readonly class ClientManager
     )
     {}
 
+    /**
+     * @throws ConflictHttpException
+     */
     public function create(CreateClientRequest $dto): Client
     {
+        $existingClientByEmail = $this->userRepo->findOneBy(['email' => $dto->email]);
+        if ($existingClientByEmail) {
+            throw new ConflictHttpException("Client with this email already exists.");
+        }
+
+        $existingClientByPhone = $this->userRepo->findOneBy(['phone' => $dto->phone]);
+        if ($existingClientByPhone) {
+            throw new ConflictHttpException("Client with this phone number already exists.");
+        }
+
         $client = new Client();
         $client->setFirstName($dto->firstName);
         $client->setLastName($dto->lastName);
