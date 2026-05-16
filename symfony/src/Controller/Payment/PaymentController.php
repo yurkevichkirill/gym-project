@@ -8,6 +8,8 @@ use App\Payment\DTO\StripeIntentResponseDTO;
 use App\Payment\Entity\Payment;
 use App\Payment\Enum\PaymentStatusEnum;
 use App\Payment\Service\PaymentSettlementService;
+use App\Response\DTO\AbstractItemResponseDTO;
+use App\Response\DTO\ErrorResponseDTO;
 use App\Response\ItemResponse;
 use Nelmio\ApiDocBundle\Attribute\Model;
 use Stripe\Exception\ApiErrorException;
@@ -30,30 +32,46 @@ final class PaymentController extends AbstractController
         summary: 'Create a Stripe Payment Intent for a specific payment.',
         tags: ['Client: Payments'],
         parameters: [
-            new OA\Parameter(
-                name: 'id',
-                description: 'Payment ID',
-                in: 'path',
-                required: true,
-                schema: new OA\Schema(type: 'integer')
-            )
+            new OA\Parameter(name: 'id', description: 'Payment ID', in: 'path', required: true, schema: new OA\Schema(type: 'integer'))
         ],
         responses: [
             new OA\Response(
                 response: 201,
-                description: 'Stripe Intent successfully created.',
-                content: new OA\JsonContent(ref: new Model(type: StripeIntentResponseDTO::class))
+                description: 'Stripe Intent successfully created',
+                content: new OA\JsonContent(
+                    allOf: [
+                        new OA\Schema(ref: new Model(type: AbstractItemResponseDTO::class)),
+                        new OA\Schema(
+                            properties: [
+                                new OA\Property(
+                                    property: 'data',
+                                    ref: new Model(type: StripeIntentResponseDTO::class)
+                                )
+                            ]
+                        )
+                    ]
+                )
             ),
             new OA\Response(
                 response: 400,
-                description: 'Bad Request - Payment already processed or invalid state.',
-                content: new OA\JsonContent(properties: [
-                    new OA\Property(property: 'message', type: 'string', example: 'Payment already processed')
-                ])
+                description: 'Bad Request (e.g., Payment already processed)',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
             ),
-            new OA\Response(response: 401, description: 'Unauthorized'),
-            new OA\Response(response: 403, description: 'Forbidden - Access denied to this payment'),
-            new OA\Response(response: 404, description: 'Payment not found')
+            new OA\Response(
+                response: 401,
+                description: 'Unauthorized',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
+            ),
+            new OA\Response(
+                response: 403,
+                description: 'Forbidden (Access denied to this payment)',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
+            ),
+            new OA\Response(
+                response: 404,
+                description: 'Payment not found',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
+            )
         ]
     )]
     #[IsGranted('ROLE_CLIENT')]
