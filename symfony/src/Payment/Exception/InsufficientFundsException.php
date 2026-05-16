@@ -2,11 +2,9 @@
 
 declare(strict_types=1);
 
-namespace App\Exception;
+namespace App\Payment\Exception;
 
-use Exception;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
-use Throwable;
 
 class InsufficientFundsException extends BadRequestHttpException
 {
