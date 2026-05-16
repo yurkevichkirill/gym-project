@@ -6,7 +6,7 @@ namespace App\Booking\Service;
 
 use App\Booking\Entity\Booking;
 use App\Booking\Enum\BookingStatusEnum;
-use App\Exception\InvalidBookingStatusException;
+use App\Booking\Exception\InvalidBookingStatusException;
 use App\Infrastructure\ClickHouse\Publisher\AnalyticsPublisher;
 use App\Payment\Service\PaymentSettlementService;
 use App\User\Entity\User;
@@ -29,12 +29,12 @@ final readonly class BookingCancellationService
      */
     public function cancel(Booking $booking, User $actor): void
     {
+        if ($booking->getStatus() !== BookingStatusEnum::SCHEDULED) {
+            throw new InvalidBookingStatusException("Only scheduled bookings can be canceled");
+        }
+
         $roles = $actor->getRoles();
         if (in_array('ROLE_CLIENT', $roles)) {
-            if ($booking->getStatus() !== BookingStatusEnum::SCHEDULED) {
-                throw new InvalidBookingStatusException("Only scheduled bookings can be canceled by client");
-            }
-
             $status = BookingStatusEnum::CANCELED_BY_CLIENT;
         } else if (in_array('ROLE_TRAINER', $roles)) {
             $status = BookingStatusEnum::CANCELED_BY_TRAINER;
@@ -42,22 +42,28 @@ final readonly class BookingCancellationService
             $status = BookingStatusEnum::CANCELED_BY_SYSTEM;
         }
 
+        $client = $booking->getClient();
+        $payment = $booking->getPayment();
+        $training = $booking->getTraining();
+
         $loggingContext = [
             'booking_id' => $booking->getId(),
             'client_id' => $booking->getClient()?->getId(),
         ];
 
         $analyticalContext = [
-            'client_id' => $booking->getClient()->getId(),
-            'trainer_id' => $booking->getTraining()->getTrainerWorkTime()->getTrainer()->getId(),
+            'client_id' => $client?->getId(),
+            'trainer_id' => $training?->getTrainerWorkTime()?->getTrainer()?->getId(),
             'booking_id' => $booking->getId(),
-            'price' => $booking->getPayment()->getAmount(),
-            'payment_method' => $booking->getPayment()->getMethod()->value ?? 'unknown',
+            'price' => $payment?->getAmount() ?? 0,
+            'payment_method' => $payment?->getMethod()?->value ?? 'unknown',
         ];
 
-        $this->entityManager->wrapInTransaction(function () use ($booking, $status, $loggingContext, $analyticalContext) {
+        $this->entityManager->wrapInTransaction(function () use ($booking, $status, $payment, $loggingContext, $analyticalContext) {
             try {
-                $payment = $booking->getPayment();
+                if ($payment) {
+                    $this->paymentSettlementService->refund($payment);
+                }
 
                 $this->paymentSettlementService->refund($payment);
 

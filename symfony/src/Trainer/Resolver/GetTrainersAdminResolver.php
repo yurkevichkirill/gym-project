@@ -39,10 +39,20 @@ final readonly class GetTrainersAdminResolver implements ValueResolverInterface
             return [];
         }
 
+        $queryParams = $request->query->all();
+
+        if (array_key_exists('isDeleted', $queryParams)) {
+            $queryParams['isDeleted'] = filter_var($queryParams['isDeleted'], FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+        }
+
+        if (array_key_exists('isBlocked', $queryParams)) {
+            $queryParams['isBlocked'] = filter_var($queryParams['isBlocked'], FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+        }
+
         try {
             /** @var GetTrainersRequestAdminDTO $rawDto */
             $rawDto = $this->serializer->denormalize(
-                $request->query->all(),
+                $queryParams,
                 GetTrainersRequestAdminDTO::class,
                 null,
                 [AbstractObjectNormalizer::DISABLE_TYPE_ENFORCEMENT => true]

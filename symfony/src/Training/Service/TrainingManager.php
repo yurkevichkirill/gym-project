@@ -36,10 +36,10 @@ final readonly class TrainingManager
     public function update(Training $training, TrainingUpdateRequest $requestDto): Training
     {
         $loggingContext = [
-            'client_id' => $training->getBooking()?->getClient() ?? "",
+            'client_id' => $training->getBooking()?->getClient()?->getId() ?? "",
             'trainer_id' => $training->getTrainerWorkTime()?->getTrainer()?->getId() ?? "",
-            'date' => $training->getTrainerWorkTime()?->getDate() ?? "",
-            'start_time' => $training->getStartTime() ?? "",
+            'date' => $training->getTrainerWorkTime()?->getDate()?->format('Y-m-d') ?? "",
+            'start_time' => $training->getStartTime()?->format('H:i:s') ?? "",
             'duration_minutes' => $training->getDurationMinutes() ?? "",
         ];
 
@@ -91,10 +91,10 @@ final readonly class TrainingManager
     public function complete(Training $training): Training
     {
         $loggingContext = [
-            'client_id' => $training->getBooking()?->getClient() ?? "",
+            'client_id' => $training->getBooking()?->getClient()?->getId() ?? "",
             'trainer_id' => $training->getTrainerWorkTime()?->getTrainer()?->getId() ?? "",
-            'date' => $training->getTrainerWorkTime()?->getDate() ?? "",
-            'start_time' => $training->getStartTime() ?? "",
+            'date' => $training->getTrainerWorkTime()?->getDate()?->format('Y-m-d') ?? "",
+            'start_time' => $training->getStartTime()?->format('H:i:s') ?? "",
             'duration_minutes' => $training->getDurationMinutes() ?? "",
         ];
 

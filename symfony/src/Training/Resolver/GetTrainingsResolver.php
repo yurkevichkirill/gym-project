@@ -2,14 +2,13 @@
 
 declare(strict_types=1);
 
-namespace App\Payment\Resolver;
+namespace App\Training\Resolver;
 
-use App\Client\Entity\Client;
 use App\Client\Repository\ClientRepository;
-use App\Payment\DTO\GetPaymentsRequestDTO;
-use App\Payment\DTO\ResolvedPaymentsRequestDTO;
 use App\Trainer\Entity\Trainer;
 use App\Trainer\Repository\TrainerRepository;
+use App\Training\DTO\GetTrainingsRequestDTO;
+use App\Training\DTO\ResolvedTrainingsRequestDTO;
 use DateMalformedStringException;
 use DateTimeImmutable;
 use Symfony\Bundle\SecurityBundle\Security;
@@ -24,7 +23,7 @@ use Symfony\Component\Serializer\SerializerInterface;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 use Throwable;
 
-final readonly class GetPaymentsResolver implements ValueResolverInterface
+final readonly class GetTrainingsResolver implements ValueResolverInterface
 {
     public function __construct(
         private ClientRepository $clientRepo,
@@ -42,21 +41,21 @@ final readonly class GetPaymentsResolver implements ValueResolverInterface
      */
     public function resolve(Request $request, ArgumentMetadata $argument): iterable
     {
-        if ($argument->getType() !== ResolvedPaymentsRequestDTO::class) {
+        if ($argument->getType() !== ResolvedTrainingsRequestDTO::class) {
             return [];
         }
 
         $queryParams = $request->query->all();
 
-        if (array_key_exists('isRefund', $queryParams)) {
-            $queryParams['isRefund'] = filter_var($queryParams['isRefund'], FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+        if (array_key_exists('isBusy', $queryParams)) {
+            $queryParams['isBusy'] = filter_var($queryParams['isBusy'], FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
         }
 
         try {
-            /** @var GetPaymentsRequestDTO $rawDto */
+            /** @var GetTrainingsRequestDTO $rawDto */
             $rawDto = $this->serializer->denormalize(
                 $queryParams,
-                GetPaymentsRequestDTO::class,
+                GetTrainingsRequestDTO::class,
                 null,
                 [AbstractObjectNormalizer::DISABLE_TYPE_ENFORCEMENT => true]
             );
@@ -70,34 +69,31 @@ final readonly class GetPaymentsResolver implements ValueResolverInterface
         }
 
         $user = $this->security->getUser();
-        $client = null;
         $trainer = null;
-
-        if ($user instanceof Client) {
-            $client = $user;
-        }
-        elseif ($rawDto->clientId) {
-            $client = $this->clientRepo->find($rawDto->clientId)
-                ?? throw new NotFoundHttpException("Client with ID $rawDto->clientId not found");
-        }
 
         if ($user instanceof Trainer) {
             $trainer = $user;
         }
+
         elseif ($rawDto->trainerId) {
             $trainer = $this->trainerRepo->find($rawDto->trainerId)
                 ?? throw new NotFoundHttpException("Trainer with ID $rawDto->trainerId not found");
         }
 
-        yield new ResolvedPaymentsRequestDTO(
+        $client = null;
+        if ($rawDto->clientId) {
+            $client = $this->clientRepo->find($rawDto->clientId)
+                ?? throw new NotFoundHttpException("Client with ID $rawDto->clientId not found");
+        }
+
+        yield new ResolvedTrainingsRequestDTO(
             trainer: $trainer,
             client: $client,
-            minAmount: $rawDto->minAmount,
-            maxAmount: $rawDto->maxAmount,
-            isRefund: $rawDto->isRefund,
             status: $rawDto->status,
-            minCreatedAt: $rawDto->minCreatedAt ? new DateTimeImmutable($rawDto->minCreatedAt) : null,
-            maxCreatedAt: $rawDto->maxCreatedAt ? new DateTimeImmutable($rawDto->maxCreatedAt) : null,
+            date: $rawDto->date ? new DateTimeImmutable($rawDto->date) : null,
+            startTime: $rawDto->startTime ? DateTimeImmutable::createFromFormat('H:i:s', $rawDto->startTime) : null,
+            durationMinutes: $rawDto->durationMinutes,
+            isBusy: $rawDto->isBusy,
             sort: $rawDto->sort,
             page: $rawDto->page,
             limit: $rawDto->limit,
