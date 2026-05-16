@@ -5,21 +5,21 @@ declare(strict_types=1);
 namespace App\Training\DTO;
 
 use App\Booking\Enum\BookingStatusEnum;
-use App\Payment\DTO\PaymentTrainerResponse;
+use App\Payment\DTO\PaymentTrainerResponseDTO;
 use App\Training\Entity\Training;
 
-final readonly class TrainingResponse
+final readonly class TrainingResponseDTO
 {
     public function __construct(
-        public int $id,
-        public string $startTime,
-        public int $durationMinutes,
-        public string $date,
-        public bool $isBusy,
-        public int $clientId,
-        public string $bookedAt,
-        public BookingStatusEnum $status,
-        public PaymentTrainerResponse $payment,
+        public int                       $id,
+        public string                    $startTime,
+        public int                       $durationMinutes,
+        public string                    $date,
+        public bool                      $isBusy,
+        public int                       $clientId,
+        public string                    $bookedAt,
+        public BookingStatusEnum         $status,
+        public PaymentTrainerResponseDTO $payment,
     )
     {}
 
@@ -34,7 +34,7 @@ final readonly class TrainingResponse
             clientId: $training->getBooking()->getClient()->getId(),
             bookedAt: $training->getBooking()->getBookedAt()?->format(DATE_ATOM) ?? '',
             status: $training->getBooking()->getStatus(),
-            payment: PaymentTrainerResponse::fromEntity($training->getBooking()->getPayment()),
+            payment: PaymentTrainerResponseDTO::fromEntity($training->getBooking()->getPayment()),
         );
     }
 }

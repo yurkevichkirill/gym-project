@@ -3,13 +3,13 @@ declare(strict_types=1);
 
 namespace App\Controller\Authentication;
 
-use App\Client\DTO\ClientResponse;
-use App\Client\DTO\CreateClientRequest;
+use App\Client\DTO\ClientResponseDTO;
+use App\Client\DTO\CreateClientRequestDTO;
 use App\Client\Mapper\ClientMapperInterface;
 use App\Client\Service\ClientManager;
-use App\Response\DTO\AbstractItemResponseDTO;
-use App\Response\DTO\ErrorResponseDTO;
-use App\Response\ItemResponse;
+use App\Response\ResponseTypeDTO\ItemResponse;
+use App\Response\SwaggerDocDTO\AbstractItemResponseDTO;
+use App\Response\SwaggerDocDTO\ErrorResponseDTO;
 use Nelmio\ApiDocBundle\Attribute\Model;
 use OpenApi\Attributes as OA;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -28,7 +28,7 @@ final class RegistrationController extends AbstractController
         operationId: 'clientRegistration',
         summary: 'Register a new client.',
         requestBody: new OA\RequestBody(
-            content: new OA\JsonContent(ref: new Model(type: CreateClientRequest::class))
+            content: new OA\JsonContent(ref: new Model(type: CreateClientRequestDTO::class))
         ),
         tags: ['Authentication'],
         responses: [
@@ -42,7 +42,7 @@ final class RegistrationController extends AbstractController
                             properties: [
                                 new OA\Property(
                                     property: 'data',
-                                    ref: new Model(type: ClientResponse::class)
+                                    ref: new Model(type: ClientResponseDTO::class)
                                 )
                             ]
                         )
@@ -67,9 +67,9 @@ final class RegistrationController extends AbstractController
         ]
     )]
     public function register(
-        #[MapRequestPayload] CreateClientRequest $requestDto,
-        ClientMapperInterface $mapper,
-        ClientManager $manager,
+        #[MapRequestPayload] CreateClientRequestDTO $requestDto,
+        ClientMapperInterface                       $mapper,
+        ClientManager                               $manager,
     ): ItemResponse {
         $responseDto = $mapper->map($manager->create($requestDto));
 

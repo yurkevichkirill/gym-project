@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace App\Controller\Public;
 
-use App\Response\CollectionResponse;
-use App\Response\DTO\AbstractCollectionResponseDTO;
-use App\Response\DTO\AbstractItemResponseDTO;
-use App\Response\DTO\ErrorResponseDTO;
-use App\Response\ItemResponse;
+use App\Response\ResponseTypeDTO\CollectionResponse;
+use App\Response\ResponseTypeDTO\ItemResponse;
+use App\Response\SwaggerDocDTO\AbstractCollectionResponseDTO;
+use App\Response\SwaggerDocDTO\AbstractItemResponseDTO;
+use App\Response\SwaggerDocDTO\ErrorResponseDTO;
 use App\TrainingType\DTO\GetTrainingTypesRequestDTO;
 use App\TrainingType\DTO\TrainingTypeResponseDTO;
 use App\TrainingType\Entity\TrainingType;

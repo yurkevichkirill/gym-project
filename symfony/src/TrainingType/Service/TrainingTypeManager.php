@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\TrainingType\Service;
 
 use App\TrainingType\DTO\CreateTrainingTypeRequestDTO;
-use App\TrainingType\DTO\UpdateTrainingTypeRequest;
+use App\TrainingType\DTO\UpdateTrainingTypeRequestDTO;
 use App\TrainingType\Entity\TrainingType;
 use App\TrainingType\Repository\TrainingTypeRepository;
 use Doctrine\ORM\EntityManagerInterface;
@@ -32,7 +32,7 @@ final readonly class TrainingTypeManager
         return $trainingType;
     }
 
-    public function update(UpdateTrainingTypeRequest $requestDto, TrainingType $trainingType): TrainingType
+    public function update(UpdateTrainingTypeRequestDTO $requestDto, TrainingType $trainingType): TrainingType
     {
         if ($requestDto->name !== null) {
             $trainingType->setName($requestDto->name);

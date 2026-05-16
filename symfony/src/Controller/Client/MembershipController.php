@@ -5,22 +5,20 @@ declare(strict_types=1);
 namespace App\Controller\Client;
 
 use App\Client\Entity\Client;
-use App\Membership\DTO\CreateMembershipRequest;
-use App\Membership\DTO\MembershipResponse;
+use App\Membership\DTO\CreateMembershipRequestDTO;
+use App\Membership\DTO\MembershipResponseDTO;
 use App\Membership\DTO\ResolvedMembershipsRequestDTO;
 use App\Membership\Entity\Membership;
 use App\Membership\Enum\MembershipStatusEnum;
 use App\Membership\Mapper\MembershipMapperInterface;
 use App\Membership\Query\MembershipQuery;
 use App\Membership\Service\MembershipManager;
-use App\Response\CollectionResponse;
-use App\Response\DTO\AbstractCollectionResponseDTO;
-use App\Response\DTO\AbstractItemResponseDTO;
-use App\Response\DTO\ErrorResponseDTO;
-use App\Response\ItemResponse;
+use App\Response\ResponseTypeDTO\CollectionResponse;
+use App\Response\ResponseTypeDTO\ItemResponse;
+use App\Response\SwaggerDocDTO\AbstractCollectionResponseDTO;
+use App\Response\SwaggerDocDTO\AbstractItemResponseDTO;
+use App\Response\SwaggerDocDTO\ErrorResponseDTO;
 use DateMalformedStringException;
-use Doctrine\ORM\NonUniqueResultException;
-use Doctrine\ORM\NoResultException;
 use Nelmio\ApiDocBundle\Attribute\Model;
 use OpenApi\Attributes as OA;
 use Psr\Cache\InvalidArgumentException;
@@ -67,7 +65,7 @@ final class MembershipController extends AbstractController
                                 new OA\Property(
                                     property: 'data',
                                     type: 'array',
-                                    items: new OA\Items(ref: new Model(type: MembershipResponse::class))
+                                    items: new OA\Items(ref: new Model(type: MembershipResponseDTO::class))
                                 )
                             ]
                         )
@@ -143,7 +141,7 @@ final class MembershipController extends AbstractController
                             properties: [
                                 new OA\Property(
                                     property: 'data',
-                                    ref: new Model(type: MembershipResponse::class)
+                                    ref: new Model(type: MembershipResponseDTO::class)
                                 )
                             ]
                         )
@@ -187,7 +185,7 @@ final class MembershipController extends AbstractController
         summary: 'Purchase a new membership plan.',
         requestBody: new OA\RequestBody(
             required: true,
-            content: new OA\JsonContent(ref: new Model(type: CreateMembershipRequest::class))
+            content: new OA\JsonContent(ref: new Model(type: CreateMembershipRequestDTO::class))
         ),
         tags: ['Client: Memberships'],
         responses: [
@@ -201,7 +199,7 @@ final class MembershipController extends AbstractController
                             properties: [
                                 new OA\Property(
                                     property: 'data',
-                                    ref: new Model(type: MembershipResponse::class)
+                                    ref: new Model(type: MembershipResponseDTO::class)
                                 )
                             ]
                         )
@@ -242,10 +240,10 @@ final class MembershipController extends AbstractController
     )]
     #[IsGranted('ROLE_CLIENT')]
     public function create(
-        #[CurrentUser] Client $client,
-        #[MapRequestPayload] CreateMembershipRequest $requestDto,
-        MembershipMapperInterface $mapper,
-        MembershipManager $manager,
+        #[CurrentUser] Client                           $client,
+        #[MapRequestPayload] CreateMembershipRequestDTO $requestDto,
+        MembershipMapperInterface                       $mapper,
+        MembershipManager                               $manager,
     ): ItemResponse {
         $responseDto = $mapper->map($manager->create($client, $requestDto->membershipPlanId));
 
@@ -283,7 +281,7 @@ final class MembershipController extends AbstractController
                             properties: [
                                 new OA\Property(
                                     property: 'data',
-                                    ref: new Model(type: MembershipResponse::class)
+                                    ref: new Model(type: MembershipResponseDTO::class)
                                 )
                             ]
                         )
@@ -356,7 +354,7 @@ final class MembershipController extends AbstractController
                             properties: [
                                 new OA\Property(
                                     property: 'data',
-                                    ref: new Model(type: MembershipResponse::class)
+                                    ref: new Model(type: MembershipResponseDTO::class)
                                 )
                             ]
                         )
@@ -427,7 +425,7 @@ final class MembershipController extends AbstractController
                             properties: [
                                 new OA\Property(
                                     property: 'data',
-                                    ref: new Model(type: MembershipResponse::class)
+                                    ref: new Model(type: MembershipResponseDTO::class)
                                 )
                             ]
                         )
@@ -500,7 +498,7 @@ final class MembershipController extends AbstractController
                             properties: [
                                 new OA\Property(
                                     property: 'data',
-                                    ref: new Model(type: MembershipResponse::class)
+                                    ref: new Model(type: MembershipResponseDTO::class)
                                 )
                             ]
                         )

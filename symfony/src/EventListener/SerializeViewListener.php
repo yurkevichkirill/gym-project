@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\EventListener;
 
-use App\Response\CollectionResponse;
-use App\Response\ItemResponse;
-use App\Response\NoContentResponse;
+use App\Response\ResponseTypeDTO\CollectionResponse;
+use App\Response\ResponseTypeDTO\ItemResponse;
+use App\Response\ResponseTypeDTO\NoContentResponse;
 use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpKernel\Event\ViewEvent;

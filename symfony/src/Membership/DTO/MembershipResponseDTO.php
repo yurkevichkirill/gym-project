@@ -7,23 +7,23 @@ namespace App\Membership\DTO;
 use App\Membership\Entity\Membership;
 use App\Membership\Enum\MembershipStatusEnum;
 use App\MembershipPlan\DTO\MembershipPlanResponse;
-use App\Payment\DTO\PaymentResponse;
+use App\Payment\DTO\PaymentResponseDTO;
 
-final readonly class MembershipResponse
+final readonly class MembershipResponseDTO
 {
     public function __construct(
         public int $id,
-        public string $name,
-        public int $durationDays,
-        public ?int $sessionLimit,
+        public string                 $name,
+        public int                    $durationDays,
+        public ?int                   $sessionLimit,
         public MembershipPlanResponse $membershipPlan,
-        public ?string $startDate,
-        public ?string $endDate,
-        public MembershipStatusEnum $status,
-        public int $visits,
-        public string $createdAt,
-        public ?string $frozenAt,
-        public PaymentResponse $payment,
+        public ?string                $startDate,
+        public ?string                $endDate,
+        public MembershipStatusEnum   $status,
+        public int                    $visits,
+        public string                 $createdAt,
+        public ?string                $frozenAt,
+        public PaymentResponseDTO     $payment,
     )
     {}
 
@@ -41,7 +41,7 @@ final readonly class MembershipResponse
             visits: $membership->getVisits(),
             createdAt: $membership->getCreatedAt()->format(DATE_ATOM),
             frozenAt: $membership->getFrozenAt()?->format(DATE_ATOM),
-            payment: PaymentResponse::fromEntity($membership->getPayment()),
+            payment: PaymentResponseDTO::fromEntity($membership->getPayment()),
         );
     }
 }

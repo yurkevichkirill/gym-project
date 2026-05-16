@@ -22,6 +22,9 @@ final class UserChecker implements UserCheckerInterface
         $this->assertUserIsActive($user);
     }
 
+    /**
+     * @throws CustomUserMessageAccountStatusException
+     */
     private function assertUserIsActive(UserInterface $user): void
     {
         if (!$user instanceof User) {

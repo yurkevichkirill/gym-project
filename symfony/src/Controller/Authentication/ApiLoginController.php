@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace App\Controller\Authentication;
 
-use App\Client\DTO\ClientActivateRequest;
-use App\Client\DTO\ClientResponse;
+use App\Client\DTO\ClientActivateRequestDTO;
+use App\Client\DTO\ClientResponseDTO;
 use App\Client\Mapper\ClientMapperInterface;
 use App\Client\Service\ClientManager;
 use App\RefreshToken\Service\RefreshTokenManager;
-use App\Response\DTO\AbstractItemResponseDTO;
-use App\Response\DTO\ErrorResponseDTO;
-use App\Response\ItemResponse;
+use App\Response\ResponseTypeDTO\ItemResponse;
+use App\Response\SwaggerDocDTO\AbstractItemResponseDTO;
+use App\Response\SwaggerDocDTO\ErrorResponseDTO;
 use App\User\DTO\LoginUserRequestDTO;
 use App\User\Service\UserManager;
 use Doctrine\ORM\Exception\ORMException;
@@ -189,7 +189,7 @@ final class ApiLoginController extends AbstractController
         summary: 'Activate client account using token and set password.',
         requestBody: new OA\RequestBody(
             required: true,
-            content: new OA\JsonContent(ref: new Model(type: ClientActivateRequest::class))
+            content: new OA\JsonContent(ref: new Model(type: ClientActivateRequestDTO::class))
         ),
         tags: ['Authentication'],
         responses: [
@@ -203,7 +203,7 @@ final class ApiLoginController extends AbstractController
                             properties: [
                                 new OA\Property(
                                     property: 'data',
-                                    ref: new Model(type: ClientResponse::class)
+                                    ref: new Model(type: ClientResponseDTO::class)
                                 )
                             ]
                         )
@@ -238,9 +238,9 @@ final class ApiLoginController extends AbstractController
         ]
     )]
     public function activate(
-        #[MapRequestPayload] ClientActivateRequest $requestDto,
-        ClientMapperInterface $mapper,
-        ClientManager $manager,
+        #[MapRequestPayload] ClientActivateRequestDTO $requestDto,
+        ClientMapperInterface                         $mapper,
+        ClientManager                                 $manager,
     ): ItemResponse {
         $responseDto = $mapper->map($manager->activate($requestDto));
 

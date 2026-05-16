@@ -6,9 +6,9 @@ namespace App\Trainer\Service;
 
 use App\Admin\Entity\Admin;
 use App\RefreshToken\Repository\RefreshTokenRepository;
-use App\Trainer\DTO\AdminUpdateTrainerRequest;
-use App\Trainer\DTO\CreateTrainerRequest;
-use App\Trainer\DTO\UpdateTrainerRequest;
+use App\Trainer\DTO\AdminUpdateTrainerRequestDTO;
+use App\Trainer\DTO\CreateTrainerRequestDTO;
+use App\Trainer\DTO\UpdateTrainerRequestDTO;
 use App\Trainer\Entity\Trainer;
 use App\Trainer\Repository\TrainerRepository;
 use App\TrainingType\Repository\TrainingTypeRepository;
@@ -38,7 +38,7 @@ final readonly class TrainerManager
      * @throws NotFoundHttpException
      * @throws ConflictHttpException
      */
-    public function create(CreateTrainerRequest $requestDto): Trainer
+    public function create(CreateTrainerRequestDTO $requestDto): Trainer
     {
         $existingTrainer = $this->userRepo->findOneBy(['email' => $requestDto->email]);
         if ($existingTrainer) {
@@ -87,7 +87,7 @@ final readonly class TrainerManager
     /**
      * @throws ConflictHttpException
      */
-    public function updateByAdmin(AdminUpdateTrainerRequest $requestDto, Trainer $trainer): Trainer
+    public function updateByAdmin(AdminUpdateTrainerRequestDTO $requestDto, Trainer $trainer): Trainer
     {
         if ($requestDto->email !== null && $requestDto->email !== $trainer->getEmail()) {
             $existing = $this->userRepo->findOneBy(['email' => $requestDto->email]);
@@ -135,7 +135,7 @@ final readonly class TrainerManager
         return $trainer;
     }
 
-    public function update(Trainer $trainer, UpdateTrainerRequest $requestDto): Trainer
+    public function update(Trainer $trainer, UpdateTrainerRequestDTO $requestDto): Trainer
     {
         if($requestDto->phone) {
             $trainer->setPhone($requestDto->phone);

@@ -7,15 +7,15 @@ namespace App\Controller\Trainer;
 use App\Booking\Enum\BookingStatusEnum;
 use App\Booking\Exception\InvalidBookingStatusException;
 use App\Booking\Service\BookingCancellationService;
-use App\Response\CollectionResponse;
-use App\Response\DTO\AbstractCollectionResponseDTO;
-use App\Response\DTO\AbstractItemResponseDTO;
-use App\Response\DTO\ErrorResponseDTO;
-use App\Response\ItemResponse;
-use App\Response\NoContentResponse;
+use App\Response\ResponseTypeDTO\CollectionResponse;
+use App\Response\ResponseTypeDTO\ItemResponse;
+use App\Response\ResponseTypeDTO\NoContentResponse;
+use App\Response\SwaggerDocDTO\AbstractCollectionResponseDTO;
+use App\Response\SwaggerDocDTO\AbstractItemResponseDTO;
+use App\Response\SwaggerDocDTO\ErrorResponseDTO;
 use App\Training\DTO\ResolvedTrainingsRequestDTO;
-use App\Training\DTO\TrainingResponse;
-use App\Training\DTO\TrainingUpdateRequest;
+use App\Training\DTO\TrainingResponseDTO;
+use App\Training\DTO\TrainingUpdateRequestDTO;
 use App\Training\Entity\Training;
 use App\Training\Mapper\TrainingMapperInterface;
 use App\Training\Query\TrainingsQuery;
@@ -71,7 +71,7 @@ final class TrainingController extends AbstractController
                                 new OA\Property(
                                     property: 'data',
                                     type: 'array',
-                                    items: new OA\Items(ref: new Model(type: TrainingResponse::class))
+                                    items: new OA\Items(ref: new Model(type: TrainingResponseDTO::class))
                                 )
                             ]
                         )
@@ -142,7 +142,7 @@ final class TrainingController extends AbstractController
                             properties: [
                                 new OA\Property(
                                     property: 'data',
-                                    ref: new Model(type: TrainingResponse::class)
+                                    ref: new Model(type: TrainingResponseDTO::class)
                                 )
                             ]
                         )
@@ -191,7 +191,7 @@ final class TrainingController extends AbstractController
         summary: 'Update/Reschedule training.',
         requestBody: new OA\RequestBody(
             required: true,
-            content: new OA\JsonContent(ref: new Model(type: TrainingUpdateRequest::class))
+            content: new OA\JsonContent(ref: new Model(type: TrainingUpdateRequestDTO::class))
         ),
         tags: ['Trainer: Training'],
         parameters: [
@@ -214,7 +214,7 @@ final class TrainingController extends AbstractController
                             properties: [
                                 new OA\Property(
                                     property: 'data',
-                                    ref: new Model(type: TrainingResponse::class)
+                                    ref: new Model(type: TrainingResponseDTO::class)
                                 )
                             ]
                         )
@@ -255,10 +255,10 @@ final class TrainingController extends AbstractController
     )]
     #[IsGranted('ROLE_TRAINER')]
     public function update(
-        Training                                   $training,
-        #[MapRequestPayload] TrainingUpdateRequest $requestDto,
-        TrainingMapperInterface                    $mapper,
-        TrainingManager                            $manager,
+        Training                                      $training,
+        #[MapRequestPayload] TrainingUpdateRequestDTO $requestDto,
+        TrainingMapperInterface                       $mapper,
+        TrainingManager                               $manager,
     ): ItemResponse {
         $this->denyAccessUnlessGranted("TRAINING_EDIT", $training);
 
@@ -356,7 +356,7 @@ final class TrainingController extends AbstractController
                             properties: [
                                 new OA\Property(
                                     property: 'data',
-                                    ref: new Model(type: TrainingResponse::class)
+                                    ref: new Model(type: TrainingResponseDTO::class)
                                 )
                             ]
                         )

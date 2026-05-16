@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace App\Controller\Public;
 
-use App\Response\CollectionResponse;
-use App\Response\DTO\AbstractCollectionResponseDTO;
-use App\Response\DTO\AbstractItemResponseDTO;
-use App\Response\DTO\ErrorResponseDTO;
-use App\Response\ItemResponse;
+use App\Response\ResponseTypeDTO\CollectionResponse;
+use App\Response\ResponseTypeDTO\ItemResponse;
+use App\Response\SwaggerDocDTO\AbstractCollectionResponseDTO;
+use App\Response\SwaggerDocDTO\AbstractItemResponseDTO;
+use App\Response\SwaggerDocDTO\ErrorResponseDTO;
 use App\TrainerWorkTime\DTO\ResolvedWorktimesRequestDTO;
-use App\TrainerWorkTime\DTO\WorkTimeResponse;
+use App\TrainerWorkTime\DTO\WorkTimeResponseDTO;
 use App\TrainerWorkTime\Entity\TrainerWorkTime;
 use App\TrainerWorkTime\Mapper\WorkTimeMapperInterface;
 use App\TrainerWorkTime\Query\WorkTimeQuery;
@@ -56,7 +56,7 @@ final class TrainerWorkTimeController extends AbstractController
                                 new OA\Property(
                                     property: 'data',
                                     type: 'array',
-                                    items: new OA\Items(ref: new Model(type: WorkTimeResponse::class))
+                                    items: new OA\Items(ref: new Model(type: WorkTimeResponseDTO::class))
                                 )
                             ]
                         )
@@ -111,7 +111,7 @@ final class TrainerWorkTimeController extends AbstractController
                             properties: [
                                 new OA\Property(
                                     property: 'data',
-                                    ref: new Model(type: WorkTimeResponse::class)
+                                    ref: new Model(type: WorkTimeResponseDTO::class)
                                 )
                             ]
                         )

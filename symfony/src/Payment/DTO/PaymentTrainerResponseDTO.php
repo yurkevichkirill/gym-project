@@ -9,7 +9,7 @@ use App\Payment\Enum\PaymentCategoryEnum;
 use App\Payment\Enum\PaymentMethodEnum;
 use App\Payment\Enum\PaymentStatusEnum;
 
-final readonly class PaymentTrainerResponse
+final readonly class PaymentTrainerResponseDTO
 {
     public function __construct(
         public int $id,

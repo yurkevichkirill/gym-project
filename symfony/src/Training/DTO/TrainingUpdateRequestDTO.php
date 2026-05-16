@@ -6,7 +6,7 @@ namespace App\Training\DTO;
 
 use Symfony\Component\Validator\Constraints as Assert;
 
-final readonly class TrainingUpdateRequest
+final readonly class TrainingUpdateRequestDTO
 {
     public function __construct(
         #[Assert\Time]
