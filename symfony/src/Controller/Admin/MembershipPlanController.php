@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Controller\Admin;
 
-use App\MembershipPlan\DTO\CreateMembershipPlanRequest;
-use App\MembershipPlan\DTO\MembershipPlanResponse;
-use App\MembershipPlan\DTO\UpdateMembershipPlanRequest;
+use App\MembershipPlan\DTO\CreateMembershipPlanRequestDTO;
+use App\MembershipPlan\DTO\MembershipPlanResponseDTO;
+use App\MembershipPlan\DTO\UpdateMembershipPlanRequestDTO;
 use App\MembershipPlan\Entity\MembershipPlan;
 use App\MembershipPlan\Mapper\MembershipPlanMapper;
 use App\MembershipPlan\Service\MembershipPlanManager;
@@ -31,7 +31,7 @@ final class MembershipPlanController extends AbstractController
         summary: 'Create a new membership plan (Admin).',
         requestBody: new OA\RequestBody(
             required: true,
-            content: new OA\JsonContent(ref: new Model(type: CreateMembershipPlanRequest::class))
+            content: new OA\JsonContent(ref: new Model(type: CreateMembershipPlanRequestDTO::class))
         ),
         tags: ['Admin: Membership Plans'],
         responses: [
@@ -45,7 +45,7 @@ final class MembershipPlanController extends AbstractController
                             properties: [
                                 new OA\Property(
                                     property: 'data',
-                                    ref: new Model(type: MembershipPlanResponse::class)
+                                    ref: new Model(type: MembershipPlanResponseDTO::class)
                                 )
                             ]
                         )
@@ -76,9 +76,9 @@ final class MembershipPlanController extends AbstractController
     )]
     #[IsGranted('ROLE_ADMIN')]
     public function create(
-        #[MapRequestPayload] CreateMembershipPlanRequest $requestDto,
-        MembershipPlanManager                            $manager,
-        MembershipPlanMapper                             $mapper,
+        #[MapRequestPayload] CreateMembershipPlanRequestDTO $requestDto,
+        MembershipPlanManager                               $manager,
+        MembershipPlanMapper                                $mapper,
     ): ItemResponse {
         $responseDto = $mapper->map($manager->create($requestDto));
 
@@ -95,7 +95,7 @@ final class MembershipPlanController extends AbstractController
         summary: 'Update an existing membership plan (Admin).',
         requestBody: new OA\RequestBody(
             required: true,
-            content: new OA\JsonContent(ref: new Model(type: UpdateMembershipPlanRequest::class))
+            content: new OA\JsonContent(ref: new Model(type: UpdateMembershipPlanRequestDTO::class))
         ),
         tags: ['Admin: Membership Plans'],
         parameters: [
@@ -118,7 +118,7 @@ final class MembershipPlanController extends AbstractController
                             properties: [
                                 new OA\Property(
                                     property: 'data',
-                                    ref: new Model(type: MembershipPlanResponse::class)
+                                    ref: new Model(type: MembershipPlanResponseDTO::class)
                                 )
                             ]
                         )
@@ -154,10 +154,10 @@ final class MembershipPlanController extends AbstractController
     )]
     #[IsGranted('ROLE_ADMIN')]
     public function update(
-        #[MapRequestPayload] UpdateMembershipPlanRequest $requestDto,
-        MembershipPlan                                   $membershipPlan,
-        MembershipPlanManager                            $manager,
-        MembershipPlanMapper                             $mapper,
+        #[MapRequestPayload] UpdateMembershipPlanRequestDTO $requestDto,
+        MembershipPlan                                      $membershipPlan,
+        MembershipPlanManager                               $manager,
+        MembershipPlanMapper                                $mapper,
     ): ItemResponse {
         $responseDto = $mapper->map($manager->update($requestDto, $membershipPlan));
 

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Controller\Public;
 
 use App\MembershipPlan\DTO\GetMembershipPlansRequestDTO;
-use App\MembershipPlan\DTO\MembershipPlanResponse;
+use App\MembershipPlan\DTO\MembershipPlanResponseDTO;
 use App\MembershipPlan\Entity\MembershipPlan;
 use App\MembershipPlan\Mapper\MembershipPlanMapperInterface;
 use App\MembershipPlan\Query\MembershipPlansQuery;
@@ -49,7 +49,7 @@ final class MembershipPlanController extends AbstractController
                                 new OA\Property(
                                     property: 'data',
                                     type: 'array',
-                                    items: new OA\Items(ref: new Model(type: MembershipPlanResponse::class))
+                                    items: new OA\Items(ref: new Model(type: MembershipPlanResponseDTO::class))
                                 )
                             ]
                         )
@@ -113,7 +113,7 @@ final class MembershipPlanController extends AbstractController
                             properties: [
                                 new OA\Property(
                                     property: 'data',
-                                    ref: new Model(type: MembershipPlanResponse::class)
+                                    ref: new Model(type: MembershipPlanResponseDTO::class)
                                 )
                             ]
                         )

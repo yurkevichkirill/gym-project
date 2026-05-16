@@ -6,24 +6,24 @@ namespace App\Membership\DTO;
 
 use App\Membership\Entity\Membership;
 use App\Membership\Enum\MembershipStatusEnum;
-use App\MembershipPlan\DTO\MembershipPlanResponse;
+use App\MembershipPlan\DTO\MembershipPlanResponseDTO;
 use App\Payment\DTO\PaymentResponseDTO;
 
 final readonly class MembershipResponseDTO
 {
     public function __construct(
         public int $id,
-        public string                 $name,
-        public int                    $durationDays,
-        public ?int                   $sessionLimit,
-        public MembershipPlanResponse $membershipPlan,
-        public ?string                $startDate,
-        public ?string                $endDate,
-        public MembershipStatusEnum   $status,
-        public int                    $visits,
-        public string                 $createdAt,
-        public ?string                $frozenAt,
-        public PaymentResponseDTO     $payment,
+        public string $name,
+        public int $durationDays,
+        public ?int $sessionLimit,
+        public MembershipPlanResponseDTO $membershipPlan,
+        public ?string $startDate,
+        public ?string $endDate,
+        public MembershipStatusEnum $status,
+        public int $visits,
+        public string $createdAt,
+        public ?string $frozenAt,
+        public PaymentResponseDTO $payment,
     )
     {}
 
@@ -34,7 +34,7 @@ final readonly class MembershipResponseDTO
             name: $membership->getName(),
             durationDays: $membership->getDurationDays(),
             sessionLimit: $membership->getSessionLimit(),
-            membershipPlan: MembershipPlanResponse::fromEntity($membership->getPlan()),
+            membershipPlan: MembershipPlanResponseDTO::fromEntity($membership->getPlan()),
             startDate: $membership->getStartDate()?->format("Y-m-d"),
             endDate: $membership->getEndDate()?->format("Y-m-d"),
             status: $membership->getStatus(),
