@@ -75,7 +75,7 @@ final readonly class BookingManager
 
             $price = $this->trainerManager->countPrice($trainer, $dto->durationMinutes);
 
-            return $this->entityManager->wrapInTransaction(function () use ($client, $dto, $trainer, $worktime, $price, $loggingContext) {
+            $booking = $this->entityManager->wrapInTransaction(function () use ($client, $dto, $trainer, $worktime, $price, $loggingContext) {
                 $training = new Training();
                 $training->setDurationMinutes($dto->durationMinutes);
                 $training->setStartTime(new DateTimeImmutable($dto->startTime));
@@ -96,8 +96,10 @@ final readonly class BookingManager
 
                 $this->paymentRepo->create($payment);
 
-                $this->entityManager->flush();
+                return $booking;
+            });
 
+            try {
                 $this->analyticsPublisher->publish('booking.created', [
                     'client_id' => $client->getId(),
                     'trainer_id' => $trainer->getId(),
@@ -105,9 +107,14 @@ final readonly class BookingManager
                     'price' => $price,
                     'payment_method' => $booking->getPayment()->getMethod()->value ?? 'unknown',
                 ]);
+            } catch (Throwable $e) {
+                $this->bookingLogger->error('analytics.publish.failed', [
+                    'error' => $e->getMessage(),
+                    'booking_id' => $booking->getId(),
+                ]);
+            }
 
-                return $booking;
-            });
+            return $booking;
         } catch (HttpExceptionInterface $e) {
             $this->bookingLogger->notice('booking.rejected', $this->bookingEventContext($loggingContext, 'book', 'rejected', [
                 'reason' => $e::class,
