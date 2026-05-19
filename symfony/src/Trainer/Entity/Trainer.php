@@ -9,6 +9,7 @@ use App\Trainer\Repository\TrainerRepository;
 use App\TrainerWorkTime\Entity\TrainerWorkTime;
 use App\TrainingType\Entity\TrainingType;
 use App\User\Entity\User;
+use App\User\Enum\UserRolesEnum;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
@@ -47,7 +48,20 @@ final class Trainer extends User
     {
         $this->trainerWorkTime = new ArrayCollection();
         $this->payments = new ArrayCollection();
-        $this->setRoles(['ROLE_TRAINER']);
+        $this->setRoles([UserRolesEnum::ROLE_TRAINER->value]);
+    }
+
+    public function getRoles(): array
+    {
+        $roles = parent::getRoles();
+
+        $trainerRole = UserRolesEnum::ROLE_TRAINER->value;
+
+        if (!in_array($trainerRole, $roles, true)) {
+            $roles[] = $trainerRole;
+        }
+
+        return array_unique($roles);
     }
 
     public function getEducation(): ?string

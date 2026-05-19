@@ -9,6 +9,7 @@ use App\Client\Repository\ClientRepository;
 use App\Membership\Entity\Membership;
 use App\Payment\Entity\Payment;
 use App\User\Entity\User;
+use App\User\Enum\UserRolesEnum;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
@@ -47,14 +48,17 @@ final class Client extends User
         $this->bookings = new ArrayCollection();
         $this->memberships = new ArrayCollection();
         $this->payments = new ArrayCollection();
-        $this->setRoles(['ROLE_CLIENT']);
+        $this->setRoles([UserRolesEnum::ROLE_CLIENT->value]);
     }
 
     public function getRoles(): array
     {
         $roles = parent::getRoles();
-        if (!in_array('ROLE_CLIENT', $roles, true)) {
-            $roles[] = 'ROLE_CLIENT';
+        $clientRole = UserRolesEnum::ROLE_CLIENT->value;
+
+
+        if (!in_array($clientRole, $roles, true)) {
+            $roles[] = $clientRole;
         }
         return array_unique($roles);
     }

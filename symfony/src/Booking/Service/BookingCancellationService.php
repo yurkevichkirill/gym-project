@@ -10,6 +10,7 @@ use App\Booking\Exception\InvalidBookingStatusException;
 use App\Infrastructure\ClickHouse\Publisher\AnalyticsPublisher;
 use App\Payment\Service\PaymentSettlementService;
 use App\User\Entity\User;
+use App\User\Enum\UserRolesEnum;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
 use Throwable;
@@ -34,9 +35,9 @@ final readonly class BookingCancellationService
         }
 
         $roles = $actor->getRoles();
-        if (in_array('ROLE_CLIENT', $roles)) {
+        if (in_array(UserRolesEnum::ROLE_CLIENT->value, $roles, true)) {
             $status = BookingStatusEnum::CANCELED_BY_CLIENT;
-        } else if (in_array('ROLE_TRAINER', $roles)) {
+        } else if (in_array(UserRolesEnum::ROLE_TRAINER->value, $roles, true)) {
             $status = BookingStatusEnum::CANCELED_BY_TRAINER;
         } else {
             $status = BookingStatusEnum::CANCELED_BY_SYSTEM;
@@ -64,8 +65,6 @@ final readonly class BookingCancellationService
                 if ($payment) {
                     $this->paymentSettlementService->refund($payment);
                 }
-
-                $this->paymentSettlementService->refund($payment);
 
                 $booking->cancel($status);
 

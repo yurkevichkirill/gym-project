@@ -9,6 +9,7 @@ use App\Client\Entity\Client;
 use App\Manager\Entity\Manager;
 use App\RefreshToken\Entity\RefreshToken;
 use App\Trainer\Entity\Trainer;
+use App\User\Enum\UserRolesEnum;
 use App\User\Repository\UserRepository;
 use DateTimeImmutable;
 use Doctrine\Common\Collections\Collection;
@@ -114,7 +115,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
             return [];
         }
         $roles = $this->roles;
-        $roles[] = 'ROLE_USER';
+        $roles[] = UserRolesEnum::ROLE_USER->value;
 
         return array_unique($roles);
     }
