@@ -7,7 +7,7 @@ namespace App\Client\Mapper;
 use App\Client\DTO\ClientResponseDTO;
 use App\Client\Entity\Client;
 
-class ClientMapper implements ClientMapperInterface
+final readonly class ClientMapper implements ClientMapperInterface
 {
     public function map(Client $client): ClientResponseDTO
     {

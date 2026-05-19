@@ -11,7 +11,7 @@ use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
 use Symfony\Component\Security\Core\Authorization\Voter\Vote;
 use Symfony\Component\Security\Core\Authorization\Voter\Voter;
 
-class PaymentVoter extends Voter
+final class PaymentVoter extends Voter
 {
     const string VIEW = "PAYMENT_VIEW";
     protected function supports(string $attribute, mixed $subject): bool

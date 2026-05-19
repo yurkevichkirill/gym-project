@@ -10,7 +10,7 @@ use Symfony\Component\Console\Command\Command;
 use Throwable;
 
 #[AsCommand(name: 'app:payments:cleanup')]
-readonly class CleanupPaymentsCommand
+final readonly class CleanupPaymentsCommand
 {
     public function __construct(
         private PaymentSettlementService $paymentSettlementService,

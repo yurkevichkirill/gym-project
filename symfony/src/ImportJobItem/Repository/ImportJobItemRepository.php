@@ -11,7 +11,7 @@ use Doctrine\Persistence\ManagerRegistry;
 /**
  * @extends ServiceEntityRepository<ImportJobItem>
  */
-class ImportJobItemRepository extends ServiceEntityRepository
+final class ImportJobItemRepository extends ServiceEntityRepository
 {
     public function __construct(ManagerRegistry $registry)
     {

@@ -6,7 +6,6 @@ namespace App\Trainer\Query;
 
 use App\Request\SortParser;
 use App\Trainer\DTO\ResolvedTrainersRequestAdminDTO;
-use App\Trainer\DTO\ResolvedTrainersRequestDTO;
 use App\Trainer\Mapper\TrainerMapperInterface;
 use App\Trainer\Repository\TrainerRepository;
 use Doctrine\ORM\QueryBuilder;

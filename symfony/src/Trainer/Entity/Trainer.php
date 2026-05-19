@@ -16,7 +16,7 @@ use Gedmo\Mapping\Annotation as Gedmo;
 
 #[ORM\Entity(repositoryClass: TrainerRepository::class)]
 #[Gedmo\SoftDeleteable]
-class Trainer extends User
+final class Trainer extends User
 {
     #[ORM\ManyToOne(targetEntity: TrainingType::class, inversedBy: 'trainers')]
     #[ORM\JoinColumn(name: 'training_type_id', referencedColumnName: 'id', onDelete: 'SET NULL')]

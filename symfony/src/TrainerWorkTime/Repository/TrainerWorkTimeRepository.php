@@ -13,7 +13,7 @@ use Doctrine\Persistence\ManagerRegistry;
 /**
  * @extends ServiceEntityRepository<TrainerWorkTime>
  */
-class TrainerWorkTimeRepository extends ServiceEntityRepository
+final class TrainerWorkTimeRepository extends ServiceEntityRepository
 {
     public function __construct(ManagerRegistry $registry)
     {

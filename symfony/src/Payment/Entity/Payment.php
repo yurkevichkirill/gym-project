@@ -18,7 +18,7 @@ use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\HasLifecycleCallbacks]
 #[ORM\Entity(repositoryClass: PaymentRepository::class)]
-class Payment
+final class Payment
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]

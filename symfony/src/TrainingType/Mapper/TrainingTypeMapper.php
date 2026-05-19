@@ -7,7 +7,7 @@ namespace App\TrainingType\Mapper;
 use App\TrainingType\DTO\TrainingTypeResponseDTO;
 use App\TrainingType\Entity\TrainingType;
 
-class TrainingTypeMapper implements TrainingTypeMapperInterface
+final readonly class TrainingTypeMapper implements TrainingTypeMapperInterface
 {
 
     public function map(TrainingType $trainingType): TrainingTypeResponseDTO

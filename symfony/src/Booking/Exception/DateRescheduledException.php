@@ -7,7 +7,7 @@ namespace App\Booking\Exception;
 use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 use Throwable;
 
-class DateRescheduledException  extends ConflictHttpException
+final class DateRescheduledException extends ConflictHttpException
 {
     public function __construct(string $message = 'This date cannot be selected', ?Throwable $previous = null, int $code = 0, array $headers = [])
     {

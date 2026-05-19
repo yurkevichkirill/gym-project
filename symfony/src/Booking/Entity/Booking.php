@@ -15,7 +15,7 @@ use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\HasLifecycleCallbacks]
 #[ORM\Entity(repositoryClass: BookingRepository::class)]
-class Booking
+final class Booking
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]

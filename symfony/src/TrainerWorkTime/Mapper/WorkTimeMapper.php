@@ -8,7 +8,7 @@ use App\TrainerWorkTime\DTO\WorkTimeResponseDTO;
 use App\TrainerWorkTime\Entity\TrainerWorkTime;
 use DateMalformedIntervalStringException;
 
-class WorkTimeMapper implements WorkTimeMapperInterface
+final readonly class WorkTimeMapper implements WorkTimeMapperInterface
 {
 
     /**

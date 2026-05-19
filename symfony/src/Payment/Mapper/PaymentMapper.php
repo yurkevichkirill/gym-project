@@ -7,7 +7,7 @@ namespace App\Payment\Mapper;
 use App\Payment\DTO\PaymentResponseDTO;
 use App\Payment\Entity\Payment;
 
-class PaymentMapper implements PaymentMapperInterface
+final class PaymentMapper implements PaymentMapperInterface
 {
     public function map(Payment $payment): PaymentResponseDTO
     {

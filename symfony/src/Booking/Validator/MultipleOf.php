@@ -7,7 +7,7 @@ namespace App\Booking\Validator;
 use Symfony\Component\Validator\Constraint;
 
 #[\Attribute]
-class MultipleOf extends Constraint
+final class MultipleOf extends Constraint
 {
     public function __construct(
         public string $message = 'Value should be multiple of 30',

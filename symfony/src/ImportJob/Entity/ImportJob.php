@@ -15,7 +15,7 @@ use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: ImportJobRepository::class)]
-class ImportJob
+final class ImportJob
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]

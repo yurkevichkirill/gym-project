@@ -17,7 +17,7 @@ use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\HasLifecycleCallbacks]
 #[ORM\Entity(repositoryClass: MembershipRepository::class)]
-class Membership
+final class Membership
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]

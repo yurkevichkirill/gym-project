@@ -10,7 +10,7 @@ use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
 use Symfony\Component\Security\Core\Authorization\Voter\Vote;
 use Symfony\Component\Security\Core\Authorization\Voter\Voter;
 
-class TrainingVoter extends Voter
+final class TrainingVoter extends Voter
 {
     const string VIEW = "TRAINING_VIEW";
     const string REMOVE = "TRAINING_REMOVE";

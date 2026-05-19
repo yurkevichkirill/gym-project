@@ -11,7 +11,7 @@ use Symfony\Component\Scheduler\Schedule;
 use Symfony\Component\Scheduler\ScheduleProviderInterface;
 
 #[AsSchedule('memberships')]
-final class MembershipScheduleProvider implements ScheduleProviderInterface
+final readonly class MembershipScheduleProvider implements ScheduleProviderInterface
 {
     public function getSchedule(): Schedule
     {

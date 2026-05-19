@@ -6,7 +6,7 @@ namespace App\Payment\Exception;
 
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 
-class InsufficientFundsException extends BadRequestHttpException
+final class InsufficientFundsException extends BadRequestHttpException
 {
     public function __construct(string $message = 'Insufficient funds for buying', ?\Throwable $previous = null, int $code = 0, array $headers = [])
     {

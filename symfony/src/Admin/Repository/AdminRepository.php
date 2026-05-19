@@ -11,7 +11,7 @@ use Doctrine\Persistence\ManagerRegistry;
 /**
  * @extends ServiceEntityRepository<Admin>
  */
-class AdminRepository extends ServiceEntityRepository
+final class AdminRepository extends ServiceEntityRepository
 {
     public function __construct(ManagerRegistry $registry)
     {

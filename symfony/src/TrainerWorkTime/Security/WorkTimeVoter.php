@@ -10,7 +10,7 @@ use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
 use Symfony\Component\Security\Core\Authorization\Voter\Vote;
 use Symfony\Component\Security\Core\Authorization\Voter\Voter;
 
-class WorkTimeVoter extends Voter
+final class WorkTimeVoter extends Voter
 {
     const string EDIT = "WORKTIME_EDIT";
     const string REMOVE = "WORKTIME_REMOVE";

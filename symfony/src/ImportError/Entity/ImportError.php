@@ -12,7 +12,7 @@ use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: ImportErrorRepository::class)]
-class ImportError
+final class ImportError
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]

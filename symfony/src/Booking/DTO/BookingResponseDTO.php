@@ -8,7 +8,7 @@ use App\Booking\Entity\Booking;
 use App\Booking\Enum\BookingStatusEnum;
 use App\Payment\DTO\PaymentResponseDTO;
 
-readonly class BookingResponseDTO
+final readonly class BookingResponseDTO
 {
     public function __construct(
         public int                $id,

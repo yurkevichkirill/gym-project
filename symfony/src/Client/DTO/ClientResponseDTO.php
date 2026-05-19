@@ -6,7 +6,7 @@ namespace App\Client\DTO;
 
 use App\Client\Entity\Client;
 
-readonly class ClientResponseDTO
+final readonly class ClientResponseDTO
 {
     public function __construct(
         public int $id,

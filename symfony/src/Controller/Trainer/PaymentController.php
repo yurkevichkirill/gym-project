@@ -25,7 +25,7 @@ use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
-class PaymentController extends AbstractController
+final class PaymentController extends AbstractController
 {
     /**
      * @throws InvalidArgumentException

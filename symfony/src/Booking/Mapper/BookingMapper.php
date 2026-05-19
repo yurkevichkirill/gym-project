@@ -7,7 +7,7 @@ namespace App\Booking\Mapper;
 use App\Booking\DTO\BookingResponseDTO;
 use App\Booking\Entity\Booking;
 
-class BookingMapper implements BookingMapperInterface
+final readonly class BookingMapper implements BookingMapperInterface
 {
     public function map(Booking $booking): BookingResponseDTO
     {

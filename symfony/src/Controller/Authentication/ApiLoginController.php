@@ -14,8 +14,6 @@ use App\Response\SwaggerDocDTO\AbstractItemResponseDTO;
 use App\Response\SwaggerDocDTO\ErrorResponseDTO;
 use App\User\DTO\LoginUserRequestDTO;
 use App\User\Service\UserManager;
-use Doctrine\ORM\Exception\ORMException;
-use Doctrine\ORM\OptimisticLockException;
 use Nelmio\ApiDocBundle\Attribute\Model;
 use OpenApi\Attributes as OA;
 use Random\RandomException;
@@ -33,9 +31,7 @@ use Symfony\Component\Routing\Attribute\Route;
 final class ApiLoginController extends AbstractController
 {
     /**
-     * @throws OptimisticLockException
      * @throws RandomException
-     * @throws ORMException
      * @throws UnauthorizedHttpException
      * @throws AccessDeniedHttpException
      */
@@ -106,9 +102,7 @@ final class ApiLoginController extends AbstractController
     }
 
     /**
-     * @throws OptimisticLockException
      * @throws RandomException
-     * @throws ORMException
      * @throws BadRequestException
      * @throws UnauthorizedHttpException
      * @throws AccessDeniedHttpException

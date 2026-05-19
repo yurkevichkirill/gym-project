@@ -22,7 +22,7 @@ use Symfony\Contracts\Cache\TagAwareCacheInterface;
 
 #[AsDoctrineListener(event: Events::onFlush)]
 #[AsDoctrineListener(event: Events::postFlush)]
-class CacheInvalidatorListener
+final class CacheInvalidatorListener
 {
     private array $tagsToInvalidate = [];
     private array $groupsToBump = [];

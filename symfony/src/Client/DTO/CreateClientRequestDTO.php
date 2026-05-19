@@ -6,7 +6,7 @@ namespace App\Client\DTO;
 
 use Symfony\Component\Validator\Constraints as Assert;
 
-readonly class CreateClientRequestDTO
+final readonly class CreateClientRequestDTO
 {
     public function __construct(
         #[Assert\NotBlank]

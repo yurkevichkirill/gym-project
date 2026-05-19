@@ -6,11 +6,10 @@ namespace App\Admin\Entity;
 
 use App\Admin\Repository\AdminRepository;
 use App\User\Entity\User;
-use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: AdminRepository::class)]
-class Admin extends User
+final class Admin extends User
 {
     public function __construct()
     {

@@ -14,7 +14,7 @@ use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\UniqueConstraint(name: 'unique_item_import_job', columns: ['row_id', 'job_id'])]
 #[ORM\Entity(repositoryClass: ImportJobItemRepository::class)]
-class ImportJobItem
+final class ImportJobItem
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]

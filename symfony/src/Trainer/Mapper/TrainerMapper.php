@@ -8,7 +8,7 @@ use App\Trainer\DTO\TrainerResponseDTO;
 use App\Trainer\DTO\TrainerResponsePrivateDTO;
 use App\Trainer\Entity\Trainer;
 
-class TrainerMapper implements TrainerMapperInterface
+final readonly class TrainerMapper implements TrainerMapperInterface
 {
     public function map(Trainer $trainer, bool $private = false): TrainerResponseDTO|TrainerResponsePrivateDTO
     {

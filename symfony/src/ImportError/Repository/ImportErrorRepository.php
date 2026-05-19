@@ -11,7 +11,7 @@ use Doctrine\Persistence\ManagerRegistry;
 /**
  * @extends ServiceEntityRepository<ImportError>
  */
-class ImportErrorRepository extends ServiceEntityRepository
+final class ImportErrorRepository extends ServiceEntityRepository
 {
     public function __construct(ManagerRegistry $registry)
     {

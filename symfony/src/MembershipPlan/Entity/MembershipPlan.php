@@ -11,7 +11,7 @@ use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: MembershipPlanRepository::class)]
-class MembershipPlan
+final class MembershipPlan
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]

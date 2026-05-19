@@ -11,7 +11,7 @@ use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: TrainingRepository::class)]
-class Training
+final class Training
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]

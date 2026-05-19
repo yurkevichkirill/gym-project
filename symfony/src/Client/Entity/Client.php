@@ -16,7 +16,7 @@ use Gedmo\Mapping\Annotation as Gedmo;
 
 #[ORM\Entity(repositoryClass: ClientRepository::class)]
 #[Gedmo\SoftDeleteable]
-class Client extends User
+final class Client extends User
 {
     #[ORM\Column]
     private ?int $age = null;

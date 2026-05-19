@@ -9,7 +9,7 @@ use App\User\Entity\User;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: ManagerRepository::class)]
-class Manager extends User
+final class Manager extends User
 {
     public function __construct()
     {

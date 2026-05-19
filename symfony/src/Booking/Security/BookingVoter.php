@@ -11,7 +11,7 @@ use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
 use Symfony\Component\Security\Core\Authorization\Voter\Vote;
 use Symfony\Component\Security\Core\Authorization\Voter\Voter;
 
-class BookingVoter extends Voter
+final class BookingVoter extends Voter
 {
     const string VIEW_OWN = "BOOKING_VIEW_OWN";
     const string CANCEL_OWN = "BOOKING_CANCEL_OWN";
