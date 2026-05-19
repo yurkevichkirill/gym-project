@@ -21,6 +21,7 @@ use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Throwable;
 
 final readonly class BookingManager
@@ -57,12 +58,20 @@ final readonly class BookingManager
         try {
             $trainer = $this->trainerRepo->find($dto->trainerId);
 
+            if (!$trainer) {
+                throw new NotFoundHttpException('Trainer not found');
+            }
+
             $worktime = $this->worktimeRepo->findOneBy([
                 'trainer' => $trainer,
                 'date' => new DateTimeImmutable($dto->date),
             ]);
 
-            $this->bookingAvailabilityService->checkBookingAvailability($client, $trainer, $worktime, $dto->date, $dto->startTime, $dto->durationMinutes);
+            if (!$worktime) {
+                throw new NotFoundHttpException('Worktime not found');
+            }
+
+            $this->bookingAvailabilityService->checkBookingAvailability($client, $worktime, $dto->date, $dto->startTime, $dto->durationMinutes);
 
             $price = $this->trainerManager->countPrice($trainer, $dto->durationMinutes);
 

@@ -11,7 +11,6 @@ use App\Booking\Repository\BookingRepository;
 use App\Client\Entity\Client;
 use App\Membership\Exception\NoActiveMembershipException;
 use App\Membership\Repository\MembershipRepository;
-use App\Trainer\Entity\Trainer;
 use App\TrainerWorkTime\Entity\TrainerWorkTime;
 use App\Training\Entity\Training;
 use App\User\Service\AvailabilityService as UserAvailabilityService;
@@ -37,24 +36,15 @@ final readonly class BookingAvailabilityService
      * @throws DateMalformedStringException
      * @throws DateMalformedIntervalStringException
      * @throws AccessDeniedHttpException
-     * @throws NotFoundHttpException
      * @throws BadRequestHttpException
      * @throws DateRescheduledException
      * @throws NoActiveMembershipException
      * @throws DateTimeAlreadyTakenException
      */
-    public function checkBookingAvailability(Client $client, ?Trainer $trainer, ?TrainerWorkTime $worktime, string $date, string $startTime, int $durationMinutes): void
+    public function checkBookingAvailability(Client $client, ?TrainerWorkTime $worktime, string $date, string $startTime, int $durationMinutes): void
     {
         $this->userAvailabilityService->ensureNotBlocked($client);
         $this->userAvailabilityService->ensureActive($client);
-
-        if (!$trainer) {
-            throw new NotFoundHttpException('Trainer not found');
-        }
-
-        if (!$worktime) {
-            throw new NotFoundHttpException('Worktime not found');
-        }
 
         $bookingDateTime = new DateTimeImmutable($date . ' ' . $startTime);
         if ($bookingDateTime <= new DateTimeImmutable()) {
