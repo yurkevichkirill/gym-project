@@ -6,6 +6,9 @@ namespace App\Response\ResponseTypeDTO;
 
 final readonly class CollectionResponse
 {
+    /**
+     * @param array<string, string> $sort
+     */
     public function __construct(
         public mixed $data,
         public int $page = 1,

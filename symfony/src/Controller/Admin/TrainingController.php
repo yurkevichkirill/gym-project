@@ -20,9 +20,11 @@ use App\Training\Entity\Training;
 use App\Training\Mapper\TrainingMapperInterface;
 use App\Training\Query\TrainingsQuery;
 use App\Training\Service\TrainingManager;
+use App\User\Entity\User;
 use App\User\Enum\UserRolesEnum;
 use DateMalformedIntervalStringException;
 use DateMalformedStringException;
+use LogicException;
 use Nelmio\ApiDocBundle\Attribute\Model;
 use OpenApi\Attributes as OA;
 use Psr\Cache\InvalidArgumentException;
@@ -249,10 +251,15 @@ final class TrainingController extends AbstractController
     #[IsGranted(UserRolesEnum::ROLE_ADMIN->value)]
     public function cancel(
         Training $training,
-        #[CurrentUser] $actor,
+        #[CurrentUser] User $actor,
         BookingCancellationService $bookingCancellationService,
     ): NoContentResponse {
-        $bookingCancellationService->cancel($training->getBooking(), $actor);
+        $booking = $training->getBooking();
+        if ($booking === null) {
+            throw new LogicException('Training has no booking.');
+        }
+
+        $bookingCancellationService->cancel($booking, $actor);
 
         return new NoContentResponse();
     }

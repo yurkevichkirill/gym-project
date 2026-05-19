@@ -26,17 +26,18 @@ final class TrainerWorkTime
 
     #[ORM\ManyToOne(inversedBy: 'trainerWorkTime')]
     #[ORM\JoinColumn(nullable: false)]
-    private ?Trainer $trainer = null;
+    private Trainer $trainer;
 
     #[ORM\Column(type: Types::DATE_IMMUTABLE)]
-    private ?DateTimeImmutable $date = null;
+    private DateTimeImmutable $date;
 
     #[ORM\Column(type: Types::TIME_IMMUTABLE)]
-    private ?DateTimeImmutable $startTime = null;
+    private DateTimeImmutable $startTime;
 
     #[ORM\Column(type: Types::TIME_IMMUTABLE)]
-    private ?DateTimeImmutable $endTime = null;
+    private DateTimeImmutable $endTime;
 
+    /** @var Collection<int, Training> */
     #[ORM\OneToMany(targetEntity: Training::class, mappedBy: 'trainerWorkTime', cascade: ['persist', 'remove'])]
     private Collection $trainings;
 
@@ -50,19 +51,19 @@ final class TrainerWorkTime
         return $this->id;
     }
 
-    public function getTrainer(): ?Trainer
+    public function getTrainer(): Trainer
     {
         return $this->trainer;
     }
 
-    public function setTrainer(?Trainer $trainer): static
+    public function setTrainer(Trainer $trainer): static
     {
         $this->trainer = $trainer;
 
         return $this;
     }
 
-    public function getDate(): ?DateTimeImmutable
+    public function getDate(): DateTimeImmutable
     {
         return $this->date;
     }
@@ -74,7 +75,7 @@ final class TrainerWorkTime
         return $this;
     }
 
-    public function getStartTime(): ?DateTimeImmutable
+    public function getStartTime(): DateTimeImmutable
     {
         return $this->startTime;
     }
@@ -86,7 +87,7 @@ final class TrainerWorkTime
         return $this;
     }
 
-    public function getEndTime(): ?DateTimeImmutable
+    public function getEndTime(): DateTimeImmutable
     {
         return $this->endTime;
     }
@@ -119,10 +120,6 @@ final class TrainerWorkTime
     public function removeTraining(Training $training): static
     {
         if ($this->trainings->removeElement($training)) {
-            // set the owning side to null (unless already changed)
-            if ($training->getTrainerWorkTime() === $this) {
-                $training->setTrainerWorkTime(null);
-            }
         }
 
         return $this;
@@ -131,14 +128,18 @@ final class TrainerWorkTime
     /**
      * @throws DateMalformedIntervalStringException
      */
+    /**
+     * @return list<array{start: string, end: string}>
+     */
     public function getFreeSlots(): array
     {
+        /** @var list<Training> $busyTrainings */
         $busyTrainings = array_filter(
             $this->trainings->getValues(),
-            fn ($training) => $training->isBusy()
+            static fn (Training $training): bool => $training->isBusy()
         );
 
-        usort($busyTrainings, fn ($a, $b) =>
+        usort($busyTrainings, static fn (Training $a, Training $b): int =>
             $a->getStartTime() <=> $b->getStartTime()
         );
 

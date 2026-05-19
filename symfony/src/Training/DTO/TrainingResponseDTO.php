@@ -7,6 +7,7 @@ namespace App\Training\DTO;
 use App\Booking\Enum\BookingStatusEnum;
 use App\Payment\DTO\PaymentTrainerResponseDTO;
 use App\Training\Entity\Training;
+use LogicException;
 
 final readonly class TrainingResponseDTO
 {
@@ -25,16 +26,30 @@ final readonly class TrainingResponseDTO
 
     public static function fromEntity(Training $training): self
     {
+        $id = $training->getId();
+        $booking = $training->getBooking();
+
+        if ($id === null || $booking === null) {
+            throw new LogicException('Training is not fully initialized.');
+        }
+
+        $clientId = $booking->getClient()->getId();
+        $payment = $booking->getPayment();
+
+        if ($clientId === null || $payment === null) {
+            throw new LogicException('Training booking is not fully initialized.');
+        }
+
         return new self(
-            id: $training->getId(),
+            id: $id,
             startTime: $training->getStartTime()->format('H:i:s'),
             durationMinutes: $training->getDurationMinutes(),
             date: $training->getTrainerWorkTime()->getDate()->format('Y-m-d'),
             isBusy: $training->isBusy(),
-            clientId: $training->getBooking()->getClient()->getId(),
-            bookedAt: $training->getBooking()->getBookedAt()?->format(DATE_ATOM) ?? '',
-            status: $training->getBooking()->getStatus(),
-            payment: PaymentTrainerResponseDTO::fromEntity($training->getBooking()->getPayment()),
+            clientId: $clientId,
+            bookedAt: $booking->getBookedAt()?->format(DATE_ATOM) ?? '',
+            status: $booking->getStatus(),
+            payment: PaymentTrainerResponseDTO::fromEntity($payment),
         );
     }
 }

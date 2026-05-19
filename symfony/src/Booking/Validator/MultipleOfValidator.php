@@ -24,6 +24,10 @@ final class MultipleOfValidator extends ConstraintValidator
             return;
         }
 
+        if (!is_numeric($value)) {
+            return;
+        }
+
         $number = (int) round((float) $value);
         $remainder = $number % $constraint->multiple;
 

@@ -8,6 +8,7 @@ use App\Payment\Entity\Payment;
 use App\Payment\Enum\PaymentCategoryEnum;
 use App\Payment\Enum\PaymentMethodEnum;
 use App\Payment\Enum\PaymentStatusEnum;
+use LogicException;
 
 final readonly class PaymentTrainerResponseDTO
 {
@@ -18,7 +19,7 @@ final readonly class PaymentTrainerResponseDTO
         public PaymentMethodEnum $method,
         public PaymentCategoryEnum $category,
         public ?string $stripePaymentIntentId,
-        public ?PaymentStatusEnum $status,
+        public PaymentStatusEnum $status,
         public bool $isRefund,
         public string $createdAt,
         public ?string $paidAt,
@@ -28,8 +29,15 @@ final readonly class PaymentTrainerResponseDTO
 
     public static function fromEntity(Payment $payment): self
     {
+        $id = $payment->getId();
+        $createdAt = $payment->getCreatedAt();
+
+        if ($id === null || $createdAt === null) {
+            throw new LogicException('Payment is not fully initialized.');
+        }
+
         return new self(
-            id: $payment->getId(),
+            id: $id,
             amount: $payment->getAmount(),
             currency: $payment->getCurrency(),
             method: $payment->getMethod(),
@@ -37,7 +45,7 @@ final readonly class PaymentTrainerResponseDTO
             stripePaymentIntentId: $payment->getStripePaymentIntentId(),
             status: $payment->getStatus(),
             isRefund: $payment->getIsRefund(),
-            createdAt: $payment->getCreatedAt()->format(DATE_ATOM),
+            createdAt: $createdAt->format(DATE_ATOM),
             paidAt: $payment->getPaidAt()?->format(DATE_ATOM) ?? '',
             expiresAt: $payment->getExpiresAt()?->format(DATE_ATOM) ?? '',
         );

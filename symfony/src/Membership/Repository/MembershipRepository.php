@@ -31,6 +31,9 @@ final class MembershipRepository extends ServiceEntityRepository
         $this->getEntityManager()->remove($membership);
     }
 
+    /**
+     * @return list<Membership>
+     */
     public function findExpired(DateTimeImmutable $curDate): array
     {
         return $this->createQueryBuilder('m')

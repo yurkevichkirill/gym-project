@@ -49,25 +49,28 @@ final readonly class BookingCancellationService
 
         $loggingContext = [
             'booking_id' => $booking->getId(),
-            'client_id' => $booking->getClient()?->getId(),
+            'client_id' => $booking->getClient()->getId(),
         ];
 
         $analyticalContext = [
-            'client_id' => $client?->getId(),
+            'client_id' => $client->getId(),
             'trainer_id' => $training?->getTrainerWorkTime()?->getTrainer()?->getId(),
             'booking_id' => $booking->getId(),
             'price' => $payment?->getAmount() ?? 0,
-            'payment_method' => $payment?->getMethod()?->value ?? 'unknown',
+            'payment_method' => $payment?->getMethod()->value ?? 'unknown',
         ];
 
         $this->entityManager->wrapInTransaction(function () use ($booking, $status, $payment, $loggingContext, $analyticalContext) {
             try {
-                if ($payment) {
+                if ($payment !== null) {
                     $this->paymentSettlementService->refund($payment);
                 }
 
                 $booking->setStatus($status);
-                $booking->getTraining()->setIsBusy(false);
+                $training = $booking->getTraining();
+                if ($training !== null) {
+                    $training->setIsBusy(false);
+                }
 
                 $this->entityManager->flush();
 

@@ -27,13 +27,15 @@ final readonly class TrainersQuery
     ) {}
 
     /**
+     * @param array<string, string> $parsedSort
+     * @return array{items: list<mixed>, total: int}
      * @throws InvalidArgumentException
      */
     public function getCachedData(ResolvedTrainersRequestDTO $dto, array $parsedSort): array
     {
         $cacheKey = $this->generateCacheKey($dto);
 
-        return $this->cache->get($cacheKey, function (ItemInterface $item, bool $save) use ($dto, $parsedSort) {
+        return $this->cache->get($cacheKey, function (ItemInterface $item) use ($dto, $parsedSort): array {
             $item->expiresAfter(3600);
 
             $item->tag(['trainers_list_public']);
@@ -98,6 +100,7 @@ final readonly class TrainersQuery
     }
 
     /**
+     * @return array<string, string>
      * @throws BadRequestHttpException
      */
     public function getParsedSort(ResolvedTrainersRequestDTO $dto): array
@@ -107,13 +110,13 @@ final readonly class TrainersQuery
 
     private function generateCacheKey(ResolvedTrainersRequestDTO $dto): string
     {
-        return 'trainers_' . md5(serialize([
-                'sort' => $dto->sort,
-                'page' => $dto->page,
-                'limit' => $dto->limit,
-                'minPricePerHour' => $dto->minPricePerHour,
-                'maxPricePerHour' => $dto->maxPricePerHour,
-                'trainingTypeId' => $dto->trainingType?->getId(),
+        return 'trainers_' . hash('sha256', serialize([
+            'sort' => $dto->sort,
+            'page' => $dto->page,
+            'limit' => $dto->limit,
+            'minPricePerHour' => $dto->minPricePerHour,
+            'maxPricePerHour' => $dto->maxPricePerHour,
+            'trainingTypeId' => $dto->trainingType?->getId(),
         ]));
     }
 }

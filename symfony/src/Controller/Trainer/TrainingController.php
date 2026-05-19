@@ -25,6 +25,7 @@ use App\User\Entity\User;
 use App\User\Enum\UserRolesEnum;
 use DateMalformedIntervalStringException;
 use DateMalformedStringException;
+use LogicException;
 use Nelmio\ApiDocBundle\Attribute\Model;
 use OpenApi\Attributes as OA;
 use Psr\Cache\InvalidArgumentException;
@@ -324,7 +325,12 @@ final class TrainingController extends AbstractController
         BookingCancellationService $bookingCancellationService,
     ): NoContentResponse {
         $this->denyAccessUnlessGranted(TrainingVoter::REMOVE_OWN, $training);
-        $bookingCancellationService->cancel($training->getBooking(), $actor);
+        $booking = $training->getBooking();
+        if ($booking === null) {
+            throw new LogicException('Training has no booking.');
+        }
+
+        $bookingCancellationService->cancel($booking, $actor);
 
         return new NoContentResponse();
     }

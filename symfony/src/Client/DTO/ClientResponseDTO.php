@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Client\DTO;
 
 use App\Client\Entity\Client;
+use LogicException;
 
 final readonly class ClientResponseDTO
 {
@@ -26,8 +27,13 @@ final readonly class ClientResponseDTO
 
     public static function fromEntity(Client $client): self
     {
+        $id = $client->getId();
+        if ($id === null) {
+            throw new LogicException('Client is not persisted.');
+        }
+
         return new self(
-            id: $client->getId(),
+            id: $id,
             age: $client->getAge(),
             firstName: $client->getFirstName(),
             lastName: $client->getLastName(),

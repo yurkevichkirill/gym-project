@@ -45,7 +45,7 @@ final readonly class StripeWebhookService
 
     private function handleEvent(Event $event): void
     {
-        $paymentIntentId = (string) ($event->data->object->id ?? '');
+        $paymentIntentId = $event->data->object->id ?? '';
 
         try {
             switch ($event->type) {

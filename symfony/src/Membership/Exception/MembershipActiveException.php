@@ -9,6 +9,9 @@ use Throwable;
 
 final class MembershipActiveException extends ConflictHttpException
 {
+    /**
+     * @param array<string, string|string[]> $headers
+     */
     public function __construct(string $message = 'Client already have active membership', ?Throwable $previous = null, int $code = 0, array $headers = [])
     {
         parent::__construct($message, $previous, $code, $headers);

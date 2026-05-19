@@ -27,6 +27,7 @@ use App\Response\SwaggerDocDTO\AbstractCollectionResponseDTO;
 use App\Response\SwaggerDocDTO\AbstractItemResponseDTO;
 use App\Response\SwaggerDocDTO\ErrorResponseDTO;
 use App\User\Enum\UserRolesEnum;
+use LogicException;
 use Nelmio\ApiDocBundle\Attribute\Model;
 use OpenApi\Attributes as OA;
 use Psr\Cache\InvalidArgumentException;
@@ -654,16 +655,20 @@ final class ClientController extends AbstractController
         MessageBusInterface $bus,
     ): ItemResponse {
         $job = $importService->create($requestDto);
+        $jobId = $job->getId();
+        if ($jobId === null) {
+            throw new LogicException('Import job was not persisted.');
+        }
 
         foreach ($requestDto->clients as $rowIndex => $clientDto) {
-            $bus->dispatch(new ImportMessage($clientDto, $job->getId(), $rowIndex));
+            $bus->dispatch(new ImportMessage($clientDto, $jobId, $rowIndex));
         }
 
         return new ItemResponse(
             data: new ClientImportResponseDTO(
                 status: 'queued',
                 count: count($requestDto->clients),
-                jobId: $job->getId(),
+                jobId: $jobId,
             ),
             status: Response::HTTP_ACCEPTED,
         );

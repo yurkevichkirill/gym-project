@@ -31,13 +31,15 @@ final readonly class TrainingsQuery
     {}
 
     /**
+     * @param array<string, string> $parsedSort
+     * @return array{items: list<mixed>, total: int}
      * @throws InvalidArgumentException
      */
     public function getCachedData(ResolvedTrainingsRequestDTO $dto, array $parsedSort): array
     {
         $cacheKey = $this->generateCacheKey($dto);
 
-        return $this->cache->get($cacheKey, function (ItemInterface $item, bool $save) use ($dto, $parsedSort): array {
+        return $this->cache->get($cacheKey, function (ItemInterface $item) use ($dto, $parsedSort): array {
             $item->expiresAfter(3600);
 
             if ($dto->trainer !== null) {
@@ -84,12 +86,12 @@ final readonly class TrainingsQuery
             $qb->addSelect('b', 'w', 'p', 'c');
         }
 
-        if ($dto->trainer) {
+        if ($dto->trainer !== null) {
             $qb->andWhere('w.trainer = :trainer')
                 ->setParameter('trainer', $dto->trainer);
         }
 
-        if ($dto->client) {
+        if ($dto->client !== null) {
             $qb->andWhere('c = :client')
                 ->setParameter('client', $dto->client);
         }
@@ -124,6 +126,7 @@ final readonly class TrainingsQuery
 
 
     /**
+     * @return array<string, string>
      * @throws BadRequestHttpException
      */
     public function getParsedSort(ResolvedTrainingsRequestDTO $dto): array
@@ -146,6 +149,8 @@ final readonly class TrainingsQuery
             'isBusy' => $dto->isBusy,
         ];
 
-        return 'trainings_' . md5(json_encode($params));
+        $encoded = json_encode($params);
+
+        return 'trainings_' . hash('sha256', $encoded === false ? '' : $encoded);
     }
 }

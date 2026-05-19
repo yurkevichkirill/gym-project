@@ -19,16 +19,16 @@ final class MembershipPlan
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
-    private ?string $name = null;
+    private string $name;
 
     #[ORM\Column]
-    private ?int $durationDays = null;
+    private int $durationDays;
 
     #[ORM\Column(nullable: true)]
     private ?int $sessionLimit = null;
 
     #[ORM\Column]
-    private ?int $price = null;
+    private int $price;
 
     /**
      * @var Collection<int, Membership>
@@ -46,7 +46,7 @@ final class MembershipPlan
         return $this->id;
     }
 
-    public function getName(): ?string
+    public function getName(): string
     {
         return $this->name;
     }
@@ -58,7 +58,7 @@ final class MembershipPlan
         return $this;
     }
 
-    public function getDurationDays(): ?int
+    public function getDurationDays(): int
     {
         return $this->durationDays;
     }
@@ -82,7 +82,7 @@ final class MembershipPlan
         return $this;
     }
 
-    public function getPrice(): ?int
+    public function getPrice(): int
     {
         return $this->price;
     }
@@ -115,10 +115,6 @@ final class MembershipPlan
     public function removeMembership(Membership $membership): static
     {
         if ($this->memberships->removeElement($membership)) {
-            // set the owning side to null (unless already changed)
-            if ($membership->getPlan() === $this) {
-                $membership->setPlan(null);
-            }
         }
 
         return $this;

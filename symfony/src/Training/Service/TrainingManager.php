@@ -36,19 +36,24 @@ final readonly class TrainingManager
      */
     public function update(Training $training, TrainingUpdateRequestDTO $requestDto): Training
     {
+        $booking = $training->getBooking();
         $loggingContext = [
-            'client_id' => $training->getBooking()?->getClient()?->getId() ?? '',
-            'trainer_id' => $training->getTrainerWorkTime()?->getTrainer()?->getId() ?? '',
-            'date' => $training->getTrainerWorkTime()?->getDate()?->format('Y-m-d') ?? '',
-            'start_time' => $training->getStartTime()?->format('H:i:s') ?? '',
-            'duration_minutes' => $training->getDurationMinutes() ?? '',
+            'client_id' => $booking?->getClient()->getId() ?? '',
+            'trainer_id' => $training->getTrainerWorkTime()->getTrainer()->getId() ?? '',
+            'date' => $training->getTrainerWorkTime()->getDate()->format('Y-m-d'),
+            'start_time' => $training->getStartTime()->format('H:i:s'),
+            'duration_minutes' => $training->getDurationMinutes(),
         ];
 
         try {
-            $client = $training->getBooking()->getClient();
+            if ($booking === null) {
+                throw new NotFoundHttpException('Training booking not found');
+            }
+
+            $client = $booking->getClient();
             $trainer = $training->getTrainerWorkTime()->getTrainer();
 
-            $newDate = $requestDto->date
+            $newDate = $requestDto->date !== null
                 ? new DateTimeImmutable($requestDto->date)
                 : $training->getTrainerWorkTime()->getDate();
 
@@ -60,13 +65,13 @@ final readonly class TrainingManager
                 $newDate
             );
 
-            if (!$newWorktime) {
+            if ($newWorktime === null) {
                 throw new NotFoundHttpException('There is no work time for this date');
             }
 
             $this->bookingAvailabilityService->checkUpdateBookingAvailability($training, $client, $newWorktime, $newDate, $newStartTime);
 
-            return $this->entityManager->wrapInTransaction(function () use ($training, $newWorktime, $newStartTime, $loggingContext) {
+            return $this->entityManager->wrapInTransaction(function () use ($training, $newWorktime, $newStartTime) {
                 $training->setTrainerWorkTime($newWorktime);
 
                 $training->setStartTime(new DateTimeImmutable($newStartTime));
@@ -95,18 +100,23 @@ final readonly class TrainingManager
      */
     public function complete(Training $training): Training
     {
+        $booking = $training->getBooking();
         $loggingContext = [
-            'client_id' => $training->getBooking()?->getClient()?->getId() ?? '',
-            'trainer_id' => $training->getTrainerWorkTime()?->getTrainer()?->getId() ?? '',
-            'date' => $training->getTrainerWorkTime()?->getDate()?->format('Y-m-d') ?? '',
-            'start_time' => $training->getStartTime()?->format('H:i:s') ?? '',
-            'duration_minutes' => $training->getDurationMinutes() ?? '',
+            'client_id' => $booking?->getClient()->getId() ?? '',
+            'trainer_id' => $training->getTrainerWorkTime()->getTrainer()->getId() ?? '',
+            'date' => $training->getTrainerWorkTime()->getDate()->format('Y-m-d'),
+            'start_time' => $training->getStartTime()->format('H:i:s'),
+            'duration_minutes' => $training->getDurationMinutes(),
         ];
 
         try {
             $this->bookingAvailabilityService->checkCompleteBookingAvailability($training);
 
-            $training->getBooking()->setStatus(BookingStatusEnum::COMPLETED);
+            if ($booking === null) {
+                throw new NotFoundHttpException('Training booking not found');
+            }
+
+            $booking->setStatus(BookingStatusEnum::COMPLETED);
 
             $this->entityManager->flush();
 
@@ -127,6 +137,11 @@ final readonly class TrainingManager
         }
     }
 
+    /**
+     * @param array<string, scalar|null> $context
+     * @param array<string, scalar|null> $extra
+     * @return array<string, scalar|null>
+     */
     private function bookingEventContext(array $context, string $operation, string $outcome, array $extra = []): array
     {
         return $extra + $context + [

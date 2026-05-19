@@ -24,19 +24,22 @@ final readonly class ImportJobItemManager
 
     public function create(ImportMessage $message): ?ImportJobItem
     {
-        $existing = $this->jobItemRepo->findOneBy([
-            'job' => $this->jobRepo->find($message->jobId),
-            'rowId' => $message->rowIndex,
-        ]);
-
-        if ($existing) {
+        $job = $this->jobRepo->find($message->jobId);
+        if ($job === null) {
             return null;
         }
 
-        $importJob = $this->jobRepo->find($message->jobId);
+        $existing = $this->jobItemRepo->findOneBy([
+            'job' => $job,
+            'rowId' => $message->rowIndex,
+        ]);
+
+        if ($existing !== null) {
+            return null;
+        }
 
         $jobItem = new ImportJobItem();
-        $jobItem->setJob($importJob);
+        $jobItem->setJob($job);
         $jobItem->setRowId($message->rowIndex);
         $jobItem->setStatus(ImportJobItemStatusEnum::PROCESSING);
 

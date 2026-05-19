@@ -55,11 +55,11 @@ final readonly class MembershipManager
             $this->userAvailabilityService->ensureActive($client);
 
             $plan = $this->membershipPlanRepo->find($membershipPlanId);
-            if (!$plan) {
+            if ($plan === null) {
                 throw new NotFoundHttpException('Membership plan not found');
             }
 
-            return $this->entityManager->wrapInTransaction(function () use ($client, $plan, $loggingContext) {
+            return $this->entityManager->wrapInTransaction(function () use ($client, $plan) {
 
                 if ($this->membershipAvailabilityService->hasActiveMembership($client)) {
                     throw new MembershipActiveException();
@@ -132,6 +132,12 @@ final readonly class MembershipManager
                 throw new InvalidMembershipStatusException();
             }
 
+            $plan = $membership->getPlan();
+            $payment = $membership->getPayment();
+            if ($plan === null || $payment === null) {
+                throw new InvalidMembershipStatusException('Membership is not fully initialized');
+            }
+
             $membership->setFrozenAt(new DateTimeImmutable());
             $membership->setStatus(MembershipStatusEnum::FROZEN);
 
@@ -142,9 +148,9 @@ final readonly class MembershipManager
                 [
                     'client_id' => $membership->getClient()->getId(),
                     'membership_id' => $membership->getId(),
-                    'plan_id' => $membership->getPlan()->getId(),
-                    'price' => $membership->getPayment()->getAmount(),
-                    'payment_method' => $membership->getPayment()?->getMethod()->value ?? 'unknown',
+                    'plan_id' => $plan->getId(),
+                    'price' => $payment->getAmount(),
+                    'payment_method' => $payment->getMethod()->value,
                 ]
             );
 
@@ -183,12 +189,20 @@ final readonly class MembershipManager
         ];
 
         try {
-            if ($membership->getStatus() != MembershipStatusEnum::FROZEN) {
+            if ($membership->getStatus() !== MembershipStatusEnum::FROZEN) {
                 throw new InvalidMembershipStatusException('Only frozen membership can be unfrozen');
             }
 
-            $dateInterval = $membership->getFrozenAt()->diff(new DateTimeImmutable());
-            $membership->setEndDate($membership->getEndDate()->add($dateInterval));
+            $frozenAt = $membership->getFrozenAt();
+            $endDate = $membership->getEndDate();
+            $plan = $membership->getPlan();
+            $payment = $membership->getPayment();
+            if ($frozenAt === null || $endDate === null || $plan === null || $payment === null) {
+                throw new InvalidMembershipStatusException('Membership is not fully initialized');
+            }
+
+            $dateInterval = $frozenAt->diff(new DateTimeImmutable());
+            $membership->setEndDate($endDate->add($dateInterval));
             $membership->setFrozenAt(null);
             $membership->setStatus(MembershipStatusEnum::ACTIVE);
 
@@ -203,9 +217,9 @@ final readonly class MembershipManager
                 [
                     'client_id' => $membership->getClient()->getId(),
                     'membership_id' => $membership->getId(),
-                    'plan_id' => $membership->getPlan()->getId(),
-                    'price' => $membership->getPayment()->getAmount(),
-                    'payment_method' => $membership->getPayment()?->getMethod()->value ?? 'unknown',
+                    'plan_id' => $plan->getId(),
+                    'price' => $payment->getAmount(),
+                    'payment_method' => $payment->getMethod()->value,
                 ]
             );
 
@@ -242,11 +256,17 @@ final readonly class MembershipManager
         ];
 
         try {
-            if (!$membership->getPlan()) {
+            $plan = $membership->getPlan();
+            if ($plan === null) {
                 throw new NotFoundHttpException();
             }
 
-            return $this->create($membership->getClient(), $membership->getPlan()->getId());
+            $planId = $plan->getId();
+            if ($planId === null) {
+                throw new NotFoundHttpException();
+            }
+
+            return $this->create($membership->getClient(), $planId);
         } catch (Throwable $e) {
             $this->membershipLogger->error('membership.renew.failed',
                 $this->membershipEventContext($loggingContext, 'renew', 'failed', [
@@ -276,6 +296,12 @@ final readonly class MembershipManager
                 throw new InvalidMembershipStatusException('Membership already expired');
             }
 
+            $plan = $membership->getPlan();
+            $payment = $membership->getPayment();
+            if ($plan === null || $payment === null) {
+                throw new InvalidMembershipStatusException('Membership is not fully initialized');
+            }
+
             $membership->setEndDate(new DateTimeImmutable());
             $membership->setStatus(MembershipStatusEnum::EXPIRED);
 
@@ -286,9 +312,9 @@ final readonly class MembershipManager
                 [
                     'client_id' => $membership->getClient()->getId(),
                     'membership_id' => $membership->getId(),
-                    'plan_id' => $membership->getPlan()->getId(),
-                    'price' => $membership->getPayment()->getAmount(),
-                    'payment_method' => $membership->getPayment()?->getMethod()->value ?? 'unknown',
+                    'plan_id' => $plan->getId(),
+                    'price' => $payment->getAmount(),
+                    'payment_method' => $payment->getMethod()->value,
                 ]
             );
 
@@ -333,6 +359,11 @@ final readonly class MembershipManager
         return count($expiredMemberships);
     }
 
+    /**
+     * @param array<string, scalar|null> $context
+     * @param array<string, scalar|null> $extra
+     * @return array<string, scalar|null>
+     */
     private function membershipEventContext(array $context, string $operation, string $outcome, array $extra = []): array
     {
         return $extra + $context + [

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\MembershipPlan\DTO;
 
 use App\MembershipPlan\Entity\MembershipPlan;
+use LogicException;
 
 final readonly class MembershipPlanResponseDTO
 {
@@ -19,8 +20,13 @@ final readonly class MembershipPlanResponseDTO
 
     public static function fromEntity(MembershipPlan $membershipPlan): self
     {
+        $id = $membershipPlan->getId();
+        if ($id === null) {
+            throw new LogicException('Membership plan is not persisted.');
+        }
+
         return new self(
-            id: $membershipPlan->getId(),
+            id: $id,
             name: $membershipPlan->getName(),
             durationDays: $membershipPlan->getDurationDays(),
             price: $membershipPlan->getPrice(),

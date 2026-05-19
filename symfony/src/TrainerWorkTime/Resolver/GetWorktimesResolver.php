@@ -18,6 +18,7 @@ use Symfony\Component\HttpKernel\ControllerMetadata\ArgumentMetadata;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Serializer\Normalizer\AbstractObjectNormalizer;
+use Symfony\Component\Serializer\Normalizer\DenormalizerInterface;
 use Symfony\Component\Serializer\SerializerInterface;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 use Throwable;
@@ -26,13 +27,14 @@ final readonly class GetWorktimesResolver implements ValueResolverInterface
 {
     public function __construct(
         private TrainerRepository   $trainerRepo,
-        private SerializerInterface $serializer,
+        private SerializerInterface&DenormalizerInterface $serializer,
         private ValidatorInterface  $validator,
         private Security $security,
     )
     {}
 
     /**
+     * @return iterable<int, ResolvedWorktimesRequestDTO>
      * @throws DateMalformedStringException
      * @throws NotFoundHttpException
      * @throws BadRequestHttpException
@@ -67,13 +69,15 @@ final readonly class GetWorktimesResolver implements ValueResolverInterface
         if ($user instanceof Trainer) {
             $trainer = $user;
         }
-        elseif ($rawDto->trainerId) {
+        elseif ($rawDto->trainerId !== null) {
+            /** @var int $trainerId */
+            $trainerId = $rawDto->trainerId;
             $trainer = $this->trainerRepo->find($rawDto->trainerId)
-                ?? throw new NotFoundHttpException("Trainer with ID $rawDto->trainerId not found");
+                ?? throw new NotFoundHttpException("Trainer with ID $trainerId not found");
         }
 
         yield new ResolvedWorktimesRequestDTO(
-            date: $rawDto->date ? new DateTimeImmutable($rawDto->date) : null,
+            date: $rawDto->date !== null ? new DateTimeImmutable($rawDto->date) : null,
             trainer: $trainer,
             sort: $rawDto->sort,
             page: $rawDto->page,

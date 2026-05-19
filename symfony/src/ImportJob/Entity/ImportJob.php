@@ -22,6 +22,7 @@ final class ImportJob
     #[ORM\Column]
     private ?int $id = null;
 
+    /** @var Collection<int, ImportError> */
     #[ORM\OneToMany(
         targetEntity: ImportError::class,
         mappedBy: 'job',
@@ -30,6 +31,7 @@ final class ImportJob
     )]
     private Collection $errors;
 
+    /** @var Collection<int, ImportJobItem> */
     #[ORM\OneToMany(
         targetEntity: ImportJobItem::class,
         mappedBy: 'job',
@@ -161,6 +163,9 @@ final class ImportJob
         return $this;
     }
 
+    /**
+     * @return Collection<int, ImportError>
+     */
     public function getErrors(): Collection
     {
         return $this->errors;
@@ -175,6 +180,9 @@ final class ImportJob
         return $this;
     }
 
+    /**
+     * @return Collection<int, ImportJobItem>
+     */
     public function getItems(): Collection
     {
         return $this->items;

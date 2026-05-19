@@ -34,7 +34,7 @@ final class ImportJobItem
     private ?ImportError $error = null;
 
     #[ORM\Column]
-    private ?int $rowId = null;
+    private int $rowId;
 
     #[ORM\Column(type: Types::ENUM, length: 50)]
     private ImportJobItemStatusEnum $status;
@@ -59,12 +59,12 @@ final class ImportJobItem
         return $this;
     }
 
-    public function getRowId(): ?int
+    public function getRowId(): int
     {
         return $this->rowId;
     }
 
-    public function setRowId(?int $rowId): static
+    public function setRowId(int $rowId): static
     {
         $this->rowId = $rowId;
 

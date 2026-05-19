@@ -37,6 +37,9 @@ final class PaymentRepository extends ServiceEntityRepository
         ]);
     }
 
+    /**
+     * @return list<Payment>
+     */
     public function findExpiredPending(): array
     {
         return $this->createQueryBuilder('p')

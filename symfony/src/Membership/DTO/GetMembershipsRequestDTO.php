@@ -28,7 +28,7 @@ final readonly class GetMembershipsRequestDTO
         #[Assert\GreaterThanOrEqual(0)]
         public ?int $maxVisits = null,
 
-        public string $sort,
+        public string $sort = 'startDate:ASC',
 
         #[Assert\Positive]
         public int $page = 1,

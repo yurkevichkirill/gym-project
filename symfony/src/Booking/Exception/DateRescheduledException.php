@@ -9,6 +9,9 @@ use Throwable;
 
 final class DateRescheduledException extends ConflictHttpException
 {
+    /**
+     * @param array<string, string|string[]> $headers
+     */
     public function __construct(string $message = 'This date cannot be selected', ?Throwable $previous = null, int $code = 0, array $headers = [])
     {
         parent::__construct($message, $previous, $code, $headers);

@@ -21,7 +21,7 @@ final readonly class ResolvedTrainingsRequestDTO
         public ?DateTimeImmutable $startTime = null,
         public ?int               $durationMinutes = null,
         public ?bool              $isBusy = null,
-        public string             $sort,
+        public string             $sort = 'startTime:ASC',
         public int                $page = 1,
         public int                $limit = 20,
     )

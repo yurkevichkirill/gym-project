@@ -32,12 +32,15 @@ final class TrainerWorkTimeRepository extends ServiceEntityRepository
 
     public function findByDateForTrainer(Trainer $trainer, DateTimeImmutable $date): ?TrainerWorkTime
     {
-        return $this->createQueryBuilder('wt')
+        /** @var TrainerWorkTime|null $result */
+        $result = $this->createQueryBuilder('wt')
             ->where('wt.trainer = :trainer')
             ->andWhere('wt.date = :date')
             ->setParameter('trainer', $trainer)
             ->setParameter('date', $date)
             ->getQuery()
             ->getOneOrNullResult();
+
+        return $result;
     }
 }

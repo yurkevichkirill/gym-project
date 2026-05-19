@@ -28,16 +28,18 @@ final readonly class MembershipQuery
     {}
 
     /**
+     * @param array<string, string> $parsedSort
+     * @return array{items: list<mixed>, total: int}
      * @throws InvalidArgumentException
      */
     public function getCachedData(ResolvedMembershipsRequestDTO $dto, array $parsedSort): array
     {
         $cacheKey = $this->generateCacheKey($dto);
 
-        return $this->cache->get($cacheKey, function (ItemInterface $item, bool $save) use ($dto, $parsedSort): array {
+        return $this->cache->get($cacheKey, function (ItemInterface $item) use ($dto, $parsedSort): array {
             $item->expiresAfter(3600);
 
-            if ($dto->client) {
+            if ($dto->client !== null) {
                 $item->tag(['memberships_list_' . $dto->client->getId()]);
             } else {
                 $item->tag(['memberships_list_all']);
@@ -79,7 +81,7 @@ final readonly class MembershipQuery
             $qb->addSelect('plan', 'p');
         }
 
-        if ($dto->client) {
+        if ($dto->client !== null) {
             $qb->andWhere('m.client = :client')
                 ->setParameter('client', $dto->client);
         }
@@ -89,7 +91,7 @@ final readonly class MembershipQuery
                 ->setParameter('status', $dto->status);
         }
 
-        if ($dto->membershipPlan) {
+        if ($dto->membershipPlan !== null) {
             $qb->andWhere('m.plan = :plan')
                 ->setParameter('plan', $dto->membershipPlan);
         }
@@ -108,6 +110,7 @@ final readonly class MembershipQuery
     }
 
     /**
+     * @return array<string, string>
      * @throws BadRequestHttpException
      */
     public function getParsedSort(ResolvedMembershipsRequestDTO $dto): array
@@ -128,6 +131,8 @@ final readonly class MembershipQuery
             'maxVisits' => $dto->maxVisits,
         ];
 
-        return 'memberships_' . md5(json_encode($params));
+        $encoded = json_encode($params);
+
+        return 'memberships_' . hash('sha256', $encoded === false ? '' : $encoded);
     }
 }

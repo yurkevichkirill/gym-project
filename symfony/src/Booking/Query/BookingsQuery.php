@@ -31,16 +31,18 @@ final readonly class BookingsQuery
     {}
 
     /**
+     * @param array<string, string> $parsedSort
+     * @return array{items: list<mixed>, total: int}
      * @throws InvalidArgumentException
      */
     public function getCachedData(ResolvedBookingsRequestDTO $dto, array $parsedSort): array
     {
         $cacheKey = $this->generateCacheKey($dto);
 
-        return $this->cache->get($cacheKey, function (ItemInterface $item, bool $save) use ($dto, $parsedSort): array {
+        return $this->cache->get($cacheKey, function (ItemInterface $item) use ($dto, $parsedSort): array {
             $item->expiresAfter(3600);
 
-            if ($dto->client) {
+            if ($dto->client !== null) {
                 $item->tag(['bookings_list_' . $dto->client->getId()]);
             } else {
                 $item->tag(['bookings_list_all']);
@@ -54,7 +56,7 @@ final readonly class BookingsQuery
             $offset = ($dto->page - 1) * $dto->limit;
 
             foreach ($parsedSort as $alias => $order) {
-                $field = self::SORT_MAP[$alias] ?? 'b.$alias';
+                $field = self::SORT_MAP[$alias] ?? "b.$alias";
                 $qb->addOrderBy($field, $order);
             }
 
@@ -88,27 +90,27 @@ final readonly class BookingsQuery
                 ->addSelect('type');
         }
 
-        if ($dto->client) {
+        if ($dto->client !== null) {
             $qb->andWhere('c = :client')
                 ->setParameter('client', $dto->client);
         }
 
-        if ($dto->trainer) {
+        if ($dto->trainer !== null) {
             $qb->andWhere('trainer = :trainer')
                 ->setParameter('trainer', $dto->trainer);
         }
 
-        if ($dto->status) {
+        if ($dto->status !== null) {
             $qb->andWhere('b.status = :status')
                 ->setParameter('status', $dto->status);
         }
 
-        if ($dto->date) {
+        if ($dto->date !== null) {
             $qb->andWhere('w.date = :date')
                 ->setParameter('date', $dto->date);
         }
 
-        if ($dto->startTime) {
+        if ($dto->startTime !== null) {
             $qb->andWhere('t.startTime = :startTime')
                 ->setParameter('startTime', $dto->startTime);
         }
@@ -122,6 +124,7 @@ final readonly class BookingsQuery
     }
 
     /**
+     * @return array<string, string>
      * @throws BadRequestHttpException
      */
     public function getParsedSort(ResolvedBookingsRequestDTO $dto): array
@@ -144,6 +147,8 @@ final readonly class BookingsQuery
             'durationMinutes' => $dto->durationMinutes,
         ];
 
-        return 'bookings_' . md5(json_encode($params));
+        $encoded = json_encode($params);
+
+        return 'bookings_' . hash('sha256', $encoded === false ? '' : $encoded);
     }
 }

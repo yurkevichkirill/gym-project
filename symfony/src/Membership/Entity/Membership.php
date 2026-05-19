@@ -26,7 +26,7 @@ final class Membership
 
     #[ORM\ManyToOne(inversedBy: 'memberships')]
     #[ORM\JoinColumn(nullable: false)]
-    private ?Client $client = null;
+    private Client $client;
 
     #[ORM\ManyToOne(inversedBy: 'memberships')]
     #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
@@ -56,10 +56,10 @@ final class Membership
 
     #[ORM\Column(options: ['default' => 0])]
     #[Assert\GreaterThanOrEqual(0)]
-    private ?int $visits = null;
+    private int $visits = 0;
 
     #[ORM\Column(options: ['default' => 'CURRENT_TIMESTAMP'])]
-    private ?DateTimeImmutable $createdAt = null;
+    private DateTimeImmutable $createdAt;
 
     #[ORM\Column(nullable: true)]
     private ?DateTimeImmutable $frozenAt = null;
@@ -69,7 +69,7 @@ final class Membership
         return $this->id;
     }
 
-    public function getVisits(): ?int
+    public function getVisits(): int
     {
         return $this->visits;
     }
@@ -81,12 +81,12 @@ final class Membership
         return $this;
     }
 
-    public function getClient(): ?Client
+    public function getClient(): Client
     {
         return $this->client;
     }
 
-    public function setClient(?Client $client): static
+    public function setClient(Client $client): static
     {
         $this->client = $client;
 
@@ -118,24 +118,24 @@ final class Membership
     }
 
 
-    public function getName(): ?string
+    public function getName(): string
     {
         return $this->name;
     }
 
-    public function setName(?string $name): static
+    public function setName(string $name): static
     {
         $this->name = $name;
 
         return $this;
     }
 
-    public function getDurationDays(): ?int
+    public function getDurationDays(): int
     {
         return $this->durationDays;
     }
 
-    public function setDurationDays(?int $durationDays): static
+    public function setDurationDays(int $durationDays): static
     {
         $this->durationDays = $durationDays;
 
@@ -210,7 +210,7 @@ final class Membership
         return $this;
     }
 
-    public function getStatus(): ?MembershipStatusEnum
+    public function getStatus(): MembershipStatusEnum
     {
         return $this->status;
     }
@@ -222,7 +222,7 @@ final class Membership
         return $this;
     }
 
-    public function getCreatedAt(): ?DateTimeImmutable
+    public function getCreatedAt(): DateTimeImmutable
     {
         return $this->createdAt;
     }

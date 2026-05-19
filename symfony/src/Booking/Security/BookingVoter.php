@@ -11,6 +11,7 @@ use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
 use Symfony\Component\Security\Core\Authorization\Voter\Vote;
 use Symfony\Component\Security\Core\Authorization\Voter\Voter;
 
+/** @extends Voter<string, Booking> */
 final class BookingVoter extends Voter
 {
     const string VIEW_OWN = 'BOOKING_VIEW_OWN';
@@ -19,7 +20,7 @@ final class BookingVoter extends Voter
     const string CANCEL_ADMIN = 'BOOKING_CANCEL_ADMIN';
     protected function supports(string $attribute, mixed $subject): bool
     {
-        if (!in_array($attribute, [self::VIEW_OWN, self::CANCEL_OWN, self::VIEW_ADMIN, self::CANCEL_ADMIN])) {
+        if (!in_array($attribute, [self::VIEW_OWN, self::CANCEL_OWN, self::VIEW_ADMIN, self::CANCEL_ADMIN], true)) {
             return false;
         }
 
@@ -36,7 +37,7 @@ final class BookingVoter extends Voter
 
         if (!$user instanceof Client && !$user instanceof Admin) return false;
 
-        if ($user instanceof Admin && in_array($attribute, [self::VIEW_ADMIN, self::CANCEL_ADMIN])) {
+        if ($user instanceof Admin && in_array($attribute, [self::VIEW_ADMIN, self::CANCEL_ADMIN], true)) {
             return true;
         }
 

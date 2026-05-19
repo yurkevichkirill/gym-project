@@ -25,11 +25,11 @@ final readonly class UserManager
     {
         $user = $this->repo->findOneBy(['email' => $dto->email ?? null]);
 
-        if (!$user || !$this->hasher->isPasswordValid($user, $dto->password ?? '')) {
+        if ($user === null || !$this->hasher->isPasswordValid($user, $dto->password ?? '')) {
             throw new UnauthorizedHttpException('Bearer', 'Invalid credentials');
         }
 
-        if ($user->getDeletedAt()) {
+        if ($user->getDeletedAt() !== null) {
             throw new UnauthorizedHttpException('Bearer', 'User is deleted');
         }
 

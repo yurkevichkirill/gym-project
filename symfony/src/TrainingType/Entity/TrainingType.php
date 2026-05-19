@@ -20,13 +20,13 @@ final class TrainingType
     private ?int $id = null;
 
     #[ORM\Column(length: 100)]
-    private ?string $name = null;
+    private string $name;
 
     #[ORM\Column(type: Types::TEXT)]
-    private ?string $description = null;
+    private string $description;
 
     #[ORM\Column()]
-    private ?string $photoUrl = null;
+    private string $photoUrl;
 
     /**
      * @var Collection<int, Trainer>
@@ -44,17 +44,17 @@ final class TrainingType
         return $this->id;
     }
 
-    public function getName(): ?string
+    public function getName(): string
     {
         return $this->name;
     }
 
-    public function getPhotoUrl(): ?string
+    public function getPhotoUrl(): string
     {
         return $this->photoUrl;
     }
 
-    public function setPhotoUrl(?string $photoUrl): static
+    public function setPhotoUrl(string $photoUrl): static
     {
         $this->photoUrl = $photoUrl;
 
@@ -68,7 +68,7 @@ final class TrainingType
         return $this;
     }
 
-    public function getDescription(): ?string
+    public function getDescription(): string
     {
         return $this->description;
     }

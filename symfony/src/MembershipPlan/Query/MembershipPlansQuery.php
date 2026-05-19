@@ -23,13 +23,15 @@ final readonly class MembershipPlansQuery
     ) {}
 
     /**
+     * @param array<string, string> $parsedSort
+     * @return array{items: list<mixed>, total: int}
      * @throws InvalidArgumentException
      */
     public function getCachedData(GetMembershipPlansRequestDTO $dto, array $parsedSort): array
     {
         $cacheKey = $this->generateCacheKey($dto);
 
-        return $this->cache->get($cacheKey, function (ItemInterface $item, bool $save) use ($dto, $parsedSort) {
+        return $this->cache->get($cacheKey, function (ItemInterface $item) use ($dto, $parsedSort): array {
             $item->expiresAfter(3600);
 
             $item->tag(['membership_plans_list']);
@@ -103,6 +105,7 @@ final readonly class MembershipPlansQuery
     }
 
     /**
+     * @return array<string, string>
      * @throws BadRequestHttpException
      */
     public function getParsedSort(GetMembershipPlansRequestDTO $dto): array
@@ -112,17 +115,17 @@ final readonly class MembershipPlansQuery
 
     private function generateCacheKey(GetMembershipPlansRequestDTO $dto): string
     {
-        return 'membership_plans_' . md5(serialize([
-                'sort' => $dto->sort,
-                'page' => $dto->page,
-                'limit' => $dto->limit,
-                'minPrice' => $dto->minPrice,
-                'maxPrice' => $dto->maxPrice,
-                'minDurationDays' => $dto->minDurationDays,
-                'maxDurationDays' => $dto->maxDurationDays,
-                'minSessionLimit' => $dto->minSessionLimit,
-                'maxSessionLimit' => $dto->maxSessionLimit,
-                'isUnlimited' => $dto->isUnlimited,
-            ]));
+        return 'membership_plans_' . hash('sha256', serialize([
+            'sort' => $dto->sort,
+            'page' => $dto->page,
+            'limit' => $dto->limit,
+            'minPrice' => $dto->minPrice,
+            'maxPrice' => $dto->maxPrice,
+            'minDurationDays' => $dto->minDurationDays,
+            'maxDurationDays' => $dto->maxDurationDays,
+            'minSessionLimit' => $dto->minSessionLimit,
+            'maxSessionLimit' => $dto->maxSessionLimit,
+            'isUnlimited' => $dto->isUnlimited,
+        ]));
     }
 }

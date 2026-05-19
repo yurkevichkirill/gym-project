@@ -24,17 +24,19 @@ final readonly class WorkTimeQuery
     {}
 
     /**
+     * @param array<string, string> $parsedSort
+     * @return array{items: list<mixed>, total: int}
      * @throws InvalidArgumentException
      */
     public function getCachedData(ResolvedWorktimesRequestDTO $dto, array $parsedSort): array
     {
         $cacheKey = $this->generateCacheKey($dto);
 
-        return $this->cache->get($cacheKey, function (ItemInterface $item, bool $save) use ($dto, $parsedSort): array {
+        return $this->cache->get($cacheKey, function (ItemInterface $item) use ($dto, $parsedSort): array {
 
             $item->expiresAfter(3600);
 
-            if ($dto->trainer) {
+            if ($dto->trainer !== null) {
                 $item->tag(['trainer_worktimes_list_' . $dto->trainer->getId()]);
             } else {
                 $item->tag(['trainer_worktimes_list_all']);
@@ -95,6 +97,7 @@ final readonly class WorkTimeQuery
     }
 
     /**
+     * @return array<string, string>
      * @throws BadRequestHttpException
      */
     public function getParsedSort(ResolvedWorktimesRequestDTO $dto): array
@@ -112,6 +115,8 @@ final readonly class WorkTimeQuery
             'date' => $dto->date?->format('Y-m-d'),
         ];
 
-        return 'trainer_worktime_' . md5(json_encode($params));
+        $encoded = json_encode($params);
+
+        return 'trainer_worktime_' . hash('sha256', $encoded === false ? '' : $encoded);
     }
 }

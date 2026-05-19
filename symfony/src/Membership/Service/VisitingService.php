@@ -40,6 +40,9 @@ final readonly class VisitingService
         }
 
         $activeMembership = $this->membershipRepo->findActive($client);
+        if ($activeMembership === null) {
+            throw new NoActiveMembershipException();
+        }
 
         $activeMembership->setVisits($activeMembership->getVisits() + 1);
         $this->checkOnExpire($activeMembership);
@@ -49,9 +52,10 @@ final readonly class VisitingService
 
     public function checkOnExpire(Membership $membership): void
     {
+        $endDate = $membership->getEndDate();
         if (
             $membership->getSessionLimit() !== null && $membership->getVisits() >= $membership->getSessionLimit() ||
-            new DateTimeImmutable() > $membership->getEndDate()
+            ($endDate !== null && new DateTimeImmutable() > $endDate)
         ) {
             $membership->setStatus(MembershipStatusEnum::EXPIRED);
         }

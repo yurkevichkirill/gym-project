@@ -15,6 +15,9 @@ final readonly class ImportErrorService
     )
     {}
 
+    /**
+     * @param array<string, mixed> $payload
+     */
     public function create(ImportJob $job, array $payload, string $errorMessage): ImportError
     {
         $error = new ImportError(

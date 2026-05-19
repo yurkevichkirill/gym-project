@@ -17,6 +17,7 @@ use Symfony\Component\HttpKernel\ControllerMetadata\ArgumentMetadata;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Serializer\Normalizer\AbstractObjectNormalizer;
+use Symfony\Component\Serializer\Normalizer\DenormalizerInterface;
 use Symfony\Component\Serializer\SerializerInterface;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 use Throwable;
@@ -24,7 +25,7 @@ use Throwable;
 final readonly class GetMembershipsResolver implements ValueResolverInterface
 {
     public function __construct(
-        private SerializerInterface $serializer,
+        private SerializerInterface&DenormalizerInterface $serializer,
         private ValidatorInterface $validator,
         private ClientRepository $clientRepo,
         private MembershipPlanRepository $membershipPlanRepo,
@@ -33,6 +34,7 @@ final readonly class GetMembershipsResolver implements ValueResolverInterface
     {}
 
     /**
+     * @return iterable<int, ResolvedMembershipsRequestDTO>
      * @throws BadRequestException
      * @throws BadRequestHttpException
      * @throws NotFoundHttpException
@@ -67,15 +69,19 @@ final readonly class GetMembershipsResolver implements ValueResolverInterface
             $client = $user;
         }
 
-        elseif ($rawDto->clientId) {
+        elseif ($rawDto->clientId !== null) {
+            /** @var int $clientId */
+            $clientId = $rawDto->clientId;
             $client = $this->clientRepo->find($rawDto->clientId)
-                ?? throw new NotFoundHttpException("Client with ID $rawDto->clientId not found");
+                ?? throw new NotFoundHttpException("Client with ID $clientId not found");
         }
 
         $membershipPlan = null;
-        if ($rawDto->membershipPlanId) {
+        if ($rawDto->membershipPlanId !== null) {
+            /** @var int $membershipPlanId */
+            $membershipPlanId = $rawDto->membershipPlanId;
             $membershipPlan = $this->membershipPlanRepo->find($rawDto->membershipPlanId)
-                ?? throw new NotFoundHttpException("Membership plan with ID $rawDto->membershipPlanId not found");
+                ?? throw new NotFoundHttpException("Membership plan with ID $membershipPlanId not found");
         }
 
         yield new ResolvedMembershipsRequestDTO(

@@ -30,7 +30,7 @@ final readonly class StripeService
      */
     public function createPaymentIntent(Payment $payment): string
     {
-        if ($payment->getId() === null || $payment->getAmount() === null) {
+        if ($payment->getId() === null) {
             throw new BadRequestHttpException('Payment must be persisted before creating PaymentIntent');
         }
 
@@ -53,6 +53,10 @@ final readonly class StripeService
 
             $payment->setStripePaymentIntentId($intent->id);
             $this->em->flush();
+
+            if ($intent->client_secret === null) {
+                throw new BadRequestHttpException('Stripe did not return a client secret');
+            }
 
             return $intent->client_secret;
 

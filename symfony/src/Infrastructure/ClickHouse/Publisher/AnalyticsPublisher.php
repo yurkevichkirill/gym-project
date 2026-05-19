@@ -16,13 +16,19 @@ final readonly class AnalyticsPublisher
     ) {}
 
     /**
+     * @param array<string, scalar|null> $payload
      * @throws ExceptionInterface
      */
     public function publish(string $type, array $payload): void
     {
+        $eventId = uuid_create(UUID_TYPE_RANDOM);
+        if (!is_string($eventId)) {
+            $eventId = bin2hex(random_bytes(16));
+        }
+
         $this->bus->dispatch(
             new AnalyticsEvent(
-                eventId: uuid_create(UUID_TYPE_RANDOM),
+                eventId: $eventId,
                 eventType: $type,
                 payload: $payload,
                 occurredAt: new DateTimeImmutable(),

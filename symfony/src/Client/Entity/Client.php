@@ -20,7 +20,7 @@ use Gedmo\Mapping\Annotation as Gedmo;
 final class Client extends User
 {
     #[ORM\Column]
-    private ?int $age = null;
+    private int $age;
 
     #[ORM\Column]
     private int $balance = 0;
@@ -45,6 +45,7 @@ final class Client extends User
 
     public function __construct()
     {
+        parent::__construct();
         $this->bookings = new ArrayCollection();
         $this->memberships = new ArrayCollection();
         $this->payments = new ArrayCollection();
@@ -63,7 +64,7 @@ final class Client extends User
         return array_unique($roles);
     }
 
-    public function getAge(): ?int
+    public function getAge(): int
     {
         return $this->age;
     }
@@ -105,17 +106,6 @@ final class Client extends User
         return $this;
     }
 
-    public function removeBooking(Booking $booking): static
-    {
-        if ($this->bookings->removeElement($booking)) {
-            if ($booking->getClient() === $this) {
-                $booking->setClient(null);
-            }
-        }
-
-        return $this;
-    }
-
     /**
      * @return Collection<int, Membership>
      */
@@ -129,17 +119,6 @@ final class Client extends User
         if (!$this->memberships->contains($membership)) {
             $this->memberships->add($membership);
             $membership->setClient($this);
-        }
-
-        return $this;
-    }
-
-    public function removeMembership(Membership $membership): static
-    {
-        if ($this->memberships->removeElement($membership)) {
-            if ($membership->getClient() === $this) {
-                $membership->setClient(null);
-            }
         }
 
         return $this;

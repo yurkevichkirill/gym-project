@@ -36,13 +36,13 @@ final class Payment
     private ?Booking $booking = null;
 
     #[ORM\Column(length: 200)]
-    private ?string $clientFullName = null;
+    private string $clientFullName;
 
     #[ORM\Column(length: 180)]
-    private ?string $clientEmail = null;
+    private string $clientEmail;
 
     #[ORM\Column(length: 20)]
-    private ?string $clientPhone = null;
+    private string $clientPhone;
 
     #[ORM\ManyToOne(inversedBy: 'payments')]
     #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
@@ -52,10 +52,10 @@ final class Payment
     private ?string $trainerFullName = null;
 
     #[ORM\Column]
-    private ?int $amount = null;
+    private int $amount;
 
     #[ORM\Column(type: Types::ENUM, length: 50)]
-    private ?PaymentCategoryEnum $category = null;
+    private PaymentCategoryEnum $category;
 
     #[ORM\Column(type: Types::ENUM, length: 50)]
     private PaymentMethodEnum $method;
@@ -94,7 +94,7 @@ final class Payment
     public function setClient(?Client $client): static
     {
         $this->client = $client;
-        if ($client) {
+        if ($client !== null) {
             $this->clientEmail = $client->getEmail();
             $this->clientPhone = $client->getPhone();
             $this->clientFullName = $client->getFirstName() . ' ' . $client->getLastName();
@@ -106,14 +106,14 @@ final class Payment
     public function setTrainer(?Trainer $trainer): static
     {
         $this->trainer = $trainer;
-        if ($trainer) {
+        if ($trainer !== null) {
             $this->trainerFullName = $trainer->getFirstName() . ' ' . $trainer->getLastName();
         }
 
         return $this;
     }
 
-    public function getAmount(): ?int
+    public function getAmount(): int
     {
         return $this->amount;
     }
@@ -149,7 +149,7 @@ final class Payment
         return $this;
     }
 
-    public function getCategory(): ?PaymentCategoryEnum
+    public function getCategory(): PaymentCategoryEnum
     {
         return $this->category;
     }
@@ -179,17 +179,17 @@ final class Payment
         $this->createdAt = new DateTimeImmutable();
     }
 
-    public function getClientFullName(): ?string
+    public function getClientFullName(): string
     {
         return $this->clientFullName;
     }
 
-    public function getClientEmail(): ?string
+    public function getClientEmail(): string
     {
         return $this->clientEmail;
     }
 
-    public function getClientPhone(): ?string
+    public function getClientPhone(): string
     {
         return $this->clientPhone;
     }
@@ -211,7 +211,7 @@ final class Payment
         return $this;
     }
 
-    public function getStatus(): ?PaymentStatusEnum
+    public function getStatus(): PaymentStatusEnum
     {
         return $this->status;
     }
@@ -264,12 +264,12 @@ final class Payment
         return $this;
     }
 
-    public function getMethod(): ?PaymentMethodEnum
+    public function getMethod(): PaymentMethodEnum
     {
         return $this->method;
     }
 
-    public function setMethod(?PaymentMethodEnum $method): static
+    public function setMethod(PaymentMethodEnum $method): static
     {
         $this->method = $method;
 
@@ -281,7 +281,7 @@ final class Payment
         return $this->isRefund;
     }
 
-    public function setIsRefund(?bool $isRefund): static
+    public function setIsRefund(bool $isRefund): static
     {
         $this->isRefund = $isRefund;
 

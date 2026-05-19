@@ -15,6 +15,7 @@ use Symfony\Component\HttpKernel\ControllerMetadata\ArgumentMetadata;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Serializer\Normalizer\AbstractObjectNormalizer;
+use Symfony\Component\Serializer\Normalizer\DenormalizerInterface;
 use Symfony\Component\Serializer\SerializerInterface;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 use Throwable;
@@ -23,11 +24,12 @@ final readonly class GetTrainersResolver implements ValueResolverInterface
 {
     public function __construct(
         private TrainingTypeRepository $trainingTypeRepo,
-        private SerializerInterface $serializer,
+        private SerializerInterface&DenormalizerInterface $serializer,
         private ValidatorInterface $validator,
     ) {}
 
     /**
+     * @return iterable<int, ResolvedTrainersRequestDTO>
      * @throws DateMalformedStringException
      * @throws NotFoundHttpException
      * @throws BadRequestHttpException
@@ -67,9 +69,11 @@ final readonly class GetTrainersResolver implements ValueResolverInterface
         }
 
         $trainingType = null;
-        if ($rawDto->trainingTypeId) {
+        if ($rawDto->trainingTypeId !== null) {
+            /** @var int $trainingTypeId */
+            $trainingTypeId = $rawDto->trainingTypeId;
             $trainingType = $this->trainingTypeRepo->find($rawDto->trainingTypeId)
-                ?? throw new NotFoundHttpException("Training type with ID $rawDto->trainingTypeId not found");
+                ?? throw new NotFoundHttpException("Training type with ID $trainingTypeId not found");
         }
 
         yield new ResolvedTrainersRequestDTO(

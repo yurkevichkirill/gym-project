@@ -17,7 +17,7 @@ final readonly class ResolvedMembershipsRequestDTO
         public ?MembershipStatusEnum $status = null,
         public ?int $minVisits = null,
         public ?int $maxVisits = null,
-        public string $sort,
+        public string $sort = 'startDate:ASC',
         public int $page = 1,
         public int $limit = 20,
     ) {}

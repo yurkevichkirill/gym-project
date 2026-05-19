@@ -47,12 +47,12 @@ final readonly class ClientManager
     public function create(CreateClientRequestDTO $dto): Client
     {
         $existingClientByEmail = $this->userRepo->findOneBy(['email' => $dto->email]);
-        if ($existingClientByEmail) {
+        if ($existingClientByEmail !== null) {
             throw new ConflictHttpException('Client with this email already exists.');
         }
 
         $existingClientByPhone = $this->userRepo->findOneBy(['phone' => $dto->phone]);
-        if ($existingClientByPhone) {
+        if ($existingClientByPhone !== null) {
             throw new ConflictHttpException('Client with this phone number already exists.');
         }
 
@@ -131,7 +131,7 @@ final readonly class ClientManager
      */
     public function softDelete(Client $client): void
     {
-        if ($client->getDeletedAt()) {
+        if ($client->getDeletedAt() !== null) {
             throw new ConflictHttpException('Client already deleted');
         }
 
@@ -161,7 +161,7 @@ final readonly class ClientManager
             throw new AccessDeniedHttpException('You cannot block yourself');
         }
 
-        if ($client->getBlockedAt()) {
+        if ($client->getBlockedAt() !== null) {
             throw new ConflictHttpException('Client already blocked');
         }
 

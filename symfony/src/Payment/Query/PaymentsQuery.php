@@ -24,24 +24,26 @@ final readonly class PaymentsQuery
     {}
 
     /**
+     * @param array<string, string> $parsedSort
+     * @return array{items: list<mixed>, total: int}
      * @throws InvalidArgumentException
      */
     public function getCachedData(ResolvedPaymentsRequestDTO $dto, array $parsedSort): array
     {
         $cacheKey = $this->generateCacheKey($dto);
 
-        return $this->cache->get($cacheKey, function (ItemInterface $item, bool $save) use ($dto, $parsedSort): array {
+        return $this->cache->get($cacheKey, function (ItemInterface $item) use ($dto, $parsedSort): array {
             $item->expiresAfter(3600);
 
             $tags = [];
 
-            if ($dto->client) {
+            if ($dto->client !== null) {
                 $tags[] = 'payments_list_' . $dto->client->getId();
             }
-            if ($dto->trainer) {
+            if ($dto->trainer !== null) {
                 $tags[] = 'payments_list_trainer_' . $dto->trainer->getId();
             }
-            if (empty($tags)) {
+            if ($tags === []) {
                 $tags[] = 'payments_list_all';
             }
 
@@ -83,12 +85,12 @@ final readonly class PaymentsQuery
                 ->addSelect('type');
         }
 
-        if ($dto->client) {
+        if ($dto->client !== null) {
             $qb->andWhere('p.client = :client')
                 ->setParameter('client', $dto->client);
         }
 
-        if ($dto->trainer) {
+        if ($dto->trainer !== null) {
             $qb->andWhere('p.trainer = :trainer')
                 ->setParameter('trainer', $dto->trainer);
         }
@@ -108,17 +110,17 @@ final readonly class PaymentsQuery
                 ->setParameter('isRefund', $dto->isRefund);
         }
 
-        if ($dto->status) {
+        if ($dto->status !== null) {
             $qb->andWhere('p.status = :status')
                 ->setParameter('status', $dto->status);
         }
 
-        if ($dto->minCreatedAt) {
+        if ($dto->minCreatedAt !== null) {
             $qb->andWhere('p.createdAt >= :minCreatedAt')
                 ->setParameter('minCreatedAt', $dto->minCreatedAt);
         }
 
-        if ($dto->maxCreatedAt) {
+        if ($dto->maxCreatedAt !== null) {
             $qb->andWhere('p.createdAt <= :maxCreatedAt')
                 ->setParameter('maxCreatedAt', $dto->maxCreatedAt);
         }
@@ -127,6 +129,7 @@ final readonly class PaymentsQuery
     }
 
     /**
+     * @return array<string, string>
      * @throws BadRequestHttpException
      */
     public function getParsedSort(ResolvedPaymentsRequestDTO $dto): array
@@ -150,6 +153,8 @@ final readonly class PaymentsQuery
             'maxCreatedAt' => $dto->maxCreatedAt?->format('Y-m-d'),
         ];
 
-        return 'payments_' . md5(json_encode($params));
+        $encoded = json_encode($params);
+
+        return 'payments_' . hash('sha256', $encoded === false ? '' : $encoded);
     }
 }

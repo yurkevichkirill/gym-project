@@ -21,7 +21,7 @@ final class Trainer extends User
 {
     #[ORM\ManyToOne(targetEntity: TrainingType::class, inversedBy: 'trainers')]
     #[ORM\JoinColumn(name: 'training_type_id', referencedColumnName: 'id', onDelete: 'SET NULL')]
-    private TrainingType $trainingType;
+    private ?TrainingType $trainingType = null;
 
     #[ORM\Column]
     private int $pricePerHour;
@@ -38,14 +38,17 @@ final class Trainer extends User
     #[ORM\Column]
     private int $balance = 0;
 
+    /** @var Collection<int, TrainerWorkTime> */
     #[ORM\OneToMany(targetEntity: TrainerWorkTime::class, mappedBy: 'trainer', orphanRemoval: true)]
     private Collection $trainerWorkTime;
 
+    /** @var Collection<int, Payment> */
     #[ORM\OneToMany(targetEntity: Payment::class, mappedBy: 'trainer')]
     private Collection $payments;
 
     public function __construct()
     {
+        parent::__construct();
         $this->trainerWorkTime = new ArrayCollection();
         $this->payments = new ArrayCollection();
         $this->setRoles([UserRolesEnum::ROLE_TRAINER->value]);
@@ -101,12 +104,12 @@ final class Trainer extends User
         return $this->pricePerHour;
     }
 
-    public function getPhotoUrl(): ?string
+    public function getPhotoUrl(): string
     {
         return $this->photoUrl;
     }
 
-    public function setPhotoUrl(?string $photoUrl): void
+    public function setPhotoUrl(string $photoUrl): void
     {
         $this->photoUrl = $photoUrl;
     }
@@ -148,17 +151,9 @@ final class Trainer extends User
         return $this;
     }
 
-    public function removeTrainerWorkTime(TrainerWorkTime $trainerWorkTime): static
-    {
-        if ($this->trainerWorkTime->removeElement($trainerWorkTime)) {
-            if ($trainerWorkTime->getTrainer() === $this) {
-                $trainerWorkTime->setTrainer(null);
-            }
-        }
-
-        return $this;
-    }
-
+    /**
+     * @return Collection<int, Payment>
+     */
     public function getPayments(): Collection
     {
         return $this->payments;

@@ -24,7 +24,9 @@ use Symfony\Contracts\Cache\TagAwareCacheInterface;
 #[AsDoctrineListener(event: Events::postFlush)]
 final class CacheInvalidatorListener
 {
+    /** @var list<string> */
     private array $tagsToInvalidate = [];
+    /** @var list<string> */
     private array $groupsToBump = [];
 
     public function __construct(
@@ -60,10 +62,14 @@ final class CacheInvalidatorListener
                 $this->tagsToInvalidate[] = 'memberships_list_all';
             }
             elseif ($entity instanceof Payment) {
-                $this->tagsToInvalidate[] = "payments_list_{$entity->getClient()->getId()}";
+                $client = $entity->getClient();
+                if ($client !== null) {
+                    $this->tagsToInvalidate[] = "payments_list_{$client->getId()}";
+                }
                 $this->tagsToInvalidate[] = 'payments_list_all';
 
-                if ($trainer = $entity->getTrainer()) {
+                $trainer = $entity->getTrainer();
+                if ($trainer !== null) {
                     $this->tagsToInvalidate[] = "payments_list_trainer_{$trainer->getId()}";
                 }
             }
@@ -101,12 +107,16 @@ final class CacheInvalidatorListener
      */
     public function postFlush(): void
     {
-        if (!empty($this->tagsToInvalidate)) {
-            $this->cache->invalidateTags(array_values(array_unique($this->tagsToInvalidate)));
+        if ($this->tagsToInvalidate !== []) {
+            /** @var list<string> $tags */
+            $tags = array_values(array_unique($this->tagsToInvalidate));
+            $this->cache->invalidateTags($tags);
         }
 
-        if (!empty($this->groupsToBump)) {
-            foreach (array_unique($this->groupsToBump) as $group) {
+        if ($this->groupsToBump !== []) {
+            /** @var list<string> $groups */
+            $groups = array_values(array_unique($this->groupsToBump));
+            foreach ($groups as $group) {
                 $this->cacheVersionService->bump($group);
             }
         }

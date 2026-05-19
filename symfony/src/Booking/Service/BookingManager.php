@@ -58,7 +58,7 @@ final readonly class BookingManager
         try {
             $trainer = $this->trainerRepo->find($dto->trainerId);
 
-            if (!$trainer) {
+            if ($trainer === null) {
                 throw new NotFoundHttpException('Trainer not found');
             }
 
@@ -67,7 +67,7 @@ final readonly class BookingManager
                 'date' => new DateTimeImmutable($dto->date),
             ]);
 
-            if (!$worktime) {
+            if ($worktime === null) {
                 throw new NotFoundHttpException('Worktime not found');
             }
 
@@ -75,7 +75,7 @@ final readonly class BookingManager
 
             $price = $this->trainerManager->countPrice($trainer, $dto->durationMinutes);
 
-            $booking = $this->entityManager->wrapInTransaction(function () use ($client, $dto, $trainer, $worktime, $price, $loggingContext) {
+            $booking = $this->entityManager->wrapInTransaction(function () use ($client, $dto, $trainer, $worktime, $price) {
                 $training = new Training();
                 $training->setDurationMinutes($dto->durationMinutes);
                 $training->setStartTime(new DateTimeImmutable($dto->startTime));
@@ -100,12 +100,15 @@ final readonly class BookingManager
             });
 
             try {
+                $bookingPayment = $booking->getPayment();
+                $paymentMethod = $bookingPayment?->getMethod()->value ?? 'unknown';
+
                 $this->analyticsPublisher->publish('booking.created', [
                     'client_id' => $client->getId(),
                     'trainer_id' => $trainer->getId(),
                     'booking_id' => $booking->getId(),
                     'price' => $price,
-                    'payment_method' => $booking->getPayment()->getMethod()->value ?? 'unknown',
+                    'payment_method' => $paymentMethod,
                 ]);
             } catch (Throwable $e) {
                 $this->bookingLogger->error('analytics.publish.failed', [
@@ -131,6 +134,11 @@ final readonly class BookingManager
         }
     }
 
+    /**
+     * @param array<string, scalar|null> $context
+     * @param array<string, scalar|null> $extra
+     * @return array<string, scalar|null>
+     */
     private function bookingEventContext(array $context, string $operation, string $outcome, array $extra = []): array
     {
         return $extra + $context + [

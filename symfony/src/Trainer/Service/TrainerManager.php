@@ -41,12 +41,12 @@ final readonly class TrainerManager
     public function create(CreateTrainerRequestDTO $requestDto): Trainer
     {
         $existingTrainer = $this->userRepo->findOneBy(['email' => $requestDto->email]);
-        if ($existingTrainer) {
+        if ($existingTrainer !== null) {
             throw new ConflictHttpException('User with this email already exists');
         }
 
         $existingTrainerByPhone = $this->userRepo->findOneBy(['phone' => $requestDto->phone]);
-        if ($existingTrainerByPhone) {
+        if ($existingTrainerByPhone !== null) {
             throw new ConflictHttpException('User with this phone already exists');
         }
 
@@ -91,7 +91,7 @@ final readonly class TrainerManager
     {
         if ($requestDto->email !== null && $requestDto->email !== $trainer->getEmail()) {
             $existing = $this->userRepo->findOneBy(['email' => $requestDto->email]);
-            if ($existing) {
+            if ($existing !== null) {
                 throw new ConflictHttpException('Email is already taken by another user.');
             }
             $trainer->setEmail($requestDto->email);
@@ -99,7 +99,7 @@ final readonly class TrainerManager
 
         if ($requestDto->phone !== null && $requestDto->phone !== $trainer->getPhone()) {
             $existing = $this->userRepo->findOneBy(['phone' => $requestDto->phone]);
-            if ($existing) {
+            if ($existing !== null) {
                 throw new ConflictHttpException('Phone number is already taken.');
             }
             $trainer->setPhone($requestDto->phone);
@@ -137,10 +137,10 @@ final readonly class TrainerManager
 
     public function update(Trainer $trainer, UpdateTrainerRequestDTO $requestDto): Trainer
     {
-        if($requestDto->phone) {
+        if ($requestDto->phone !== null) {
             $trainer->setPhone($requestDto->phone);
         }
-        if($requestDto->pricePerHour) {
+        if ($requestDto->pricePerHour !== null) {
             $trainer->setPricePerHour($requestDto->pricePerHour);
         }
 
@@ -159,7 +159,7 @@ final readonly class TrainerManager
             throw new AccessDeniedHttpException('You cannot delete yourself');
         }
 
-        if ($trainer->getDeletedAt()) {
+        if ($trainer->getDeletedAt() !== null) {
             throw new ConflictHttpException('Trainer already deleted');
         }
 
@@ -189,7 +189,7 @@ final readonly class TrainerManager
             throw new AccessDeniedHttpException('You cannot block yourself');
         }
 
-        if ($trainer->getBlockedAt()) {
+        if ($trainer->getBlockedAt() !== null) {
             throw new ConflictHttpException('Trainer already blocked');
         }
 

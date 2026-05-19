@@ -9,6 +9,7 @@ use Symfony\Contracts\HttpClient\Exception\TransportExceptionInterface;
 
 final class ClickHouseBuffer
 {
+    /** @var array<string, list<array<string, scalar|null>>> */
     private array $buffer = [];
     private int $batchSize = 100;
     private int $lastFlush;
@@ -22,6 +23,9 @@ final class ClickHouseBuffer
 
     /**
      * @throws TransportExceptionInterface
+     */
+    /**
+     * @param array<string, scalar|null> $row
      */
     public function add(string $table, array $row): void
     {
@@ -42,7 +46,7 @@ final class ClickHouseBuffer
      */
     public function flush(string $table): void
     {
-        if (empty($this->buffer[$table])) {
+        if (!isset($this->buffer[$table]) || $this->buffer[$table] === []) {
             return;
         }
 

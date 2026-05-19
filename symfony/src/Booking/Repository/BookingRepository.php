@@ -31,6 +31,9 @@ final class BookingRepository extends ServiceEntityRepository
         $this->getEntityManager()->remove($booking);
     }
 
+    /**
+     * @return list<Booking>
+     */
     public function getActiveClientBookingsByDate(Client $client, DateTimeImmutable $date): array
     {
         return $this->createQueryBuilder('b')

@@ -10,6 +10,7 @@ use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
 use Symfony\Component\Security\Core\Authorization\Voter\Vote;
 use Symfony\Component\Security\Core\Authorization\Voter\Voter;
 
+/** @extends Voter<string, TrainerWorkTime> */
 final class WorkTimeVoter extends Voter
 {
     const string EDIT_OWN = 'WORKTIME_EDIT_OWN';
@@ -19,7 +20,7 @@ final class WorkTimeVoter extends Voter
      */
     protected function supports(string $attribute, mixed $subject): bool
     {
-        if (!in_array($attribute, [self::EDIT_OWN, self::REMOVE_OWN])) {
+        if (!in_array($attribute, [self::EDIT_OWN, self::REMOVE_OWN], true)) {
             return false;
         }
 

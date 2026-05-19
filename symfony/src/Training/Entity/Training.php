@@ -20,13 +20,13 @@ final class Training
 
     #[ORM\ManyToOne(inversedBy: 'trainings')]
     #[ORM\JoinColumn(nullable: false)]
-    private ?TrainerWorkTime $trainerWorkTime = null;
+    private TrainerWorkTime $trainerWorkTime;
 
     #[ORM\Column(type: Types::TIME_IMMUTABLE)]
-    private ?\DateTimeImmutable $startTime = null;
+    private \DateTimeImmutable $startTime;
 
     #[ORM\Column(options: ['default' => 60])]
-    private ?int $durationMinutes = null;
+    private int $durationMinutes = 60;
 
     #[ORM\OneToOne(targetEntity: Booking::class, mappedBy: 'training', cascade: ['persist'])]
     private ?Booking $booking = null;
@@ -71,19 +71,19 @@ final class Training
         return $this->id;
     }
 
-    public function getTrainerWorkTime(): ?TrainerWorkTime
+    public function getTrainerWorkTime(): TrainerWorkTime
     {
         return $this->trainerWorkTime;
     }
 
-    public function setTrainerWorkTime(?TrainerWorkTime $trainerWorkTime): static
+    public function setTrainerWorkTime(TrainerWorkTime $trainerWorkTime): static
     {
         $this->trainerWorkTime = $trainerWorkTime;
 
         return $this;
     }
 
-    public function getStartTime(): ?\DateTimeImmutable
+    public function getStartTime(): \DateTimeImmutable
     {
         return $this->startTime;
     }
@@ -95,7 +95,7 @@ final class Training
         return $this;
     }
 
-    public function getDurationMinutes(): ?int
+    public function getDurationMinutes(): int
     {
         return $this->durationMinutes;
     }

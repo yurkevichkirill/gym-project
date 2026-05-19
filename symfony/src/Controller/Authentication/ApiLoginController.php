@@ -102,7 +102,6 @@ final class ApiLoginController extends AbstractController
     }
 
     /**
-     * @throws RandomException
      * @throws BadRequestException
      * @throws UnauthorizedHttpException
      * @throws AccessDeniedHttpException

@@ -20,6 +20,7 @@ use Symfony\Component\HttpKernel\ControllerMetadata\ArgumentMetadata;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Serializer\Normalizer\AbstractObjectNormalizer;
+use Symfony\Component\Serializer\Normalizer\DenormalizerInterface;
 use Symfony\Component\Serializer\SerializerInterface;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 use Throwable;
@@ -29,12 +30,13 @@ final readonly class GetPaymentsResolver implements ValueResolverInterface
     public function __construct(
         private ClientRepository $clientRepo,
         private TrainerRepository $trainerRepo,
-        private SerializerInterface $serializer,
+        private SerializerInterface&DenormalizerInterface $serializer,
         private ValidatorInterface $validator,
         private Security $security,
     ) {}
 
     /**
+     * @return iterable<int, ResolvedPaymentsRequestDTO>
      * @throws DateMalformedStringException
      * @throws NotFoundHttpException
      * @throws BadRequestHttpException
@@ -76,18 +78,23 @@ final readonly class GetPaymentsResolver implements ValueResolverInterface
         if ($user instanceof Client) {
             $client = $user;
         }
-        elseif ($rawDto->clientId) {
-            $client = $this->clientRepo->find($rawDto->clientId)
-                ?? throw new NotFoundHttpException("Client with ID $rawDto->clientId not found");
+        elseif ($rawDto->clientId !== null) {
+            $clientId = $rawDto->clientId;
+            $client = $this->clientRepo->find($clientId)
+                ?? throw new NotFoundHttpException("Client with ID $clientId not found");
         }
 
         if ($user instanceof Trainer) {
             $trainer = $user;
         }
-        elseif ($rawDto->trainerId) {
-            $trainer = $this->trainerRepo->find($rawDto->trainerId)
-                ?? throw new NotFoundHttpException("Trainer with ID $rawDto->trainerId not found");
+        elseif ($rawDto->trainerId !== null) {
+            $trainerId = $rawDto->trainerId;
+            $trainer = $this->trainerRepo->find($trainerId)
+                ?? throw new NotFoundHttpException("Trainer with ID $trainerId not found");
         }
+
+        $minCreatedAt = $rawDto->minCreatedAt !== null ? new DateTimeImmutable($rawDto->minCreatedAt) : null;
+        $maxCreatedAt = $rawDto->maxCreatedAt !== null ? new DateTimeImmutable($rawDto->maxCreatedAt) : null;
 
         yield new ResolvedPaymentsRequestDTO(
             trainer: $trainer,
@@ -96,8 +103,8 @@ final readonly class GetPaymentsResolver implements ValueResolverInterface
             maxAmount: $rawDto->maxAmount,
             isRefund: $rawDto->isRefund,
             status: $rawDto->status,
-            minCreatedAt: $rawDto->minCreatedAt ? new DateTimeImmutable($rawDto->minCreatedAt) : null,
-            maxCreatedAt: $rawDto->maxCreatedAt ? new DateTimeImmutable($rawDto->maxCreatedAt) : null,
+            minCreatedAt: $minCreatedAt,
+            maxCreatedAt: $maxCreatedAt,
             sort: $rawDto->sort,
             page: $rawDto->page,
             limit: $rawDto->limit,

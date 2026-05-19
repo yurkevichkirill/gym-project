@@ -10,15 +10,15 @@ use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
 use Symfony\Component\Security\Core\Authorization\Voter\Vote;
 use Symfony\Component\Security\Core\Authorization\Voter\Voter;
 
+/** @extends Voter<string, Training> */
 final class TrainingVoter extends Voter
 {
     const string VIEW_OWN = 'TRAINING_VIEW_OWN';
     const string REMOVE_OWN = 'TRAINING_REMOVE_OWN';
-    const string EDIT_OWN = 'TRAINING_EDIT_OWN
-    ';
+    const string EDIT_OWN = 'TRAINING_EDIT_OWN';
     protected function supports(string $attribute, mixed $subject): bool
     {
-        if (!in_array($attribute, [self::VIEW_OWN, self::REMOVE_OWN, self::EDIT_OWN])) {
+        if (!in_array($attribute, [self::VIEW_OWN, self::REMOVE_OWN, self::EDIT_OWN], true)) {
             return false;
         }
 

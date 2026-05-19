@@ -59,6 +59,9 @@ final readonly class ImportHandler
                 $this->jobRepo->incrementFailed($message->jobId);
 
                 $job = $this->jobRepo->find($message->jobId);
+                if ($job === null) {
+                    return;
+                }
 
                 $jobError = $this->errorService->create(
                     $job,
@@ -78,7 +81,10 @@ final readonly class ImportHandler
                     $this->jobRepo->incrementProcessed($message->jobId);
                     $this->jobItemManager->success($jobItem);
 
-                    $emailMessage = new SendActivationEmailMessage($client->getId());
+                    $clientId = $client->getId();
+                    if ($clientId !== null) {
+                        $emailMessage = new SendActivationEmailMessage($clientId);
+                    }
                 } else {
                     $this->jobRepo->incrementSkipped($message->jobId);
                     $this->jobItemManager->skip($jobItem);
@@ -94,6 +100,11 @@ final readonly class ImportHandler
         }
     }
 
+    /**
+     * @param array<string, scalar|null> $context
+     * @param array<string, scalar|null> $extra
+     * @return array<string, scalar|null>
+     */
     private function ctx(array $context, string $outcome, array $extra = []): array
     {
         return $extra + $context + [

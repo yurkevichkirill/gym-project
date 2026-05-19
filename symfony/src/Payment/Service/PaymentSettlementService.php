@@ -84,6 +84,10 @@ final readonly class PaymentSettlementService
         $trainer = $payment->getTrainer();
         $amount = $payment->getAmount();
 
+        if ($client === null || $trainer === null) {
+            throw new InvalidPaymentStatusException('Payment is not fully initialized');
+        }
+
         $client->setBalance($client->getBalance() - $amount);
         $trainer->setBalance($trainer->getBalance() + $amount);
 
@@ -116,6 +120,10 @@ final readonly class PaymentSettlementService
 
         $client = $payment->getClient();
         $amount = $payment->getAmount();
+
+        if ($client === null) {
+            throw new InvalidPaymentStatusException('Payment is not fully initialized');
+        }
 
         $client->setBalance($client->getBalance() + $amount);
     }
@@ -159,6 +167,10 @@ final readonly class PaymentSettlementService
         $client = $payment->getClient();
         $amount = $payment->getAmount();
 
+        if ($client === null) {
+            throw new InvalidPaymentStatusException('Payment is not fully initialized');
+        }
+
         $client->setBalance($client->getBalance() - $amount);
 
         $membership->activate();
@@ -188,8 +200,12 @@ final readonly class PaymentSettlementService
         $booking = $payment->getBooking();
 
         $this->em->wrapInTransaction(function () use ($payment, $booking) {
-            if ($booking) {
+            if ($booking !== null) {
                 $trainer = $payment->getTrainer();
+                if ($trainer === null) {
+                    throw new NotFoundHttpException('Trainer for booking payment was not found');
+                }
+
                 $trainer->setBalance(
                     $trainer->getBalance() + $payment->getAmount()
                 );
@@ -227,18 +243,23 @@ final readonly class PaymentSettlementService
         $this->paymentLifecycleService->transitionTo($payment, PaymentStatusEnum::REFUNDED);
 
         $client = $payment->getClient();
+        if ($client === null) {
+            throw new NotFoundHttpException('Payment client was not found');
+        }
+
         $client->setBalance(
             $client->getBalance() + $payment->getAmount()
         );
 
-        if ($trainer = $payment->getTrainer()) {
+        $trainer = $payment->getTrainer();
+        if ($trainer !== null) {
             $trainer->setBalance(
                 $trainer->getBalance() - $payment->getAmount()
             );
         }
 
         $refundPayment = $this->paymentService->createPayment(
-            $payment->getClient(),
+            $client,
             $payment->getAmount(),
             $payment->getCategory(),
             PaymentMethodEnum::BALANCE,
@@ -259,7 +280,7 @@ final readonly class PaymentSettlementService
             }
 
             $this->paymentLifecycleService->transitionTo($payment, PaymentStatusEnum::FAILED);
-            $payment->getBooking()?->cancel(BookingStatusEnum::CANCELED_PAYMENT_FAILED);
+            $payment->getBooking()?->setStatus(BookingStatusEnum::CANCELED_PAYMENT_FAILED);
             $payment->getMembership()?->cancel(MembershipStatusEnum::CANCELED_PAYMENT_FAILED);
 
             $this->em->flush();
@@ -312,7 +333,7 @@ final readonly class PaymentSettlementService
                 return;
             }
 
-            $payment->getBooking()?->cancel(BookingStatusEnum::CANCELED_PAYMENT_FAILED);
+            $payment->getBooking()?->setStatus(BookingStatusEnum::CANCELED_PAYMENT_FAILED);
             $payment->getMembership()?->cancel(MembershipStatusEnum::CANCELED_PAYMENT_FAILED);
             $this->paymentLifecycleService->transitionTo($payment, PaymentStatusEnum::CANCELED);
 
@@ -340,7 +361,8 @@ final readonly class PaymentSettlementService
         $now = new DateTimeImmutable();
 
         foreach ($payments as $payment) {
-            if ($payment->getExpiresAt() < $now) {
+            $expiresAt = $payment->getExpiresAt();
+            if ($expiresAt !== null && $expiresAt < $now) {
                 $this->cancelPayment($payment);
             }
         }
@@ -349,6 +371,10 @@ final readonly class PaymentSettlementService
     }
 
 
+    /**
+     * @param array<string, scalar|null> $extra
+     * @return array<string, scalar|null>
+     */
     private function paymentEventContext(Payment $payment, string $operation, string $outcome, array $extra = []): array
     {
         return $extra + [
@@ -360,7 +386,7 @@ final readonly class PaymentSettlementService
                 'trainer_id' => $payment->getTrainer()?->getId(),
                 'booking_id' => $payment->getBooking()?->getId(),
                 'membership_id' => $payment->getMembership()?->getId(),
-                'category' => $payment->getCategory()?->value,
+                'category' => $payment->getCategory()->value,
                 'method' => $payment->getMethod()->value,
                 'status' => $payment->getStatus()->value,
             ];

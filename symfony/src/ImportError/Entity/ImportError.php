@@ -29,6 +29,7 @@ final class ImportError
     #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
     private ImportJobItem $item;
 
+    /** @var array<string, mixed> */
     #[ORM\Column(type: Types::JSON)]
     private array $payload;
 
@@ -38,6 +39,9 @@ final class ImportError
     #[ORM\Column]
     private DateTimeImmutable $createdAt;
 
+    /**
+     * @param array<string, mixed> $payload
+     */
     public function __construct(
         ImportJob $job,
         array $payload,
@@ -66,11 +70,17 @@ final class ImportError
         return $this;
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function getPayload(): array
     {
         return $this->payload;
     }
 
+    /**
+     * @param array<string, mixed> $payload
+     */
     public function setPayload(array $payload): static
     {
         $this->payload = $payload;

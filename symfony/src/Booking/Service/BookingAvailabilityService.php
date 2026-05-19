@@ -24,6 +24,9 @@ use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 
 final readonly class BookingAvailabilityService
 {
+    /**
+     * @phpstan-type TimeSlot array{start: string, end: string}
+     */
     public function __construct(
         private UserAvailabilityService $userAvailabilityService,
         private BookingRepository $bookingRepo,
@@ -58,6 +61,10 @@ final readonly class BookingAvailabilityService
             throw new NoActiveMembershipException('Client has no active membership for this date');
         }
 
+        if ($worktime === null) {
+            throw new BadRequestHttpException('Trainer worktime not found for the requested date.');
+        }
+
         if (!$this->isTimeAvailable($worktime, $startTime, $durationMinutes)) {
             throw new DateTimeAlreadyTakenException();
         }
@@ -71,7 +78,16 @@ final readonly class BookingAvailabilityService
      */
     public function checkUpdateBookingAvailability(Training $training, Client $client, ?TrainerWorkTime $worktime, DateTimeImmutable $newDate, string $newStartTime): void
     {
-        if ($training->getBooking()->getStatus() !== BookingStatusEnum::SCHEDULED) {
+        $booking = $training->getBooking();
+        if ($booking === null) {
+            throw new ConflictHttpException('Training has no booking.');
+        }
+
+        if ($worktime === null) {
+            throw new BadRequestHttpException('Trainer worktime not found for the requested date.');
+        }
+
+        if ($booking->getStatus() !== BookingStatusEnum::SCHEDULED) {
             throw new ConflictHttpException('Only scheduled trainings can be updated');
         }
 
@@ -112,7 +128,12 @@ final readonly class BookingAvailabilityService
      */
     public function checkCompleteBookingAvailability(Training $training): void
     {
-        if ($training->getBooking()->getStatus() !== BookingStatusEnum::SCHEDULED) {
+        $booking = $training->getBooking();
+        if ($booking === null) {
+            throw new ConflictHttpException('Training has no booking.');
+        }
+
+        if ($booking->getStatus() !== BookingStatusEnum::SCHEDULED) {
             throw new ConflictHttpException('Only scheduled trainings can be completed');
         }
 
@@ -152,6 +173,8 @@ final readonly class BookingAvailabilityService
     }
 
     /**
+     * @return list<array{start: string, end: string}>
+     * @throws DateMalformedIntervalStringException
      * @throws DateMalformedIntervalStringException
      */
     private function getClientBusySlots(Client $client, DateTimeImmutable $date): array
@@ -160,9 +183,14 @@ final readonly class BookingAvailabilityService
 
         $clientBusy = [];
         foreach ($bookings as $booking) {
+            $training = $booking->getTraining();
+            if ($training === null) {
+                continue;
+            }
+
             $clientBusy[] = [
-                'start' => $booking->getTraining()->getStartTime()->format('H:i:s'),
-                'end' => $booking->getTraining()->getStartTime()->add(new DateInterval('PT' . $booking->getTraining()->getDurationMinutes() . 'M'))->format('H:i:s')
+                'start' => $training->getStartTime()->format('H:i:s'),
+                'end' => $training->getStartTime()->add(new DateInterval('PT' . $training->getDurationMinutes() . 'M'))->format('H:i:s'),
             ];
         }
 
@@ -189,6 +217,8 @@ final readonly class BookingAvailabilityService
     }
 
     /**
+     * @param list<array{start: string, end: string}> $freeSlots
+     * @return list<array{start: string, end: string}>
      * @throws DateMalformedStringException
      * @throws DateMalformedIntervalStringException
      */
@@ -202,13 +232,19 @@ final readonly class BookingAvailabilityService
         ];
 
         $allSlots = array_merge($freeSlots, [$excludeSlot]);
-        usort($allSlots, fn($s1, $s2) => $s1['start'] <=> $s2['start']);
+        usort($allSlots, static fn (array $s1, array $s2): int => $s1['start'] <=> $s2['start']);
         return $this->mergeOverlappingSlots($allSlots);
     }
 
+    /**
+     * @param list<array{start: string, end: string}> $slots
+     * @return list<array{start: string, end: string}>
+     */
     private function mergeOverlappingSlots(array $slots): array
     {
-        if (empty($slots)) return [];
+        if ($slots === []) {
+            return [];
+        }
 
         $merged = [$slots[0]];
 

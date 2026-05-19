@@ -20,9 +20,20 @@ final readonly class ClickHouseClient
     /**
      * @throws TransportExceptionInterface
      */
+    /**
+     * @param list<array<string, scalar|null>> $rows
+     */
     public function insert(string $table, array $rows): void
     {
-        $body = implode("\n", array_map('json_encode', $rows));
+        $encodedRows = array_map(
+            static function (array $row): string {
+                $encoded = json_encode($row);
+
+                return $encoded === false ? '{}' : $encoded;
+            },
+            $rows
+        );
+        $body = implode("\n", $encodedRows);
 
         $this->http->request('POST', $this->host, [
             'auth_basic' => [$this->user, $this->password],

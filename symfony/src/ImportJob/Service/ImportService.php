@@ -34,22 +34,32 @@ final readonly class ImportService
      */
     public function import(CreateClientImport $dto): ?Client
     {
-        $email = strtolower(trim($dto->email));
+        $emailRaw = $dto->email;
+        $firstName = $dto->firstName;
+        $lastName = $dto->lastName;
+        $phone = $dto->phone;
+        $age = $dto->age;
+
+        if ($emailRaw === null || $firstName === null || $lastName === null || $phone === null || $age === null) {
+            return null;
+        }
+
+        $email = strtolower(trim($emailRaw));
 
         $existingClient = $this->clientRepo->findOneBy([
             'email' => $email,
         ]);
 
-        if ($existingClient) {
+        if ($existingClient !== null) {
             return null;
         }
 
         $client = new Client();
         $client->setEmail($email);
-        $client->setFirstName($dto->firstName);
-        $client->setLastName($dto->lastName);
-        $client->setPhone($dto->phone);
-        $client->setAge($dto->age);
+        $client->setFirstName($firstName);
+        $client->setLastName($lastName);
+        $client->setPhone($phone);
+        $client->setAge($age);
 
         $client->setIsActive(false);
         $client->setActivationToken(bin2hex(random_bytes(32)));

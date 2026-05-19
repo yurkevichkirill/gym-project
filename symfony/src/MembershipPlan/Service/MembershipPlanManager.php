@@ -40,7 +40,7 @@ final readonly class MembershipPlanManager
             $membershipPlan->setDurationDays($requestDto->durationDays);
         }
         if ($requestDto->name !== null) {
-            $membershipPlan->setname($requestDto->name);
+            $membershipPlan->setName($requestDto->name);
         }
         if ($requestDto->sessionLimit !== null) {
             $membershipPlan->setSessionLimit($requestDto->sessionLimit);

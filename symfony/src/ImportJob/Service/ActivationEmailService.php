@@ -25,7 +25,7 @@ final readonly class ActivationEmailService
     {
         $client = $this->clientRepo->find($message->clientId);
 
-        if (!$client || !$client->getActivationToken()) {
+        if ($client === null || $client->getActivationToken() === null) {
             return;
         }
         $activationLink = sprintf(

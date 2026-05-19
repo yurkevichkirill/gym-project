@@ -50,7 +50,7 @@ final readonly class WorkTimeManager
             $this->worktimeLogger->notice(
                 'Trainer is blocked',
                 $this->event($context, 'create', 'rejected', [
-                    'exception' => $e,
+                    'exception' => $e::class,
                 ])
             );
             throw $e;
@@ -125,7 +125,7 @@ final readonly class WorkTimeManager
      * @throws DateTimeAlreadyTakenException
      * @throws DateMalformedIntervalStringException|Throwable
      */
-    public function update(TrainerWorkTime $worktime, UpdateWorkTimeRequestDTO $dto, $byAdmin = false): TrainerWorkTime
+    public function update(TrainerWorkTime $worktime, UpdateWorkTimeRequestDTO $dto, bool $byAdmin = false): TrainerWorkTime
     {
         $context = $this->contextFromEntity($worktime);
 
@@ -135,7 +135,7 @@ final readonly class WorkTimeManager
         );
 
         try {
-            if (!$byAdmin) {
+            if ($byAdmin === false) {
                 $this->userAvailabilityService->ensureNotDeleted($worktime->getTrainer());
                 $this->userAvailabilityService->ensureNotBlocked($worktime->getTrainer());
             }
@@ -170,6 +170,8 @@ final readonly class WorkTimeManager
                     }
                 }
 
+                /** @var DateTimeImmutable $firstTrainingStart */
+                /** @var DateTimeImmutable $lastTrainingEnd */
                 if ($newStartDateTime > $firstTrainingStart || $newEndDateTime < $lastTrainingEnd) {
                     $this->worktimeLogger->warning(
                         'Worktime update rejected: intersects with existing trainings',
@@ -200,7 +202,7 @@ final readonly class WorkTimeManager
             $this->worktimeLogger->error(
                 'Worktime update failed',
                 $this->event($context, 'update', 'failed', [
-                    'exception' => $e,
+                    'exception' => $e::class,
                     'error' => $e->getMessage(),
                 ])
             );
@@ -242,7 +244,7 @@ final readonly class WorkTimeManager
             $this->worktimeLogger->error(
                 'Worktime removal failed',
                 $this->event($context, 'remove', 'failed', [
-                    'exception' => $e,
+                    'exception' => $e::class,
                     'error' => $e->getMessage(),
                 ])
             );
@@ -265,6 +267,9 @@ final readonly class WorkTimeManager
         return $worktime;
     }
 
+    /**
+     * @return array<string, scalar|null>
+     */
     private function context(?Trainer $trainer = null, ?CreateWorkTimeRequestDTO $dto = null): array
     {
         return [
@@ -276,18 +281,26 @@ final readonly class WorkTimeManager
         ];
     }
 
+    /**
+     * @return array<string, scalar|null>
+     */
     private function contextFromEntity(TrainerWorkTime $worktime): array
     {
         return [
             'domain' => 'worktime',
             'worktime_id' => $worktime->getId(),
-            'trainer_id' => $worktime->getTrainer()?->getId(),
-            'date' => $worktime->getDate()?->format('Y-m-d'),
-            'start_time' => $worktime->getStartTime()?->format('H:i:s'),
-            'end_time' => $worktime->getEndTime()?->format('H:i:s'),
+            'trainer_id' => $worktime->getTrainer()->getId(),
+            'date' => $worktime->getDate()->format('Y-m-d'),
+            'start_time' => $worktime->getStartTime()->format('H:i:s'),
+            'end_time' => $worktime->getEndTime()->format('H:i:s'),
         ];
     }
 
+    /**
+     * @param array<string, scalar|null> $context
+     * @param array<string, scalar|null> $extra
+     * @return array<string, scalar|null>
+     */
     private function event(array $context, string $operation, string $outcome, array $extra = []): array
     {
         return $extra + $context + [

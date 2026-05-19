@@ -36,15 +36,18 @@ final readonly class RefreshTokenManager
      * @throws UnauthorizedHttpException
      * @throws AccessDeniedHttpException
      */
+    /**
+     * @return array{0: string, 1: string}
+     */
     public function refresh(?string $refreshToken): array
     {
-        if (!$refreshToken) {
+        if ($refreshToken === null || $refreshToken === '') {
             throw new UnauthorizedHttpException('Bearer', 'No refresh token');
         }
 
         $tokenEntity = $this->repo->findOneBy(['token' => $refreshToken]);
 
-        if (!$tokenEntity || $tokenEntity->getExpiresAt() < new DateTimeImmutable()) {
+        if ($tokenEntity === null || $tokenEntity->getExpiresAt() < new DateTimeImmutable()) {
             throw new UnauthorizedHttpException('Bearer', 'Invalid refresh token');
         }
 
@@ -78,7 +81,7 @@ final readonly class RefreshTokenManager
      */
     public function generateAccessToken(User $user): string
     {
-        if ($user->getDeletedAt()) {
+        if ($user->getDeletedAt() !== null) {
             throw new AccessDeniedHttpException('User is deleted');
         }
 

@@ -24,7 +24,7 @@ final class Booking
 
     #[ORM\ManyToOne(inversedBy: 'bookings')]
     #[ORM\JoinColumn(nullable: false)]
-    private ?Client $client = null;
+    private Client $client;
 
     #[ORM\OneToOne(
         targetEntity: Training::class,
@@ -46,19 +46,19 @@ final class Booking
         type: Types::ENUM,
         length: 50,
     )]
-    private ?BookingStatusEnum $status = null;
+    private BookingStatusEnum $status;
 
     public function getId(): ?int
     {
         return $this->id;
     }
 
-    public function getClient(): ?Client
+    public function getClient(): Client
     {
         return $this->client;
     }
 
-    public function setClient(?Client $client): static
+    public function setClient(Client $client): static
     {
         $this->client = $client;
 
@@ -109,7 +109,7 @@ final class Booking
         return $this;
     }
 
-    public function getStatus(): ?BookingStatusEnum
+    public function getStatus(): BookingStatusEnum
     {
         return $this->status;
     }

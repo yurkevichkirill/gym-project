@@ -19,6 +19,7 @@ use Symfony\Component\HttpKernel\ControllerMetadata\ArgumentMetadata;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Serializer\Normalizer\AbstractObjectNormalizer;
+use Symfony\Component\Serializer\Normalizer\DenormalizerInterface;
 use Symfony\Component\Serializer\SerializerInterface;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 use Throwable;
@@ -28,12 +29,13 @@ final readonly class GetTrainingsResolver implements ValueResolverInterface
     public function __construct(
         private ClientRepository $clientRepo,
         private TrainerRepository $trainerRepo,
-        private SerializerInterface $serializer,
+        private SerializerInterface&DenormalizerInterface $serializer,
         private ValidatorInterface $validator,
         private Security $security,
     ) {}
 
     /**
+     * @return iterable<int, ResolvedTrainingsRequestDTO>
      * @throws DateMalformedStringException
      * @throws NotFoundHttpException
      * @throws BadRequestHttpException
@@ -75,23 +77,33 @@ final readonly class GetTrainingsResolver implements ValueResolverInterface
             $trainer = $user;
         }
 
-        elseif ($rawDto->trainerId) {
+        elseif ($rawDto->trainerId !== null) {
+            /** @var int $trainerId */
+            $trainerId = $rawDto->trainerId;
             $trainer = $this->trainerRepo->find($rawDto->trainerId)
-                ?? throw new NotFoundHttpException("Trainer with ID $rawDto->trainerId not found");
+                ?? throw new NotFoundHttpException("Trainer with ID $trainerId not found");
         }
 
         $client = null;
-        if ($rawDto->clientId) {
+        if ($rawDto->clientId !== null) {
+            /** @var int $clientId */
+            $clientId = $rawDto->clientId;
             $client = $this->clientRepo->find($rawDto->clientId)
-                ?? throw new NotFoundHttpException("Client with ID $rawDto->clientId not found");
+                ?? throw new NotFoundHttpException("Client with ID $clientId not found");
+        }
+
+        $date = $rawDto->date !== null ? new DateTimeImmutable($rawDto->date) : null;
+        $startTime = $rawDto->startTime !== null ? DateTimeImmutable::createFromFormat('H:i:s', $rawDto->startTime) : null;
+        if ($startTime === false) {
+            $startTime = null;
         }
 
         yield new ResolvedTrainingsRequestDTO(
             trainer: $trainer,
             client: $client,
             status: $rawDto->status,
-            date: $rawDto->date ? new DateTimeImmutable($rawDto->date) : null,
-            startTime: $rawDto->startTime ? DateTimeImmutable::createFromFormat('H:i:s', $rawDto->startTime) : null,
+            date: $date,
+            startTime: $startTime,
             durationMinutes: $rawDto->durationMinutes,
             isBusy: $rawDto->isBusy,
             sort: $rawDto->sort,

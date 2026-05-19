@@ -14,6 +14,7 @@ final class Admin extends User
 {
     public function __construct()
     {
+        parent::__construct();
         $this->setRoles([UserRolesEnum::ROLE_ADMIN->value]);
     }
 

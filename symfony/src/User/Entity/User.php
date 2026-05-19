@@ -12,6 +12,7 @@ use App\Trainer\Entity\Trainer;
 use App\User\Enum\UserRolesEnum;
 use App\User\Repository\UserRepository;
 use DateTimeImmutable;
+use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Gedmo\SoftDeleteable\Traits\SoftDeleteableEntity;
@@ -41,16 +42,16 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     private ?int $id = null;
 
     #[ORM\Column(length: 100)]
-    private ?string $firstName = null;
+    private string $firstName;
 
     #[ORM\Column(length: 100)]
-    private ?string $lastName = null;
+    private string $lastName;
 
     #[ORM\Column(length: 180, unique: true)]
-    private ?string $email = null;
+    private string $email;
 
     #[ORM\Column(length: 20)]
-    private ?string $phone = null;
+    private string $phone;
 
     /**
      * @var list<string> The user roles
@@ -70,18 +71,24 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column(length: 200, nullable: true)]
     private ?string $activationToken = null;
 
+    /** @var Collection<int, RefreshToken> */
     #[ORM\OneToMany(targetEntity: RefreshToken::class, mappedBy: 'user')]
     private Collection $refreshTokens;
 
     #[ORM\Column(nullable: true)]
     private ?DateTimeImmutable $blockedAt = null;
 
+    public function __construct()
+    {
+        $this->refreshTokens = new ArrayCollection();
+    }
+
     public function getId(): ?int
     {
         return $this->id;
     }
 
-    public function getEmail(): ?string
+    public function getEmail(): string
     {
         return $this->email;
     }
@@ -103,7 +110,11 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         if ($this->getDeletedAt() !== null) {
             throw new LogicException('Cannot identify deleted user');
         }
-        return (string) $this->email;
+        if ($this->email === '') {
+            throw new LogicException('Cannot identify user without email');
+        }
+
+        return $this->email;
     }
 
     /**
@@ -145,36 +156,36 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this;
     }
 
-    public function getFirstName(): ?string
+    public function getFirstName(): string
     {
         return $this->firstName;
     }
 
-    public function setFirstName(?string $firstName): static
+    public function setFirstName(string $firstName): static
     {
         $this->firstName = $firstName;
 
         return $this;
     }
 
-    public function getLastName(): ?string
+    public function getLastName(): string
     {
         return $this->lastName;
     }
 
-    public function setLastName(?string $lastName): static
+    public function setLastName(string $lastName): static
     {
         $this->lastName = $lastName;
 
         return $this;
     }
 
-    public function getPhone(): ?string
+    public function getPhone(): string
     {
         return $this->phone;
     }
 
-    public function setPhone(?string $phone): static
+    public function setPhone(string $phone): static
     {
         $this->phone = $phone;
 
@@ -187,7 +198,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function __serialize(): array
     {
         $data = (array) $this;
-        $data["\0".self::class."\0password"] = hash('crc32c', $this->password);
+        $data["\0".self::class."\0password"] = hash('crc32c', $this->password ?? '');
 
         return $data;
     }
@@ -228,11 +239,17 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this;
     }
 
+    /**
+     * @return Collection<int, RefreshToken>
+     */
     public function getRefreshTokens(): Collection
     {
         return $this->refreshTokens;
     }
 
+    /**
+     * @param Collection<int, RefreshToken> $refreshTokens
+     */
     public function setRefreshTokens(Collection $refreshTokens): static
     {
         $this->refreshTokens = $refreshTokens;

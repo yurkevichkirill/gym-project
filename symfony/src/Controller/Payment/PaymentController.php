@@ -80,8 +80,6 @@ final class PaymentController extends AbstractController
         Payment $payment,
         PaymentSettlementService $paymentSettlementService,
     ): ItemResponse {
-        $this->denyAccessUnlessGranted('PAYMENT_VIEW', $payment);
-
         if ($payment->getStatus() !== PaymentStatusEnum::PENDING) {
             throw new BadRequestHttpException('Payment already processed');
         }

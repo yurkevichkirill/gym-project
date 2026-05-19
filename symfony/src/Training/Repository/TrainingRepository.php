@@ -37,7 +37,7 @@ final class TrainingRepository extends ServiceEntityRepository
      */
     public function countByTrainer(Trainer $trainer): int
     {
-        return $this->createQueryBuilder('t')
+        return (int) $this->createQueryBuilder('t')
             ->select('COUNT(t.id)')
             ->innerJoin('t.trainerWorkTime', 'wt')
             ->where('wt.trainer = :trainer')

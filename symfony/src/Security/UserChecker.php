@@ -31,7 +31,7 @@ final class UserChecker implements UserCheckerInterface
             return;
         }
 
-        if ($user->getDeletedAt()) {
+        if ($user->getDeletedAt() !== null) {
             throw new CustomUserMessageAccountStatusException('User is deleted');
         }
     }

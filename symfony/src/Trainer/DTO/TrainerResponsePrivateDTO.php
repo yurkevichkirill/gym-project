@@ -6,6 +6,7 @@ namespace App\Trainer\DTO;
 
 use App\Trainer\Entity\Trainer;
 use App\TrainingType\DTO\TrainingTypeResponseDTO;
+use LogicException;
 
 final readonly class TrainerResponsePrivateDTO
 {
@@ -31,13 +32,19 @@ final readonly class TrainerResponsePrivateDTO
 
     public static function fromEntity(Trainer $trainer): self
     {
+        $id = $trainer->getId();
+        $trainingType = $trainer->getTrainingType();
+        if ($id === null || $trainingType === null) {
+            throw new LogicException('Trainer is not fully initialized.');
+        }
+
         return new self(
-            id: $trainer->getId(),
+            id: $id,
             firstName: $trainer->getFirstName(),
             lastName: $trainer->getLastName(),
             phone: $trainer->getPhone(),
             email: $trainer->getEmail(),
-            trainingType:  TrainingTypeResponseDTO::fromEntity($trainer->getTrainingType()),
+            trainingType:  TrainingTypeResponseDTO::fromEntity($trainingType),
             pricePerHour: $trainer->getPricePerHour(),
             photoUrl: $trainer->getPhotoUrl(),
             education: $trainer->getEducation(),

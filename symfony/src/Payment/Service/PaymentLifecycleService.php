@@ -36,7 +36,7 @@ final readonly class PaymentLifecycleService
             return;
         }
 
-        $allowedStatuses = self::ALLOWED_TRANSITIONS[$currentStatus->value] ?? [];
+        $allowedStatuses = self::ALLOWED_TRANSITIONS[$currentStatus->value];
 
         if (!in_array($newStatus, $allowedStatuses, true)) {
             throw new InvalidPaymentStatusException(sprintf(
@@ -63,8 +63,6 @@ final readonly class PaymentLifecycleService
                 $payment->setIsRefund(true);
                 break;
 
-            case PaymentStatusEnum::PENDING:
-                throw new InvalidPaymentStatusException('Payment status cannot transit to pending');
         }
     }
 }

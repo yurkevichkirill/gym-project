@@ -9,6 +9,8 @@ use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 final readonly class SortParser
 {
     /**
+     * @param list<string> $allowedParams
+     * @return array<string, string>
      * @throws BadRequestHttpException
      */
     public static function parseSort(string $sortRaw, array $allowedParams): array
@@ -21,7 +23,7 @@ final readonly class SortParser
 
             $field = $exploded[0];
 
-            if (!$field || !in_array($field, $allowedParams, true)) {
+            if ($field === '' || !in_array($field, $allowedParams, true)) {
                 throw new BadRequestHttpException("Invalid sort field: $field");
             }
 

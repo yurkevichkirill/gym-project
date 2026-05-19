@@ -23,13 +23,15 @@ final readonly class ClientQuery
     ) {}
 
     /**
+     * @param array<string, string> $parsedSort
+     * @return array{items: list<mixed>, total: int}
      * @throws InvalidArgumentException
      */
     public function getCachedData(GetClientsRequestDTO $dto, array $parsedSort): array
     {
         $cacheKey = $this->generateCacheKey($dto);
 
-        return $this->cache->get($cacheKey, function (ItemInterface $item, bool $save) use ($dto, $parsedSort): array {
+        return $this->cache->get($cacheKey, function (ItemInterface $item) use ($dto, $parsedSort): array {
             $item->expiresAfter(3600);
 
             $item->tag(['clients_list']);
@@ -93,6 +95,7 @@ final readonly class ClientQuery
     }
 
     /**
+     * @return array<string, string>
      * @throws BadRequestHttpException
      */
     public function getParsedSort(GetClientsRequestDTO $dto): array
@@ -113,6 +116,8 @@ final readonly class ClientQuery
             'isDeleted' => $dto->isDeleted,
         ];
 
-        return 'clients_' . md5(json_encode($params));
+        $encoded = json_encode($params);
+
+        return 'clients_' . hash('sha256', $encoded === false ? '' : $encoded);
     }
 }
