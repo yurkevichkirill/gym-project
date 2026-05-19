@@ -1,8 +1,9 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\TrainerWorkTime\Entity;
 
-use App\Booking\Enum\BookingStatusEnum;
 use App\TrainerWorkTime\Repository\TrainerWorkTimeRepository;
 use App\Trainer\Entity\Trainer;
 use App\Training\Entity\Training;

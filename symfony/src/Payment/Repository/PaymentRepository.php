@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Payment\Repository;
 
 use App\Payment\Entity\Payment;

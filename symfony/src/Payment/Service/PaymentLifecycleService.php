@@ -25,6 +25,9 @@ final readonly class PaymentLifecycleService
         PaymentStatusEnum::REFUNDED->value => [],
     ];
 
+    /**
+     * @throws InvalidPaymentStatusException
+     */
     public function transitionTo(Payment $payment, PaymentStatusEnum $newStatus): void
     {
         $currentStatus = $payment->getStatus();
@@ -54,6 +57,10 @@ final readonly class PaymentLifecycleService
             case PaymentStatusEnum::CANCELED:
             case PaymentStatusEnum::FAILED:
                 $payment->setExpiresAt(null);
+                break;
+
+            case PaymentStatusEnum::REFUNDED:
+                $payment->setIsRefund(true);
                 break;
 
             case PaymentStatusEnum::PENDING:

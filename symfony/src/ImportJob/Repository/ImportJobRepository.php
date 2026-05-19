@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\ImportJob\Repository;
 
 use App\ImportJob\Entity\ImportJob;

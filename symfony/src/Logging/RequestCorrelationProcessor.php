@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Logging;
 
 use Monolog\LogRecord;
+use Symfony\Component\HttpFoundation\Exception\UnexpectedValueException;
 use Symfony\Component\HttpFoundation\RequestStack;
 
 final readonly class RequestCorrelationProcessor
@@ -13,6 +14,9 @@ final readonly class RequestCorrelationProcessor
         private RequestStack $requestStack,
     ) {}
 
+    /**
+     * @throws UnexpectedValueException
+     */
     public function __invoke(LogRecord $record): LogRecord
     {
         $request = $this->requestStack->getCurrentRequest();

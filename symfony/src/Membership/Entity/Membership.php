@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Membership\Entity;
 
 use App\Client\Entity\Client;

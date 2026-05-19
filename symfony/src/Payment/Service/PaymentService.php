@@ -12,7 +12,6 @@ use App\Payment\Enum\PaymentStatusEnum;
 use App\Payment\Repository\PaymentRepository;
 use App\Trainer\Entity\Trainer;
 use DateTimeImmutable;
-use LogicException;
 
 final readonly class PaymentService
 {

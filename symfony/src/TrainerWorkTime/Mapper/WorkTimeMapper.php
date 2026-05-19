@@ -6,7 +6,6 @@ namespace App\TrainerWorkTime\Mapper;
 
 use App\TrainerWorkTime\DTO\WorkTimeResponseDTO;
 use App\TrainerWorkTime\Entity\TrainerWorkTime;
-use App\TrainerWorkTime\Mapper\WorkTimeMapperInterface;
 use DateMalformedIntervalStringException;
 
 class WorkTimeMapper implements WorkTimeMapperInterface

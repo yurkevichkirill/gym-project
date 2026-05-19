@@ -7,7 +7,6 @@ namespace App\Trainer\Mapper;
 use App\Trainer\DTO\TrainerResponseDTO;
 use App\Trainer\DTO\TrainerResponsePrivateDTO;
 use App\Trainer\Entity\Trainer;
-use App\Trainer\Mapper\TrainerMapperInterface;
 
 class TrainerMapper implements TrainerMapperInterface
 {

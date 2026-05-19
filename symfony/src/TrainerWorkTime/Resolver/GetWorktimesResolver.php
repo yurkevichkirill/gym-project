@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\TrainerWorkTime\Resolver;
 
-use App\Client\Entity\Client;
 use App\Trainer\Entity\Trainer;
 use App\Trainer\Repository\TrainerRepository;
 use App\TrainerWorkTime\DTO\GetWorktimesRequestDTO;

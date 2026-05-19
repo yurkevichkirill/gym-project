@@ -6,7 +6,6 @@ namespace App\TrainingType\Mapper;
 
 use App\TrainingType\DTO\TrainingTypeResponseDTO;
 use App\TrainingType\Entity\TrainingType;
-use App\TrainingType\Mapper\TrainingTypeMapperInterface;
 
 class TrainingTypeMapper implements TrainingTypeMapperInterface
 {

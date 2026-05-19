@@ -8,8 +8,6 @@ use App\Client\DTO\GetClientsRequestDTO;
 use App\Client\Mapper\ClientMapperInterface;
 use App\Client\Repository\ClientRepository;
 use App\Request\SortParser;
-use Doctrine\ORM\NonUniqueResultException;
-use Doctrine\ORM\NoResultException;
 use Doctrine\ORM\QueryBuilder;
 use Psr\Cache\InvalidArgumentException;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;

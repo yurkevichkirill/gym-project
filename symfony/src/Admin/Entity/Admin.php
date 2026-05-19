@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Admin\Entity;
 
 use App\Admin\Repository\AdminRepository;

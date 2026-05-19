@@ -21,6 +21,9 @@ final readonly class StripeWebhookService
         private LoggerInterface $logger,
     ) {}
 
+    /**
+     * @throws BadRequestHttpException
+     */
     public function handle(string $payload, ?string $signature): void
     {
         if ($signature === null) {

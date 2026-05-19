@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\ImportError\Repository;
 
 use App\ImportError\Entity\ImportError;

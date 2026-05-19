@@ -1,14 +1,14 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\MembershipPlan\Entity;
 
 use App\Membership\Entity\Membership;
 use App\MembershipPlan\Repository\MembershipPlanRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
-use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
-use Symfony\Component\Serializer\Attribute\Groups;
 
 #[ORM\Entity(repositoryClass: MembershipPlanRepository::class)]
 class MembershipPlan

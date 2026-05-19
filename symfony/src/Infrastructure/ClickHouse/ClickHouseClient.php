@@ -27,7 +27,7 @@ final readonly class ClickHouseClient
         $this->http->request('POST', $this->host, [
             'auth_basic' => [$this->user, $this->password],
             'query' => [
-                'query' => "INSERT INTO {$this->database}.{$table} FORMAT JSONEachRow",
+                'query' => "INSERT INTO $this->database.$table FORMAT JSONEachRow",
             ],
             'body' => $body,
         ]);

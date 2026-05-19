@@ -8,8 +8,6 @@ use App\RefreshToken\Entity\RefreshToken;
 use App\RefreshToken\Repository\RefreshTokenRepository;
 use App\User\Entity\User;
 use DateTimeImmutable;
-use Doctrine\ORM\Exception\ORMException;
-use Doctrine\ORM\OptimisticLockException;
 use Lexik\Bundle\JWTAuthenticationBundle\Services\JWTTokenManagerInterface;
 use Random\RandomException;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
@@ -23,10 +21,6 @@ final readonly class RefreshTokenManager
     )
     {}
 
-    /**
-     * @throws OptimisticLockException
-     * @throws ORMException
-     */
     public function create(string $refreshToken, User $user): void
     {
         $entityRefreshToken = new RefreshToken();
@@ -38,9 +32,7 @@ final readonly class RefreshTokenManager
     }
 
     /**
-     * @throws OptimisticLockException
      * @throws RandomException
-     * @throws ORMException
      * @throws UnauthorizedHttpException
      * @throws AccessDeniedHttpException
      */

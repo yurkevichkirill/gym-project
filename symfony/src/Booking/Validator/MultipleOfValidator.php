@@ -12,6 +12,7 @@ class MultipleOfValidator extends ConstraintValidator
 {
     /**
      * @inheritDoc
+     * @throws UnexpectedTypeException
      */
     public function validate(mixed $value, Constraint $constraint): void
     {

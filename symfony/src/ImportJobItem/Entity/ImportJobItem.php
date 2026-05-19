@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\ImportJobItem\Entity;
 
 use App\ImportError\Entity\ImportError;

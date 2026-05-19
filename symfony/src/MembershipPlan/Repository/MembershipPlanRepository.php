@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\MembershipPlan\Repository;
 
 use App\MembershipPlan\Entity\MembershipPlan;

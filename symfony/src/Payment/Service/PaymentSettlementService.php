@@ -244,7 +244,6 @@ final readonly class PaymentSettlementService
             PaymentMethodEnum::BALANCE,
             $payment->getTrainer(),
         );
-        $refundPayment->setIsRefund(true);
 
         $this->paymentLifecycleService->transitionTo($refundPayment, PaymentStatusEnum::SUCCEEDED);
     }

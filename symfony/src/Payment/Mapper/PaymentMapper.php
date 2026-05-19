@@ -6,7 +6,6 @@ namespace App\Payment\Mapper;
 
 use App\Payment\DTO\PaymentResponseDTO;
 use App\Payment\Entity\Payment;
-use App\Payment\Mapper\PaymentMapperInterface;
 
 class PaymentMapper implements PaymentMapperInterface
 {

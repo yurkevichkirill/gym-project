@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\TrainingType\Repository;
 
 use App\TrainingType\Entity\TrainingType;
