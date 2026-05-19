@@ -15,6 +15,7 @@ use App\TrainerWorkTime\DTO\WorkTimeResponseDTO;
 use App\TrainerWorkTime\Entity\TrainerWorkTime;
 use App\TrainerWorkTime\Mapper\WorkTimeMapperInterface;
 use App\TrainerWorkTime\Service\WorkTimeManager;
+use App\User\Enum\UserRolesEnum;
 use Nelmio\ApiDocBundle\Attribute\Model;
 use OpenApi\Attributes as OA;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -91,7 +92,7 @@ final class TrainerWorkTimeController extends AbstractController
             )
         ]
     )]
-    #[IsGranted('ROLE_ADMIN')]
+    #[IsGranted(UserRolesEnum::ROLE_ADMIN->value)]
     public function create(
         Trainer                                       $trainer,
         #[MapRequestPayload] CreateWorkTimeRequestDTO $requestDto,
@@ -171,7 +172,7 @@ final class TrainerWorkTimeController extends AbstractController
             )
         ]
     )]
-    #[IsGranted('ROLE_ADMIN')]
+    #[IsGranted(UserRolesEnum::ROLE_ADMIN->value)]
     public function update(
         TrainerWorkTime                               $worktime,
         #[MapRequestPayload] UpdateWorkTimeRequestDTO $requestDto,
@@ -224,7 +225,7 @@ final class TrainerWorkTimeController extends AbstractController
             )
         ]
     )]
-    #[IsGranted('ROLE_ADMIN')]
+    #[IsGranted(UserRolesEnum::ROLE_ADMIN->value)]
     public function remove(
         TrainerWorkTime $worktime,
         WorkTimeManager $manager,

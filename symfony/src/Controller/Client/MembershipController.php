@@ -18,6 +18,7 @@ use App\Response\ResponseTypeDTO\ItemResponse;
 use App\Response\SwaggerDocDTO\AbstractCollectionResponseDTO;
 use App\Response\SwaggerDocDTO\AbstractItemResponseDTO;
 use App\Response\SwaggerDocDTO\ErrorResponseDTO;
+use App\User\Enum\UserRolesEnum;
 use DateMalformedStringException;
 use Nelmio\ApiDocBundle\Attribute\Model;
 use OpenApi\Attributes as OA;
@@ -94,7 +95,7 @@ final class MembershipController extends AbstractController
             )
         ]
     )]
-    #[IsGranted('ROLE_CLIENT')]
+    #[IsGranted(UserRolesEnum::ROLE_CLIENT->value)]
     public function getAll(
         ResolvedMembershipsRequestDTO $resolvedDto,
         MembershipQuery $handler,
@@ -165,7 +166,7 @@ final class MembershipController extends AbstractController
             )
         ]
     )]
-    #[IsGranted('ROLE_CLIENT')]
+    #[IsGranted(UserRolesEnum::ROLE_CLIENT->value)]
     public function get(Membership $membership, MembershipMapperInterface $mapper): ItemResponse
     {
         $this->denyAccessUnlessGranted("MEMBERSHIP_VIEW", $membership);
@@ -238,7 +239,7 @@ final class MembershipController extends AbstractController
             )
         ]
     )]
-    #[IsGranted('ROLE_CLIENT')]
+    #[IsGranted(UserRolesEnum::ROLE_CLIENT->value)]
     public function create(
         #[CurrentUser] Client                           $client,
         #[MapRequestPayload] CreateMembershipRequestDTO $requestDto,
@@ -310,7 +311,7 @@ final class MembershipController extends AbstractController
             )
         ]
     )]
-    #[IsGranted('ROLE_CLIENT')]
+    #[IsGranted(UserRolesEnum::ROLE_CLIENT->value)]
     public function freeze(
         Membership $membership,
         MembershipMapperInterface $mapper,
@@ -383,7 +384,7 @@ final class MembershipController extends AbstractController
             )
         ]
     )]
-    #[IsGranted('ROLE_CLIENT')]
+    #[IsGranted(UserRolesEnum::ROLE_CLIENT->value)]
     public function unfreeze(
         Membership $membership,
         MembershipMapperInterface $mapper,
@@ -454,7 +455,7 @@ final class MembershipController extends AbstractController
             )
         ]
     )]
-    #[IsGranted('ROLE_CLIENT')]
+    #[IsGranted(UserRolesEnum::ROLE_CLIENT->value)]
     public function renew(
         Membership $membership,
         MembershipMapperInterface $mapper,
@@ -527,7 +528,7 @@ final class MembershipController extends AbstractController
             )
         ]
     )]
-    #[IsGranted('ROLE_CLIENT')]
+    #[IsGranted(UserRolesEnum::ROLE_CLIENT->value)]
     public function terminate(
         Membership $membership,
         MembershipMapperInterface $mapper,

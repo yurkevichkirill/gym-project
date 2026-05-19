@@ -21,6 +21,7 @@ use App\Training\Mapper\TrainingMapperInterface;
 use App\Training\Query\TrainingsQuery;
 use App\Training\Service\TrainingManager;
 use App\User\Entity\User;
+use App\User\Enum\UserRolesEnum;
 use DateMalformedIntervalStringException;
 use DateMalformedStringException;
 use Nelmio\ApiDocBundle\Attribute\Model;
@@ -95,7 +96,7 @@ final class TrainingController extends AbstractController
             )
         ]
     )]
-    #[IsGranted('ROLE_TRAINER')]
+    #[IsGranted(UserRolesEnum::ROLE_TRAINER->value)]
     public function getAll(
         ResolvedTrainingsRequestDTO $resolvedDto,
         TrainingsQuery $handler,
@@ -166,7 +167,7 @@ final class TrainingController extends AbstractController
             )
         ]
     )]
-    #[IsGranted('ROLE_TRAINER')]
+    #[IsGranted(UserRolesEnum::ROLE_TRAINER->value)]
     public function get(
         TrainingMapperInterface $mapper,
         Training $training,
@@ -253,7 +254,7 @@ final class TrainingController extends AbstractController
             )
         ]
     )]
-    #[IsGranted('ROLE_TRAINER')]
+    #[IsGranted(UserRolesEnum::ROLE_TRAINER->value)]
     public function update(
         Training                                      $training,
         #[MapRequestPayload] TrainingUpdateRequestDTO $requestDto,
@@ -315,7 +316,7 @@ final class TrainingController extends AbstractController
             )
         ]
     )]
-    #[IsGranted('ROLE_TRAINER')]
+    #[IsGranted(UserRolesEnum::ROLE_TRAINER->value)]
     public function cancel(
         Training $training,
         #[CurrentUser] User $actor,
@@ -390,7 +391,7 @@ final class TrainingController extends AbstractController
             )
         ]
     )]
-    #[IsGranted('ROLE_TRAINER')]
+    #[IsGranted(UserRolesEnum::ROLE_TRAINER->value)]
     public function complete(
         Training $training,
         TrainingMapperInterface $mapper,

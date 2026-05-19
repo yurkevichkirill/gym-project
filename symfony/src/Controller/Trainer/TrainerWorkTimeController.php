@@ -19,6 +19,7 @@ use App\TrainerWorkTime\Entity\TrainerWorkTime;
 use App\TrainerWorkTime\Mapper\WorkTimeMapperInterface;
 use App\TrainerWorkTime\Query\WorkTimeQuery;
 use App\TrainerWorkTime\Service\WorkTimeManager;
+use App\User\Enum\UserRolesEnum;
 use DateMalformedIntervalStringException;
 use DateMalformedStringException;
 use Nelmio\ApiDocBundle\Attribute\Model;
@@ -86,7 +87,7 @@ final class TrainerWorkTimeController extends AbstractController
             )
         ]
     )]
-    #[IsGranted('ROLE_TRAINER')]
+    #[IsGranted(UserRolesEnum::ROLE_TRAINER->value)]
     public function getAll(
         ResolvedWorktimesRequestDTO $resolvedDto,
         WorkTimeQuery $handler,
@@ -163,7 +164,7 @@ final class TrainerWorkTimeController extends AbstractController
             )
         ]
     )]
-    #[IsGranted('ROLE_TRAINER')]
+    #[IsGranted(UserRolesEnum::ROLE_TRAINER->value)]
     public function create(
         #[CurrentUser] Trainer                        $trainer,
         #[MapRequestPayload] CreateWorkTimeRequestDTO $requestDto,
@@ -245,7 +246,7 @@ final class TrainerWorkTimeController extends AbstractController
             )
         ]
     )]
-    #[IsGranted('ROLE_TRAINER')]
+    #[IsGranted(UserRolesEnum::ROLE_TRAINER->value)]
     public function update(
         TrainerWorkTime                               $worktime,
         #[MapRequestPayload] UpdateWorkTimeRequestDTO $requestDto,
@@ -300,7 +301,7 @@ final class TrainerWorkTimeController extends AbstractController
             )
         ]
     )]
-    #[IsGranted('ROLE_TRAINER')]
+    #[IsGranted(UserRolesEnum::ROLE_TRAINER->value)]
     public function remove(
         TrainerWorkTime $worktime,
         WorkTimeManager $manager,

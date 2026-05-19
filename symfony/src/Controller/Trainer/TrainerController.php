@@ -6,11 +6,14 @@ namespace App\Controller\Trainer;
 
 use App\Response\ResponseTypeDTO\ItemResponse;
 use App\Response\ResponseTypeDTO\NoContentResponse;
+use App\Response\SwaggerDocDTO\AbstractItemResponseDTO;
+use App\Response\SwaggerDocDTO\ErrorResponseDTO;
 use App\Trainer\DTO\TrainerResponsePrivateDTO;
 use App\Trainer\DTO\UpdateTrainerRequestDTO;
 use App\Trainer\Entity\Trainer;
 use App\Trainer\Mapper\TrainerMapperInterface;
 use App\Trainer\Service\TrainerManager;
+use App\User\Enum\UserRolesEnum;
 use Nelmio\ApiDocBundle\Attribute\Model;
 use OpenApi\Attributes as OA;
 use Psr\Container\ContainerExceptionInterface;
@@ -29,22 +32,42 @@ final class TrainerController extends AbstractController
     #[Route('/api/trainer/me/', methods: ['GET'], format: 'json')]
     #[OA\Get(
         operationId: 'getTrainerMe',
-        summary: 'Get current trainer profile details.',
-        tags: ['Trainer: Trainer'],
+        summary: 'Get profile information of the current trainer.',
+        tags: ['Trainer: Profile'],
         responses: [
             new OA\Response(
                 response: 200,
                 description: 'Current trainer profile retrieved successfully.',
-                content: new OA\JsonContent(ref: new Model(type: TrainerResponsePrivateDTO::class))
+                content: new OA\JsonContent(
+                    allOf: [
+                        new OA\Schema(ref: new Model(type: AbstractItemResponseDTO::class)),
+                        new OA\Schema(
+                            properties: [
+                                new OA\Property(
+                                    property: 'data',
+                                    ref: new Model(type: TrainerResponsePrivateDTO::class)
+                                )
+                            ]
+                        )
+                    ]
+                )
             ),
-            new OA\Response(response: 401, description: 'Unauthorized'),
-            new OA\Response(response: 403, description: 'Forbidden - Trainer access required')
+            new OA\Response(
+                response: 401,
+                description: 'Unauthorized',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
+            ),
+            new OA\Response(
+                response: 403,
+                description: 'Forbidden - Trainer access required',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
+            )
         ]
     )]
-    #[IsGranted('ROLE_TRAINER')]
+    #[IsGranted(UserRolesEnum::ROLE_TRAINER->value)]
     public function get(
-        #[CurrentUser] Trainer                    $trainer,
-        TrainerMapperInterface                    $mapper,
+        #[CurrentUser] Trainer $trainer,
+        TrainerMapperInterface $mapper,
     ): ItemResponse {
         $responseDto = $mapper->map($trainer, true);
 
@@ -59,20 +82,51 @@ final class TrainerController extends AbstractController
         operationId: 'updateTrainerMe',
         summary: 'Update current trainer profile.',
         requestBody: new OA\RequestBody(
+            required: true,
             content: new OA\JsonContent(ref: new Model(type: UpdateTrainerRequestDTO::class))
         ),
-        tags: ['Trainer: Trainer'],
+        tags: ['Trainer: Profile'],
         responses: [
             new OA\Response(
                 response: 200,
                 description: 'Trainer profile updated successfully.',
-                content: new OA\JsonContent(ref: new Model(type: TrainerResponsePrivateDTO::class))
+                content: new OA\JsonContent(
+                    allOf: [
+                        new OA\Schema(ref: new Model(type: AbstractItemResponseDTO::class)),
+                        new OA\Schema(
+                            properties: [
+                                new OA\Property(
+                                    property: 'data',
+                                    ref: new Model(type: TrainerResponsePrivateDTO::class)
+                                )
+                            ]
+                        )
+                    ]
+                )
             ),
-            new OA\Response(response: 401, description: 'Unauthorized'),
-            new OA\Response(response: 422, description: 'Validation failed')
+            new OA\Response(
+                response: 400,
+                description: 'Invalid JSON payload',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
+            ),
+            new OA\Response(
+                response: 401,
+                description: 'Unauthorized',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
+            ),
+            new OA\Response(
+                response: 403,
+                description: 'Forbidden - Trainer access required',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
+            ),
+            new OA\Response(
+                response: 422,
+                description: 'Validation failed',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
+            )
         ]
     )]
-    #[IsGranted('ROLE_TRAINER')]
+    #[IsGranted(UserRolesEnum::ROLE_TRAINER->value)]
     public function update(
         #[CurrentUser] Trainer                       $trainer,
         #[MapRequestPayload] UpdateTrainerRequestDTO $requestDto,
@@ -96,19 +150,31 @@ final class TrainerController extends AbstractController
     #[Route('/api/trainer/me/', methods: ['DELETE'], format: 'json')]
     #[OA\Delete(
         operationId: 'deleteTrainerMe',
-        summary: 'Deactivate (soft delete) current trainer account.',
-        tags: ['Trainer: Trainer'],
+        summary: 'Soft delete current trainer account and clear sessions.',
+        tags: ['Trainer: Profile'],
         responses: [
-            new OA\Response(response: 204, description: 'Account deactivated successfully.'),
-            new OA\Response(response: 401, description: 'Unauthorized'),
+            new OA\Response(
+                response: 204,
+                description: 'Account successfully deleted (No Content).'
+            ),
+            new OA\Response(
+                response: 401,
+                description: 'Unauthorized',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
+            ),
+            new OA\Response(
+                response: 403,
+                description: 'Forbidden',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
+            ),
             new OA\Response(
                 response: 409,
-                description: 'Conflict - Trainer already deleted',
-                content: new OA\JsonContent(properties: [new OA\Property(property: 'message', type: 'string')])
+                description: 'Conflict - Account is already deleted',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
             )
         ]
     )]
-    #[IsGranted('ROLE_TRAINER')]
+    #[IsGranted(UserRolesEnum::ROLE_TRAINER->value)]
     public function remove(
         #[CurrentUser] Trainer $trainer,
         TrainerManager $manager,

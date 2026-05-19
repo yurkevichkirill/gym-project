@@ -11,6 +11,7 @@ use App\Payment\Service\PaymentSettlementService;
 use App\Response\ResponseTypeDTO\ItemResponse;
 use App\Response\SwaggerDocDTO\AbstractItemResponseDTO;
 use App\Response\SwaggerDocDTO\ErrorResponseDTO;
+use App\User\Enum\UserRolesEnum;
 use Nelmio\ApiDocBundle\Attribute\Model;
 use OpenApi\Attributes as OA;
 use Stripe\Exception\ApiErrorException;
@@ -74,7 +75,7 @@ final class PaymentController extends AbstractController
             )
         ]
     )]
-    #[IsGranted('ROLE_CLIENT')]
+    #[IsGranted(UserRolesEnum::ROLE_CLIENT->value)]
     public function createIntent(
         Payment $payment,
         PaymentSettlementService $paymentSettlementService,

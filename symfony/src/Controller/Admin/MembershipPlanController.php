@@ -14,6 +14,7 @@ use App\Response\ResponseTypeDTO\ItemResponse;
 use App\Response\ResponseTypeDTO\NoContentResponse;
 use App\Response\SwaggerDocDTO\AbstractItemResponseDTO;
 use App\Response\SwaggerDocDTO\ErrorResponseDTO;
+use App\User\Enum\UserRolesEnum;
 use Nelmio\ApiDocBundle\Attribute\Model;
 use OpenApi\Attributes as OA;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -74,7 +75,7 @@ final class MembershipPlanController extends AbstractController
             )
         ]
     )]
-    #[IsGranted('ROLE_ADMIN')]
+    #[IsGranted(UserRolesEnum::ROLE_ADMIN->value)]
     public function create(
         #[MapRequestPayload] CreateMembershipPlanRequestDTO $requestDto,
         MembershipPlanManager                               $manager,
@@ -152,7 +153,7 @@ final class MembershipPlanController extends AbstractController
             )
         ]
     )]
-    #[IsGranted('ROLE_ADMIN')]
+    #[IsGranted(UserRolesEnum::ROLE_ADMIN->value)]
     public function update(
         #[MapRequestPayload] UpdateMembershipPlanRequestDTO $requestDto,
         MembershipPlan                                      $membershipPlan,
@@ -204,7 +205,7 @@ final class MembershipPlanController extends AbstractController
             )
         ]
     )]
-    #[IsGranted('ROLE_ADMIN')]
+    #[IsGranted(UserRolesEnum::ROLE_ADMIN->value)]
     public function remove(
         MembershipPlanManager $membershipPlanManager,
         MembershipPlan $membershipPlan,

@@ -26,6 +26,7 @@ use App\Response\ResponseTypeDTO\NoContentResponse;
 use App\Response\SwaggerDocDTO\AbstractCollectionResponseDTO;
 use App\Response\SwaggerDocDTO\AbstractItemResponseDTO;
 use App\Response\SwaggerDocDTO\ErrorResponseDTO;
+use App\User\Enum\UserRolesEnum;
 use Nelmio\ApiDocBundle\Attribute\Model;
 use OpenApi\Attributes as OA;
 use Psr\Cache\InvalidArgumentException;
@@ -105,7 +106,7 @@ final class ClientController extends AbstractController
             )
         ]
     )]
-    #[IsGranted('ROLE_ADMIN')]
+    #[IsGranted(UserRolesEnum::ROLE_ADMIN->value)]
     public function getAll(
         #[MapQueryString(validationFailedStatusCode: Response::HTTP_BAD_REQUEST)]
         GetClientsRequestDTO $requestDTO,
@@ -168,12 +169,15 @@ final class ClientController extends AbstractController
             )
         ]
     )]
-    #[IsGranted('ROLE_ADMIN')]
+    #[IsGranted(UserRolesEnum::ROLE_ADMIN->value)]
     public function get(Client $client, ClientMapperInterface $mapper): ItemResponse
     {
         return new ItemResponse(data: $mapper->map($client), status: Response::HTTP_OK);
     }
 
+    /**
+     * @throws ConflictHttpException
+     */
     #[Route('/api/clients/', methods: ['POST'], format: 'json')]
     #[OA\Post(
         operationId: 'adminCreateClient',
@@ -223,7 +227,7 @@ final class ClientController extends AbstractController
             )
         ]
     )]
-    #[IsGranted('ROLE_ADMIN')]
+    #[IsGranted(UserRolesEnum::ROLE_ADMIN->value)]
     public function create(
         #[MapRequestPayload] CreateClientRequestDTO $requestDto,
         ClientMapperInterface                       $mapper,
@@ -291,7 +295,7 @@ final class ClientController extends AbstractController
             )
         ]
     )]
-    #[IsGranted('ROLE_ADMIN')]
+    #[IsGranted(UserRolesEnum::ROLE_ADMIN->value)]
     public function update(
         Client                                           $client,
         #[MapRequestPayload] AdminUpdateClientRequestDTO $requestDto,
@@ -341,7 +345,7 @@ final class ClientController extends AbstractController
             )
         ]
     )]
-    #[IsGranted('ROLE_ADMIN')]
+    #[IsGranted(UserRolesEnum::ROLE_ADMIN->value)]
     public function delete(
         Client $client,
         ClientManager $manager,
@@ -394,7 +398,7 @@ final class ClientController extends AbstractController
             )
         ]
     )]
-    #[IsGranted('ROLE_ADMIN')]
+    #[IsGranted(UserRolesEnum::ROLE_ADMIN->value)]
     public function restore(Client $client, ClientManager $manager, ClientMapperInterface $mapper): ItemResponse
     {
         $responseDto = $mapper->map($manager->restore($client));
@@ -457,7 +461,7 @@ final class ClientController extends AbstractController
             )
         ]
     )]
-    #[IsGranted('ROLE_ADMIN')]
+    #[IsGranted(UserRolesEnum::ROLE_ADMIN->value)]
     public function block(Client $client, #[CurrentUser] Admin $admin, ClientMapperInterface $mapper, ClientManager $manager): ItemResponse
     {
         $responseDto = $mapper->map($manager->block($admin, $client));
@@ -516,7 +520,7 @@ final class ClientController extends AbstractController
             )
         ]
     )]
-    #[IsGranted('ROLE_ADMIN')]
+    #[IsGranted(UserRolesEnum::ROLE_ADMIN->value)]
     public function unblock(
         Client $client,
         ClientMapperInterface $mapper,
@@ -579,7 +583,7 @@ final class ClientController extends AbstractController
             )
         ]
     )]
-    #[IsGranted('ROLE_ADMIN')]
+    #[IsGranted(UserRolesEnum::ROLE_ADMIN->value)]
     public function visit(
         Client $client,
         MembershipMapperInterface $mapper,
@@ -643,7 +647,7 @@ final class ClientController extends AbstractController
             )
         ]
     )]
-    #[IsGranted('ROLE_ADMIN')]
+    #[IsGranted(UserRolesEnum::ROLE_ADMIN->value)]
     public function import(
         #[MapRequestPayload] CreateClientImportBatch $requestDto,
         ImportService $importService,

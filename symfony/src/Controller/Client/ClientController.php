@@ -18,6 +18,7 @@ use App\Payment\Mapper\PaymentMapperInterface;
 use App\Response\ResponseTypeDTO\ItemResponse;
 use App\Response\SwaggerDocDTO\AbstractItemResponseDTO;
 use App\Response\SwaggerDocDTO\ErrorResponseDTO;
+use App\User\Enum\UserRolesEnum;
 use Nelmio\ApiDocBundle\Attribute\Model;
 use OpenApi\Attributes as OA;
 use Psr\Container\ContainerExceptionInterface;
@@ -68,7 +69,7 @@ final class ClientController extends AbstractController
             )
         ]
     )]
-    #[IsGranted('ROLE_CLIENT')]
+    #[IsGranted(UserRolesEnum::ROLE_CLIENT->value)]
     public function get(
         #[CurrentUser] Client $client,
         ClientMapperInterface $clientMapper,
@@ -128,7 +129,7 @@ final class ClientController extends AbstractController
             )
         ]
     )]
-    #[IsGranted('ROLE_CLIENT')]
+    #[IsGranted(UserRolesEnum::ROLE_CLIENT->value)]
     public function update(
         #[CurrentUser] Client                       $client,
         #[MapRequestPayload] UpdateClientRequestDTO $requestDto,
@@ -172,7 +173,7 @@ final class ClientController extends AbstractController
             )
         ]
     )]
-    #[IsGranted('ROLE_CLIENT')]
+    #[IsGranted(UserRolesEnum::ROLE_CLIENT->value)]
     public function delete(
         #[CurrentUser] Client $client,
         ClientManager $manager
@@ -232,7 +233,7 @@ final class ClientController extends AbstractController
             )
         ]
     )]
-    #[IsGranted('ROLE_CLIENT')]
+    #[IsGranted(UserRolesEnum::ROLE_CLIENT->value)]
     public function visit(
         #[CurrentUser] Client $client,
         MembershipMapperInterface $mapper,
@@ -295,7 +296,7 @@ final class ClientController extends AbstractController
             )
         ]
     )]
-    #[IsGranted('ROLE_CLIENT')]
+    #[IsGranted(UserRolesEnum::ROLE_CLIENT->value)]
     public function topUpBalance(
         #[CurrentUser] Client                       $client,
         #[MapRequestPayload] TopUpBalanceRequestDTO $requestDto,

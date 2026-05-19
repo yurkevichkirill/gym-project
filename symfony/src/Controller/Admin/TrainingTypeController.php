@@ -14,6 +14,7 @@ use App\TrainingType\DTO\UpdateTrainingTypeRequestDTO;
 use App\TrainingType\Entity\TrainingType;
 use App\TrainingType\Mapper\TrainingTypeMapperInterface;
 use App\TrainingType\Service\TrainingTypeManager;
+use App\User\Enum\UserRolesEnum;
 use Nelmio\ApiDocBundle\Attribute\Model;
 use OpenApi\Attributes as OA;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -68,7 +69,7 @@ final class TrainingTypeController extends AbstractController
             )
         ]
     )]
-    #[IsGranted('ROLE_ADMIN')]
+    #[IsGranted(UserRolesEnum::ROLE_ADMIN->value)]
     public function create(
         #[MapRequestPayload] CreateTrainingTypeRequestDTO $requestDto,
         TrainingTypeManager                               $manager,
@@ -145,7 +146,7 @@ final class TrainingTypeController extends AbstractController
             )
         ]
     )]
-    #[IsGranted('ROLE_ADMIN')]
+    #[IsGranted(UserRolesEnum::ROLE_ADMIN->value)]
     public function update(
         #[MapRequestPayload] UpdateTrainingTypeRequestDTO $requestDto,
         TrainingType                                      $trainingType,
@@ -196,7 +197,7 @@ final class TrainingTypeController extends AbstractController
             ),
         ]
     )]
-    #[IsGranted('ROLE_ADMIN')]
+    #[IsGranted(UserRolesEnum::ROLE_ADMIN->value)]
     public function delete(
         TrainingType $trainingType,
         TrainingTypeManager $manager,

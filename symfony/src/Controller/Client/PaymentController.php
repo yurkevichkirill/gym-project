@@ -15,6 +15,7 @@ use App\Response\ResponseTypeDTO\ItemResponse;
 use App\Response\SwaggerDocDTO\AbstractCollectionResponseDTO;
 use App\Response\SwaggerDocDTO\AbstractItemResponseDTO;
 use App\Response\SwaggerDocDTO\ErrorResponseDTO;
+use App\User\Enum\UserRolesEnum;
 use Nelmio\ApiDocBundle\Attribute\Model;
 use OpenApi\Attributes as OA;
 use Psr\Cache\InvalidArgumentException;
@@ -89,7 +90,7 @@ final class PaymentController extends AbstractController
             )
         ]
     )]
-    #[IsGranted('ROLE_CLIENT')]
+    #[IsGranted(UserRolesEnum::ROLE_CLIENT->value)]
     public function getAll(
         ResolvedPaymentsRequestDTO $resolvedDto,
         PaymentsQuery $handler,
@@ -155,7 +156,7 @@ final class PaymentController extends AbstractController
             )
         ]
     )]
-    #[IsGranted('ROLE_CLIENT')]
+    #[IsGranted(UserRolesEnum::ROLE_CLIENT->value)]
     public function get(
         Payment $payment,
         PaymentMapperInterface $mapper,

@@ -22,6 +22,7 @@ use App\Response\SwaggerDocDTO\AbstractCollectionResponseDTO;
 use App\Response\SwaggerDocDTO\AbstractItemResponseDTO;
 use App\Response\SwaggerDocDTO\ErrorResponseDTO;
 use App\User\Entity\User;
+use App\User\Enum\UserRolesEnum;
 use DateMalformedStringException;
 use Nelmio\ApiDocBundle\Attribute\Model;
 use OpenApi\Attributes as OA;
@@ -87,7 +88,7 @@ final class BookingController extends AbstractController
             )
         ]
     )]
-    #[IsGranted('ROLE_CLIENT')]
+    #[IsGranted(UserRolesEnum::ROLE_CLIENT->value)]
     public function getAll(
         ResolvedBookingsRequestDTO    $resolvedDto,
         BookingsQuery                 $handler,
@@ -147,7 +148,7 @@ final class BookingController extends AbstractController
             )
         ]
     )]
-    #[IsGranted('ROLE_CLIENT')]
+    #[IsGranted(UserRolesEnum::ROLE_CLIENT->value)]
     public function get(BookingMapperInterface $mapper, Booking $booking): ItemResponse
     {
         $this->denyAccessUnlessGranted('BOOKING_VIEW_OWN', $booking);
@@ -216,7 +217,7 @@ final class BookingController extends AbstractController
             )
         ]
     )]
-    #[IsGranted('ROLE_CLIENT')]
+    #[IsGranted(UserRolesEnum::ROLE_CLIENT->value)]
     public function create(
         BookingMapperInterface                 $mapper,
         #[CurrentUser] Client                  $client,
@@ -275,7 +276,7 @@ final class BookingController extends AbstractController
             )
         ]
     )]
-    #[IsGranted('ROLE_CLIENT')]
+    #[IsGranted(UserRolesEnum::ROLE_CLIENT->value)]
     public function cancel(
         Booking $booking,
         #[CurrentUser] User $actor,

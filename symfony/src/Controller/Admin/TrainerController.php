@@ -19,6 +19,7 @@ use App\Trainer\Entity\Trainer;
 use App\Trainer\Mapper\TrainerMapperInterface;
 use App\Trainer\Query\TrainersQueryAdmin;
 use App\Trainer\Service\TrainerManager;
+use App\User\Enum\UserRolesEnum;
 use Nelmio\ApiDocBundle\Attribute\Model;
 use OpenApi\Attributes as OA;
 use Psr\Cache\InvalidArgumentException;
@@ -98,7 +99,7 @@ final class TrainerController extends AbstractController
             )
         ]
     )]
-    #[IsGranted('ROLE_ADMIN')]
+    #[IsGranted(UserRolesEnum::ROLE_ADMIN->value)]
     public function getAll(
         ResolvedTrainersRequestAdminDTO $resolvedDto,
         TrainersQueryAdmin $handler,
@@ -160,7 +161,7 @@ final class TrainerController extends AbstractController
             )
         ]
     )]
-    #[IsGranted('ROLE_ADMIN')]
+    #[IsGranted(UserRolesEnum::ROLE_ADMIN->value)]
     public function get(Trainer $trainer, TrainerMapperInterface $mapper): ItemResponse
     {
         return new ItemResponse(
@@ -231,7 +232,7 @@ final class TrainerController extends AbstractController
             )
         ]
     )]
-    #[IsGranted('ROLE_ADMIN')]
+    #[IsGranted(UserRolesEnum::ROLE_ADMIN->value)]
     public function create(
         #[MapRequestPayload] CreateTrainerRequestDTO $requestDto,
         TrainerMapperInterface                       $mapper,
@@ -309,7 +310,7 @@ final class TrainerController extends AbstractController
             )
         ]
     )]
-    #[IsGranted('ROLE_ADMIN')]
+    #[IsGranted(UserRolesEnum::ROLE_ADMIN->value)]
     public function update(
         Trainer                                           $trainer,
         #[MapRequestPayload] AdminUpdateTrainerRequestDTO $requestDto,
@@ -363,7 +364,7 @@ final class TrainerController extends AbstractController
             )
         ]
     )]
-    #[IsGranted('ROLE_ADMIN')]
+    #[IsGranted(UserRolesEnum::ROLE_ADMIN->value)]
     public function delete(
         #[CurrentUser] Admin $admin,
         Trainer $trainer,
@@ -422,7 +423,7 @@ final class TrainerController extends AbstractController
             )
         ]
     )]
-    #[IsGranted('ROLE_ADMIN')]
+    #[IsGranted(UserRolesEnum::ROLE_ADMIN->value)]
     public function restore(
         Trainer $trainer,
         TrainerManager $manager,
@@ -488,7 +489,7 @@ final class TrainerController extends AbstractController
             )
         ]
     )]
-    #[IsGranted('ROLE_ADMIN')]
+    #[IsGranted(UserRolesEnum::ROLE_ADMIN->value)]
     public function block(
         #[CurrentUser] Admin $admin,
         Trainer $trainer,
@@ -554,7 +555,7 @@ final class TrainerController extends AbstractController
             )
         ]
     )]
-    #[IsGranted('ROLE_ADMIN')]
+    #[IsGranted(UserRolesEnum::ROLE_ADMIN->value)]
     public function unblock(
         Trainer $trainer,
         TrainerMapperInterface $mapper,
