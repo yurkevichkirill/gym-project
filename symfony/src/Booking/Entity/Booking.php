@@ -128,12 +128,6 @@ final class Booking
         $this->status = BookingStatusEnum::SCHEDULED;
     }
 
-    public function cancel(BookingStatusEnum $status): void
-    {
-        $this->status = $status;
-
-        $this->training->setIsBusy(false);
-    }
 
     #[ORM\PrePersist]
     public function initializeDefaults(): static

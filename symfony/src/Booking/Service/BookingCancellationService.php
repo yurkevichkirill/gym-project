@@ -31,7 +31,7 @@ final readonly class BookingCancellationService
     public function cancel(Booking $booking, User $actor): void
     {
         if ($booking->getStatus() !== BookingStatusEnum::SCHEDULED) {
-            throw new InvalidBookingStatusException("Only scheduled bookings can be canceled");
+            throw new InvalidBookingStatusException('Only scheduled bookings can be canceled');
         }
 
         $roles = $actor->getRoles();
@@ -66,7 +66,8 @@ final readonly class BookingCancellationService
                     $this->paymentSettlementService->refund($payment);
                 }
 
-                $booking->cancel($status);
+                $booking->setStatus($status);
+                $booking->getTraining()->setIsBusy(false);
 
                 $this->entityManager->flush();
 
