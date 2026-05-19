@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Membership\Service;
 
-use App\Booking\Service\BookingAvailabilityService;
 use App\Client\Entity\Client;
 use App\Membership\Entity\Membership;
 use App\Membership\Enum\MembershipStatusEnum;
@@ -16,7 +15,7 @@ use Psr\Log\LoggerInterface;
 final readonly class VisitingService
 {
     public function __construct(
-        private BookingAvailabilityService $bookingAvailabilityService,
+        private MembershipAvailabilityService $membershipAvailabilityService,
         public MembershipRepository $membershipRepo,
         private LoggerInterface $membershipLogger,
     )
@@ -33,7 +32,7 @@ final readonly class VisitingService
             'client_id' => $client->getId(),
         ];
 
-        if (!$this->bookingAvailabilityService->hasActiveMembership($client)) {
+        if (!$this->membershipAvailabilityService->hasActiveMembership($client)) {
             $this->membershipLogger->notice('Membership visit rejected: no active membership', $context + [
                     'outcome' => 'rejected',
                 ]);

@@ -10,7 +10,7 @@ use App\Booking\Exception\DateTimeAlreadyTakenException;
 use App\Booking\Repository\BookingRepository;
 use App\Client\Entity\Client;
 use App\Membership\Exception\NoActiveMembershipException;
-use App\Membership\Repository\MembershipRepository;
+use App\Membership\Service\MembershipAvailabilityService;
 use App\TrainerWorkTime\Entity\TrainerWorkTime;
 use App\Training\Entity\Training;
 use App\User\Service\AvailabilityService as UserAvailabilityService;
@@ -21,14 +21,13 @@ use DateTimeImmutable;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
-use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 final readonly class BookingAvailabilityService
 {
     public function __construct(
         private UserAvailabilityService $userAvailabilityService,
         private BookingRepository $bookingRepo,
-        private MembershipRepository $membershipRepo,
+        private MembershipAvailabilityService $membershipAvailabilityService,
     )
     {}
 
@@ -55,7 +54,7 @@ final readonly class BookingAvailabilityService
             throw new DateRescheduledException("Client already have training at this time");
         }
 
-        if (!$this->hasActiveMembership($client, new DateTimeImmutable($date))) {
+        if (!$this->membershipAvailabilityService->hasActiveMembership($client, new DateTimeImmutable($date))) {
             throw new NoActiveMembershipException("Client has no active membership for this date");
         }
 
@@ -69,7 +68,6 @@ final readonly class BookingAvailabilityService
      * @throws DateMalformedIntervalStringException
      * @throws ConflictHttpException
      * @throws BadRequestHttpException
-     * @throws NotFoundHttpException
      */
     public function checkUpdateBookingAvailability(Training $training, Client $client, ?TrainerWorkTime $worktime, DateTimeImmutable $newDate, string $newStartTime): void
     {
@@ -81,7 +79,7 @@ final readonly class BookingAvailabilityService
 
         $durationMinutes = $training->getDurationMinutes();
 
-        if (!$this->hasActiveMembership($client, $newDate)) {
+        if (!$this->membershipAvailabilityService->hasActiveMembership($client, $newDate)) {
             throw new NoActiveMembershipException('Client does not have an active membership for this date');
         }
 
@@ -97,10 +95,6 @@ final readonly class BookingAvailabilityService
 
         if ($newDate->setTime(0, 0, 0) < $tomorrow) {
             throw new DateRescheduledException("The minimum reschedule date must be no earlier than tomorrow.");
-        }
-
-        if (!$worktime) {
-            throw new NotFoundHttpException("There is no work time for this date");
         }
 
         if (!$this->isTimeAvailable($worktime, $newStartTime, $durationMinutes, $oldStartTime)) {
@@ -139,9 +133,15 @@ final readonly class BookingAvailabilityService
      * @throws DateMalformedStringException
      * @throws DateMalformedIntervalStringException
      */
-    public function isClientAvailableInDate(Client $client, DateTimeImmutable $date, string $startTime, int $durationMinutes, ?string $oldStartTime = null): bool
+    private function isClientAvailableInDate(
+        Client $client,
+        DateTimeImmutable $date,
+        string $startTime,
+        int $durationMinutes,
+        ?string $oldStartTime = null
+    ): bool
     {
-        $clientBusy = $this->getClientBusy($client, $date);
+        $clientBusy = $this->getClientBusySlots($client, $date);
         $clientBusyWithoutCurrent = array_filter($clientBusy, fn ($slot) => $slot['start'] !== $oldStartTime);
         $endTime = new DateTimeImmutable($startTime)->add(new DateInterval("PT" . $durationMinutes . "M"))->format('H:i:s');
 
@@ -154,7 +154,7 @@ final readonly class BookingAvailabilityService
     /**
      * @throws DateMalformedIntervalStringException
      */
-    private function getClientBusy(Client $client, DateTimeImmutable $date): array
+    private function getClientBusySlots(Client $client, DateTimeImmutable $date): array
     {
         $bookings = $this->bookingRepo->getActiveClientBookingsByDate($client, $date);
 
@@ -169,32 +169,11 @@ final readonly class BookingAvailabilityService
         return $clientBusy;
     }
 
-    public function hasActiveMembership(Client $client, ?DateTimeImmutable $date = null): bool
-    {
-        $activeMembership = $this->membershipRepo->findActive($client);
-
-        if (
-            $activeMembership === null ||
-            $activeMembership->getSessionLimit() !== null && $activeMembership->getVisits() >= $activeMembership->getSessionLimit() ||
-            new DateTimeImmutable() > $activeMembership->getEndDate()
-        ) {
-            return false;
-        }
-
-        if ($date !== null) {
-            if ($activeMembership->getStartDate() > $date || $activeMembership->getEndDate() < $date) {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
     /**
      * @throws DateMalformedIntervalStringException
      * @throws DateMalformedStringException
      */
-    public function isTimeAvailable(TrainerWorkTime $worktime, string $startTime, int $durationMinutes, ?string $oldStartTime = null): bool
+    private function isTimeAvailable(TrainerWorkTime $worktime, string $startTime, int $durationMinutes, ?string $oldStartTime = null): bool
     {
         $endTime = new DateTimeImmutable($startTime)
             ->add(new DateInterval('PT' . $durationMinutes . 'M'))

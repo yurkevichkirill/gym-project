@@ -15,6 +15,7 @@ use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Throwable;
 
 final readonly class TrainingManager
@@ -58,6 +59,10 @@ final readonly class TrainingManager
                 $trainer,
                 $newDate
             );
+
+            if (!$newWorktime) {
+                throw new NotFoundHttpException("There is no work time for this date");
+            }
 
             $this->bookingAvailabilityService->checkUpdateBookingAvailability($training, $client, $newWorktime, $newDate, $newStartTime);
 
