@@ -37,7 +37,7 @@ final readonly class WorkTimeQuery
             if ($dto->trainer) {
                 $item->tag(['trainer_worktimes_list_' . $dto->trainer->getId()]);
             } else {
-                $item->tag(["trainer_worktimes_list_all"]);
+                $item->tag(['trainer_worktimes_list_all']);
             }
 
             $qb = $this->createQuery($dto);

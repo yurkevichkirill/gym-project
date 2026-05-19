@@ -282,7 +282,7 @@ final class BookingController extends AbstractController
         #[CurrentUser] User $actor,
         BookingCancellationService $bookingCancellationService,
     ): NoContentResponse {
-        $this->denyAccessUnlessGranted("BOOKING_CANCEL_OWN", $booking);
+        $this->denyAccessUnlessGranted('BOOKING_CANCEL_OWN', $booking);
 
         $bookingCancellationService->cancel($booking, $actor);
 

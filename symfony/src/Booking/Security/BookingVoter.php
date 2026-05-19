@@ -13,10 +13,10 @@ use Symfony\Component\Security\Core\Authorization\Voter\Voter;
 
 final class BookingVoter extends Voter
 {
-    const string VIEW_OWN = "BOOKING_VIEW_OWN";
-    const string CANCEL_OWN = "BOOKING_CANCEL_OWN";
-    const string VIEW_ADMIN = "BOOKING_VIEW_ADMIN";
-    const string CANCEL_ADMIN = "BOOKING_CANCEL_ADMIN";
+    const string VIEW_OWN = 'BOOKING_VIEW_OWN';
+    const string CANCEL_OWN = 'BOOKING_CANCEL_OWN';
+    const string VIEW_ADMIN = 'BOOKING_VIEW_ADMIN';
+    const string CANCEL_ADMIN = 'BOOKING_CANCEL_ADMIN';
     protected function supports(string $attribute, mixed $subject): bool
     {
         if (!in_array($attribute, [self::VIEW_OWN, self::CANCEL_OWN, self::VIEW_ADMIN, self::CANCEL_ADMIN])) {

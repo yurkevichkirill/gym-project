@@ -12,9 +12,9 @@ use Symfony\Component\Security\Core\Authorization\Voter\Voter;
 
 final class TrainingVoter extends Voter
 {
-    const string VIEW = "TRAINING_VIEW";
-    const string REMOVE = "TRAINING_REMOVE";
-    const string EDIT = "TRAINING_EDIT";
+    const string VIEW = 'TRAINING_VIEW';
+    const string REMOVE = 'TRAINING_REMOVE';
+    const string EDIT = 'TRAINING_EDIT';
     protected function supports(string $attribute, mixed $subject): bool
     {
         if (!in_array($attribute, [self::VIEW, self::REMOVE, self::EDIT])) {

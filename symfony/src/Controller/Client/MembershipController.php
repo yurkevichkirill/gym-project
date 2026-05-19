@@ -169,7 +169,7 @@ final class MembershipController extends AbstractController
     #[IsGranted(UserRolesEnum::ROLE_CLIENT->value)]
     public function get(Membership $membership, MembershipMapperInterface $mapper): ItemResponse
     {
-        $this->denyAccessUnlessGranted("MEMBERSHIP_VIEW", $membership);
+        $this->denyAccessUnlessGranted('MEMBERSHIP_VIEW', $membership);
 
         return new ItemResponse(data: $mapper->map($membership), status: Response::HTTP_OK);
     }
@@ -317,7 +317,7 @@ final class MembershipController extends AbstractController
         MembershipMapperInterface $mapper,
         MembershipManager $manager
     ): ItemResponse {
-        $this->denyAccessUnlessGranted("MEMBERSHIP_EDIT", $membership);
+        $this->denyAccessUnlessGranted('MEMBERSHIP_EDIT', $membership);
 
         $responseDto = $mapper->map($manager->freeze($membership));
 
@@ -390,7 +390,7 @@ final class MembershipController extends AbstractController
         MembershipMapperInterface $mapper,
         MembershipManager $manager
     ): ItemResponse {
-        $this->denyAccessUnlessGranted("MEMBERSHIP_EDIT", $membership);
+        $this->denyAccessUnlessGranted('MEMBERSHIP_EDIT', $membership);
 
         $responseDto = $mapper->map($manager->unfreeze($membership));
 
@@ -461,7 +461,7 @@ final class MembershipController extends AbstractController
         MembershipMapperInterface $mapper,
         MembershipManager $manager
     ): ItemResponse {
-        $this->denyAccessUnlessGranted("MEMBERSHIP_EDIT", $membership);
+        $this->denyAccessUnlessGranted('MEMBERSHIP_EDIT', $membership);
 
         $responseDto = $mapper->map($manager->renew($membership));
 
@@ -534,7 +534,7 @@ final class MembershipController extends AbstractController
         MembershipMapperInterface $mapper,
         MembershipManager $manager
     ): ItemResponse {
-        $this->denyAccessUnlessGranted("MEMBERSHIP_EDIT", $membership);
+        $this->denyAccessUnlessGranted('MEMBERSHIP_EDIT', $membership);
 
         $responseDto = $mapper->map($manager->terminate($membership));
 

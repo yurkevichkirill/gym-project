@@ -90,7 +90,7 @@ final readonly class WorkTimeManager
                 $this->event($context, 'create', 'rejected')
             );
 
-            throw new DateTimeAlreadyTakenException("Trainer already have worktime in this date");
+            throw new DateTimeAlreadyTakenException('Trainer already have worktime in this date');
         }
 
         $worktime = new TrainerWorkTime();
@@ -140,8 +140,8 @@ final readonly class WorkTimeManager
                 $this->userAvailabilityService->ensureNotBlocked($worktime->getTrainer());
             }
 
-            $newStartTimeStr = $dto->startTime ?? $worktime->getStartTime()->format("H:i:s");
-            $newEndTimeStr = $dto->endTime ?? $worktime->getEndTime()->format("H:i:s");
+            $newStartTimeStr = $dto->startTime ?? $worktime->getStartTime()->format('H:i:s');
+            $newEndTimeStr = $dto->endTime ?? $worktime->getEndTime()->format('H:i:s');
 
             $dateStr = $worktime->getDate()->format('Y-m-d');
             $newStartDateTime = new DateTimeImmutable($dateStr . ' ' . $newStartTimeStr);
@@ -181,7 +181,7 @@ final readonly class WorkTimeManager
                         ])
                     );
 
-                    throw new DateTimeAlreadyTakenException("Trainer already has a training in this time interval");
+                    throw new DateTimeAlreadyTakenException('Trainer already has a training in this time interval');
                 }
             }
 
@@ -228,7 +228,7 @@ final readonly class WorkTimeManager
                     $this->event($context, 'remove', 'rejected')
                 );
 
-                throw new ConflictHttpException("Cannot remove work time slot with active trainings.");
+                throw new ConflictHttpException('Cannot remove work time slot with active trainings.');
             }
 
             $this->worktimeRepo->remove($worktime);

@@ -184,7 +184,7 @@ final readonly class MembershipManager
 
         try {
             if ($membership->getStatus() != MembershipStatusEnum::FROZEN) {
-                throw new InvalidMembershipStatusException("Only frozen membership can be unfrozen");
+                throw new InvalidMembershipStatusException('Only frozen membership can be unfrozen');
             }
 
             $dateInterval = $membership->getFrozenAt()->diff(new DateTimeImmutable());

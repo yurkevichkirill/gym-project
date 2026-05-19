@@ -108,7 +108,7 @@ final class ApiLoginController extends AbstractController
      * @throws AccessDeniedHttpException
      */
     #[Route('/api/refresh/', methods: ['POST'])]
-    #[OA\Tag(name: "Authentication")]
+    #[OA\Tag(name: 'Authentication')]
     #[OA\Post(
         operationId: 'authRefresh',
         summary: 'Refresh access token using refresh_token cookie.',
@@ -147,8 +147,8 @@ final class ApiLoginController extends AbstractController
         return $response;
     }
 
-    #[Route("/api/logout/", methods: ['POST'])]
-    #[OA\Tag(name: "Authentication")]
+    #[Route('/api/logout/', methods: ['POST'])]
+    #[OA\Tag(name: 'Authentication')]
     #[OA\Post(
         operationId: 'authLogout',
         summary: 'Clear auth cookies.',

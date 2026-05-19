@@ -51,11 +51,11 @@ final readonly class BookingAvailabilityService
         }
 
         if (!$this->isClientAvailableInDate($client, new DateTimeImmutable($date), $startTime, $durationMinutes)) {
-            throw new DateRescheduledException("Client already have training at this time");
+            throw new DateRescheduledException('Client already have training at this time');
         }
 
         if (!$this->membershipAvailabilityService->hasActiveMembership($client, new DateTimeImmutable($date))) {
-            throw new NoActiveMembershipException("Client has no active membership for this date");
+            throw new NoActiveMembershipException('Client has no active membership for this date');
         }
 
         if (!$this->isTimeAvailable($worktime, $startTime, $durationMinutes)) {
@@ -72,10 +72,10 @@ final readonly class BookingAvailabilityService
     public function checkUpdateBookingAvailability(Training $training, Client $client, ?TrainerWorkTime $worktime, DateTimeImmutable $newDate, string $newStartTime): void
     {
         if ($training->getBooking()->getStatus() !== BookingStatusEnum::SCHEDULED) {
-            throw new ConflictHttpException("Only scheduled trainings can be updated");
+            throw new ConflictHttpException('Only scheduled trainings can be updated');
         }
 
-        $oldStartTime = $training->getStartTime()->format("H:i:s");
+        $oldStartTime = $training->getStartTime()->format('H:i:s');
 
         $durationMinutes = $training->getDurationMinutes();
 
@@ -94,15 +94,15 @@ final readonly class BookingAvailabilityService
         $tomorrow = new DateTimeImmutable('tomorrow');
 
         if ($newDate->setTime(0, 0, 0) < $tomorrow) {
-            throw new DateRescheduledException("The minimum reschedule date must be no earlier than tomorrow.");
+            throw new DateRescheduledException('The minimum reschedule date must be no earlier than tomorrow.');
         }
 
         if (!$this->isTimeAvailable($worktime, $newStartTime, $durationMinutes, $oldStartTime)) {
-            throw new DateRescheduledException("This time is not available for this trainer");
+            throw new DateRescheduledException('This time is not available for this trainer');
         }
 
         if (!$this->isClientAvailableInDate($client, $newDate, $newStartTime, $durationMinutes,  $oldStartTime)) {
-            throw new DateRescheduledException("Client already have training at this time");
+            throw new DateRescheduledException('Client already have training at this time');
         }
     }
 
@@ -113,7 +113,7 @@ final readonly class BookingAvailabilityService
     public function checkCompleteBookingAvailability(Training $training): void
     {
         if ($training->getBooking()->getStatus() !== BookingStatusEnum::SCHEDULED) {
-            throw new ConflictHttpException("Only scheduled trainings can be completed");
+            throw new ConflictHttpException('Only scheduled trainings can be completed');
         }
 
         $fullDate = $training->getTrainerWorkTime()->getDate()->setTime(
@@ -143,7 +143,7 @@ final readonly class BookingAvailabilityService
     {
         $clientBusy = $this->getClientBusySlots($client, $date);
         $clientBusyWithoutCurrent = array_filter($clientBusy, fn ($slot) => $slot['start'] !== $oldStartTime);
-        $endTime = new DateTimeImmutable($startTime)->add(new DateInterval("PT" . $durationMinutes . "M"))->format('H:i:s');
+        $endTime = new DateTimeImmutable($startTime)->add(new DateInterval('PT' . $durationMinutes . 'M'))->format('H:i:s');
 
         return array_all(
             $clientBusyWithoutCurrent,
@@ -162,7 +162,7 @@ final readonly class BookingAvailabilityService
         foreach ($bookings as $booking) {
             $clientBusy[] = [
                 'start' => $booking->getTraining()->getStartTime()->format('H:i:s'),
-                'end' => $booking->getTraining()->getStartTime()->add(new DateInterval("PT" . $booking->getTraining()->getDurationMinutes() . "M"))->format('H:i:s')
+                'end' => $booking->getTraining()->getStartTime()->add(new DateInterval('PT' . $booking->getTraining()->getDurationMinutes() . 'M'))->format('H:i:s')
             ];
         }
 

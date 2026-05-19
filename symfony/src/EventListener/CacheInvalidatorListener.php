@@ -49,7 +49,7 @@ final class CacheInvalidatorListener
             }
             elseif ($entity instanceof Booking) {
                 $this->tagsToInvalidate[] = "bookings_list_{$entity->getClient()->getId()}";
-                $this->tagsToInvalidate[] = "bookings_list_all";
+                $this->tagsToInvalidate[] = 'bookings_list_all';
             }
             elseif ($entity instanceof MembershipPlan) {
                 $this->tagsToInvalidate[] = 'membership_plans_list';
@@ -57,11 +57,11 @@ final class CacheInvalidatorListener
             }
             elseif ($entity instanceof Membership) {
                 $this->tagsToInvalidate[] = "memberships_list_{$entity->getClient()->getId()}";
-                $this->tagsToInvalidate[] = "memberships_list_all";
+                $this->tagsToInvalidate[] = 'memberships_list_all';
             }
             elseif ($entity instanceof Payment) {
                 $this->tagsToInvalidate[] = "payments_list_{$entity->getClient()->getId()}";
-                $this->tagsToInvalidate[] = "payments_list_all";
+                $this->tagsToInvalidate[] = 'payments_list_all';
 
                 if ($trainer = $entity->getTrainer()) {
                     $this->tagsToInvalidate[] = "payments_list_trainer_{$trainer->getId()}";
@@ -72,12 +72,12 @@ final class CacheInvalidatorListener
                 $this->tagsToInvalidate[] = 'trainers_list_public';
                 $this->groupsToBump[] = 'trainers';
                 $this->tagsToInvalidate[] = "trainer_worktimes_list_{$entity->getId()}";
-                $this->tagsToInvalidate[] = "trainer_worktimes_list_all";
+                $this->tagsToInvalidate[] = 'trainer_worktimes_list_all';
                 $this->groupsToBump[] = 'worktime';
             }
             elseif ($entity instanceof TrainerWorkTime) {
                 $this->tagsToInvalidate[] = "trainer_worktimes_list_{$entity->getTrainer()->getId()}";
-                $this->tagsToInvalidate[] = "trainer_worktimes_list_all";
+                $this->tagsToInvalidate[] = 'trainer_worktimes_list_all';
                 $this->groupsToBump[] = 'trainers';
                 $this->groupsToBump[] = 'worktime';
             }
@@ -85,7 +85,7 @@ final class CacheInvalidatorListener
                 $trainerId = $entity->getTrainerWorkTime()->getTrainer()->getId();
                 $this->tagsToInvalidate[] = "trainer_worktimes_list_$trainerId";
                 $this->tagsToInvalidate[] = "trainings_list_$trainerId";
-                $this->tagsToInvalidate[] = "trainings_list_all";
+                $this->tagsToInvalidate[] = 'trainings_list_all';
                 $this->groupsToBump[] = 'worktime';
                 $this->groupsToBump[] = 'training';
             }

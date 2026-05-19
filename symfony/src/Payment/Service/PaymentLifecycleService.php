@@ -64,7 +64,7 @@ final readonly class PaymentLifecycleService
                 break;
 
             case PaymentStatusEnum::PENDING:
-                throw new InvalidPaymentStatusException("Payment status cannot transit to pending");
+                throw new InvalidPaymentStatusException('Payment status cannot transit to pending');
         }
     }
 }

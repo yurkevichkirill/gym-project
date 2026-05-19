@@ -38,9 +38,9 @@ final readonly class MembershipQuery
             $item->expiresAfter(3600);
 
             if ($dto->client) {
-                $item->tag(["memberships_list_" . $dto->client->getId()]);
+                $item->tag(['memberships_list_' . $dto->client->getId()]);
             } else {
-                $item->tag(["memberships_list_all"]);
+                $item->tag(['memberships_list_all']);
             }
 
             $qb = $this->createQuery($dto);

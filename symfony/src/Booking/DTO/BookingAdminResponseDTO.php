@@ -30,9 +30,9 @@ final readonly class BookingAdminResponseDTO
             clientId: $b->getClient()->getId(),
             trainerId: $b->getTraining()->getTrainerWorkTime()->getTrainer()->getId(),
             bookedAt: $b->getBookedAt()?->format(DATE_ATOM) ?? '',
-            date: $b->getTraining()->getTrainerWorkTime()->getDate()->format("Y-m-d"),
+            date: $b->getTraining()->getTrainerWorkTime()->getDate()->format('Y-m-d'),
             durationMinutes: $b->getTraining()->getDurationMinutes(),
-            startTime: $b->getTraining()->getStartTime()->format("H:i:s"),
+            startTime: $b->getTraining()->getStartTime()->format('H:i:s'),
             status: $b->getStatus(),
             payment: PaymentResponseDTO::fromEntity($b->getPayment()),
         );

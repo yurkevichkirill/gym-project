@@ -26,7 +26,7 @@ final readonly class WorkTimeResponseDTO
             id: $worktime->getId(),
             trainerId: $worktime->getTrainer()->getId(),
             trainingTypeId: $worktime->getTrainer()->getTrainingType()->getId(),
-            date:  $worktime->getDate()->format("Y-m-d"),
+            date:  $worktime->getDate()->format('Y-m-d'),
             freeSlots: $worktime->getFreeSlots(),
         );
     }

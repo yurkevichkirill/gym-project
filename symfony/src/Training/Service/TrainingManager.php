@@ -37,11 +37,11 @@ final readonly class TrainingManager
     public function update(Training $training, TrainingUpdateRequestDTO $requestDto): Training
     {
         $loggingContext = [
-            'client_id' => $training->getBooking()?->getClient()?->getId() ?? "",
-            'trainer_id' => $training->getTrainerWorkTime()?->getTrainer()?->getId() ?? "",
-            'date' => $training->getTrainerWorkTime()?->getDate()?->format('Y-m-d') ?? "",
-            'start_time' => $training->getStartTime()?->format('H:i:s') ?? "",
-            'duration_minutes' => $training->getDurationMinutes() ?? "",
+            'client_id' => $training->getBooking()?->getClient()?->getId() ?? '',
+            'trainer_id' => $training->getTrainerWorkTime()?->getTrainer()?->getId() ?? '',
+            'date' => $training->getTrainerWorkTime()?->getDate()?->format('Y-m-d') ?? '',
+            'start_time' => $training->getStartTime()?->format('H:i:s') ?? '',
+            'duration_minutes' => $training->getDurationMinutes() ?? '',
         ];
 
         try {
@@ -61,7 +61,7 @@ final readonly class TrainingManager
             );
 
             if (!$newWorktime) {
-                throw new NotFoundHttpException("There is no work time for this date");
+                throw new NotFoundHttpException('There is no work time for this date');
             }
 
             $this->bookingAvailabilityService->checkUpdateBookingAvailability($training, $client, $newWorktime, $newDate, $newStartTime);
@@ -96,11 +96,11 @@ final readonly class TrainingManager
     public function complete(Training $training): Training
     {
         $loggingContext = [
-            'client_id' => $training->getBooking()?->getClient()?->getId() ?? "",
-            'trainer_id' => $training->getTrainerWorkTime()?->getTrainer()?->getId() ?? "",
-            'date' => $training->getTrainerWorkTime()?->getDate()?->format('Y-m-d') ?? "",
-            'start_time' => $training->getStartTime()?->format('H:i:s') ?? "",
-            'duration_minutes' => $training->getDurationMinutes() ?? "",
+            'client_id' => $training->getBooking()?->getClient()?->getId() ?? '',
+            'trainer_id' => $training->getTrainerWorkTime()?->getTrainer()?->getId() ?? '',
+            'date' => $training->getTrainerWorkTime()?->getDate()?->format('Y-m-d') ?? '',
+            'start_time' => $training->getStartTime()?->format('H:i:s') ?? '',
+            'duration_minutes' => $training->getDurationMinutes() ?? '',
         ];
 
         try {

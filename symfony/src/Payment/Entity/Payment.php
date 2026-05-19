@@ -97,7 +97,7 @@ final class Payment
         if ($client) {
             $this->clientEmail = $client->getEmail();
             $this->clientPhone = $client->getPhone();
-            $this->clientFullName = $client->getFirstName() . " " . $client->getLastName();
+            $this->clientFullName = $client->getFirstName() . ' ' . $client->getLastName();
         }
 
         return $this;
@@ -107,7 +107,7 @@ final class Payment
     {
         $this->trainer = $trainer;
         if ($trainer) {
-            $this->trainerFullName = $trainer->getFirstName() . " " . $trainer->getLastName();
+            $this->trainerFullName = $trainer->getFirstName() . ' ' . $trainer->getLastName();
         }
 
         return $this;

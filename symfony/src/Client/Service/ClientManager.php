@@ -48,12 +48,12 @@ final readonly class ClientManager
     {
         $existingClientByEmail = $this->userRepo->findOneBy(['email' => $dto->email]);
         if ($existingClientByEmail) {
-            throw new ConflictHttpException("Client with this email already exists.");
+            throw new ConflictHttpException('Client with this email already exists.');
         }
 
         $existingClientByPhone = $this->userRepo->findOneBy(['phone' => $dto->phone]);
         if ($existingClientByPhone) {
-            throw new ConflictHttpException("Client with this phone number already exists.");
+            throw new ConflictHttpException('Client with this phone number already exists.');
         }
 
         $client = new Client();
@@ -132,7 +132,7 @@ final readonly class ClientManager
     public function softDelete(Client $client): void
     {
         if ($client->getDeletedAt()) {
-            throw new ConflictHttpException("Client already deleted");
+            throw new ConflictHttpException('Client already deleted');
         }
 
         $this->entityManager->wrapInTransaction(function () use ($client) {

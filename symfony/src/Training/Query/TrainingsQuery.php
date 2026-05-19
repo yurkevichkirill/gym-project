@@ -78,7 +78,7 @@ final readonly class TrainingsQuery
             ->innerJoin('t.booking', 'b')
             ->innerJoin('t.trainerWorkTime', 'w')
             ->innerJoin('b.payment', 'p')
-            ->innerJoin("b.client", 'c');
+            ->innerJoin('b.client', 'c');
 
         if (!$isCount) {
             $qb->addSelect('b', 'w', 'p', 'c');

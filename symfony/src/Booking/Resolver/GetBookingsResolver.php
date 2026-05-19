@@ -71,13 +71,13 @@ final readonly class GetBookingsResolver implements ValueResolverInterface
 
         elseif ($rawDto->clientId) {
             $client = $this->clientRepo->find($rawDto->clientId)
-                ?? throw new NotFoundHttpException("Client with ID $rawDto->clientId not found");
+                ?? throw new NotFoundHttpException('Client with ID $rawDto->clientId not found');
         }
 
         $trainer = null;
         if ($rawDto->trainerId) {
             $trainer = $this->trainerRepo->find($rawDto->trainerId)
-                ?? throw new NotFoundHttpException("Trainer with ID $rawDto->trainerId not found");
+                ?? throw new NotFoundHttpException('Trainer with ID $rawDto->trainerId not found');
         }
 
         yield new ResolvedBookingsRequestDTO(

@@ -54,7 +54,7 @@ final readonly class BookingsQuery
             $offset = ($dto->page - 1) * $dto->limit;
 
             foreach ($parsedSort as $alias => $order) {
-                $field = self::SORT_MAP[$alias] ?? "b.$alias";
+                $field = self::SORT_MAP[$alias] ?? 'b.$alias';
                 $qb->addOrderBy($field, $order);
             }
 
@@ -78,13 +78,13 @@ final readonly class BookingsQuery
 
         $qb->innerJoin('b.training', 't')
             ->innerJoin('t.trainerWorkTime', 'w')
-            ->innerJoin("b.payment", 'p')
-            ->innerJoin("p.trainer", "trainer")
+            ->innerJoin('b.payment', 'p')
+            ->innerJoin('p.trainer', 'trainer')
             ->innerJoin('b.client', 'c');
 
         if (!$isCount) {
             $qb->addSelect('p', 'trainer', 't', 'w', 'c')
-                ->innerJoin("trainer.trainingType", 'type')
+                ->innerJoin('trainer.trainingType', 'type')
                 ->addSelect('type');
         }
 

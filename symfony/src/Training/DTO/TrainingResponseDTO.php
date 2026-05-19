@@ -27,9 +27,9 @@ final readonly class TrainingResponseDTO
     {
         return new self(
             id: $training->getId(),
-            startTime: $training->getStartTime()->format("H:i:s"),
+            startTime: $training->getStartTime()->format('H:i:s'),
             durationMinutes: $training->getDurationMinutes(),
-            date: $training->getTrainerWorkTime()->getDate()->format("Y-m-d"),
+            date: $training->getTrainerWorkTime()->getDate()->format('Y-m-d'),
             isBusy: $training->isBusy(),
             clientId: $training->getBooking()->getClient()->getId(),
             bookedAt: $training->getBooking()->getBookedAt()?->format(DATE_ATOM) ?? '',

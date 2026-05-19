@@ -172,7 +172,7 @@ final class TrainingController extends AbstractController
         TrainingMapperInterface $mapper,
         Training $training,
     ): ItemResponse {
-        $this->denyAccessUnlessGranted("TRAINING_VIEW", $training);
+        $this->denyAccessUnlessGranted('TRAINING_VIEW', $training);
 
         return new ItemResponse(
             data: $mapper->map($training),
@@ -261,7 +261,7 @@ final class TrainingController extends AbstractController
         TrainingMapperInterface                       $mapper,
         TrainingManager                               $manager,
     ): ItemResponse {
-        $this->denyAccessUnlessGranted("TRAINING_EDIT", $training);
+        $this->denyAccessUnlessGranted('TRAINING_EDIT', $training);
 
         $responseDto = $mapper->map($manager->update($training, $requestDto));
 
@@ -322,7 +322,7 @@ final class TrainingController extends AbstractController
         #[CurrentUser] User $actor,
         BookingCancellationService $bookingCancellationService,
     ): NoContentResponse {
-        $this->denyAccessUnlessGranted("TRAINING_REMOVE", $training);
+        $this->denyAccessUnlessGranted('TRAINING_REMOVE', $training);
         $bookingCancellationService->cancel($training->getBooking(), $actor);
 
         return new NoContentResponse();
@@ -397,7 +397,7 @@ final class TrainingController extends AbstractController
         TrainingMapperInterface $mapper,
         TrainingManager $manager,
     ): ItemResponse {
-        $this->denyAccessUnlessGranted("TRAINING_EDIT", $training);
+        $this->denyAccessUnlessGranted('TRAINING_EDIT', $training);
 
         $responseDto = $mapper->map($manager->complete($training));
 

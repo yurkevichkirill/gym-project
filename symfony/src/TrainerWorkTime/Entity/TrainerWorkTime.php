@@ -151,8 +151,8 @@ final class TrainerWorkTime
 
             if ($current < $trainingStart) {
                 $available[] = [
-                    "start" => $current->format("H:i:s"),
-                    "end" => $trainingStart->format("H:i:s"),
+                    'start' => $current->format('H:i:s'),
+                    'end' => $trainingStart->format('H:i:s'),
                 ];
             }
 
@@ -163,8 +163,8 @@ final class TrainerWorkTime
 
         if ($current < $this->endTime) {
             $available[] = [
-                "start" => $current->format("H:i:s"),
-                "end" => $this->endTime->format("H:i:s"),
+                'start' => $current->format('H:i:s'),
+                'end' => $this->endTime->format('H:i:s'),
             ];
         }
 

@@ -58,7 +58,7 @@ final class Membership
     #[Assert\GreaterThanOrEqual(0)]
     private ?int $visits = null;
 
-    #[ORM\Column(options: ["default" => "CURRENT_TIMESTAMP"])]
+    #[ORM\Column(options: ['default' => 'CURRENT_TIMESTAMP'])]
     private ?DateTimeImmutable $createdAt = null;
 
     #[ORM\Column(nullable: true)]

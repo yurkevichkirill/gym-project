@@ -97,10 +97,10 @@ final class TrainerWorkTimeController extends AbstractController
         $cachedData = $handler->getCachedData($resolvedDto, $parsedSort);
 
         return new CollectionResponse(
-            $cachedData["items"],
+            $cachedData['items'],
             $resolvedDto->page,
             $resolvedDto->limit,
-            $cachedData["total"],
+            $cachedData['total'],
             $parsedSort,
             Response::HTTP_OK,
         );

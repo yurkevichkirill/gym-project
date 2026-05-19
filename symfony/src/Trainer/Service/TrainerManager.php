@@ -42,12 +42,12 @@ final readonly class TrainerManager
     {
         $existingTrainer = $this->userRepo->findOneBy(['email' => $requestDto->email]);
         if ($existingTrainer) {
-            throw new ConflictHttpException("User with this email already exists");
+            throw new ConflictHttpException('User with this email already exists');
         }
 
         $existingTrainerByPhone = $this->userRepo->findOneBy(['phone' => $requestDto->phone]);
         if ($existingTrainerByPhone) {
-            throw new ConflictHttpException("User with this phone already exists");
+            throw new ConflictHttpException('User with this phone already exists');
         }
 
         $trainer = new Trainer();
@@ -55,7 +55,7 @@ final readonly class TrainerManager
         $trainingType = $this->trainingTypeRepo->find($requestDto->trainingTypeId);
 
         if ($trainingType === null) {
-            throw new NotFoundHttpException("Training type not found");
+            throw new NotFoundHttpException('Training type not found');
         }
 
         $trainer->setTrainingType($trainingType);
@@ -92,7 +92,7 @@ final readonly class TrainerManager
         if ($requestDto->email !== null && $requestDto->email !== $trainer->getEmail()) {
             $existing = $this->userRepo->findOneBy(['email' => $requestDto->email]);
             if ($existing) {
-                throw new ConflictHttpException("Email is already taken by another user.");
+                throw new ConflictHttpException('Email is already taken by another user.');
             }
             $trainer->setEmail($requestDto->email);
         }
@@ -100,7 +100,7 @@ final readonly class TrainerManager
         if ($requestDto->phone !== null && $requestDto->phone !== $trainer->getPhone()) {
             $existing = $this->userRepo->findOneBy(['phone' => $requestDto->phone]);
             if ($existing) {
-                throw new ConflictHttpException("Phone number is already taken.");
+                throw new ConflictHttpException('Phone number is already taken.');
             }
             $trainer->setPhone($requestDto->phone);
         }
@@ -160,7 +160,7 @@ final readonly class TrainerManager
         }
 
         if ($trainer->getDeletedAt()) {
-            throw new ConflictHttpException("Trainer already deleted");
+            throw new ConflictHttpException('Trainer already deleted');
         }
 
         $this->entityManager->wrapInTransaction(function () use ($trainer) {

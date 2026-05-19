@@ -12,8 +12,8 @@ use Symfony\Component\Security\Core\Authorization\Voter\Voter;
 
 final class WorkTimeVoter extends Voter
 {
-    const string EDIT = "WORKTIME_EDIT";
-    const string REMOVE = "WORKTIME_REMOVE";
+    const string EDIT = 'WORKTIME_EDIT';
+    const string REMOVE = 'WORKTIME_REMOVE';
     /**
      * @inheritDoc
      */

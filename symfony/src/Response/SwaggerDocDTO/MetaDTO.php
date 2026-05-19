@@ -6,7 +6,7 @@ namespace App\Response\SwaggerDocDTO;
 
 use OpenApi\Attributes as OA;
 
-#[OA\Schema(description: "General object for meta-data")]
+#[OA\Schema(description: 'General object for meta-data')]
 final readonly class MetaDTO
 {
     public function __construct(

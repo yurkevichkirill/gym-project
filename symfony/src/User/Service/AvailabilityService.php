@@ -15,7 +15,7 @@ final readonly class AvailabilityService
     public function ensureNotBlocked(User $user): void
     {
         if ($user->getBlockedAt() !== null) {
-            throw new AccessDeniedHttpException("User is blocked");
+            throw new AccessDeniedHttpException('User is blocked');
         }
     }
 
@@ -25,7 +25,7 @@ final readonly class AvailabilityService
     public function ensureNotDeleted(User $user): void
     {
         if ($user->getDeletedAt() !== null) {
-            throw new AccessDeniedHttpException("User is deleted");
+            throw new AccessDeniedHttpException('User is deleted');
         }
     }
 
@@ -35,7 +35,7 @@ final readonly class AvailabilityService
     public function ensureActive(User $user): void
     {
         if (!$user->isActive()) {
-            throw new AccessDeniedHttpException("User is not active");
+            throw new AccessDeniedHttpException('User is not active');
         }
     }
 }

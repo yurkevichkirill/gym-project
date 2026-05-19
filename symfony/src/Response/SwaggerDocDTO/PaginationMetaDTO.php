@@ -6,7 +6,7 @@ namespace App\Response\SwaggerDocDTO;
 
 use OpenApi\Attributes as OA;
 
-#[OA\Schema(description: "Pagination meta data")]
+#[OA\Schema(description: 'Pagination meta data')]
 final readonly class PaginationMetaDTO
 {
     public function __construct(

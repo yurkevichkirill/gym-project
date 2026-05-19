@@ -31,7 +31,7 @@ final readonly class GetClientsRequestDTO
 
         public ?bool $isDeleted = null,
 
-        public string $sort = "age:ASC",
+        public string $sort = 'age:ASC',
 
         #[Assert\Positive]
         public int $page = 1,

@@ -6,7 +6,7 @@ namespace App\Response\SwaggerDocDTO;
 
 use OpenApi\Attributes as OA;
 
-#[OA\Schema(description: "General collection container")]
+#[OA\Schema(description: 'General collection container')]
 final readonly class AbstractCollectionResponseDTO
 {
     public function __construct(

@@ -77,10 +77,10 @@ final readonly class PaymentsQuery
         $qb = $this->paymentRepo->createQueryBuilder('p');
 
         if (!$isCount) {
-            $qb->leftJoin("p.trainer", "t")
-                ->addSelect("t")
-                ->leftJoin("t.trainingType", 'type')
-                ->addSelect("type");
+            $qb->leftJoin('p.trainer', 't')
+                ->addSelect('t')
+                ->leftJoin('t.trainingType', 'type')
+                ->addSelect('type');
         }
 
         if ($dto->client) {
