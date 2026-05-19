@@ -10,6 +10,7 @@ use App\Payment\Entity\Payment;
 use App\Payment\Enum\PaymentStatusEnum;
 use App\Payment\Mapper\PaymentMapperInterface;
 use App\Payment\Query\PaymentsQuery;
+use App\Payment\Security\PaymentVoter;
 use App\Response\ResponseTypeDTO\CollectionResponse;
 use App\Response\ResponseTypeDTO\ItemResponse;
 use App\Response\SwaggerDocDTO\AbstractCollectionResponseDTO;
@@ -160,7 +161,7 @@ final class PaymentController extends AbstractController
         Payment $payment,
         PaymentMapperInterface $mapper,
     ): ItemResponse {
-        $this->denyAccessUnlessGranted("PAYMENT_VIEW", $payment);
+        $this->denyAccessUnlessGranted(PaymentVoter::VIEW_OWN, $payment);
 
         return new ItemResponse(
             data: $mapper->map($payment),

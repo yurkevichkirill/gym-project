@@ -18,6 +18,7 @@ use App\TrainerWorkTime\DTO\WorkTimeResponseDTO;
 use App\TrainerWorkTime\Entity\TrainerWorkTime;
 use App\TrainerWorkTime\Mapper\WorkTimeMapperInterface;
 use App\TrainerWorkTime\Query\WorkTimeQuery;
+use App\TrainerWorkTime\Security\WorkTimeVoter;
 use App\TrainerWorkTime\Service\WorkTimeManager;
 use App\User\Enum\UserRolesEnum;
 use DateMalformedIntervalStringException;
@@ -253,7 +254,7 @@ final class TrainerWorkTimeController extends AbstractController
         WorkTimeMapperInterface                       $mapper,
         WorkTimeManager                               $manager,
     ): ItemResponse {
-        $this->denyAccessUnlessGranted('WORKTIME_EDIT', $worktime);
+        $this->denyAccessUnlessGranted(WorkTimeVoter::EDIT_OWN, $worktime);
 
         $responseDto = $mapper->map($manager->update($worktime, $requestDto));
 
@@ -306,7 +307,7 @@ final class TrainerWorkTimeController extends AbstractController
         TrainerWorkTime $worktime,
         WorkTimeManager $manager,
     ): NoContentResponse {
-        $this->denyAccessUnlessGranted("WORKTIME_REMOVE", $worktime);
+        $this->denyAccessUnlessGranted(WorkTimeVoter::REMOVE_OWN, $worktime);
         $manager->remove($worktime);
 
         return new NoContentResponse();

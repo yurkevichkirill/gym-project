@@ -12,6 +12,7 @@ use App\Booking\Enum\BookingStatusEnum;
 use App\Booking\Exception\InvalidBookingStatusException;
 use App\Booking\Mapper\BookingMapperInterface;
 use App\Booking\Query\BookingsQuery;
+use App\Booking\Security\BookingVoter;
 use App\Booking\Service\BookingCancellationService;
 use App\Booking\Service\BookingManager;
 use App\Client\Entity\Client;
@@ -151,7 +152,7 @@ final class BookingController extends AbstractController
     #[IsGranted(UserRolesEnum::ROLE_CLIENT->value)]
     public function get(BookingMapperInterface $mapper, Booking $booking): ItemResponse
     {
-        $this->denyAccessUnlessGranted('BOOKING_VIEW_OWN', $booking);
+        $this->denyAccessUnlessGranted(BookingVoter::VIEW_OWN, $booking);
 
         return new ItemResponse(
             data: $mapper->map($booking),
@@ -282,7 +283,7 @@ final class BookingController extends AbstractController
         #[CurrentUser] User $actor,
         BookingCancellationService $bookingCancellationService,
     ): NoContentResponse {
-        $this->denyAccessUnlessGranted('BOOKING_CANCEL_OWN', $booking);
+        $this->denyAccessUnlessGranted(BookingVoter::CANCEL_OWN, $booking);
 
         $bookingCancellationService->cancel($booking, $actor);
 

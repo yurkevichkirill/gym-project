@@ -12,14 +12,14 @@ use Symfony\Component\Security\Core\Authorization\Voter\Voter;
 
 final class WorkTimeVoter extends Voter
 {
-    const string EDIT = 'WORKTIME_EDIT';
-    const string REMOVE = 'WORKTIME_REMOVE';
+    const string EDIT_OWN = 'WORKTIME_EDIT_OWN';
+    const string REMOVE_OWN = 'WORKTIME_REMOVE_OWN';
     /**
      * @inheritDoc
      */
     protected function supports(string $attribute, mixed $subject): bool
     {
-        if (!in_array($attribute, [self::EDIT, self::REMOVE])) {
+        if (!in_array($attribute, [self::EDIT_OWN, self::REMOVE_OWN])) {
             return false;
         }
 

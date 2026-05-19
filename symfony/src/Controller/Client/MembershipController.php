@@ -12,6 +12,7 @@ use App\Membership\Entity\Membership;
 use App\Membership\Enum\MembershipStatusEnum;
 use App\Membership\Mapper\MembershipMapperInterface;
 use App\Membership\Query\MembershipQuery;
+use App\Membership\Security\MembershipVoter;
 use App\Membership\Service\MembershipManager;
 use App\Response\ResponseTypeDTO\CollectionResponse;
 use App\Response\ResponseTypeDTO\ItemResponse;
@@ -169,7 +170,7 @@ final class MembershipController extends AbstractController
     #[IsGranted(UserRolesEnum::ROLE_CLIENT->value)]
     public function get(Membership $membership, MembershipMapperInterface $mapper): ItemResponse
     {
-        $this->denyAccessUnlessGranted('MEMBERSHIP_VIEW', $membership);
+        $this->denyAccessUnlessGranted(MembershipVoter::VIEW_OWN, $membership);
 
         return new ItemResponse(data: $mapper->map($membership), status: Response::HTTP_OK);
     }
@@ -317,7 +318,7 @@ final class MembershipController extends AbstractController
         MembershipMapperInterface $mapper,
         MembershipManager $manager
     ): ItemResponse {
-        $this->denyAccessUnlessGranted('MEMBERSHIP_EDIT', $membership);
+        $this->denyAccessUnlessGranted(MembershipVoter::EDIT_OWN, $membership);
 
         $responseDto = $mapper->map($manager->freeze($membership));
 
@@ -390,7 +391,7 @@ final class MembershipController extends AbstractController
         MembershipMapperInterface $mapper,
         MembershipManager $manager
     ): ItemResponse {
-        $this->denyAccessUnlessGranted('MEMBERSHIP_EDIT', $membership);
+        $this->denyAccessUnlessGranted(MembershipVoter::EDIT_OWN, $membership);
 
         $responseDto = $mapper->map($manager->unfreeze($membership));
 
@@ -461,7 +462,7 @@ final class MembershipController extends AbstractController
         MembershipMapperInterface $mapper,
         MembershipManager $manager
     ): ItemResponse {
-        $this->denyAccessUnlessGranted('MEMBERSHIP_EDIT', $membership);
+        $this->denyAccessUnlessGranted(MembershipVoter::EDIT_OWN, $membership);
 
         $responseDto = $mapper->map($manager->renew($membership));
 
@@ -534,7 +535,7 @@ final class MembershipController extends AbstractController
         MembershipMapperInterface $mapper,
         MembershipManager $manager
     ): ItemResponse {
-        $this->denyAccessUnlessGranted('MEMBERSHIP_EDIT', $membership);
+        $this->denyAccessUnlessGranted(MembershipVoter::EDIT_OWN, $membership);
 
         $responseDto = $mapper->map($manager->terminate($membership));
 

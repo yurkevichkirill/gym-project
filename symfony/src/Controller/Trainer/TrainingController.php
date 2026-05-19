@@ -19,6 +19,7 @@ use App\Training\DTO\TrainingUpdateRequestDTO;
 use App\Training\Entity\Training;
 use App\Training\Mapper\TrainingMapperInterface;
 use App\Training\Query\TrainingsQuery;
+use App\Training\Security\TrainingVoter;
 use App\Training\Service\TrainingManager;
 use App\User\Entity\User;
 use App\User\Enum\UserRolesEnum;
@@ -172,7 +173,7 @@ final class TrainingController extends AbstractController
         TrainingMapperInterface $mapper,
         Training $training,
     ): ItemResponse {
-        $this->denyAccessUnlessGranted('TRAINING_VIEW', $training);
+        $this->denyAccessUnlessGranted(TrainingVoter::VIEW_OWN, $training);
 
         return new ItemResponse(
             data: $mapper->map($training),
@@ -261,7 +262,7 @@ final class TrainingController extends AbstractController
         TrainingMapperInterface                       $mapper,
         TrainingManager                               $manager,
     ): ItemResponse {
-        $this->denyAccessUnlessGranted('TRAINING_EDIT', $training);
+        $this->denyAccessUnlessGranted(TrainingVoter::EDIT_OWN, $training);
 
         $responseDto = $mapper->map($manager->update($training, $requestDto));
 
@@ -322,7 +323,7 @@ final class TrainingController extends AbstractController
         #[CurrentUser] User $actor,
         BookingCancellationService $bookingCancellationService,
     ): NoContentResponse {
-        $this->denyAccessUnlessGranted('TRAINING_REMOVE', $training);
+        $this->denyAccessUnlessGranted(TrainingVoter::REMOVE_OWN, $training);
         $bookingCancellationService->cancel($training->getBooking(), $actor);
 
         return new NoContentResponse();
@@ -397,7 +398,7 @@ final class TrainingController extends AbstractController
         TrainingMapperInterface $mapper,
         TrainingManager $manager,
     ): ItemResponse {
-        $this->denyAccessUnlessGranted('TRAINING_EDIT', $training);
+        $this->denyAccessUnlessGranted(TrainingVoter::EDIT_OWN, $training);
 
         $responseDto = $mapper->map($manager->complete($training));
 

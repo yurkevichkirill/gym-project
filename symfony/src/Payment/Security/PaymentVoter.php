@@ -13,10 +13,10 @@ use Symfony\Component\Security\Core\Authorization\Voter\Voter;
 
 final class PaymentVoter extends Voter
 {
-    const string VIEW = 'PAYMENT_VIEW';
+    const string VIEW_OWN = 'PAYMENT_VIEW_OWN';
     protected function supports(string $attribute, mixed $subject): bool
     {
-        if ($attribute != self::VIEW) {
+        if ($attribute != self::VIEW_OWN) {
             return false;
         }
 
