@@ -116,13 +116,15 @@ final readonly class PaymentsQuery
         }
 
         if ($dto->minCreatedAt !== null) {
+            $minDate = $dto->minCreatedAt->setTime(0, 0, 0);
             $qb->andWhere('p.createdAt >= :minCreatedAt')
-                ->setParameter('minCreatedAt', $dto->minCreatedAt);
+                ->setParameter('minCreatedAt', $minDate);
         }
 
         if ($dto->maxCreatedAt !== null) {
+            $maxDate = $dto->maxCreatedAt->setTime(23, 59, 59);
             $qb->andWhere('p.createdAt <= :maxCreatedAt')
-                ->setParameter('maxCreatedAt', $dto->maxCreatedAt);
+                ->setParameter('maxCreatedAt', $maxDate);
         }
 
         return $qb;
