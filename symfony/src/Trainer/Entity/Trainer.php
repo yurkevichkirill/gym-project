@@ -39,7 +39,7 @@ final class Trainer extends User
     private int $balance = 0;
 
     /** @var Collection<int, TrainerWorkTime> */
-    #[ORM\OneToMany(targetEntity: TrainerWorkTime::class, mappedBy: 'trainer', orphanRemoval: true)]
+    #[ORM\OneToMany(targetEntity: TrainerWorkTime::class, mappedBy: 'trainer')]
     private Collection $trainerWorkTime;
 
     /** @var Collection<int, Payment> */

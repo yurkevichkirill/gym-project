@@ -48,6 +48,10 @@ final readonly class BookingAvailabilityService
         $this->userAvailabilityService->ensureNotBlocked($client);
         $this->userAvailabilityService->ensureActive($client);
 
+        $trainer = $worktime->getTrainer();
+
+        $this->userAvailabilityService->ensureNotDeleted($trainer);
+
         $bookingDateTime = new DateTimeImmutable($date . ' ' . $startTime);
         if ($bookingDateTime <= new DateTimeImmutable()) {
             throw new BadRequestHttpException('Cannot book training in the past');
