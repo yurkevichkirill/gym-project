@@ -19,8 +19,6 @@ final readonly class ClickHouseClient
 
     /**
      * @throws TransportExceptionInterface
-     */
-    /**
      * @param list<array<string, scalar|null>> $rows
      */
     public function insert(string $table, array $rows): void

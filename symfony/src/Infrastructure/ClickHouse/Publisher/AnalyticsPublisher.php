@@ -6,6 +6,7 @@ namespace App\Infrastructure\ClickHouse\Publisher;
 
 use App\Infrastructure\ClickHouse\Event\AnalyticsEvent;
 use DateTimeImmutable;
+use Random\RandomException;
 use Symfony\Component\Messenger\Exception\ExceptionInterface;
 use Symfony\Component\Messenger\MessageBusInterface;
 
@@ -17,7 +18,7 @@ final readonly class AnalyticsPublisher
 
     /**
      * @param array<string, scalar|null> $payload
-     * @throws ExceptionInterface
+     * @throws ExceptionInterface|RandomException
      */
     public function publish(string $type, array $payload): void
     {

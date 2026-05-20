@@ -27,6 +27,7 @@ final readonly class ClickHouseFlushSubscriber implements EventSubscriberInterfa
      */
     public function onStop(): void
     {
+        dump('FLUSHING DATA TO CLICKHOUSE!');
         $this->buffer->flushAll();
     }
 }

@@ -23,8 +23,6 @@ final class ClickHouseBuffer
 
     /**
      * @throws TransportExceptionInterface
-     */
-    /**
      * @param array<string, scalar|null> $row
      */
     public function add(string $table, array $row): void
