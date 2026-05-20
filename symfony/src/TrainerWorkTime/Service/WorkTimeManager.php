@@ -120,11 +120,6 @@ final readonly class WorkTimeManager
      * @throws DateTimeAlreadyTakenException
      * @throws DateMalformedIntervalStringException|Throwable
      */
-    /**
-     * @throws DateMalformedStringException
-     * @throws DateTimeAlreadyTakenException
-     * @throws DateMalformedIntervalStringException|Throwable
-     */
     public function update(TrainerWorkTime $worktime, UpdateWorkTimeRequestDTO $dto, bool $byAdmin = false): TrainerWorkTime
     {
         $context = $this->contextFromEntity($worktime);
@@ -157,7 +152,8 @@ final readonly class WorkTimeManager
                 $lastTrainingEnd = null;
 
                 foreach ($trainings as $training) {
-                    $tStart = $training->getStartTime();
+                    $trainingTimeStr = $training->getStartTime()->format('H:i:s');
+                    $tStart = new DateTimeImmutable($dateStr . ' ' . $trainingTimeStr);
 
                     $duration = $training->getDurationMinutes();
                     $tEnd = $tStart->modify("+$duration minutes");
