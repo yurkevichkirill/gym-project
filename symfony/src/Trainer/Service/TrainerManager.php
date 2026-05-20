@@ -11,6 +11,7 @@ use App\Trainer\DTO\CreateTrainerRequestDTO;
 use App\Trainer\DTO\UpdateTrainerRequestDTO;
 use App\Trainer\Entity\Trainer;
 use App\Trainer\Repository\TrainerRepository;
+use App\Training\Repository\TrainingRepository;
 use App\TrainingType\Repository\TrainingTypeRepository;
 use App\User\Repository\UserRepository;
 use DateTimeImmutable;
@@ -26,6 +27,7 @@ final readonly class TrainerManager
     const int TRAINER_PRICE_DIVIDER = 2;
     public function __construct(
         private TrainerRepository $trainerRepo,
+        private TrainingRepository $trainingRepo,
         private UserRepository $userRepo,
         private TrainingTypeRepository $trainingTypeRepo,
         private UserPasswordHasherInterface $passwordHasher,
@@ -150,17 +152,18 @@ final readonly class TrainerManager
     }
 
     /**
-     * @throws AccessDeniedHttpException
      * @throws ConflictHttpException
      */
-    public function softDelete(Trainer $trainer, ?Admin $admin = null): void
+    public function softDelete(Trainer $trainer): void
     {
-        if ($admin !== null && $admin->getId() === $trainer->getId()) {
-            throw new AccessDeniedHttpException('You cannot delete yourself');
-        }
-
         if ($trainer->getDeletedAt() !== null) {
             throw new ConflictHttpException('Trainer already deleted');
+        }
+
+        $scheduledTrainings = $this->trainingRepo->findScheduledTrainings($trainer);
+
+        if (!empty($scheduledTrainings)) {
+            throw new ConflictHttpException('Cannot delete account: you have upcoming scheduled trainings. Please cancel them first.');
         }
 
         $this->entityManager->wrapInTransaction(function () use ($trainer) {
