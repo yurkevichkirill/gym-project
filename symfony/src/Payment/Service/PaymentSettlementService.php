@@ -266,6 +266,8 @@ final readonly class PaymentSettlementService
             $payment->getTrainer(),
         );
 
+        $refundPayment->setIsRefund(true);
+
         $this->paymentLifecycleService->transitionTo($refundPayment, PaymentStatusEnum::SUCCEEDED);
     }
 

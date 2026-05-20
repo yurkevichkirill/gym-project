@@ -60,8 +60,9 @@ final readonly class PaymentLifecycleService
                 break;
 
             case PaymentStatusEnum::REFUNDED:
-                $payment->setIsRefund(true);
                 break;
+            case PaymentStatusEnum::PENDING:
+                throw new InvalidPaymentStatusException('Cannot update status to pending');
 
         }
     }
