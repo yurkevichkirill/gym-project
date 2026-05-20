@@ -4,16 +4,19 @@ declare(strict_types=1);
 
 namespace App\Membership\Exception;
 
-use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
+use DomainException;
+use Symfony\Component\HttpKernel\Attribute\WithHttpStatus;
 use Throwable;
 
-final class InvalidMembershipStatusException extends ConflictHttpException
+#[WithHttpStatus(409)]
+final class InvalidMembershipStatusException extends DomainException
 {
-    /**
-     * @param array<string, string|string[]> $headers
-     */
-    public function __construct(string $message = 'Only active membership can be frozen', ?Throwable $previous = null, int $code = 0, array $headers = [])
+    public function __construct(
+        string $message = 'Invalid membership status',
+        ?Throwable $previous = null,
+        int $code = 0
+    )
     {
-        parent::__construct($message, $previous, $code, $headers);
+        parent::__construct($message, $code, $previous);
     }
 }

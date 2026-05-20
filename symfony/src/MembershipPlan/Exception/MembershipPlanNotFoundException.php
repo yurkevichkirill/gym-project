@@ -2,17 +2,17 @@
 
 declare(strict_types=1);
 
-namespace App\Booking\Exception;
+namespace App\MembershipPlan\Exception;
 
 use DomainException;
 use Symfony\Component\HttpKernel\Attribute\WithHttpStatus;
 use Throwable;
 
-#[WithHttpStatus(409)]
-final class InvalidBookingStatusException extends DomainException
+#[WithHttpStatus(404)]
+final class MembershipPlanNotFoundException extends DomainException
 {
     public function __construct(
-        string $message = 'Invalid booking status',
+        string $message = 'Membership plan not found',
         ?Throwable $previous = null,
         int $code = 0
     )

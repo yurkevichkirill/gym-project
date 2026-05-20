@@ -5,22 +5,26 @@ declare(strict_types=1);
 namespace App\Booking\Service;
 
 use App\Booking\Enum\BookingStatusEnum;
-use App\Booking\Exception\DateRescheduledException;
+use App\Booking\Exception\ClientAlreadyBookedException;
 use App\Booking\Exception\DateTimeAlreadyTakenException;
+use App\Booking\Exception\InvalidBookingStatusException;
+use App\Booking\Exception\InvalidRescheduleDateException;
+use App\Booking\Exception\PastBookingDateException;
+use App\Booking\Exception\TrainingWithoutBookingException;
 use App\Booking\Repository\BookingRepository;
 use App\Client\Entity\Client;
 use App\Membership\Exception\NoActiveMembershipException;
 use App\Membership\Service\MembershipAvailabilityService;
+use App\Trainer\Exception\TrainerTimeUnavailableException;
 use App\TrainerWorkTime\Entity\TrainerWorkTime;
+use App\TrainerWorkTime\Exception\TrainerWorktimeNotFoundException;
 use App\Training\Entity\Training;
+use App\Training\Exception\TrainingNotFinishedException;
 use App\User\Service\AvailabilityService as UserAvailabilityService;
 use DateInterval;
 use DateMalformedIntervalStringException;
 use DateMalformedStringException;
 use DateTimeImmutable;
-use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
-use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
-use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 
 final readonly class BookingAvailabilityService
 {
@@ -34,14 +38,10 @@ final readonly class BookingAvailabilityService
     )
     {}
 
+
     /**
      * @throws DateMalformedStringException
      * @throws DateMalformedIntervalStringException
-     * @throws AccessDeniedHttpException
-     * @throws BadRequestHttpException
-     * @throws DateRescheduledException
-     * @throws NoActiveMembershipException
-     * @throws DateTimeAlreadyTakenException
      */
     public function checkBookingAvailability(Client $client, ?TrainerWorkTime $worktime, string $date, string $startTime, int $durationMinutes): void
     {
@@ -54,19 +54,15 @@ final readonly class BookingAvailabilityService
 
         $bookingDateTime = new DateTimeImmutable($date . ' ' . $startTime);
         if ($bookingDateTime <= new DateTimeImmutable()) {
-            throw new BadRequestHttpException('Cannot book training in the past');
+            throw new PastBookingDateException();
         }
 
         if (!$this->isClientAvailableInDate($client, new DateTimeImmutable($date), $startTime, $durationMinutes)) {
-            throw new DateRescheduledException('Client already have training at this time');
+            throw new ClientAlreadyBookedException();
         }
 
         if (!$this->membershipAvailabilityService->hasActiveMembership($client, new DateTimeImmutable($date))) {
             throw new NoActiveMembershipException('Client has no active membership for this date');
-        }
-
-        if ($worktime === null) {
-            throw new BadRequestHttpException('Trainer worktime not found for the requested date.');
         }
 
         if (!$this->isTimeAvailable($worktime, $startTime, $durationMinutes)) {
@@ -77,22 +73,20 @@ final readonly class BookingAvailabilityService
     /**
      * @throws DateMalformedStringException
      * @throws DateMalformedIntervalStringException
-     * @throws ConflictHttpException
-     * @throws BadRequestHttpException
      */
     public function checkUpdateBookingAvailability(Training $training, Client $client, ?TrainerWorkTime $worktime, DateTimeImmutable $newDate, string $newStartTime): void
     {
         $booking = $training->getBooking();
         if ($booking === null) {
-            throw new ConflictHttpException('Training has no booking.');
+            throw new TrainingWithoutBookingException();
         }
 
         if ($worktime === null) {
-            throw new BadRequestHttpException('Trainer worktime not found for the requested date.');
+            throw new TrainerWorktimeNotFoundException();
         }
 
         if ($booking->getStatus() !== BookingStatusEnum::SCHEDULED) {
-            throw new ConflictHttpException('Only scheduled trainings can be updated');
+            throw new InvalidBookingStatusException('Only scheduled trainings can be updated');
         }
 
         $oldStartTime = $training->getStartTime()->format('H:i:s');
@@ -108,37 +102,33 @@ final readonly class BookingAvailabilityService
         );
 
         if ($newDateTime <= new DateTimeImmutable()) {
-            throw new BadRequestHttpException('Cannot book training in the past');
+            throw new PastBookingDateException();
         }
 
         $tomorrow = new DateTimeImmutable('tomorrow');
 
         if ($newDate->setTime(0, 0, 0) < $tomorrow) {
-            throw new DateRescheduledException('The minimum reschedule date must be no earlier than tomorrow.');
+            throw new InvalidRescheduleDateException('The minimum reschedule date must be no earlier than tomorrow.');
         }
 
         if (!$this->isTimeAvailable($worktime, $newStartTime, $durationMinutes, $oldStartTime)) {
-            throw new DateRescheduledException('This time is not available for this trainer');
+            throw new TrainerTimeUnavailableException();
         }
 
         if (!$this->isClientAvailableInDate($client, $newDate, $newStartTime, $durationMinutes,  $oldStartTime)) {
-            throw new DateRescheduledException('Client already have training at this time');
+            throw new ClientAlreadyBookedException();
         }
     }
 
-    /**
-     * @throws BadRequestHttpException
-     * @throws ConflictHttpException
-     */
     public function checkCompleteBookingAvailability(Training $training): void
     {
         $booking = $training->getBooking();
         if ($booking === null) {
-            throw new ConflictHttpException('Training has no booking.');
+            throw new TrainingWithoutBookingException();
         }
 
         if ($booking->getStatus() !== BookingStatusEnum::SCHEDULED) {
-            throw new ConflictHttpException('Only scheduled trainings can be completed');
+            throw new InvalidBookingStatusException('Only scheduled trainings can be updated');
         }
 
         $fullDate = $training->getTrainerWorkTime()->getDate()->setTime(
@@ -150,7 +140,7 @@ final readonly class BookingAvailabilityService
         $endDateTime = $fullDate->add(new DateInterval("PT{$training->getDurationMinutes()}M"));
 
         if ($endDateTime > new DateTimeImmutable()) {
-            throw new BadRequestHttpException('Training has not happened yet');
+            throw new TrainingNotFinishedException();
         }
     }
 
@@ -237,6 +227,7 @@ final readonly class BookingAvailabilityService
 
         $allSlots = array_merge($freeSlots, [$excludeSlot]);
         usort($allSlots, static fn (array $s1, array $s2): int => $s1['start'] <=> $s2['start']);
+
         return $this->mergeOverlappingSlots($allSlots);
     }
 

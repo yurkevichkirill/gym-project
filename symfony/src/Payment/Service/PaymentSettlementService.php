@@ -14,8 +14,11 @@ use App\Payment\Enum\PaymentCategoryEnum;
 use App\Payment\Enum\PaymentMethodEnum;
 use App\Payment\Enum\PaymentStatusEnum;
 use App\Payment\Exception\InvalidPaymentStatusException;
+use App\Payment\Exception\PaymentNotFoundException;
 use App\Payment\Repository\PaymentRepository;
 use App\Trainer\Entity\Trainer;
+use App\Trainer\Exception\TrainerNotFoundException;
+use App\User\Exception\UserNotFoundException;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
@@ -194,7 +197,7 @@ final readonly class PaymentSettlementService
     {
         $payment = $this->paymentRepo->findOneByStripePaymentIntentId($intentId);
         if ($payment === null) {
-            throw new NotFoundHttpException('Payment for Stripe intent was not found');
+            throw new PaymentNotFoundException('Payment for Stripe intent was not found');
         }
 
         $booking = $payment->getBooking();
@@ -203,7 +206,7 @@ final readonly class PaymentSettlementService
             if ($booking !== null) {
                 $trainer = $payment->getTrainer();
                 if ($trainer === null) {
-                    throw new NotFoundHttpException('Trainer for booking payment was not found');
+                    throw new TrainerNotFoundException('Trainer for booking payment was not found');
                 }
 
                 $trainer->setBalance(
@@ -244,7 +247,7 @@ final readonly class PaymentSettlementService
 
         $client = $payment->getClient();
         if ($client === null) {
-            throw new NotFoundHttpException('Payment client was not found');
+            throw new UserNotFoundException('Payment client was not found');
         }
 
         $client->setBalance(
@@ -306,7 +309,7 @@ final readonly class PaymentSettlementService
     {
         $payment = $this->paymentRepo->findOneByStripePaymentIntentId($intentId);
         if ($payment === null) {
-            throw new NotFoundHttpException('Payment for Stripe intent was not found');
+            throw new PaymentNotFoundException('Payment for Stripe intent was not found');
         }
 
         $this->failPayment($payment);
@@ -319,7 +322,7 @@ final readonly class PaymentSettlementService
     {
         $payment = $this->paymentRepo->findOneByStripePaymentIntentId($intentId);
         if ($payment === null) {
-            throw new NotFoundHttpException('Payment for Stripe intent was not found');
+            throw new PaymentNotFoundException('Payment for Stripe intent was not found');
         }
 
         $this->cancelPayment($payment);

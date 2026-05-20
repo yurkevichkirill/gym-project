@@ -491,12 +491,11 @@ final class TrainerController extends AbstractController
     )]
     #[IsGranted(UserRolesEnum::ROLE_ADMIN->value)]
     public function block(
-        #[CurrentUser] Admin $admin,
         Trainer $trainer,
         TrainerMapperInterface $mapper,
         TrainerManager $manager,
     ): ItemResponse {
-        $responseDto = $mapper->map($manager->block($admin, $trainer), true);
+        $responseDto = $mapper->map($manager->block($trainer), true);
 
         return new ItemResponse(
             data: $responseDto,

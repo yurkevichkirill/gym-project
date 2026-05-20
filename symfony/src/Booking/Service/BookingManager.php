@@ -11,14 +11,17 @@ use App\Client\Entity\Client;
 use App\Infrastructure\ClickHouse\Publisher\AnalyticsPublisher;
 use App\Payment\Repository\PaymentRepository;
 use App\Payment\Service\PaymentSettlementService;
+use App\Trainer\Exception\TrainerNotFoundException;
 use App\Trainer\Repository\TrainerRepository;
 use App\Trainer\Service\TrainerManager;
+use App\TrainerWorkTime\Exception\TrainerWorktimeNotFoundException;
 use App\TrainerWorkTime\Repository\TrainerWorkTimeRepository;
 use App\Training\Entity\Training;
 use App\Training\Repository\TrainingRepository;
 use DateMalformedStringException;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
+use DomainException;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -59,7 +62,7 @@ final readonly class BookingManager
             $trainer = $this->trainerRepo->find($dto->trainerId);
 
             if ($trainer === null) {
-                throw new NotFoundHttpException('Trainer not found');
+                throw new TrainerNotFoundException();
             }
 
             $worktime = $this->worktimeRepo->findOneBy([
@@ -68,7 +71,7 @@ final readonly class BookingManager
             ]);
 
             if ($worktime === null) {
-                throw new NotFoundHttpException('Worktime not found');
+                throw new TrainerWorktimeNotFoundException();
             }
 
             $this->bookingAvailabilityService->checkBookingAvailability($client, $worktime, $dto->date, $dto->startTime, $dto->durationMinutes);
@@ -118,7 +121,7 @@ final readonly class BookingManager
             }
 
             return $booking;
-        } catch (HttpExceptionInterface $e) {
+        } catch (DomainException $e) {
             $this->bookingLogger->notice('booking.rejected', $this->bookingEventContext($loggingContext, 'book', 'rejected', [
                 'reason' => $e::class,
             ]));

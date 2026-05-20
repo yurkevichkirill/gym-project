@@ -5,37 +5,30 @@ declare(strict_types=1);
 namespace App\User\Service;
 
 use App\User\Entity\User;
-use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
+use App\User\Exception\UserBlockedException;
+use App\User\Exception\UserDeletedException;
+use App\User\Exception\UserNotActiveException;
 
 final readonly class AvailabilityService
 {
-    /**
-     * @throws AccessDeniedHttpException
-     */
     public function ensureNotBlocked(User $user): void
     {
         if ($user->getBlockedAt() !== null) {
-            throw new AccessDeniedHttpException('User is blocked');
+            throw new UserBlockedException();
         }
     }
 
-    /**
-     * @throws AccessDeniedHttpException
-     */
     public function ensureNotDeleted(User $user): void
     {
         if ($user->getDeletedAt() !== null) {
-            throw new AccessDeniedHttpException('User is deleted');
+            throw new UserDeletedException();
         }
     }
 
-    /**
-     * @throws AccessDeniedHttpException
-     */
     public function ensureActive(User $user): void
     {
         if (!$user->isActive()) {
-            throw new AccessDeniedHttpException('User is not active');
+            throw new UserNotActiveException();
         }
     }
 }

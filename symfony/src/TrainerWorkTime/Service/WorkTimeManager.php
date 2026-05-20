@@ -9,6 +9,10 @@ use App\Trainer\Entity\Trainer;
 use App\TrainerWorkTime\DTO\CreateWorkTimeRequestDTO;
 use App\TrainerWorkTime\DTO\UpdateWorkTimeRequestDTO;
 use App\TrainerWorkTime\Entity\TrainerWorkTime;
+use App\TrainerWorkTime\Exception\EndTimeBeforeStartException;
+use App\TrainerWorkTime\Exception\PastWorktimeDateException;
+use App\TrainerWorkTime\Exception\WorktimeHasActiveTrainingsException;
+use App\TrainerWorkTime\Exception\WorktimeNotFoundException;
 use App\TrainerWorkTime\Repository\TrainerWorkTimeRepository;
 use App\User\Service\AvailabilityService;
 use DateMalformedIntervalStringException;
@@ -16,9 +20,6 @@ use DateMalformedStringException;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
-use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
-use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
-use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Throwable;
 
 final readonly class WorkTimeManager
@@ -64,7 +65,7 @@ final readonly class WorkTimeManager
         $now = new DateTimeImmutable();
 
         if ($endDateTime <= $startDateTime) {
-            throw new BadRequestHttpException('End time must be greater than start time');
+            throw new EndTimeBeforeStartException();
         }
 
         if ($bookingDateTime <= $now) {
@@ -76,7 +77,7 @@ final readonly class WorkTimeManager
                 ])
             );
 
-            throw new BadRequestHttpException('Cannot create worktime in the past');
+            throw new PastWorktimeDateException('Cannot create worktime in the past');
         }
 
         $exists = $this->worktimeRepo->findOneBy([
@@ -143,7 +144,7 @@ final readonly class WorkTimeManager
             $newEndDateTime = new DateTimeImmutable($dateStr . ' ' . $newEndTimeStr);
 
             if ($newEndDateTime <= $newStartDateTime) {
-                throw new BadRequestHttpException('End time must be after start time');
+                throw new EndTimeBeforeStartException();
             }
 
             $trainings = $worktime->getTrainings();
@@ -226,7 +227,7 @@ final readonly class WorkTimeManager
                     $this->event($context, 'remove', 'rejected')
                 );
 
-                throw new ConflictHttpException('Cannot remove work time slot with active trainings.');
+                throw new WorktimeHasActiveTrainingsException('Cannot remove work time slot with active trainings.');
             }
 
             $this->worktimeRepo->remove($worktime);
@@ -249,15 +250,12 @@ final readonly class WorkTimeManager
         }
     }
 
-    /**
-     * @throws NotFoundHttpException
-     */
     public function getAvailable(TrainerWorkTime $worktime): TrainerWorkTime
     {
         $trainer = $worktime->getTrainer();
 
         if ($trainer->getDeletedAt() !== null || $trainer->getBlockedAt() !== null) {
-            throw new NotFoundHttpException('Work time slot not found');
+            throw new WorktimeNotFoundException();
         }
 
         return $worktime;

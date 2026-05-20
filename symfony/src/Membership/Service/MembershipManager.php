@@ -11,16 +11,14 @@ use App\Membership\Enum\MembershipStatusEnum;
 use App\Membership\Exception\InvalidMembershipStatusException;
 use App\Membership\Exception\MembershipActiveException;
 use App\Membership\Repository\MembershipRepository;
+use App\MembershipPlan\Exception\MembershipPlanNotFoundException;
 use App\MembershipPlan\Repository\MembershipPlanRepository;
 use App\Payment\Service\PaymentSettlementService;
 use App\User\Service\AvailabilityService;
 use DateMalformedStringException;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
-use Doctrine\ORM\Exception\ORMException;
-use Doctrine\ORM\OptimisticLockException;
 use Psr\Log\LoggerInterface;
-use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Messenger\Exception\ExceptionInterface;
 use Throwable;
 
@@ -56,7 +54,7 @@ final readonly class MembershipManager
 
             $plan = $this->membershipPlanRepo->find($membershipPlanId);
             if ($plan === null) {
-                throw new NotFoundHttpException('Membership plan not found');
+                throw new MembershipPlanNotFoundException();
             }
 
             return $this->entityManager->wrapInTransaction(function () use ($client, $plan) {
@@ -95,7 +93,7 @@ final readonly class MembershipManager
                 return $membership;
             });
 
-        } catch (NotFoundHttpException $e) {
+        } catch (MembershipPlanNotFoundException $e) {
             $this->membershipLogger->notice('membership.rejected',
                 $this->membershipEventContext($loggingContext, 'create', 'rejected', [
                     'reason' => $e::class,
@@ -258,12 +256,12 @@ final readonly class MembershipManager
         try {
             $plan = $membership->getPlan();
             if ($plan === null) {
-                throw new NotFoundHttpException();
+                throw new MembershipPlanNotFoundException();
             }
 
             $planId = $plan->getId();
             if ($planId === null) {
-                throw new NotFoundHttpException();
+                throw new MembershipPlanNotFoundException();
             }
 
             return $this->create($membership->getClient(), $planId);
@@ -339,10 +337,6 @@ final readonly class MembershipManager
         }
     }
 
-    /**
-     * @throws OptimisticLockException
-     * @throws ORMException
-     */
     public function expire(): int
     {
         $curDate = new DateTimeImmutable();

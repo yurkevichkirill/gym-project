@@ -4,16 +4,19 @@ declare(strict_types=1);
 
 namespace App\Membership\Exception;
 
-use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
+use DomainException;
+use Symfony\Component\HttpKernel\Attribute\WithHttpStatus;
 use Throwable;
 
-final class NoActiveMembershipException extends ConflictHttpException
+#[WithHttpStatus(403)]
+final class NoActiveMembershipException extends DomainException
 {
-    /**
-     * @param array<string, string|string[]> $headers
-     */
-    public function __construct(string $message = 'Active membership required', ?Throwable $previous = null, int $code = 0, array $headers = [])
+    public function __construct(
+        string $message = 'Active membership required',
+        int $code = 0,
+        ?Throwable $previous = null
+    )
     {
-        parent::__construct($message, $previous, $code, $headers);
+        parent::__construct($message, $code, $previous);
     }
 }

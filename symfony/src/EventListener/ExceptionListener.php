@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace App\EventListener;
 
 use Psr\Log\LoggerInterface;
+use ReflectionClass;
 use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
 use Symfony\Component\HttpFoundation\Exception\SuspiciousOperationException;
 use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpKernel\Attribute\WithHttpStatus;
 use Symfony\Component\HttpKernel\Event\ExceptionEvent;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 use Symfony\Component\HttpKernel\KernelEvents;
@@ -29,9 +31,20 @@ final readonly class ExceptionListener
         $exception = $event->getThrowable();
         $request = $event->getRequest();
 
-        $statusCode = $exception instanceof HttpExceptionInterface
-            ? $exception->getStatusCode()
-            : 500;
+        $statusCode = 500;
+
+        if ($exception instanceof HttpExceptionInterface) {
+            $statusCode = $exception->getStatusCode();
+        } else {
+            $reflection = new ReflectionClass($exception);
+            $attributes = $reflection->getAttributes(WithHttpStatus::class);
+
+            if (!empty($attributes)) {
+                /** @var WithHttpStatus $attributeInstance */
+                $attributeInstance = $attributes[0]->newInstance();
+                $statusCode = $attributeInstance->statusCode;
+            }
+        }
 
         $context = [
             'domain' => 'request',
@@ -49,14 +62,19 @@ final readonly class ExceptionListener
                 'exception' => $exception,
             ]);
         } else {
-            $this->requestLogger->warning('HTTP exception handled', $context);
+            $this->requestLogger->warning('Domain or HTTP exception handled', $context);
         }
 
+        $isDev = $this->kernel->getEnvironment() === 'dev';
+        $errorMessage = ($statusCode >= 500 && !$isDev)
+            ? 'Internal Server Error'
+            : $exception->getMessage();
+
         $responseData = [
-            'message' => $exception->getMessage(),
+            'message' => $errorMessage,
         ];
 
-        if ($this->kernel->getEnvironment() === 'dev') {
+        if ($isDev) {
             $responseData['trace'] = $exception->getTrace();
         }
 

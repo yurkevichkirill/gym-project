@@ -9,10 +9,10 @@ use Symfony\Component\HttpKernel\Attribute\WithHttpStatus;
 use Throwable;
 
 #[WithHttpStatus(409)]
-final class InvalidBookingStatusException extends DomainException
+final class InvalidRescheduleDateException extends DomainException
 {
     public function __construct(
-        string $message = 'Invalid booking status',
+        string $message = 'This date cannot be selected',
         ?Throwable $previous = null,
         int $code = 0
     )

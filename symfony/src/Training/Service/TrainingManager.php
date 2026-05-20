@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace App\Training\Service;
 
 use App\Booking\Enum\BookingStatusEnum;
+use App\Booking\Exception\TrainingWithoutBookingException;
 use App\Booking\Service\BookingAvailabilityService;
+use App\TrainerWorkTime\Exception\WorktimeNotFoundException;
 use App\TrainerWorkTime\Repository\TrainerWorkTimeRepository;
 use App\Training\DTO\TrainingUpdateRequestDTO;
 use App\Training\Entity\Training;
@@ -13,9 +15,8 @@ use DateMalformedIntervalStringException;
 use DateMalformedStringException;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
+use DomainException;
 use Psr\Log\LoggerInterface;
-use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
-use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Throwable;
 
 final readonly class TrainingManager
@@ -29,7 +30,6 @@ final readonly class TrainingManager
     {}
 
     /**
-     * @throws HttpExceptionInterface
      * @throws DateMalformedStringException
      * @throws Throwable
      * @throws DateMalformedIntervalStringException
@@ -47,7 +47,7 @@ final readonly class TrainingManager
 
         try {
             if ($booking === null) {
-                throw new NotFoundHttpException('Training booking not found');
+                throw new TrainingWithoutBookingException();
             }
 
             $client = $booking->getClient();
@@ -66,7 +66,7 @@ final readonly class TrainingManager
             );
 
             if ($newWorktime === null) {
-                throw new NotFoundHttpException('There is no work time for this date');
+                throw new WorktimeNotFoundException('There is no work time for this date');
             }
 
             $this->bookingAvailabilityService->checkUpdateBookingAvailability($training, $client, $newWorktime, $newDate, $newStartTime);
@@ -78,7 +78,7 @@ final readonly class TrainingManager
 
                 return $training;
             });
-        } catch (HttpExceptionInterface $e) {
+        } catch (DomainException $e) {
             $this->bookingLogger->notice('update.rejected', $this->bookingEventContext($loggingContext, 'update', 'rejected', [
                 'reason' => $e::class,
             ]));
@@ -95,7 +95,6 @@ final readonly class TrainingManager
     }
 
     /**
-     * @throws HttpExceptionInterface
      * @throws Throwable
      */
     public function complete(Training $training): Training
@@ -113,7 +112,7 @@ final readonly class TrainingManager
             $this->bookingAvailabilityService->checkCompleteBookingAvailability($training);
 
             if ($booking === null) {
-                throw new NotFoundHttpException('Training booking not found');
+                throw new TrainingWithoutBookingException();
             }
 
             $booking->setStatus(BookingStatusEnum::COMPLETED);
@@ -121,7 +120,7 @@ final readonly class TrainingManager
             $this->entityManager->flush();
 
             return $training;
-        } catch (HttpExceptionInterface $e) {
+        } catch (DomainException $e) {
             $this->bookingLogger->notice('complete.rejected', $this->bookingEventContext($loggingContext, 'complete', 'rejected', [
                 'reason' => $e::class,
             ]));

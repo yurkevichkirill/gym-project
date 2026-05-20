@@ -4,15 +4,19 @@ declare(strict_types=1);
 
 namespace App\Payment\Exception;
 
-use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
+use DomainException;
+use Symfony\Component\HttpKernel\Attribute\WithHttpStatus;
+use Throwable;
 
-final class InsufficientFundsException extends BadRequestHttpException
+#[WithHttpStatus(402)]
+final class InsufficientFundsException extends DomainException
 {
-    /**
-     * @param array<string, string|string[]> $headers
-     */
-    public function __construct(string $message = 'Insufficient funds for buying', ?\Throwable $previous = null, int $code = 0, array $headers = [])
+    public function __construct(
+        string $message = 'Insufficient funds for buying',
+        ?Throwable $previous = null,
+        int $code = 0
+    )
     {
-        parent::__construct($message, $previous, $code, $headers);
+        parent::__construct($message, $code, $previous);
     }
 }

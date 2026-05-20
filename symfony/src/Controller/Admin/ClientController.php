@@ -463,9 +463,13 @@ final class ClientController extends AbstractController
         ]
     )]
     #[IsGranted(UserRolesEnum::ROLE_ADMIN->value)]
-    public function block(Client $client, #[CurrentUser] Admin $admin, ClientMapperInterface $mapper, ClientManager $manager): ItemResponse
+    public function block(
+        Client $client,
+        ClientMapperInterface $mapper,
+        ClientManager $manager
+    ): ItemResponse
     {
-        $responseDto = $mapper->map($manager->block($admin, $client));
+        $responseDto = $mapper->map($manager->block($client));
 
         return new ItemResponse(data: $responseDto, status: Response::HTTP_OK);
     }

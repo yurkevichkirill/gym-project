@@ -2,19 +2,19 @@
 
 declare(strict_types=1);
 
-namespace App\Booking\Exception;
+namespace App\User\Exception;
 
 use DomainException;
 use Symfony\Component\HttpKernel\Attribute\WithHttpStatus;
 use Throwable;
 
-#[WithHttpStatus(409)]
-final class InvalidBookingStatusException extends DomainException
+#[WithHttpStatus(403)]
+final class UserDeletedException extends DomainException
 {
     public function __construct(
-        string $message = 'Invalid booking status',
-        ?Throwable $previous = null,
-        int $code = 0
+        string $message = 'User is deleted',
+        int $code = 0,
+        ?Throwable $previous = null
     )
     {
         parent::__construct($message, $code, $previous);

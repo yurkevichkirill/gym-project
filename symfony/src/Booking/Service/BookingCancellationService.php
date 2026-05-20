@@ -25,9 +25,6 @@ final readonly class BookingCancellationService
     )
     {}
 
-    /**
-     * @throws InvalidBookingStatusException
-     */
     public function cancel(Booking $booking, User $actor): void
     {
         if ($booking->getStatus() !== BookingStatusEnum::SCHEDULED) {

@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Client\Service;
 
-use App\Admin\Entity\Admin;
 use App\Client\DTO\AdminUpdateClientRequestDTO;
 use App\Client\DTO\ClientActivateRequestDTO;
 use App\Client\DTO\CreateClientRequestDTO;
@@ -18,13 +17,17 @@ use App\Membership\Service\VisitingService;
 use App\Payment\Entity\Payment;
 use App\Payment\Service\PaymentSettlementService;
 use App\RefreshToken\Repository\RefreshTokenRepository;
+use App\User\Exception\UserAlreadyBlockedException;
+use App\User\Exception\UserAlreadyDeletedException;
+use App\User\Exception\UserAlreadyExistsException;
+use App\User\Exception\UserAlreadyActiveException;
+use App\User\Exception\UserAlreadyNotBlockedException;
+use App\User\Exception\UserBlockedException;
+use App\User\Exception\UserNotFoundException;
 use App\User\Repository\UserRepository;
 use App\User\Service\AvailabilityService;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
-use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
-use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
-use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
 final readonly class ClientManager
@@ -41,19 +44,16 @@ final readonly class ClientManager
     )
     {}
 
-    /**
-     * @throws ConflictHttpException
-     */
     public function create(CreateClientRequestDTO $dto): Client
     {
         $existingClientByEmail = $this->userRepo->findOneBy(['email' => $dto->email]);
         if ($existingClientByEmail !== null) {
-            throw new ConflictHttpException('Client with this email already exists.');
+            throw new UserAlreadyExistsException('Client with this email already exists.');
         }
 
         $existingClientByPhone = $this->userRepo->findOneBy(['phone' => $dto->phone]);
         if ($existingClientByPhone !== null) {
-            throw new ConflictHttpException('Client with this phone number already exists.');
+            throw new UserAlreadyExistsException('Client with this phone number already exists.');
         }
 
         $client = new Client();
@@ -77,9 +77,6 @@ final readonly class ClientManager
         return $client;
     }
 
-    /**
-     * @throws AccessDeniedHttpException
-     */
     public function update(Client $client, UpdateClientRequestDTO $requestDto): Client
     {
         $this->userAvailabilityService->ensureNotBlocked($client);
@@ -126,13 +123,10 @@ final readonly class ClientManager
         return $client;
     }
 
-    /**
-     * @throws ConflictHttpException
-     */
     public function softDelete(Client $client): void
     {
         if ($client->getDeletedAt() !== null) {
-            throw new ConflictHttpException('Client already deleted');
+            throw new UserAlreadyDeletedException('Client already deleted');
         }
 
         $this->entityManager->wrapInTransaction(function () use ($client) {
@@ -151,18 +145,10 @@ final readonly class ClientManager
         return $client;
     }
 
-    /**
-     * @throws AccessDeniedHttpException
-     * @throws ConflictHttpException
-     */
-    public function block(Admin $admin, Client $client): Client
+    public function block(Client $client): Client
     {
-        if ($admin->getId() === $client->getId()) {
-            throw new AccessDeniedHttpException('You cannot block yourself');
-        }
-
         if ($client->getBlockedAt() !== null) {
-            throw new ConflictHttpException('Client already blocked');
+            throw new UserAlreadyBlockedException('Client already blocked');
         }
 
         $client->setBlockedAt(new DateTimeImmutable());
@@ -172,13 +158,10 @@ final readonly class ClientManager
         return $client;
     }
 
-    /**
-     * @throws ConflictHttpException
-     */
     public function unblock(Client $client): Client
     {
         if ($client->getBlockedAt() === null) {
-            throw new ConflictHttpException('Client is not blocked');
+            throw new UserAlreadyNotBlockedException('Client is not blocked');
         }
 
         $client->setBlockedAt(null);
@@ -188,7 +171,6 @@ final readonly class ClientManager
     }
 
     /**
-     * @throws AccessDeniedHttpException
      * @throws NoActiveMembershipException
      */
     public function visit(Client $client): Membership
@@ -203,9 +185,6 @@ final readonly class ClientManager
         return $membership;
     }
 
-    /**
-     * @throws AccessDeniedHttpException
-     */
     public function topUpBalance(Client $client, TopUpBalanceRequestDTO $requestDto): Payment
     {
         $this->userAvailabilityService->ensureNotBlocked($client);
@@ -229,12 +208,12 @@ final readonly class ClientManager
             $client = $this->clientRepo->findOneBy(['activationToken' => $requestDto->activationToken]);
 
             if ($client === null) {
-                throw new NotFoundHttpException('Activation token is invalid.');
+                throw new UserNotFoundException('Activation token is invalid.');
             }
 
             $this->userAvailabilityService->ensureNotBlocked($client);
             if ($client->isActive()) {
-                throw new ConflictHttpException('Account is already activated.');
+                throw new UserAlreadyActiveException();
             }
 
             $hashedPassword = $this->passwordHasher->hashPassword($client, $requestDto->password);

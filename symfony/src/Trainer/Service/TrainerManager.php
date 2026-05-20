@@ -4,21 +4,25 @@ declare(strict_types=1);
 
 namespace App\Trainer\Service;
 
-use App\Admin\Entity\Admin;
 use App\RefreshToken\Repository\RefreshTokenRepository;
 use App\Trainer\DTO\AdminUpdateTrainerRequestDTO;
 use App\Trainer\DTO\CreateTrainerRequestDTO;
 use App\Trainer\DTO\UpdateTrainerRequestDTO;
 use App\Trainer\Entity\Trainer;
+use App\Trainer\Exception\CannotDeleteTrainerException;
 use App\Trainer\Repository\TrainerRepository;
 use App\Training\Repository\TrainingRepository;
+use App\TrainingType\Exception\TrainingTypeNotFoundException;
 use App\TrainingType\Repository\TrainingTypeRepository;
+use App\User\Exception\UserAlreadyBlockedException;
+use App\User\Exception\UserAlreadyDeletedException;
+use App\User\Exception\UserAlreadyExistsException;
+use App\User\Exception\UserAlreadyNotBlockedException;
+use App\User\Exception\UserNotFoundException;
 use App\User\Repository\UserRepository;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
-use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
-use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
 final readonly class TrainerManager
@@ -36,20 +40,16 @@ final readonly class TrainerManager
     )
     {}
 
-    /**
-     * @throws NotFoundHttpException
-     * @throws ConflictHttpException
-     */
     public function create(CreateTrainerRequestDTO $requestDto): Trainer
     {
         $existingTrainer = $this->userRepo->findOneBy(['email' => $requestDto->email]);
         if ($existingTrainer !== null) {
-            throw new ConflictHttpException('User with this email already exists');
+            throw new UserAlreadyExistsException('User with this email already exists');
         }
 
         $existingTrainerByPhone = $this->userRepo->findOneBy(['phone' => $requestDto->phone]);
         if ($existingTrainerByPhone !== null) {
-            throw new ConflictHttpException('User with this phone already exists');
+            throw new UserAlreadyExistsException('User with this phone already exists');
         }
 
         $trainer = new Trainer();
@@ -57,7 +57,7 @@ final readonly class TrainerManager
         $trainingType = $this->trainingTypeRepo->find($requestDto->trainingTypeId);
 
         if ($trainingType === null) {
-            throw new NotFoundHttpException('Training type not found');
+            throw new TrainingTypeNotFoundException();
         }
 
         $trainer->setTrainingType($trainingType);
@@ -94,7 +94,7 @@ final readonly class TrainerManager
         if ($requestDto->email !== null && $requestDto->email !== $trainer->getEmail()) {
             $existing = $this->userRepo->findOneBy(['email' => $requestDto->email]);
             if ($existing !== null) {
-                throw new ConflictHttpException('Email is already taken by another user.');
+                throw new UserAlreadyExistsException('Email is already taken by another user.');
             }
             $trainer->setEmail($requestDto->email);
         }
@@ -102,7 +102,7 @@ final readonly class TrainerManager
         if ($requestDto->phone !== null && $requestDto->phone !== $trainer->getPhone()) {
             $existing = $this->userRepo->findOneBy(['phone' => $requestDto->phone]);
             if ($existing !== null) {
-                throw new ConflictHttpException('Phone number is already taken.');
+                throw new UserAlreadyExistsException('Phone number is already taken.');
             }
             $trainer->setPhone($requestDto->phone);
         }
@@ -151,19 +151,16 @@ final readonly class TrainerManager
         return $trainer;
     }
 
-    /**
-     * @throws ConflictHttpException
-     */
     public function softDelete(Trainer $trainer): void
     {
         if ($trainer->getDeletedAt() !== null) {
-            throw new ConflictHttpException('Trainer already deleted');
+            throw new UserAlreadyDeletedException('Trainer already deleted');
         }
 
         $scheduledTrainings = $this->trainingRepo->findScheduledTrainings($trainer);
 
         if (!empty($scheduledTrainings)) {
-            throw new ConflictHttpException('Cannot delete account: you have upcoming scheduled trainings. Please cancel them first.');
+            throw new CannotDeleteTrainerException('Cannot delete account: you have upcoming scheduled trainings. Please cancel them first.');
         }
 
         $this->entityManager->wrapInTransaction(function () use ($trainer) {
@@ -182,18 +179,10 @@ final readonly class TrainerManager
         return $trainer;
     }
 
-    /**
-     * @throws AccessDeniedHttpException
-     * @throws ConflictHttpException
-     */
-    public function block(Admin $admin, Trainer $trainer): Trainer
+    public function block(Trainer $trainer): Trainer
     {
-        if ($admin->getId() === $trainer->getId()) {
-            throw new AccessDeniedHttpException('You cannot block yourself');
-        }
-
         if ($trainer->getBlockedAt() !== null) {
-            throw new ConflictHttpException('Trainer already blocked');
+            throw new UserAlreadyBlockedException('Trainer already blocked');
         }
 
         $trainer->setBlockedAt(new DateTimeImmutable());
@@ -203,13 +192,10 @@ final readonly class TrainerManager
         return $trainer;
     }
 
-    /**
-     * @throws ConflictHttpException
-     */
     public function unblock(Trainer $trainer): Trainer
     {
         if ($trainer->getBlockedAt() === null) {
-            throw new ConflictHttpException('Trainer is not currently blocked');
+            throw new UserAlreadyNotBlockedException('Trainer is not currently blocked');
         }
 
         $trainer->setBlockedAt(null);
@@ -225,13 +211,10 @@ final readonly class TrainerManager
         return $durationMinutes / self::MIN_DURATION * $pricePerHour / self::TRAINER_PRICE_DIVIDER;
     }
 
-    /**
-     * @throws NotFoundHttpException
-     */
     public function getAvailable(Trainer $trainer): Trainer
     {
         if ($trainer->getDeletedAt() !== null || $trainer->getBlockedAt() !== null) {
-            throw new NotFoundHttpException('Trainer not found');
+            throw new UserNotFoundException('Trainer not found');
         }
 
         return $trainer;
