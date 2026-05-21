@@ -159,7 +159,7 @@ final readonly class TrainerManager
 
         $scheduledTrainings = $this->trainingRepo->findScheduledTrainings($trainer);
 
-        if (!empty($scheduledTrainings)) {
+        if ($scheduledTrainings !== 0) {
             throw new CannotDeleteTrainerException('Cannot delete account: you have upcoming scheduled trainings. Please cancel them first.');
         }
 

@@ -366,11 +366,10 @@ final class TrainerController extends AbstractController
     )]
     #[IsGranted(UserRolesEnum::ROLE_ADMIN->value)]
     public function delete(
-        #[CurrentUser] Admin $admin,
         Trainer $trainer,
         TrainerManager $manager,
     ): NoContentResponse {
-        $manager->softDelete($trainer, $admin);
+        $manager->softDelete($trainer);
 
         return new NoContentResponse();
     }

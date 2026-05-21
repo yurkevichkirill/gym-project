@@ -61,9 +61,6 @@ final readonly class PaymentLifecycleService
 
             case PaymentStatusEnum::REFUNDED:
                 break;
-            case PaymentStatusEnum::PENDING:
-                throw new InvalidPaymentStatusException('Cannot update status to pending');
-
         }
     }
 }

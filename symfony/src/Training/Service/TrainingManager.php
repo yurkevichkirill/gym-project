@@ -80,19 +80,19 @@ final readonly class TrainingManager
                     ['id' => $newWorktimeId]
                 );
                 $lockedWorktime = $this->entityManager->find(TrainerWorkTime::class, $newWorktimeId);
-                $this->entityManager->refresh($lockedWorktime);
-
 
                 $this->entityManager->getConnection()->executeStatement(
                     'SELECT id FROM training WHERE id = :id FOR UPDATE',
                     ['id' => $trainingId]
                 );
                 $lockedTraining = $this->entityManager->find(Training::class, $trainingId);
-                $this->entityManager->refresh($lockedTraining);
 
                 if ($lockedWorktime === null || $lockedTraining === null) {
                     throw new WorktimeNotFoundException('Worktime or training not found during update');
                 }
+
+                $this->entityManager->refresh($lockedWorktime);
+                $this->entityManager->refresh($lockedTraining);
 
                 $this->bookingAvailabilityService->checkUpdateBookingAvailability(
                     $lockedTraining,

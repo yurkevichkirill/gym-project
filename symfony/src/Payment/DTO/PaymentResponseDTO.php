@@ -26,7 +26,7 @@ final readonly class PaymentResponseDTO
         public ?string             $paidAt,
         public ?string             $expiresAt,
         public ?TrainerResponseDTO $trainer = null,
-        public ?Payment            $originalPayment = null,
+        public ?PaymentResponseDTO $originalPayment = null,
     )
     {}
 

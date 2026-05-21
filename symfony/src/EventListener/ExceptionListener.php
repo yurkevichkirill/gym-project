@@ -39,7 +39,7 @@ final readonly class ExceptionListener
             $reflection = new ReflectionClass($exception);
             $attributes = $reflection->getAttributes(WithHttpStatus::class);
 
-            if (!empty($attributes)) {
+            if (count($attributes) > 0) {
                 /** @var WithHttpStatus $attributeInstance */
                 $attributeInstance = $attributes[0]->newInstance();
                 $statusCode = $attributeInstance->statusCode;

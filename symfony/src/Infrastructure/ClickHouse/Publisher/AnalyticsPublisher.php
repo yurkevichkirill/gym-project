@@ -24,9 +24,6 @@ final readonly class AnalyticsPublisher
     public function publish(string $type, array $payload): void
     {
         $eventId = Uuid::v4()->toRfc4122();
-        if (!is_string($eventId)) {
-            $eventId = bin2hex(random_bytes(16));
-        }
 
         $this->bus->dispatch(
             new AnalyticsEvent(

@@ -18,6 +18,7 @@ use App\Membership\Service\MembershipAvailabilityService;
 use App\Trainer\Exception\TrainerTimeUnavailableException;
 use App\TrainerWorkTime\Entity\TrainerWorkTime;
 use App\TrainerWorkTime\Exception\TrainerWorktimeNotFoundException;
+use App\TrainerWorkTime\Exception\WorktimeNotFoundException;
 use App\Training\Entity\Training;
 use App\Training\Exception\TrainingNotFinishedException;
 use App\User\Service\AvailabilityService as UserAvailabilityService;
@@ -47,6 +48,11 @@ final readonly class BookingAvailabilityService
     {
         $this->userAvailabilityService->ensureNotBlocked($client);
         $this->userAvailabilityService->ensureActive($client);
+
+        if ($worktime === null)
+        {
+            throw new WorktimeNotFoundException();
+        }
 
         $trainer = $worktime->getTrainer();
 
