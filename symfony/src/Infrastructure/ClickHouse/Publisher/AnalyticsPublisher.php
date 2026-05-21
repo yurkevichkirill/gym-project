@@ -9,6 +9,7 @@ use DateTimeImmutable;
 use Random\RandomException;
 use Symfony\Component\Messenger\Exception\ExceptionInterface;
 use Symfony\Component\Messenger\MessageBusInterface;
+use Symfony\Component\Uid\Uuid;
 
 final readonly class AnalyticsPublisher
 {
@@ -22,7 +23,7 @@ final readonly class AnalyticsPublisher
      */
     public function publish(string $type, array $payload): void
     {
-        $eventId = uuid_create(UUID_TYPE_RANDOM);
+        $eventId = Uuid::v4()->toRfc4122();
         if (!is_string($eventId)) {
             $eventId = bin2hex(random_bytes(16));
         }
