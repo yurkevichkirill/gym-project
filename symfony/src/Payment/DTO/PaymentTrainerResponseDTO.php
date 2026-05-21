@@ -24,6 +24,7 @@ final readonly class PaymentTrainerResponseDTO
         public string $createdAt,
         public ?string $paidAt,
         public ?string $expiresAt,
+        public ?Payment $originalPayment = null,
     )
     {}
 
@@ -48,6 +49,7 @@ final readonly class PaymentTrainerResponseDTO
             createdAt: $createdAt->format(DATE_ATOM),
             paidAt: $payment->getPaidAt()?->format(DATE_ATOM) ?? '',
             expiresAt: $payment->getExpiresAt()?->format(DATE_ATOM) ?? '',
+            originalPayment: $payment->getOriginalPayment() !== null ? PaymentResponseDTO::fromEntity($payment->getOriginalPayment()) : null,
         );
     }
 }

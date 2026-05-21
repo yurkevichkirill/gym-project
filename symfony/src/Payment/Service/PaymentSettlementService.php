@@ -20,6 +20,7 @@ use App\Trainer\Entity\Trainer;
 use App\Trainer\Exception\TrainerNotFoundException;
 use App\User\Exception\UserNotFoundException;
 use DateTimeImmutable;
+use Doctrine\DBAL\LockMode;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
 use Stripe\Exception\ApiErrorException;
@@ -243,35 +244,61 @@ final readonly class PaymentSettlementService
             return;
         }
 
-        $this->paymentLifecycleService->transitionTo($payment, PaymentStatusEnum::REFUNDED);
+        $paymentId = $payment->getId();
 
-        $client = $payment->getClient();
-        if ($client === null) {
-            throw new UserNotFoundException('Payment client was not found');
-        }
-
-        $client->setBalance(
-            $client->getBalance() + $payment->getAmount()
-        );
-
-        $trainer = $payment->getTrainer();
-        if ($trainer !== null) {
-            $trainer->setBalance(
-                $trainer->getBalance() - $payment->getAmount()
+        $this->em->wrapInTransaction(function () use ($paymentId) {
+            $this->em->getConnection()->executeStatement(
+                'SELECT id FROM payment WHERE id = :id FOR UPDATE',
+                ['id' => $paymentId]
             );
-        }
 
-        $refundPayment = $this->paymentService->createPayment(
-            $client,
-            $payment->getAmount(),
-            $payment->getCategory(),
-            PaymentMethodEnum::BALANCE,
-            $payment->getTrainer(),
-        );
+            $lockedPayment = $this->em->find(Payment::class, $paymentId);
 
-        $refundPayment->setIsRefund(true);
+            if ($lockedPayment === null) {
+                throw new PaymentNotFoundException('Payment not found during refund');
+            }
 
-        $this->paymentLifecycleService->transitionTo($refundPayment, PaymentStatusEnum::SUCCEEDED);
+            if ($lockedPayment->getStatus() === PaymentStatusEnum::REFUNDED) {
+                $this->paymentLogger->warning(
+                    'payment.refund.rejected.already_refunded',
+                    $this->paymentEventContext($lockedPayment, 'refund', 'rejected', [
+                        'error' => 'Payment already refunded',
+                    ])
+                );
+                return;
+            }
+
+            $this->paymentLifecycleService->transitionTo($lockedPayment, PaymentStatusEnum::REFUNDED);
+
+            $client = $lockedPayment->getClient();
+            if ($client === null) {
+                throw new UserNotFoundException('Payment client was not found');
+            }
+
+            $client->setBalance(
+                $client->getBalance() + $lockedPayment->getAmount()
+            );
+
+            $trainer = $lockedPayment->getTrainer();
+            if ($trainer !== null) {
+                $trainer->setBalance(
+                    $trainer->getBalance() - $lockedPayment->getAmount()
+                );
+            }
+
+            $refundPayment = $this->paymentService->createPayment(
+                $client,
+                $lockedPayment->getAmount(),
+                $lockedPayment->getCategory(),
+                PaymentMethodEnum::BALANCE,
+                $lockedPayment->getTrainer(),
+            );
+
+            $refundPayment->setOriginalPayment($lockedPayment);
+            $refundPayment->setIsRefund(true);
+
+            $this->paymentLifecycleService->transitionTo($refundPayment, PaymentStatusEnum::SUCCEEDED);
+        });
     }
 
     /**

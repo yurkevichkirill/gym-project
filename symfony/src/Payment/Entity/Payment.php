@@ -81,6 +81,10 @@ final class Payment
     #[ORM\Column]
     private bool $isRefund = false;
 
+    #[ORM\ManyToOne(targetEntity: Payment::class)]
+    #[ORM\JoinColumn(name: 'original_payment_id', referencedColumnName: 'id', nullable: true)]
+    private ?Payment $originalPayment = null;
+
     public function getId(): ?int
     {
         return $this->id;
@@ -284,6 +288,18 @@ final class Payment
     public function setIsRefund(bool $isRefund): static
     {
         $this->isRefund = $isRefund;
+
+        return $this;
+    }
+
+    public function getOriginalPayment(): ?Payment
+    {
+        return $this->originalPayment;
+    }
+
+    public function setOriginalPayment(?Payment $originalPayment): Payment
+    {
+        $this->originalPayment = $originalPayment;
 
         return $this;
     }
