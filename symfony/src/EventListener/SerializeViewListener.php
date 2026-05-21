@@ -9,6 +9,7 @@ use App\Response\ResponseTypeDTO\ItemResponse;
 use App\Response\ResponseTypeDTO\NoContentResponse;
 use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
 use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Event\ViewEvent;
 use Symfony\Component\HttpKernel\KernelEvents;
 
@@ -43,7 +44,7 @@ final class SerializeViewListener
                 $result->status,
             ));
         } else if ($result instanceof NoContentResponse) {
-            $event->setResponse(new JsonResponse(
+            $event->setResponse(new Response(
                 status: $result->status,
             ));
         }
