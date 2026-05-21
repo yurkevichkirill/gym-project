@@ -44,7 +44,7 @@ final class TrainingController extends AbstractController
      * @throws InvalidArgumentException
      * @throws BadRequestHttpException
      */
-    #[Route('/api/trainer/trainings/', methods: ['GET'], format: 'json')]
+    #[Route('/api/admin/trainings/', methods: ['GET'], format: 'json')]
     #[OA\Get(
         operationId: 'adminGetAllTrainings',
         summary: 'Get all trainings with filters (Admin).',
