@@ -14,17 +14,17 @@ use App\Payment\Service\PaymentSettlementService;
 use App\Trainer\Exception\TrainerNotFoundException;
 use App\Trainer\Repository\TrainerRepository;
 use App\Trainer\Service\TrainerManager;
+use App\TrainerWorkTime\Entity\TrainerWorkTime;
 use App\TrainerWorkTime\Exception\TrainerWorktimeNotFoundException;
 use App\TrainerWorkTime\Repository\TrainerWorkTimeRepository;
 use App\Training\Entity\Training;
 use App\Training\Repository\TrainingRepository;
 use DateMalformedStringException;
 use DateTimeImmutable;
+use Doctrine\DBAL\LockMode;
 use Doctrine\ORM\EntityManagerInterface;
 use DomainException;
 use Psr\Log\LoggerInterface;
-use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
-use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Throwable;
 
 final readonly class BookingManager
@@ -74,15 +74,33 @@ final readonly class BookingManager
                 throw new TrainerWorktimeNotFoundException();
             }
 
-            $this->bookingAvailabilityService->checkBookingAvailability($client, $worktime, $dto->date, $dto->startTime, $dto->durationMinutes);
+            $worktimeId = $worktime->getId();
 
-            $price = $this->trainerManager->countPrice($trainer, $dto->durationMinutes);
+            $booking = $this->entityManager->wrapInTransaction(function () use ($client, $dto, $trainer, $worktimeId) {
+                $lockedWorktime = $this->entityManager->find(
+                    TrainerWorkTime::class,
+                    $worktimeId,
+                    LockMode::PESSIMISTIC_WRITE
+                );
 
-            $booking = $this->entityManager->wrapInTransaction(function () use ($client, $dto, $trainer, $worktime, $price) {
+                if ($lockedWorktime === null) {
+                    throw new TrainerWorktimeNotFoundException();
+                }
+
+                $this->bookingAvailabilityService->checkBookingAvailability(
+                    $client,
+                    $lockedWorktime,
+                    $dto->date,
+                    $dto->startTime,
+                    $dto->durationMinutes
+                );
+
+                $price = $this->trainerManager->countPrice($trainer, $dto->durationMinutes);
+
                 $training = new Training();
                 $training->setDurationMinutes($dto->durationMinutes);
                 $training->setStartTime(new DateTimeImmutable($dto->startTime));
-                $training->setTrainerWorkTime($worktime);
+                $training->setTrainerWorkTime($lockedWorktime);
                 $this->trainingRepo->create($training);
 
                 $booking = new Booking();
@@ -110,7 +128,7 @@ final readonly class BookingManager
                     'client_id' => $client->getId(),
                     'trainer_id' => $trainer->getId(),
                     'booking_id' => $booking->getId(),
-                    'price' => $price,
+                    'price' => $bookingPayment?->getAmount() ?? 0,
                     'payment_method' => $paymentMethod,
                 ]);
             } catch (Throwable $e) {
