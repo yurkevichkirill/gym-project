@@ -13,11 +13,13 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\Routing\Attribute\Route;
+use Throwable;
 
 final class WebhookController extends AbstractController
 {
     /**
      * @throws BadRequestHttpException
+     * @throws Throwable
      */
     #[Route('/api/webhooks/stripe/', methods: ['POST'], format: 'json')]
     #[OA\Post(

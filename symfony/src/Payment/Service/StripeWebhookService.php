@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace App\Payment\Service;
 
+use App\Payment\Exception\PaymentNotFoundException;
 use Psr\Log\LoggerInterface;
 use Stripe\Event;
 use Stripe\Exception\SignatureVerificationException;
 use Stripe\Webhook;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
-use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Throwable;
 use UnexpectedValueException;
 
@@ -23,6 +23,7 @@ final readonly class StripeWebhookService
 
     /**
      * @throws BadRequestHttpException
+     * @throws Throwable
      */
     public function handle(string $payload, ?string $signature): void
     {
@@ -43,38 +44,44 @@ final readonly class StripeWebhookService
         $this->handleEvent($event);
     }
 
+    /**
+     * @throws Throwable
+     */
     private function handleEvent(Event $event): void
     {
         $paymentIntentId = $event->data->object->id ?? '';
 
+        if ($paymentIntentId === '') {
+            $this->logger->warning('Stripe webhook received without PaymentIntent ID', ['type' => $event->type]);
+            return;
+        }
+
         try {
             switch ($event->type) {
                 case 'payment_intent.succeeded':
-                    if ($paymentIntentId !== '') {
-                        $this->paymentSettlementService->handleStripeSuccess($paymentIntentId);
-                    }
+                    $this->paymentSettlementService->handleStripeSuccess($paymentIntentId);
                     break;
                 case 'payment_intent.payment_failed':
-                    if ($paymentIntentId !== '') {
-                        $this->paymentSettlementService->failPaymentByStripeIntentId($paymentIntentId);
-                    }
+                    $this->paymentSettlementService->failPaymentByStripeIntentId($paymentIntentId);
                     break;
                 case 'payment_intent.canceled':
-                    if ($paymentIntentId !== '') {
-                        $this->paymentSettlementService->cancelPaymentByStripeIntentId($paymentIntentId);
-                    }
+                    $this->paymentSettlementService->cancelPaymentByStripeIntentId($paymentIntentId);
                     break;
             }
-        } catch (NotFoundHttpException $e) {
+        } catch (PaymentNotFoundException $e) {
             $this->logger->warning('Stripe webhook payment record not found', [
                 'type' => $event->type,
                 'message' => $e->getMessage(),
             ]);
+
+            throw $e;
         } catch (Throwable $e) {
-            $this->logger->warning('Stripe webhook warning', [
+            $this->logger->error('Stripe webhook warning', [
                 'type' => $event->type,
                 'message' => $e->getMessage(),
             ]);
+
+            throw $e;
         }
     }
 }
