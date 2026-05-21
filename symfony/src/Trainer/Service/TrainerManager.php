@@ -208,7 +208,9 @@ final readonly class TrainerManager
     {
         $pricePerHour = $trainer->getPricePerHour();
 
-        return $durationMinutes / self::MIN_DURATION * $pricePerHour / self::TRAINER_PRICE_DIVIDER;
+        $price = $durationMinutes / self::MIN_DURATION * $pricePerHour / self::TRAINER_PRICE_DIVIDER;
+
+        return (int) round($price);
     }
 
     public function getAvailable(Trainer $trainer): Trainer
