@@ -16,6 +16,11 @@ use DateTimeImmutable;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 
+#[ORM\UniqueConstraint(
+    name: 'uniq_refund_original_payment',
+    columns: ['original_payment_id'],
+    options: ['where' => 'is_refund = true']
+)]
 #[ORM\HasLifecycleCallbacks]
 #[ORM\Entity(repositoryClass: PaymentRepository::class)]
 final class Payment
