@@ -6,16 +6,16 @@ import Section from "@/shared/Section";
 import {useStore} from "@/store/StoreProvider";
 
 export const PersonalMemberships = () => {
-    const { clientStore } = useStore();
+    const { membershipStore } = useStore();
 
-    if (clientStore.isLoading) {
+    if (membershipStore.isLoading) {
         return <div>Loading...</div>;
     }
 
     return (
         <Section title="My Memberships">
             <div className="grid md:grid-cols-2 gap-4">
-                {clientStore.memberships.map((membership: MembershipType) => (
+                {membershipStore.memberships.map((membership: MembershipType) => (
                     <PersonalMembership
                         key = {membership.id}
                         id = {membership.id}

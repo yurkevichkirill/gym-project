@@ -1,7 +1,7 @@
 import {notify} from "@/lib/notify";
-import {buyMembership} from "@/api/memberships.api";
-import {clientStore} from "@/store/ClientStore";
 import {authStore} from "@/store/AuthStore";
+import {buyMembership} from "@/api/client/memberships.api";
+import {membershipStore} from "@/store/MembershipStore";
 
 export const handleMembership = async (membershipPlanId: number) => {
     const toastId = notify.loading("Buying membership...");
@@ -22,7 +22,7 @@ export const handleMembership = async (membershipPlanId: number) => {
         );
 
         await Promise.all([
-            clientStore.init(),
+            membershipStore.init(),
             authStore.checkAuth(),
         ])
 

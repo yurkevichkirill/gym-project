@@ -6,16 +6,16 @@ import Section from "@/shared/Section";
 import {useStore} from "@/store/StoreProvider";
 
 export const Payments = () => {
-    const { clientStore } = useStore();
+    const { paymentStore } = useStore();
 
-    if (clientStore.isLoading) {
+    if (paymentStore.isLoading) {
         return <div>Loading...</div>;
     }
 
     return (
         <Section title="Payments">
             <div className="flex flex-col gap-3">
-                {clientStore.payments.map((payment: PaymentType) => (
+                {paymentStore.payments.map((payment: PaymentType) => (
                     <Payment
                         key = {payment.id}
                         id = {payment.id}

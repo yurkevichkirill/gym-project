@@ -7,16 +7,16 @@ import {useStore} from "@/store/StoreProvider";
 import {observer} from "mobx-react-lite";
 
 export const Bookings = observer(() => {
-    const { clientStore } = useStore();
+    const { bookingStore } = useStore();
 
-    if (clientStore.isLoading) {
+    if (bookingStore.isLoading) {
         return <div>Loading...</div>;
     }
 
     return (
         <Section title="My Bookings">
             <div className="flex flex-col gap-4">
-                {clientStore.bookings.map((booking: BookingType) => (
+                {bookingStore.bookings.map((booking: BookingType) => (
                     <Booking
                         key = {booking.id}
                         id = {booking.id}

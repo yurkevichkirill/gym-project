@@ -9,7 +9,7 @@ export const useModifyClient = (initialPhone: string) => {
     const [loading, setLoading] = useState(false);
     const router = useRouter();
 
-    const { authStore } = useStore();
+    const { clientStore } = useStore();
 
     const handleEdit = async () => {
         if (!onEdit) {
@@ -26,7 +26,7 @@ export const useModifyClient = (initialPhone: string) => {
         setLoading(true);
 
         try {
-            await authStore.editUser({ phone: newPhone });
+            await clientStore.update({ phone: newPhone });
 
             notify.success("Profile updated", "Phone number changed", toastId);
             setOnEdit(false);
@@ -47,7 +47,7 @@ export const useModifyClient = (initialPhone: string) => {
         const toastId = notify.loading("Deleting account...");
 
         try {
-            await authStore.deleteUser();
+            await clientStore.delete();
 
             router.push("/");
 

@@ -6,7 +6,7 @@ import {
 type Props = {
     id: number,
     trainer: TrainerData | null,
-    amount: string,
+    amount: number,
     category: string,
     isRefund: boolean,
 };

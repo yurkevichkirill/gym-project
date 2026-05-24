@@ -3,10 +3,16 @@
 import {authStore} from "@/store/AuthStore";
 import {createContext, useContext, useEffect} from "react";
 import {clientStore} from "@/store/ClientStore";
+import {bookingStore} from "@/store/BookingStore";
+import {membershipStore} from "@/store/MembershipStore";
+import {paymentStore} from "@/store/PaymentStore";
 
 interface StoreContextType {
     authStore: typeof authStore;
     clientStore: typeof clientStore;
+    bookingStore: typeof bookingStore;
+    membershipStore: typeof membershipStore;
+    paymentStore: typeof paymentStore;
 }
 
 const StoreContext = createContext<StoreContextType | null>(null);
@@ -29,7 +35,7 @@ export const StoreProvider = ({
     }, []);
 
     return (
-        <StoreContext.Provider value={{ authStore, clientStore }}>
+        <StoreContext.Provider value={{ authStore, clientStore, bookingStore, membershipStore, paymentStore }}>
             {children}
         </StoreContext.Provider>
     );

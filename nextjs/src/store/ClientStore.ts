@@ -10,15 +10,15 @@ import ClientType from "@/types/client/client.type";
 export interface ClientStore {
     isLoading: boolean;
 
-    editUser: (payload: ClientEditType) => Promise<void>;
-    deleteUser: () => Promise<void>;
+    update: (payload: ClientEditType) => Promise<void>;
+    delete: () => Promise<void>;
     activate: (payload: ClientActivateType) => Promise<void>;
 }
 
 export const clientStore: ClientStore = {
     isLoading: false,
 
-    editUser: async (data: ClientEditType) => {
+    update: async (data: ClientEditType) => {
         runInAction(() => {
             clientStore.isLoading = true;
         });
@@ -40,7 +40,7 @@ export const clientStore: ClientStore = {
         }
     },
 
-    deleteUser: async () => {
+    delete: async () => {
         runInAction(() => {
             clientStore.isLoading = true;
         });

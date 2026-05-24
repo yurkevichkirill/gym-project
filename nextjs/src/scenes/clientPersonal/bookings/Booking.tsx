@@ -14,7 +14,7 @@ type Props = {
 }
 
 const Booking = observer(({ id, trainerId, bookedAt, date, durationMinutes, startTime, status }: Props) => {
-    const { clientStore } = useStore();
+    const { bookingStore } = useStore();
 
     const handleDelete = async () => {
         if (!confirm("Cancel this training?")) return;
@@ -22,7 +22,7 @@ const Booking = observer(({ id, trainerId, bookedAt, date, durationMinutes, star
         const toastId = notify.loading("Cancelling booking...");
 
         try {
-            await clientStore.deleteBooking(id);
+            await bookingStore.cancel(id);
 
             notify.success(
                 "Booking cancelled",

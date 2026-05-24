@@ -1,11 +1,11 @@
 import {notify} from "@/lib/notify";
-import {editMe} from "@/api/user.api";
+import {update} from "@/api/client/client.api";
 
 export const handleEditUser = async (phone: string) => {
     const toastId = notify.loading("Editing user...");
 
     try {
-        const res = await editMe({
+        const res = await update({
             phone,
         });
 

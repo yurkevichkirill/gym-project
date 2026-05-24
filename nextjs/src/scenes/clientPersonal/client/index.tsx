@@ -10,15 +10,15 @@ import {observer} from "mobx-react-lite";
 import {isClient} from "@/lib/utils/user.types.utils";
 
 const MyPersonalClient = observer(() => {
-    const { authStore, clientStore } = useStore();
+    const { authStore } = useStore();
 
     useEffect(() => {
         if (authStore.user && isClient(authStore.user)) {
-            void clientStore.init();
+            void authStore.checkAuth();
         }
-    }, [authStore.user]);
+    }, []);
 
-    if (authStore.isLoading || clientStore.isLoading) {
+    if (authStore.isLoading) {
         return <div>Loading...</div>;
     }
 

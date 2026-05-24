@@ -33,8 +33,8 @@ services:
       - XDEBUG_CONFIG=${XDEBUG_CONFIG}
       - XDEBUG_CLIENT_HOST=${XDEBUG_CLIENT_HOST}
       - PHP_IDE_CONFIG=${PHP_IDE_CONFIG}
-    depends_on:
-      - mailpit
+#    depends_on:
+#      - mailpit
     networks:
       - app-network
 
@@ -58,21 +58,21 @@ services:
     networks:
       - app-network
 
-  pgadmin:
-    container_name: pgadmin
-    image: dpage/pgadmin4:9.12.0
-    restart: always
-    environment:
-      PGADMIN_DEFAULT_EMAIL: admin@example.com
-      PGADMIN_DEFAULT_PASSWORD: admin
-    ports:
-      - "${PGADMIN_PORT}:80"
-    volumes:
-      - pgadmin_data:/var/lib/pgadmin
-    depends_on:
-      - postgres
-    networks:
-      - app-network
+#  pgadmin:
+#    container_name: pgadmin
+#    image: dpage/pgadmin4:9.12.0
+#    restart: always
+#    environment:
+#      PGADMIN_DEFAULT_EMAIL: admin@example.com
+#      PGADMIN_DEFAULT_PASSWORD: admin
+#    ports:
+#      - "${PGADMIN_PORT}:80"
+#    volumes:
+#      - pgadmin_data:/var/lib/pgadmin
+#    depends_on:
+#      - postgres
+#    networks:
+#      - app-network
 
   redis:
     container_name: redis
@@ -85,102 +85,102 @@ services:
     networks:
       - app-network
 
-  rabbitmq:
-    container_name: rabbitmq
-    image: rabbitmq:4.0-management-alpine
-    restart: always
-    ports:
-      - "${RABBITMQ_AMQP_PORT}:5672"
-      - "${RABBITMQ_UI_PORT}:15672"
-    environment:
-      RABBITMQ_DEFAULT_USER: user
-      RABBITMQ_DEFAULT_PASS: password
-    volumes:
-      - rabbitmq_data:/var/lib/rabbitmq
-    networks:
-      - app-network
-
-  messenger-worker:
-    container_name: messenger-worker
-    build:
-      context: "docker/dockerfiles/php"
-      dockerfile: Dockerfile
-    restart: always
-    working_dir: /var/www
-    command: >
-      php bin/console messenger:consume async
-      --time-limit=3600
-      --memory-limit=256M
-      --limit=1000
-      -vv
-    volumes:
-      - ./symfony:/var/www
-    depends_on:
-      - rabbitmq
-      - postgres
-      - mailpit
-    networks:
-      - app-network
-
-  analytics-worker:
-    container_name: analytics-worker
-    build:
-      context: "docker/dockerfiles/php"
-      dockerfile: Dockerfile
-    restart: always
-    working_dir: /var/www
-    command: >
-      php bin/console messenger:consume analytics
-      --time-limit=3600
-      --memory-limit=256M
-      --limit=1000
-      -vv
-    volumes:
-      - ./symfony:/var/www
-    depends_on:
-      - rabbitmq
-    networks:
-      - app-network
-
-  clickhouse:
-    container_name: clickhouse
-    image: clickhouse/clickhouse-server:25.8
-    restart: always
-    ports:
-      - "${CLICKHOUSE_API_PORT}:8123"
-      - "${CLICKHOUSE_NATIVE_PORT}:9000"
-    volumes:
-      - clickhouse_data:/var/lib/clickhouse
-    ulimits:
-      nofile:
-        soft: 262144
-        hard: 262144
-    networks:
-      - app-network
-
-  mailpit:
-    image: axllent/mailpit:v1.29
-    ports:
-      - "$MAILPIT_PORT:1025"
-      - "$MAILPIT_INTERFACE_PORT:8025"
-    networks:
-      - app-network
-
-#  frontend:
-#    container_name: frontend
-#    build:
-#      context: "nextjs"
-#      dockerfile: ../docker/dockerfiles/node/Dockerfile
+#  rabbitmq:
+#    container_name: rabbitmq
+#    image: rabbitmq:4.0-management-alpine
 #    restart: always
 #    ports:
-#      - "${NEXT_PORT}:3000"
-#    working_dir: /app
+#      - "${RABBITMQ_AMQP_PORT}:5672"
+#      - "${RABBITMQ_UI_PORT}:15672"
+#    environment:
+#      RABBITMQ_DEFAULT_USER: user
+#      RABBITMQ_DEFAULT_PASS: password
 #    volumes:
-#      - ./nextjs:/app
-#      - frontend_node_modules:/app/node_modules
-#      - pnpm-store:/app/.pnpm-store
+#      - rabbitmq_data:/var/lib/rabbitmq
 #    networks:
 #      - app-network
+
+#  messenger-worker:
+#    container_name: messenger-worker
+#    build:
+#      context: "docker/dockerfiles/php"
+#      dockerfile: Dockerfile
+#    restart: always
+#    working_dir: /var/www
+#    command: >
+#      php bin/console messenger:consume async
+#      --time-limit=3600
+#      --memory-limit=256M
+#      --limit=1000
+#      -vv
+#    volumes:
+#      - ./symfony:/var/www
+#    depends_on:
+#      - rabbitmq
+#      - postgres
+#      - mailpit
+#    networks:
+#      - app-network
+#
+#  analytics-worker:
+#    container_name: analytics-worker
+#    build:
+#      context: "docker/dockerfiles/php"
+#      dockerfile: Dockerfile
+#    restart: always
+#    working_dir: /var/www
+#    command: >
+#      php bin/console messenger:consume analytics
+#      --time-limit=3600
+#      --memory-limit=256M
+#      --limit=1000
+#      -vv
+#    volumes:
+#      - ./symfony:/var/www
+#    depends_on:
+#      - rabbitmq
+#    networks:
+#      - app-network
+
+#  clickhouse:
+#    container_name: clickhouse
+#    image: clickhouse/clickhouse-server:25.8
+#    restart: always
+#    ports:
+#      - "${CLICKHOUSE_API_PORT}:8123"
+#      - "${CLICKHOUSE_NATIVE_PORT}:9000"
+#    volumes:
+#      - clickhouse_data:/var/lib/clickhouse
+#    ulimits:
+#      nofile:
+#        soft: 262144
+#        hard: 262144
+#    networks:
+#      - app-network
+
+#  mailpit:
+#    image: axllent/mailpit:v1.29
+#    ports:
+#      - "$MAILPIT_PORT:1025"
+#      - "$MAILPIT_INTERFACE_PORT:8025"
+#    networks:
+#      - app-network
+
+  frontend:
+    container_name: frontend
+    build:
+      context: "nextjs"
+      dockerfile: ../docker/dockerfiles/node/Dockerfile
+    restart: always
+    ports:
+      - "${NEXT_PORT}:3000"
+    working_dir: /app
+    volumes:
+      - ./nextjs:/app
+      - frontend_node_modules:/app/node_modules
+      - pnpm-store:/app/.pnpm-store
+    networks:
+      - app-network
 
 networks:
   app-network:
