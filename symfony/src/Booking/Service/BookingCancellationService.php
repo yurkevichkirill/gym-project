@@ -25,6 +25,9 @@ final readonly class BookingCancellationService
     )
     {}
 
+    /**
+     * @throws Throwable
+     */
     public function cancel(Booking $booking, User $actor): void
     {
         if ($booking->getStatus() !== BookingStatusEnum::SCHEDULED) {
@@ -57,8 +60,8 @@ final readonly class BookingCancellationService
             'payment_method' => $payment?->getMethod()->value ?? 'unknown',
         ];
 
-        $this->entityManager->wrapInTransaction(function () use ($booking, $status, $payment, $loggingContext, $analyticalContext) {
-            try {
+        try {
+            $this->entityManager->wrapInTransaction(function () use ($booking, $status, $payment) {
                 if ($payment !== null) {
                     $this->paymentSettlementService->refund($payment);
                 }
@@ -70,26 +73,40 @@ final readonly class BookingCancellationService
                 }
 
                 $this->entityManager->flush();
+            });
+        } catch (Throwable $e) {
+            $this->bookingLogger->error('cancel.failed',
+                [
+                    'error' => $e->getMessage(),
+                    'exception_class' => $e::class,
+                    'domain' => 'booking',
+                    'operation' => 'cancel',
+                    'outcome' => 'failed',
+                ]
+                + $loggingContext
+            );
 
-                $this->analyticsPublisher->publish(
-                    'booking.canceled',
+            throw $e;
+        }
+
+        try {
+            $this->analyticsPublisher->publish(
+                'booking.canceled',
                     $analyticalContext,
-                );
+            );
+        } catch (Throwable $e) {
+            $this->bookingLogger->error('analytics.publish.failed',
+                [
+                    'error' => $e->getMessage(),
+                    'exception_class' => $e::class,
+                    'domain' => 'booking',
+                    'operation' => 'cancel',
+                    'outcome' => 'failed',
+                ]
+                + $loggingContext
+            );
 
-            } catch (Throwable $e) {
-                $this->bookingLogger->error('cancel.failed',
-                    [
-                        'error' => $e->getMessage(),
-                        'exception_class' => $e::class,
-                        'domain' => 'booking',
-                        'operation' => 'cancel',
-                        'outcome' => 'failed',
-                    ]
-                    + $loggingContext
-                );
-
-                throw $e;
-            }
-        });
+            throw $e;
+        }
     }
 }
