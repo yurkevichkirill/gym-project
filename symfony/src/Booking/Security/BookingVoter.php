@@ -37,13 +37,18 @@ final class BookingVoter extends Voter
 
         if (!$user instanceof Client && !$user instanceof Admin) return false;
 
-        if ($user instanceof Admin && in_array($attribute, [self::VIEW_ADMIN, self::CANCEL_ADMIN], true)) {
-            return true;
-        }
-
         /** @var Booking $booking **/
         $booking = $subject;
 
-        return $booking->getClient()->getId() === $user->getId();
+        if (in_array($attribute, [self::VIEW_OWN, self::CANCEL_OWN], true)) {
+            return $user instanceof Client
+                && $booking->getClient()->getId() === $user->getId();
+        }
+
+        if (in_array($attribute, [self::VIEW_ADMIN, self::CANCEL_ADMIN], true)) {
+            return $user instanceof Admin;
+        }
+
+        return false;
     }
 }
