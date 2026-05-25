@@ -32,7 +32,7 @@ final readonly class GetBookingsRequestDTO
         #[MultipleOf(multiple: 30)]
         public ?int $durationMinutes = null,
 
-        public string $sort = 'bookedAt:ASC',
+        public string $sort = 'date:ASC',
 
         #[Assert\Positive]
         public int $page = 1,

@@ -1,5 +1,6 @@
 import {MembershipPlanType} from "@/types/membership/membership-plan.type";
 import PaymentType from "@/types/payment/payment.type";
+import { MembershipStatusEnum } from "./membership-status.enum";
 
 export default interface MembershipType {
     id: number,
@@ -9,7 +10,7 @@ export default interface MembershipType {
     membershipPlan: MembershipPlanType,
     startDate: string,
     endDate: string,
-    status: string,
+    status: MembershipStatusEnum,
     visits: number,
     createdAt: string,
     frozenAt: string,

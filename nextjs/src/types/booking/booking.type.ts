@@ -1,4 +1,5 @@
 import PaymentType from "@/types/payment/payment.type";
+import { BookingStatusEnum } from "./bookings-status.enum";
 
 export default interface BookingType {
     id: number,
@@ -7,6 +8,6 @@ export default interface BookingType {
     date: string,
     durationMinutes: number,
     startTime: string,
-    status: string,
+    status: BookingStatusEnum,
     payment: PaymentType,
 }

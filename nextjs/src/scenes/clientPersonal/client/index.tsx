@@ -1,6 +1,5 @@
 'use client'
 
-import {useEffect} from "react";
 import Client from "@/scenes/clientPersonal/client/Client";
 import Bookings from "@/scenes/clientPersonal/bookings";
 import PersonalMemberships from "@/scenes/clientPersonal/membership";
@@ -11,12 +10,6 @@ import {isClient} from "@/lib/utils/user.types.utils";
 
 const MyPersonalClient = observer(() => {
     const { authStore } = useStore();
-
-    useEffect(() => {
-        if (authStore.user && isClient(authStore.user)) {
-            void authStore.checkAuth();
-        }
-    }, []);
 
     if (authStore.isLoading) {
         return <div>Loading...</div>;

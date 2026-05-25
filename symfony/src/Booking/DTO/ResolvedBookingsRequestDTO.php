@@ -19,7 +19,7 @@ final readonly class ResolvedBookingsRequestDTO
         public ?DateTimeImmutable $date = null,
         public ?DateTimeImmutable $startTime = null,
         public ?int               $durationMinutes = null,
-        public string             $sort = 'bookedAt:ASC',
+        public string             $sort = 'date:ASC',
         public int                $page = 1,
         public int                $limit = 20,
     ) {}

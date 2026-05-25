@@ -4,9 +4,15 @@ import PaymentType from "@/types/payment/payment.type";
 import Payment from "@/scenes/clientPersonal/payment/Payment";
 import Section from "@/shared/Section";
 import {useStore} from "@/store/StoreProvider";
+import { observer } from "mobx-react-lite";
+import { useEffect } from "react";
 
-export const Payments = () => {
+export const Payments = observer(() => {
     const { paymentStore } = useStore();
+
+    useEffect(() => {
+        void paymentStore.init();
+    }, [paymentStore]);
 
     if (paymentStore.isLoading) {
         return <div>Loading...</div>;
@@ -28,6 +34,6 @@ export const Payments = () => {
             </div>
         </Section>
     );
-}
+});
 
 export default Payments;

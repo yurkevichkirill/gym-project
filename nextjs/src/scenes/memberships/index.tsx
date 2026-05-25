@@ -11,6 +11,7 @@ import Image from "next/image";
 import {useEffect, useState} from "react";
 import {MembershipPlanType} from "@/types/membership/membership-plan.type";
 import {getMembershipPlans} from "@/api/public/membership-plans.api";
+import { ChevronDownIcon } from "@heroicons/react/24/outline";
 
 const container = {
     hidden: {},
@@ -24,6 +25,8 @@ const Memberships = () => {
     const [ memberships, setMemberships ] = useState<MembershipPlanType[]>([]);
     const [error, setError] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
+    
+    const [isExpanded, setIsExpanded] = useState(false);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -54,6 +57,8 @@ const Memberships = () => {
         return <div>Error: {error}</div>;
     }
 
+    const visibleMemberships = isExpanded ? memberships : memberships.slice(0, 2);
+
     return (
         <section id="memberships" className="mx-auto min-h-full w-full py-20">
             <motion.div
@@ -80,10 +85,10 @@ const Memberships = () => {
                 </motion.div>
 
                 {/* MEMBERSHIPS */}
-                <div>
+                <div className="flex flex-col items-center">
                     <div className="mt-10 h-[353px] w-full overflow-x-auto overflow-y-hidden">
                         <ul className="flex justify-center gap-20 whitespace-nowrap">
-                            {memberships.map((membership: MembershipPlanType) => (
+                            {visibleMemberships.map((membership: MembershipPlanType) => (
                                 <Membership
                                     key = {membership.id}
                                     id = {membership.id}
@@ -95,6 +100,21 @@ const Memberships = () => {
                             ))}
                         </ul>
                     </div>
+
+                    {memberships.length > 2 && (
+                        <button
+                            onClick={() => setIsExpanded(!isExpanded)}
+                            className="flex items-center justify-center gap-2 text-sm text-gray-500 hover:text-primary-500 py-4 transition-colors cursor-pointer"
+                        >
+                            {isExpanded ? "Show less" : `Show all (${memberships.length})`}
+                            
+                            <ChevronDownIcon
+                                className={`w-4 h-4 transition-transform duration-300 ${
+                                    isExpanded ? "rotate-180" : ""
+                                }`}
+                            />
+                        </button>
+                    )}
                 </div>
 
                 {/* GRAPHICS AND DESCRIPTION */}
@@ -143,13 +163,13 @@ const Memberships = () => {
                             <p className="my-5">
                                 Thousands of battle-hardened members across the globe have transformed
                                 through our brutal training regimens. From complete beginners to elite
-                                competitors, they've shattered personal records, built unbreakable bodies,
+                                competitors, they`ve shattered personal records, built unbreakable bodies,
                                 and achieved fitness dominance. Our savage methodology delivers measurable
                                 results - increased strength, shredded fat, enhanced endurance.
                             </p>
                             <p className="mb-5">
-                                Join the legion of victors who've conquered their genetic limits.
-                                Your transformation awaits among millions who've already claimed
+                                Join the legion of victors who`ve conquered their genetic limits.
+                                Your transformation awaits among millions who`ve already claimed
                                 victory over weakness. Step into the arena. Become unbreakable.
                             </p>
                         </motion.div>

@@ -2,6 +2,17 @@ import { motion } from "framer-motion";
 import {useStore} from "@/store/StoreProvider";
 import {observer} from "mobx-react-lite";
 import {notify} from "@/lib/notify";
+import { BookingStatusEnum } from "@/types/booking/bookings-status.enum";
+
+const statusColorMap: Record<string, string> = {
+    scheduled: "bg-blue-100 text-blue-800",
+    pending: "bg-yellow-100 text-yellow-800",
+    completed: "bg-green-100 text-green-800",
+    canceled_by_client: "bg-red-100 text-red-800",
+    canceled_by_trainer: "bg-red-100 text-red-800",
+    canceled_by_system: "bg-gray-100 text-gray-800",
+    canceled_payment_failed: "bg-red-200 text-red-900",
+};
 
 type Props = {
     id: number,
@@ -10,7 +21,7 @@ type Props = {
     date: string,
     durationMinutes: number,
     startTime: string,
-    status: string,
+    status: BookingStatusEnum,
 }
 
 const Booking = observer(({ id, trainerId, bookedAt, date, durationMinutes, startTime, status }: Props) => {
@@ -39,6 +50,8 @@ const Booking = observer(({ id, trainerId, bookedAt, date, durationMinutes, star
         }
     }
 
+    const badgeColors = statusColorMap[status] || "bg-gray-100 text-gray-800";
+
     return (
         <motion.div
             whileHover={{ scale: 1.02 }}
@@ -54,15 +67,15 @@ const Booking = observer(({ id, trainerId, bookedAt, date, durationMinutes, star
                     </p>
                 </div>
 
-                <span className="text-sm px-3 py-1 rounded-full bg-primary-100">
-                    {status}
+                <span className={`text-sm px-3 py-1 rounded-full ${badgeColors}`}>
+                    {status.replace(/_/g, ' ')}
                 </span>
             </motion.div>
             <button
                 className="rounded-b-2xl cursor-pointer bg-primary-300 px-10 hover:bg-primary-500 hover:text-white"
                 onClick={handleDelete}
             >
-                Delete
+                Cancel
             </button>
         </motion.div>
     );

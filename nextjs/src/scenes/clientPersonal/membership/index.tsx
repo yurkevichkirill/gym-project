@@ -4,9 +4,15 @@ import MembershipType from "@/types/membership/membership.type";
 import PersonalMembership from "@/scenes/clientPersonal/membership/Membership";
 import Section from "@/shared/Section";
 import {useStore} from "@/store/StoreProvider";
+import { observer } from "mobx-react-lite";
+import { useEffect } from "react";
 
-export const PersonalMemberships = () => {
+export const PersonalMemberships = observer(() => {
     const { membershipStore } = useStore();
+
+    useEffect(() => {
+        void membershipStore.init();
+    }, [membershipStore]);
 
     if (membershipStore.isLoading) {
         return <div>Loading...</div>;
@@ -30,6 +36,6 @@ export const PersonalMemberships = () => {
             </div>
         </Section>
     );
-}
+});
 
 export default PersonalMemberships;
