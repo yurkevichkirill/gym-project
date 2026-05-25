@@ -21,7 +21,7 @@ final readonly class ResolvedPaymentsRequestDTO
         public ?PaymentStatusEnum $status = null,
         public ?DateTimeImmutable $minCreatedAt = null,
         public ?DateTimeImmutable $maxCreatedAt = null,
-        public string             $sort = 'paidAt:DESC',
+        public string             $sort = 'createdAt:DESC',
         public int                $page = 1,
         public int                $limit = 20,
     ) {}

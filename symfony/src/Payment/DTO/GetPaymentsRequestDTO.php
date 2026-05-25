@@ -34,7 +34,7 @@ final readonly class GetPaymentsRequestDTO
         #[Assert\Date]
         public ?string            $maxCreatedAt = null,
 
-        public string             $sort = 'paidAt:DESC',
+        public string             $sort = 'createdAt:DESC',
 
         #[Assert\Positive]
         public int                $page = 1,

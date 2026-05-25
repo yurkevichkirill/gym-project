@@ -67,7 +67,7 @@ const Payment = ({ trainer, amount, currency, category, status, method, isRefund
         day: 'numeric', 
         month: 'short', 
         year: 'numeric' 
-    }) : 'Not paid yet';
+    }) : 'Not paid';
 
     const formattedAmount = new Intl.NumberFormat('en-US', {
         style: 'currency',

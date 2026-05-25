@@ -46,7 +46,7 @@ final class PaymentController extends AbstractController
             new OA\Parameter(name: 'status', in: 'query', schema: new OA\Schema(type: 'string', enum: PaymentStatusEnum::class), example: 'succeeded'),
             new OA\Parameter(name: 'minCreatedAt', in: 'query', schema: new OA\Schema(type: 'string', format: 'date'), example: '2026-01-01'),
             new OA\Parameter(name: 'maxCreatedAt', in: 'query', schema: new OA\Schema(type: 'string', format: 'date'), example: '2026-05-12'),
-            new OA\Parameter(name: 'sort', in: 'query', schema: new OA\Schema(type: 'string'), example: 'paidAt:DESC'),
+            new OA\Parameter(name: 'sort', in: 'query', schema: new OA\Schema(type: 'string'), example: 'createdAt:DESC'),
             new OA\Parameter(name: 'page', in: 'query', schema: new OA\Schema(type: 'integer', default: 1)),
             new OA\Parameter(name: 'limit', in: 'query', schema: new OA\Schema(type: 'integer', default: 20)),
         ],
