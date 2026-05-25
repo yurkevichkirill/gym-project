@@ -105,8 +105,6 @@ final readonly class BookingCancellationService
                 ]
                 + $loggingContext
             );
-
-            throw $e;
         }
     }
 }

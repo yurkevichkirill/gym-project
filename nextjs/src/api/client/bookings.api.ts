@@ -1,5 +1,5 @@
 import BookingType from "@/types/booking/booking.type";
-import {apiDelete, apiGet, apiPost} from "@/lib/apiClient";
+import {apiGet, apiPost} from "@/lib/apiClient";
 import BookingCreateType from "@/types/booking/booking-create.type";
 import {ApiCollectionResponse} from "@/types/api-collection-response";
 import {ApiItemResponse} from "@/types/api-item-response.type";
@@ -45,5 +45,5 @@ export const createBooking = async ({ trainerId, date, durationMinutes, startTim
 }
 
 export const cancelBooking = async (id: number) => {
-    return apiDelete<null>(`/me/bookings/${id}/`);
+    return apiPost<null>(`/me/bookings/${id}/cancel/`);
 }

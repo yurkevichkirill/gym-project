@@ -36,7 +36,7 @@ export const Payments = observer(() => {
                         status={payment.status}
                         method={payment.method}
                         isRefund={payment.isRefund}
-                        createdAt={payment.createdAt}
+                        paidAt={payment.paidAt}
                     />
                 ))}
             </div>

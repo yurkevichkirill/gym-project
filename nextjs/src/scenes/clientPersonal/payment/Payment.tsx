@@ -19,7 +19,7 @@ type Props = {
     status: string;
     method: string;
     isRefund: boolean;
-    createdAt: string;
+    paidAt: string | null;
 };
 
 const statusStyleMap: Record<string, string> = {
@@ -59,15 +59,20 @@ const getCategoryDetails = (category: string, trainer: TrainerData | null) => {
     }
 };
 
-const Payment = ({ trainer, amount, currency, category, status, method, isRefund, createdAt: createAt }: Props) => {
+const Payment = ({ trainer, amount, currency, category, status, method, isRefund, paidAt }: Props) => {
     const statusColors = statusStyleMap[status] || "bg-gray-100 text-gray-800";
     const { icon, title, bg } = getCategoryDetails(category, trainer);
     
-    const formattedDate = new Date(createAt).toLocaleDateString('en-US', { 
+    const formattedDate = paidAt ? new Date(paidAt).toLocaleDateString('en-US', { 
         day: 'numeric', 
         month: 'short', 
         year: 'numeric' 
-    });
+    }) : 'Not paid yet';
+
+    const formattedAmount = new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: currency,
+    }).format(amount / 100);
 
     const isPositive = isRefund || category === PaymentCategoryEnum.BALANCE_TOP_UP;
 
@@ -98,7 +103,7 @@ const Payment = ({ trainer, amount, currency, category, status, method, isRefund
             <div className="flex flex-col items-end gap-2">
                 <div className={`flex items-center gap-1.5 font-bold ${isPositive ? 'text-emerald-600' : 'text-gray-900'}`}>
                     {isRefund && <ArrowUturnUpIcon className="w-4 h-4 text-blue-600 stroke-2" />}
-                    {isPositive ? '+' : '-'}{amount} {currency.toUpperCase()}
+                    {isPositive ? '+' : '-'} {formattedAmount}
                 </div>
                 
                 <span className={`text-sm px-3 py-1 rounded-full ${statusColors}`}>

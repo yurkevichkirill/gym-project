@@ -52,13 +52,15 @@ const Booking = observer(({ id, trainerId, bookedAt, date, durationMinutes, star
 
     const badgeColors = statusColorMap[status] || "bg-gray-100 text-gray-800";
 
+    const isScheduled = status === 'scheduled';
+
     return (
         <motion.div
             whileHover={{ scale: 1.02 }}
             className="flex flex-col"
         >
             <motion.div
-                className="border border-gray-50 rounded-t-xl p-4 flex justify-between items-center"
+                className={`border border-gray-50 p-4 flex justify-between items-center ${isScheduled ? 'rounded-t-xl' : 'rounded-xl'}`}
             >
                 <div>
                     <p className="font-semibold">{date}</p>
@@ -71,12 +73,15 @@ const Booking = observer(({ id, trainerId, bookedAt, date, durationMinutes, star
                     {status.replace(/_/g, ' ')}
                 </span>
             </motion.div>
-            <button
-                className="rounded-b-2xl cursor-pointer bg-primary-300 px-10 hover:bg-primary-500 hover:text-white"
-                onClick={handleDelete}
-            >
-                Cancel
-            </button>
+            
+            {isScheduled && (
+                <button
+                    className="rounded-b-2xl cursor-pointer bg-primary-300 px-10 hover:bg-primary-500 hover:text-white"
+                    onClick={handleDelete}
+                >
+                    Cancel
+                </button>
+            )}
         </motion.div>
     );
 });

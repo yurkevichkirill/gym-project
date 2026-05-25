@@ -25,6 +25,11 @@ const Client = observer(() => {
         handleDelete,
     } = useModifyClient(client.phone);
 
+    const formattedAmount = new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: 'USD',
+    }).format(client.balance / 100);
+
     return (
         <motion.div className="flex flex-col rounded-2xl shadow-md ">
             <motion.div
@@ -55,7 +60,7 @@ const Client = observer(() => {
                     <p className="text-sm">Joined: {new Date(client.createdAt).toISOString().split('T')[0]}</p>
 
                     <p className="text-sm">
-                        Balance: {client.balance} $
+                        Balance: {formattedAmount} $
                     </p>
                 </div>
             </motion.div>

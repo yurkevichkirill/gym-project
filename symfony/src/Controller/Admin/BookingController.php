@@ -262,6 +262,7 @@ final class BookingController extends AbstractController
     /**
      * @throws AccessDeniedException
      * @throws InvalidBookingStatusException
+     * @throws Throwable
      */
     #[Route('/api/bookings/{id}/cancel/', methods: ['POST'], format: 'json')]
     #[OA\Post(

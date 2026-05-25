@@ -42,7 +42,7 @@ export const Bookings = observer(() => {
         return <div>Loading...</div>;
     }
 
-    const visibleBookings = isExpanded ? sortedBookings : sortedBookings.slice(0, 5);
+    const visibleBookings = isExpanded ? sortedBookings : sortedBookings.slice(0, 3);
 
     return (
         <Section title="My Bookings">
@@ -60,7 +60,7 @@ export const Bookings = observer(() => {
                     />
                 ))}
 
-                {sortedBookings.length > 5 && (
+                {sortedBookings.length > 3 && (
                     <button
                         onClick={() => setIsExpanded(!isExpanded)}
                         className="flex items-center justify-center gap-2 text-sm text-gray-500 hover:text-primary-500 py-2 mt-2 transition-colors cursor-pointer"
