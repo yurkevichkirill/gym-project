@@ -201,6 +201,18 @@ final readonly class PaymentSettlementService
             throw new PaymentNotFoundException('Payment for Stripe intent was not found');
         }
 
+        if ($payment->getStatus() === PaymentStatusEnum::SUCCEEDED) {
+            return;
+        }
+
+        if ($payment->getStatus() !== PaymentStatusEnum::PENDING) {
+            $this->paymentLogger->warning('payment.stripe_success.ignored', [
+                'intent_id' => $intentId,
+                'current_status' => $payment->getStatus()->value,
+            ]);
+            return;
+        }
+
         $booking = $payment->getBooking();
 
         $this->em->wrapInTransaction(function () use ($payment, $booking) {

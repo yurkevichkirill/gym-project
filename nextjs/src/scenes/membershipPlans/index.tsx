@@ -3,7 +3,6 @@
 import {SelectedPage} from "@/shared/types";
 import { motion } from "framer-motion";
 import HText from "@/shared/HText";
-import Membership from "@/scenes/memberships/Membership";
 import ActionButton from "@/shared/ActionButton";
 import BenefitsPageGraphic from "@/assets/BenefitsPageGraphic.png";
 import {useNavigation} from "@/context/navigation-context";
@@ -11,22 +10,13 @@ import Image from "next/image";
 import {useEffect, useState} from "react";
 import {MembershipPlanType} from "@/types/membership/membership-plan.type";
 import {getMembershipPlans} from "@/api/public/membership-plans.api";
-import { ChevronDownIcon } from "@heroicons/react/24/outline";
-
-const container = {
-    hidden: {},
-    visible: {
-        transition: { staggerChildren: 0.2 }
-    }
-}
+import MembershipPlan from "./MembershipPlan";
 
 const Memberships = () => {
     const { setSelectedPage } = useNavigation();
     const [ memberships, setMemberships ] = useState<MembershipPlanType[]>([]);
     const [error, setError] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
-    
-    const [isExpanded, setIsExpanded] = useState(false);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -57,8 +47,6 @@ const Memberships = () => {
         return <div>Error: {error}</div>;
     }
 
-    const visibleMemberships = isExpanded ? memberships : memberships.slice(0, 2);
-
     return (
         <section id="memberships" className="mx-auto min-h-full w-full py-20">
             <motion.div
@@ -85,36 +73,21 @@ const Memberships = () => {
                 </motion.div>
 
                 {/* MEMBERSHIPS */}
-                <div className="flex flex-col items-center">
+                <div>
                     <div className="mt-10 h-[353px] w-full overflow-x-auto overflow-y-hidden">
                         <ul className="flex justify-center gap-20 whitespace-nowrap">
-                            {visibleMemberships.map((membership: MembershipPlanType) => (
-                                <Membership
-                                    key = {membership.id}
-                                    id = {membership.id}
-                                    name = {membership.name}
-                                    durationDays = {membership.durationDays}
-                                    sessionLimit = {membership.sessionLimit}
-                                    price = {membership.price}
+                            {memberships.map((membership: MembershipPlanType) => (
+                                <MembershipPlan
+                                    key={membership.id}
+                                    id={membership.id}
+                                    name={membership.name}
+                                    durationDays={membership.durationDays}
+                                    sessionLimit={membership.sessionLimit}
+                                    price={membership.price}
                                 />
                             ))}
                         </ul>
                     </div>
-
-                    {memberships.length > 2 && (
-                        <button
-                            onClick={() => setIsExpanded(!isExpanded)}
-                            className="flex items-center justify-center gap-2 text-sm text-gray-500 hover:text-primary-500 py-4 transition-colors cursor-pointer"
-                        >
-                            {isExpanded ? "Show less" : `Show all (${memberships.length})`}
-                            
-                            <ChevronDownIcon
-                                className={`w-4 h-4 transition-transform duration-300 ${
-                                    isExpanded ? "rotate-180" : ""
-                                }`}
-                            />
-                        </button>
-                    )}
                 </div>
 
                 {/* GRAPHICS AND DESCRIPTION */}

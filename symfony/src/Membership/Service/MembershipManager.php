@@ -57,7 +57,7 @@ final readonly class MembershipManager
                 throw new MembershipPlanNotFoundException();
             }
 
-            return $this->entityManager->wrapInTransaction(function () use ($client, $plan) {
+            $membership = $this->entityManager->wrapInTransaction(function () use ($client, $plan) {
 
                 if ($this->membershipAvailabilityService->hasActiveMembership($client)) {
                     throw new MembershipActiveException();
@@ -82,16 +82,27 @@ final readonly class MembershipManager
 
                 $this->entityManager->flush();
 
+                return $membership;
+            });
+
+            try {
                 $this->analyticsPublisher->publish('membership.created', [
                     'client_id' => $client->getId(),
                     'membership_id' => $membership->getId(),
                     'plan_id' => $plan->getId(),
-                    'price' => $price,
+                    'price' => $plan->getPrice(),
                     'payment_method' => $membership->getPayment()?->getMethod()->value ?? 'unknown',
                 ]);
+            } catch (Throwable $e) {
+                $this->membershipLogger->warning('membership.analytics_failed',
+                    $this->membershipEventContext($loggingContext, 'create', 'analytics_failed', [
+                        'error' => $e->getMessage(),
+                        'exception_class' => $e::class,
+                    ])
+                );
+            }
 
-                return $membership;
-            });
+            return $membership;
 
         } catch (MembershipPlanNotFoundException $e) {
             $this->membershipLogger->notice('membership.rejected',
@@ -141,7 +152,8 @@ final readonly class MembershipManager
 
             $this->entityManager->flush();
 
-            $this->analyticsPublisher->publish(
+            try {
+                $this->analyticsPublisher->publish(
                 'membership.froze',
                 [
                     'client_id' => $membership->getClient()->getId(),
@@ -151,6 +163,14 @@ final readonly class MembershipManager
                     'payment_method' => $payment->getMethod()->value,
                 ]
             );
+            } catch (Throwable $e) {
+                $this->membershipLogger->warning('membership.analytics_failed',
+                    $this->membershipEventContext($loggingContext, 'freeze', 'analytics_failed', [
+                        'error' => $e->getMessage(),
+                        'exception_class' => $e::class,
+                    ])
+                );
+            }
 
             return $membership;
         } catch (InvalidMembershipStatusException $e) {
