@@ -29,25 +29,25 @@ export const buyMembership = async ({ membershipPlanId }: MembershipBuyType): Pr
 }
 
 export const freezeMembership = async ({ id }: MembershipFreezeType): Promise<MembershipType> => {
-    const data = await apiPost<ApiItemResponse<MembershipType>>(`/me/membership/${id}/freeze/`);
+    const data = await apiPost<ApiItemResponse<MembershipType>>(`/me/memberships/${id}/freeze/`);
 
     return data.data;
 }
 
 export const unfreezeMembership = async ({ id }: MembershipUnfreezeType): Promise<MembershipType> => {
-    const data = await apiPost<ApiItemResponse<MembershipType>>(`/me/membership/${id}/unfreeze/`);
+    const data = await apiPost<ApiItemResponse<MembershipType>>(`/me/memberships/${id}/unfreeze/`);
 
     return data.data;
 }
 
 export const renewMembership = async ({ id }: MembershipRenewType): Promise<MembershipType> => {
-    const data = await apiPost<ApiItemResponse<MembershipType>>(`/me/membership/${id}/renew/`);
+    const data = await apiPost<ApiItemResponse<MembershipType>>(`/me/memberships/${id}/renew/`);
 
     return data.data;
 }
 
 export const terminateMembership = async ({ id }: MembershipTerminateType): Promise<MembershipType> => {
-    const data = await apiPost<ApiItemResponse<MembershipType>>(`/me/membership/${id}/terminate/`);
+    const data = await apiPost<ApiItemResponse<MembershipType>>(`/me/memberships/${id}/terminate/`);
 
     return data.data;
 }
