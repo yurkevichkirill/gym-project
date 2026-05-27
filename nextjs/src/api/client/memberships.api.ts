@@ -15,7 +15,7 @@ export const getAllMemberships = async (): Promise<MembershipType[]> => {
 }
 
 export const getMembership = async (id: number): Promise<MembershipType> => {
-    const data = await apiGet<ApiCollectionResponse<MembershipType>>(`/me/memberships/${id}/`);
+    const data = await apiGet<ApiItemResponse<MembershipType>>(`/me/memberships/${id}/`);
 
     return data.data;
 }

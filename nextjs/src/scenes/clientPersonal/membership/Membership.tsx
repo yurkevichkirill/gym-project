@@ -6,6 +6,9 @@ import { useStore } from "@/store/StoreProvider";
 import { notify } from "@/lib/notify";
 import { useState } from "react";
 import { observer } from "mobx-react-lite";
+import { PaymentMethodEnum } from "@/types/payment/payment-method.enum";
+import { createStripeIntent } from "@/api/client/payments.api";
+import { StripeModal } from "@/scenes/stripe/stripeModal";
 
 const statusColorMap: Record<string, string> = {
     active: "bg-green-100 text-green-800",
@@ -57,6 +60,8 @@ const PersonalMembership = observer(({
 }: Props) => {
     const { membershipStore } = useStore();
     const [isLoading, setIsLoading] = useState(false);
+    
+    const [stripeClientSecret, setStripeClientSecret] = useState<string | null>(null);
 
     const normalizedStatus = String(status).toLowerCase();
     const badgeColors = statusColorMap[normalizedStatus] || "bg-gray-100 text-gray-800";
@@ -68,8 +73,23 @@ const PersonalMembership = observer(({
         const toastId = notify.loading(`Processing ${action}...`);
 
         try {
-            await membershipStore[action]({ id });
-            notify.success("Success", `Membership successfully updated!`, toastId);
+            const res = await membershipStore[action]({ id });
+
+            if (action === 'renew') {
+                const payment = res?.payment;
+
+                if (payment && payment.method === PaymentMethodEnum.CARD) {
+                    notify.dismiss(toastId);
+
+                    const clientSecret = await createStripeIntent(payment.id);
+                    setStripeClientSecret(clientSecret);
+                    return; 
+                } else {
+                    notify.success("Success", `Membership successfully renewed via inner balance!`, toastId);
+                }
+            } else {
+                notify.success("Success", `Membership successfully updated!`, toastId);
+            }
         } catch (error: unknown) {
             let errorMessage = "Something went wrong";
             if (error instanceof Error) errorMessage = error.message;
@@ -108,6 +128,38 @@ const PersonalMembership = observer(({
                         </button>
                     ))}
                 </div>
+            )}
+
+            {stripeClientSecret && (
+                <StripeModal
+                    clientSecret={stripeClientSecret}
+                    onClose={() => setStripeClientSecret(null)}
+                    onSuccess={async () => {
+                        setStripeClientSecret(null);
+                        
+                        let attempts = 0;
+                        const maxAttempts = 4;
+
+                        const pollStore = async () => {
+                            attempts++;
+                            await membershipStore.init();
+
+                            const hasActive = membershipStore.memberships.some(
+                                (m) => m.status === MembershipStatusEnum.ACTIVE
+                            );
+
+                            if (hasActive) return;
+
+                            if (attempts < maxAttempts) {
+                                setTimeout(pollStore, 1500);
+                            }
+                        };
+
+                        void pollStore();
+                    }}
+                    successTitle="Membership Renewed!"
+                    successDescription="Processing your payment. Your profile will update in a few seconds!"
+                />
             )}
         </div>
     );

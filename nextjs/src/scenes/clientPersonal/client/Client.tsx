@@ -6,6 +6,7 @@ import {observer} from "mobx-react-lite";
 import {useStore} from "@/store/StoreProvider";
 import {isClient} from "@/lib/utils/user.types.utils";
 import ClientType from "@/types/client/client.type";
+import { TopUpSection } from "./TopUpSection";
 
 const Client = observer(() => {
     const { authStore } = useStore();
@@ -65,15 +66,18 @@ const Client = observer(() => {
                 </div>
             </motion.div>
             <div className="flex">
+                <TopUpSection />
+
                 <button
-                    className="flex-1 rounded-bl-2xl cursor-pointer bg-secondary-500 px-10 hover:bg-primary-500 hover:text-white"
+                    className="flex-1 cursor-pointer bg-secondary-500 px-10 hover:bg-primary-500 hover:text-white transition-colors"
                     onClick={handleEdit}
                 >
                     {onEdit ? (loading ? "Saving..." : "Save") : "Edit"}
                 </button>
+
                 {onEdit &&
                 <button
-                    className="flex-1 cursor-pointer bg-gray-100 px-10 hover:bg-primary-500 hover:text-white"
+                    className="flex-1 cursor-pointer bg-gray-100 px-10 hover:bg-primary-500 hover:text-white transition-colors"
                     onClick={() => {
                         setOnEdit(false);
                         setNewPhone(client.phone);
@@ -82,8 +86,9 @@ const Client = observer(() => {
                     Cancel
                 </button>
                 }
+
                 <button
-                    className="flex-1 rounded-br-2xl cursor-pointer bg-primary-300 px-10 hover:bg-primary-500 hover:text-white"
+                    className="flex-1 rounded-br-2xl cursor-pointer bg-primary-300 px-10 hover:bg-primary-500 hover:text-white transition-colors"
                     onClick={handleDelete}
                 >
                     Delete

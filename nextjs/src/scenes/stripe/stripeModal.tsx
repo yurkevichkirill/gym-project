@@ -11,20 +11,26 @@ type ModalProps = {
     clientSecret: string;
     onClose: () => void;
     onSuccess: () => void;
+    successTitle?: string;
+    successDescription?: string;
 }
 
-const CheckoutForm = ({ onClose, onSuccess }: { onClose: () => void; onSuccess: () => void }) => {
+const CheckoutForm = ({ onClose, onSuccess, successTitle, successDescription }: { 
+    onClose: () => void; 
+    onSuccess: () => void;
+    successTitle: string;
+    successDescription: string;
+}) => {
     const stripe = useStripe();
     const elements = useElements();
     const [isProcessing, setIsProcessing] = useState(false);
 
     const handleSubmit = async (e: FormEvent) => {
         e.preventDefault();
-
         if (!stripe || !elements) return;
 
         setIsProcessing(true);
-        const toastId = notify.loading("Validating card and processing payment...");
+        const toastId = notify.loading("Processing payment...");
 
         const { error } = await stripe.confirmPayment({
             elements,
@@ -38,7 +44,7 @@ const CheckoutForm = ({ onClose, onSuccess }: { onClose: () => void; onSuccess: 
             notify.error("Payment failed", error.message || "An error occurred", toastId);
             setIsProcessing(false);
         } else {
-            notify.success("Payment successful!", "Your training is booked.", toastId);
+            notify.success(successTitle, successDescription, toastId);
             setIsProcessing(false);
             onSuccess();
         }
@@ -67,14 +73,18 @@ const CheckoutForm = ({ onClose, onSuccess }: { onClose: () => void; onSuccess: 
     );
 };
 
-// Корневой компонент модалки с оберткой Elements
-export const StripeModal = ({ clientSecret, onClose, onSuccess }: ModalProps) => {
+export const StripeModal = ({ clientSecret, onClose, onSuccess, successTitle, successDescription }: ModalProps) => {
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-            <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl animate-in fade-in zoom-in-95 duration-200">
+            <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl">
                 <h3 className="text-2xl font-bold mb-4 text-gray-800">Secure Payment</h3>
                 <Elements stripe={stripePromise} options={{ clientSecret }}>
-                    <CheckoutForm onClose={onClose} onSuccess={onSuccess} />
+                    <CheckoutForm 
+                        onClose={onClose} 
+                        onSuccess={onSuccess} 
+                        successTitle={successTitle || "Payment successful!"}
+                        successDescription={successDescription || "Your order has been processed."}
+                    />
                 </Elements>
             </div>
         </div>

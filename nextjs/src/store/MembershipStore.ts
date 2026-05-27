@@ -78,10 +78,7 @@ export const membershipStore: MembershipStore = {
 
     renew: async (payload: MembershipRenewType) => {
         const res = await renewMembership(payload);
-        await Promise.all([
-            membershipStore.init(),
-            authStore.checkAuth(),
-        ]);
+        
         return res;
     },
 

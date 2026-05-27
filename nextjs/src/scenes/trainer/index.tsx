@@ -148,6 +148,8 @@ const TrainerPersonal = ({ id }: { id: string }) => {
                     onSuccess={() => {
                         setStripeClientSecret(null);
                     }}
+                    successTitle="Training Booked!"
+                    successDescription="Your personal session has been successfully scheduled."
                 />
             )}
         </section>
