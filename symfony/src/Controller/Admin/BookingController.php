@@ -301,11 +301,13 @@ final class BookingController extends AbstractController
         Booking                    $booking,
         #[CurrentUser] User        $actor,
         BookingCancellationService $bookingCancellationService,
-    ): NoContentResponse {
+        BookingAdminMapperInterface            $mapper,
+    ): ItemResponse {
         $this->denyAccessUnlessGranted(BookingVoter::CANCEL_ADMIN, $booking);
 
         $bookingCancellationService->cancel($booking, $actor);
+        $responseDto = $mapper->map($booking);
 
-        return new NoContentResponse();
+        return new ItemResponse(data: $responseDto, status: Response::HTTP_OK);
     }
 }

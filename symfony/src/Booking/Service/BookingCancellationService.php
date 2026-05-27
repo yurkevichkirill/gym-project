@@ -71,8 +71,6 @@ final readonly class BookingCancellationService
                 if ($training !== null) {
                     $training->setIsBusy(false);
                 }
-
-                $this->entityManager->flush();
             });
         } catch (Throwable $e) {
             $this->bookingLogger->error('cancel.failed',

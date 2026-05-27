@@ -10,6 +10,7 @@ use App\Booking\DTO\ResolvedBookingsRequestDTO;
 use App\Booking\Entity\Booking;
 use App\Booking\Enum\BookingStatusEnum;
 use App\Booking\Exception\InvalidBookingStatusException;
+use App\Booking\Mapper\BookingAdminMapperInterface;
 use App\Booking\Mapper\BookingMapperInterface;
 use App\Booking\Query\BookingsQuery;
 use App\Booking\Security\BookingVoter;
@@ -235,7 +236,7 @@ final class BookingController extends AbstractController
 
     /**
      * @throws AccessDeniedException
-     * @throws InvalidBookingStatusException
+     * @throws InvalidBookingStatusException|Throwable
      */
     #[Route('/api/me/bookings/{id}/cancel/', methods: ['POST'], format: 'json')]
     #[OA\Post(
@@ -282,11 +283,13 @@ final class BookingController extends AbstractController
         Booking $booking,
         #[CurrentUser] User $actor,
         BookingCancellationService $bookingCancellationService,
-    ): NoContentResponse {
+        BookingAdminMapperInterface            $mapper,
+    ): ItemResponse {
         $this->denyAccessUnlessGranted(BookingVoter::CANCEL_OWN, $booking);
 
         $bookingCancellationService->cancel($booking, $actor);
+        $responseDto = $mapper->map($booking);
 
-        return new NoContentResponse();
+        return new ItemResponse(data: $responseDto, status: Response::HTTP_OK);
     }
 }
