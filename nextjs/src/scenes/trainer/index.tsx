@@ -1,21 +1,27 @@
 'use client'
 
-import {SelectedPage} from "@/shared/types";
-import {motion} from "framer-motion";
+import { SelectedPage } from "@/shared/types";
+import { motion } from "framer-motion";
 import type WorktimeData from "@/types/trainer/public/worktime.type";
 import Worktime from "@/scenes/worktime/Worktime";
-import {useNavigation} from "@/context/navigation-context";
+import { useNavigation } from "@/context/navigation-context";
 import Image from "next/image";
-import {notify} from "@/lib/notify";
-import {useStore} from "@/store/StoreProvider";
-import {useBooking} from "@/context/booking.context";
-import {useTrainerData} from "@/hooks/useTrainerData";
+import { notify } from "@/lib/notify";
+import { useStore } from "@/store/StoreProvider";
+import { useBooking } from "@/context/booking.context";
+import { useTrainerData } from "@/hooks/useTrainerData";
+import { useState } from "react";
+import { PaymentMethodEnum } from "@/types/payment/payment-method.enum";
+import { StripeModal } from "../stripe/stripeModal";
+import { createStripeIntent } from "@/api/client/payments.api";
 
 const TrainerPersonal = ({ id }: { id: string }) => {
     const { setSelectedPage } = useNavigation();
     const { booking } = useBooking();
     const { bookingStore } = useStore();
     const { trainer, worktimes, loading, error } = useTrainerData(id);
+    
+    const [stripeClientSecret, setStripeClientSecret] = useState<string | null>(null);
 
     const handleBooking = async () => {
         if (!id || !booking.date || !booking.durationMinutes || !booking.startTime) {
@@ -23,7 +29,7 @@ const TrainerPersonal = ({ id }: { id: string }) => {
             return;
         }
 
-        const toastId = notify.loading("Booking training...");
+        const toastId = notify.loading("Creating booking...");
 
         try {
             const res = await bookingStore.book({
@@ -33,11 +39,20 @@ const TrainerPersonal = ({ id }: { id: string }) => {
                 startTime: booking.startTime + ":00",
             });
 
-            notify.success(
-                "Training booked",
-                `${res.durationMinutes} min on ${res.date} at ${res.startTime}`,
-                toastId,
-            );
+            const payment = res.payment; 
+
+            if (payment && payment.method === PaymentMethodEnum.CARD) {
+                notify.dismiss(toastId); 
+                
+                const clientSecret = await createStripeIntent(payment.id);
+                setStripeClientSecret(clientSecret);
+            } else {
+                notify.success(
+                    "Training booked",
+                    `${res.durationMinutes} min on ${res.date} paid from inner balance.`,
+                    toastId, 
+                );
+            }
         } catch (error: any) {
             notify.error(
                 "Booking failed",
@@ -47,17 +62,9 @@ const TrainerPersonal = ({ id }: { id: string }) => {
         }
     }
 
-    if (loading) {
-        return <div>Loading ...</div>;
-    }
-
-    if (error) {
-        return <div>Error: {error}</div>;
-    }
-
-    if (!trainer) {
-        return null;
-    }
+    if (loading) return <div>Loading ...</div>;
+    if (error) return <div>Error: {error}</div>;
+    if (!trainer) return null;
 
     const formattedPrice = new Intl.NumberFormat('en-US', {
         style: 'currency',
@@ -109,36 +116,23 @@ const TrainerPersonal = ({ id }: { id: string }) => {
                             visible: { opacity: 1, x: 0 },
                         }}
                     >
-                        <div
-                            className="bg-primary-100 p-2 rounded-2xl text-3xl flex flex-col flex-1 gap-10">
-                            <p>
-                                <span className="font-bold">Specialization: </span>
-                                {trainer?.trainingType.name }
-                            </p>
-                            <p>
-                                <span className="font-bold">Education: </span>
-                                {trainer.education}
-                            </p>
-                            <p>
-                                <span className="font-bold">About: </span>
-                                {trainer.about}
-                            </p>
-                            <p>
-                                <span className="font-bold">Price: </span>
-                                { formattedPrice }$
-                            </p>
+                        <div className="bg-primary-100 p-2 rounded-2xl text-3xl flex flex-col flex-1 gap-10">
+                            <p><span className="font-bold">Specialization: </span>{trainer?.trainingType.name}</p>
+                            <p><span className="font-bold">Education: </span>{trainer.education}</p>
+                            <p><span className="font-bold">About: </span>{trainer.about}</p>
+                            <p><span className="font-bold">Price: </span>{formattedPrice}</p>
                         </div>
                         <ul className="flex flex-col gap-3 max-h-86 overflow-y-auto pr-2">
-                            { worktimes.map((worktime: WorktimeData) => (
+                            {worktimes.map((worktime: WorktimeData) => (
                                 <Worktime
-                                    worktime = { worktime }
-                                    pricePerHour = {trainer.pricePerHour}
-                                    key = { worktime.id }
+                                    worktime={worktime}
+                                    pricePerHour={trainer.pricePerHour}
+                                    key={worktime.id}
                                 />
                             ))}
                         </ul>
                         <button
-                            className="rounded-md bg-secondary-500 px-10 py-2 hover:bg-primary-500 hover:text-white self-start"
+                            className="rounded-md bg-secondary-500 px-10 py-2 hover:bg-primary-500 hover:text-white self-start cursor-pointer"
                             onClick={handleBooking}
                         >
                             Book Training
@@ -146,6 +140,16 @@ const TrainerPersonal = ({ id }: { id: string }) => {
                     </motion.div>
                 </div>
             </motion.div>
+
+            {stripeClientSecret && (
+                <StripeModal
+                    clientSecret={stripeClientSecret}
+                    onClose={() => setStripeClientSecret(null)}
+                    onSuccess={() => {
+                        setStripeClientSecret(null);
+                    }}
+                />
+            )}
         </section>
     );
 }

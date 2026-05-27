@@ -12,4 +12,7 @@ export const notify = {
 
     loading: (title: string, description?: string) =>
         toast.loading(title, { description }),
+
+    dismiss: (id?: string | number) => 
+        toast.dismiss(id),
 };
