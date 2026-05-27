@@ -22,6 +22,8 @@ use App\User\Exception\UserNotFoundException;
 use DateTimeImmutable;
 use Doctrine\DBAL\LockMode;
 use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\Exception\ORMException;
+use Doctrine\ORM\OptimisticLockException;
 use Psr\Log\LoggerInterface;
 use Stripe\Exception\ApiErrorException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -34,6 +36,7 @@ final readonly class PaymentSettlementService
         private StripeService $stripeService,
         private PaymentLifecycleService $paymentLifecycleService,
         private PaymentRepository $paymentRepo,
+        private BalanceService $balanceService,
         private LoggerInterface $paymentLogger,
         private EntityManagerInterface $em,
     )
@@ -92,8 +95,8 @@ final readonly class PaymentSettlementService
             throw new InvalidPaymentStatusException('Payment is not fully initialized');
         }
 
-        $client->setBalance($client->getBalance() - $amount);
-        $trainer->setBalance($trainer->getBalance() + $amount);
+        $this->balanceService->chargeClient($client, $amount);
+        $this->balanceService->depositTrainer($trainer, $amount);
 
         $booking->confirm();
 
@@ -115,6 +118,8 @@ final readonly class PaymentSettlementService
 
     /**
      * @throws InvalidPaymentStatusException
+     * @throws OptimisticLockException
+     * @throws ORMException
      */
     public function settleTopUpPayment(Payment $payment): void
     {
@@ -122,14 +127,20 @@ final readonly class PaymentSettlementService
             throw new InvalidPaymentStatusException('Cannot settle not pending payment');
         }
 
-        $client = $payment->getClient();
-        $amount = $payment->getAmount();
-
-        if ($client === null) {
+        $clientId = $payment->getClient()?->getId();
+        if ($clientId === null) {
             throw new InvalidPaymentStatusException('Payment is not fully initialized');
         }
 
-        $client->setBalance($client->getBalance() + $amount);
+        $lockedClient = $this->em->find(
+            Client::class,
+            $clientId,
+            LockMode::PESSIMISTIC_WRITE,
+        );
+
+        $amount = $payment->getAmount();
+
+        $this->balanceService->depositClient($lockedClient, $amount);
     }
 
     /**
@@ -175,7 +186,7 @@ final readonly class PaymentSettlementService
             throw new InvalidPaymentStatusException('Payment is not fully initialized');
         }
 
-        $client->setBalance($client->getBalance() - $amount);
+        $this->balanceService->chargeClient($client, $amount);
 
         $membership->activate();
 
@@ -222,9 +233,13 @@ final readonly class PaymentSettlementService
                     throw new TrainerNotFoundException('Trainer for booking payment was not found');
                 }
 
-                $trainer->setBalance(
-                    $trainer->getBalance() + $payment->getAmount()
+                $lockedTrainer = $this->em->find(
+                    Trainer::class,
+                    $trainer->getId(),
+                    LockMode::PESSIMISTIC_WRITE
                 );
+
+                $this->balanceService->depositTrainer($lockedTrainer, $payment->getAmount());
 
                 $booking->confirm();
             }
@@ -282,24 +297,32 @@ final readonly class PaymentSettlementService
 
             $this->paymentLifecycleService->transitionTo($lockedPayment, PaymentStatusEnum::REFUNDED);
 
-            $client = $lockedPayment->getClient();
-            if ($client === null) {
+            $clientId = $lockedPayment->getClient()?->getId();
+            if ($clientId === null) {
                 throw new UserNotFoundException('Payment client was not found');
             }
 
-            $client->setBalance(
-                $client->getBalance() + $lockedPayment->getAmount()
+            $lockedClient = $this->em->find(
+                Client::class,
+                $clientId,
+                LockMode::PESSIMISTIC_WRITE
             );
+
+            $this->balanceService->depositClient($lockedClient, $lockedPayment->getAmount());
 
             $trainer = $lockedPayment->getTrainer();
             if ($trainer !== null) {
-                $trainer->setBalance(
-                    $trainer->getBalance() - $lockedPayment->getAmount()
+                $lockedTrainer = $this->em->find(
+                    Trainer::class,
+                    $trainer->getId(),
+                    LockMode::PESSIMISTIC_WRITE
                 );
+
+                $this->balanceService->chargeTrainer($lockedTrainer, $lockedPayment->getAmount());
             }
 
             $refundPayment = $this->paymentService->createPayment(
-                $client,
+                $lockedClient,
                 $lockedPayment->getAmount(),
                 $lockedPayment->getCategory(),
                 PaymentMethodEnum::BALANCE,

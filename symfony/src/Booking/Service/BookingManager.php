@@ -11,6 +11,7 @@ use App\Client\Entity\Client;
 use App\Infrastructure\ClickHouse\Publisher\AnalyticsPublisher;
 use App\Payment\Repository\PaymentRepository;
 use App\Payment\Service\PaymentSettlementService;
+use App\Trainer\Entity\Trainer;
 use App\Trainer\Exception\TrainerNotFoundException;
 use App\Trainer\Repository\TrainerRepository;
 use App\Trainer\Service\TrainerManager;
@@ -19,6 +20,7 @@ use App\TrainerWorkTime\Exception\TrainerWorktimeNotFoundException;
 use App\TrainerWorkTime\Repository\TrainerWorkTimeRepository;
 use App\Training\Entity\Training;
 use App\Training\Repository\TrainingRepository;
+use App\User\Exception\UserNotFoundException;
 use DateMalformedStringException;
 use DateTimeImmutable;
 use Doctrine\DBAL\LockMode;
@@ -75,27 +77,46 @@ final readonly class BookingManager
             }
 
             $worktimeId = $worktime->getId();
+            $clientId = $client->getId();
+            $trainerId = $trainer->getId();
 
-            $booking = $this->entityManager->wrapInTransaction(function () use ($client, $dto, $trainer, $worktimeId) {
+            $booking = $this->entityManager->wrapInTransaction(function () use ($clientId, $dto, $trainerId, $worktimeId) {
+                $lockedClient = $this->entityManager->find(
+                    Client::class,
+                    $clientId,
+                    LockMode::PESSIMISTIC_WRITE
+                );
+                if ($lockedClient === null) {
+                    throw new UserNotFoundException("Client not found");
+                }
+
+                $lockedTrainer = $this->entityManager->find(
+                    Trainer::class,
+                    $trainerId,
+                    LockMode::PESSIMISTIC_WRITE
+                );
+                if ($lockedTrainer === null) {
+                    throw new UserNotFoundException("Trainer not found");
+                }
+
                 $lockedWorktime = $this->entityManager->find(
                     TrainerWorkTime::class,
                     $worktimeId,
                     LockMode::PESSIMISTIC_WRITE
                 );
-
                 if ($lockedWorktime === null) {
                     throw new TrainerWorktimeNotFoundException();
                 }
 
                 $this->bookingAvailabilityService->checkBookingAvailability(
-                    $client,
+                    $lockedClient,
                     $lockedWorktime,
                     $dto->date,
                     $dto->startTime,
                     $dto->durationMinutes
                 );
 
-                $price = $this->trainerManager->countPrice($trainer, $dto->durationMinutes);
+                $price = $this->trainerManager->countPrice($lockedTrainer, $dto->durationMinutes);
 
                 $training = new Training();
                 $training->setDurationMinutes($dto->durationMinutes);
@@ -104,15 +125,15 @@ final readonly class BookingManager
                 $this->trainingRepo->create($training);
 
                 $booking = new Booking();
-                $booking->setClient($client);
+                $booking->setClient($lockedClient);
                 $booking->setTraining($training);
                 $this->bookingRepo->create($booking);
 
                 $payment = $this->paymentSettlementService->createBookingPayment(
-                    $client,
+                    $lockedClient,
                     $price,
                     $booking,
-                    $trainer,
+                    $lockedTrainer,
                 );
 
                 $this->paymentRepo->create($payment);
