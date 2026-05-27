@@ -14,9 +14,11 @@ use App\Membership\Repository\MembershipRepository;
 use App\MembershipPlan\Exception\MembershipPlanNotFoundException;
 use App\MembershipPlan\Repository\MembershipPlanRepository;
 use App\Payment\Service\PaymentSettlementService;
+use App\User\Exception\UserNotFoundException;
 use App\User\Service\AvailabilityService;
 use DateMalformedStringException;
 use DateTimeImmutable;
+use Doctrine\DBAL\LockMode;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Messenger\Exception\ExceptionInterface;
@@ -57,14 +59,25 @@ final readonly class MembershipManager
                 throw new MembershipPlanNotFoundException();
             }
 
-            $membership = $this->entityManager->wrapInTransaction(function () use ($client, $plan) {
+            $clientId = $client->getId();
 
-                if ($this->membershipAvailabilityService->hasActiveMembership($client)) {
+            $membership = $this->entityManager->wrapInTransaction(function () use ($clientId, $plan) {
+                $lockedClient = $this->entityManager->find(
+                    Client::class,
+                    $clientId,
+                    LockMode::PESSIMISTIC_WRITE
+                );
+
+                if ($lockedClient === null) {
+                    throw new UserNotFoundException('Client not found');
+                }
+
+                if ($this->membershipAvailabilityService->hasActiveMembership($lockedClient)) {
                     throw new MembershipActiveException();
                 }
 
                 $membership = new Membership();
-                $membership->setClient($client);
+                $membership->setClient($lockedClient);
                 $membership->setPlan($plan);
                 $membership->setName($plan->getName());
                 $membership->setDurationDays($plan->getDurationDays());
@@ -75,12 +88,10 @@ final readonly class MembershipManager
                 $price = $plan->getPrice();
 
                 $this->paymentSettlementService->createMembershipPayment(
-                    $client,
+                    $lockedClient,
                     $price,
                     $membership,
                 );
-
-                $this->entityManager->flush();
 
                 return $membership;
             });
@@ -103,7 +114,6 @@ final readonly class MembershipManager
             }
 
             return $membership;
-
         } catch (MembershipPlanNotFoundException $e) {
             $this->membershipLogger->notice('membership.rejected',
                 $this->membershipEventContext($loggingContext, 'create', 'rejected', [
@@ -230,16 +240,25 @@ final readonly class MembershipManager
                 $this->membershipEventContext($loggingContext, 'unfreeze', 'succeeded')
             );
 
-            $this->analyticsPublisher->publish(
-                'membership.unfroze',
-                [
-                    'client_id' => $membership->getClient()->getId(),
-                    'membership_id' => $membership->getId(),
-                    'plan_id' => $plan->getId(),
-                    'price' => $payment->getAmount(),
-                    'payment_method' => $payment->getMethod()->value,
-                ]
-            );
+            try {
+                $this->analyticsPublisher->publish(
+                    'membership.unfroze',
+                    [
+                        'client_id' => $membership->getClient()->getId(),
+                        'membership_id' => $membership->getId(),
+                        'plan_id' => $plan->getId(),
+                        'price' => $payment->getAmount(),
+                        'payment_method' => $payment->getMethod()->value,
+                    ]
+                );
+            } catch (Throwable $e) {
+                $this->membershipLogger->warning('membership.analytics_failed',
+                    $this->membershipEventContext($loggingContext, 'unfreeze', 'analytics_failed', [
+                        'error' => $e->getMessage(),
+                        'exception_class' => $e::class,
+                    ])
+                );
+            }
 
             return $membership;
         } catch (InvalidMembershipStatusException $e) {
@@ -325,16 +344,25 @@ final readonly class MembershipManager
 
             $this->entityManager->flush();
 
-            $this->analyticsPublisher->publish(
-                'membership.terminated',
-                [
-                    'client_id' => $membership->getClient()->getId(),
-                    'membership_id' => $membership->getId(),
-                    'plan_id' => $plan->getId(),
-                    'price' => $payment->getAmount(),
-                    'payment_method' => $payment->getMethod()->value,
-                ]
-            );
+            try {
+                $this->analyticsPublisher->publish(
+                    'membership.terminated',
+                    [
+                        'client_id' => $membership->getClient()->getId(),
+                        'membership_id' => $membership->getId(),
+                        'plan_id' => $plan->getId(),
+                        'price' => $payment->getAmount(),
+                        'payment_method' => $payment->getMethod()->value,
+                    ]
+                );
+            } catch (Throwable $e) {
+                $this->membershipLogger->warning('membership.analytics_failed',
+                    $this->membershipEventContext($loggingContext, 'terminate', 'analytics_failed', [
+                        'error' => $e->getMessage(),
+                        'exception_class' => $e::class,
+                    ])
+                );
+            }
 
             return $membership;
         } catch (InvalidMembershipStatusException $e) {

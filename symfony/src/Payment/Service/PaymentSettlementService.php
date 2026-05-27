@@ -274,16 +274,24 @@ final readonly class PaymentSettlementService
         $paymentId = $payment->getId();
 
         $this->em->wrapInTransaction(function () use ($paymentId) {
-            $this->em->getConnection()->executeStatement(
-                'SELECT id FROM payment WHERE id = :id FOR UPDATE',
-                ['id' => $paymentId]
-            );
+            $row = $this->em->getConnection()
+                ->executeQuery(
+                    'SELECT id FROM payment WHERE id = :id FOR UPDATE',
+                    ['id' => $paymentId]
+                )
+                ->fetchAssociative();
+
+            if (!$row) {
+                throw new PaymentNotFoundException('Payment not found during refund');
+            }
 
             $lockedPayment = $this->em->find(Payment::class, $paymentId);
 
             if ($lockedPayment === null) {
                 throw new PaymentNotFoundException('Payment not found during refund');
             }
+
+            $this->em->refresh($lockedPayment);
 
             if ($lockedPayment->getStatus() === PaymentStatusEnum::REFUNDED) {
                 $this->paymentLogger->warning(
