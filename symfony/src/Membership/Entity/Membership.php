@@ -15,6 +15,11 @@ use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
 
+#[ORM\UniqueConstraint(
+    name: 'uniq_active_client_membership',
+    columns: ['client_id'],
+    options: ['where' => "status IN ('active', 'frozen')"]
+)]
 #[ORM\HasLifecycleCallbacks]
 #[ORM\Entity(repositoryClass: MembershipRepository::class)]
 final class Membership
