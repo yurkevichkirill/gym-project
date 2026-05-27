@@ -4,7 +4,6 @@ import { motion } from "framer-motion";
 import type FreeSlotData from "@/types/trainer/public/free-slot.type";
 import type WorktimeData from "@/types/trainer/public/worktime.type";
 import FreeSlot from "@/scenes/worktime/FreeSlot";
-import {useState} from "react";
 import {useBooking} from "@/context/booking.context";
 
 type Props = {

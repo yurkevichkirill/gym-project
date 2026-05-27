@@ -60,7 +60,7 @@ const OurTrainers = () => {
                     <HText>OUR TRAINERS</HText>
                     <p className="py-5">
                         Shatter your limits with our feral trainer legion: Powerlifting Overlords,
-                        HIIT Battle Commanders, Ruthless Bodybuilding Beasts. Elite coaches who've
+                        HIIT Battle Commanders, Ruthless Bodybuilding Beasts. Elite coaches who`ve
                         crushed world records and forged ironclad physiques in the fires of war.
                         No weaklings. Only scarred veterans who drag you past total failure. Train
                         under gods. Annihilate frailty.

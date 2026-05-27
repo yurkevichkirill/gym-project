@@ -14,7 +14,7 @@ import {useTrainerData} from "@/hooks/useTrainerData";
 const TrainerPersonal = ({ id }: { id: string }) => {
     const { setSelectedPage } = useNavigation();
     const { booking } = useBooking();
-    const { clientStore } = useStore();
+    const { bookingStore } = useStore();
     const { trainer, worktimes, loading, error } = useTrainerData(id);
 
     const handleBooking = async () => {
@@ -26,7 +26,7 @@ const TrainerPersonal = ({ id }: { id: string }) => {
         const toastId = notify.loading("Booking training...");
 
         try {
-            const res = await clientStore.bookTraining({
+            const res = await bookingStore.book({
                 trainerId: Number(id),
                 date: booking.date,
                 durationMinutes: booking.durationMinutes,
@@ -58,6 +58,11 @@ const TrainerPersonal = ({ id }: { id: string }) => {
     if (!trainer) {
         return null;
     }
+
+    const formattedPrice = new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: 'USD',
+    }).format(trainer.pricePerHour / 100);
 
     return (
         <section className="min-w-[300px] mt-30">
@@ -120,7 +125,7 @@ const TrainerPersonal = ({ id }: { id: string }) => {
                             </p>
                             <p>
                                 <span className="font-bold">Price: </span>
-                                { trainer.pricePerHour }$
+                                { formattedPrice }$
                             </p>
                         </div>
                         <ul className="flex flex-col gap-3 max-h-86 overflow-y-auto pr-2">

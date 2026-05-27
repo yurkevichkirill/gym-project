@@ -15,7 +15,9 @@ export const useTrainerData = (id: string) => {
             try {
                 const [trainerData, worktimeData] = await Promise.all([
                     getTrainer(id),
-                    getWorktimes(id),
+                    getWorktimes({
+                        trainerId: Number(id),
+                    }),
                 ]);
 
                 setTrainer(trainerData);

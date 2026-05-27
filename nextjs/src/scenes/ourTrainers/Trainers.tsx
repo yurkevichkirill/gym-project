@@ -18,7 +18,7 @@ const container = {
 const Trainers = ({ trainers }: Props) => {
     return (
         <motion.div
-            className="grid grid-cols-[repeat(auto-fit,minmax(250px,1fr))] gap-10"
+            className="grid grid-cols-[repeat(auto-fit,minmax(250px,300px))] justify-center gap-10"
             initial="hidden"
             animate="visible"
             whileInView="visible"
