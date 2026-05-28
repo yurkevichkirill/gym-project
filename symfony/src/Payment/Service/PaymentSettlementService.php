@@ -268,7 +268,21 @@ final readonly class PaymentSettlementService
             }
 
             $membership = $lockedPayment->getMembership();
-            $membership?->activate();
+            if ($membership !== null) {
+                $this->em->refresh($membership);
+
+                if ($membership->getStatus() !== MembershipStatusEnum::PENDING) {
+                    $this->paymentLogger->warning('payment.stripe_success.membership_already_processed', [
+                        'intent_id' => $intentId,
+                        'membership_id' => $membership->getId(),
+                        'membership_status' => $membership->getStatus()->value,
+                    ]);
+
+                    return;
+                }
+
+                $membership->activate();
+            }
 
             if ($lockedPayment->getCategory() === PaymentCategoryEnum::BALANCE_TOP_UP) {
                 $this->settleTopUpPayment($lockedPayment);
