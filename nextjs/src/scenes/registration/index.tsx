@@ -1,0 +1,208 @@
+'use client';
+
+import { useForm } from "react-hook-form";
+import { useStore } from "@/store/StoreProvider";
+import { createPortal } from "react-dom";
+import { AnimatePresence, motion } from "framer-motion";
+import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/solid";
+import { useState } from "react";
+import { notify } from "@/lib/notify";
+
+interface RegisterFormData {
+    firstName: string;
+    lastName: string;
+    email: string;
+    phone: string;
+    age: number;
+    password: string;
+}
+
+interface RegisterModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+    onSwitchToLogin?: () => void;
+}
+
+const RegisterModal = ({ isOpen, onClose, onSwitchToLogin }: RegisterModalProps) => {
+    const { authStore } = useStore();
+    const [passVisible, setPassVisible] = useState(false);
+
+    const {
+        register,
+        handleSubmit,
+        formState: { errors },
+        reset
+    } = useForm<RegisterFormData>({
+        mode: "onChange",
+    });
+
+    const onSubmit = async (data: RegisterFormData) => {
+        const toastId = notify.loading("Creating your account...");
+
+        try {
+            await authStore.register(data);
+            reset();
+            onClose();
+
+            notify.success(
+                "Welcome!",
+                "Account created successfully. You can now log in.",
+                toastId,
+            );
+            
+            if (onSwitchToLogin) onSwitchToLogin();
+        } catch (error: any) {
+            notify.error(
+                "Registration failed",
+                error?.message || "Something went wrong",
+                toastId,
+            );
+        }
+    };
+
+    return createPortal(
+        <AnimatePresence>
+            {isOpen && (
+                <motion.div
+                    className="fixed inset-0 bg-black/50 flex justify-center items-center z-50"
+                    onClick={onClose}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                >
+                    <motion.div
+                        className="bg-white p-6 rounded-xl w-[450px] relative max-h-[90vh] overflow-y-auto"
+                        onClick={(e) => e.stopPropagation()}
+                        initial={{ opacity: 0, y: 50 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.2, duration: 0.5 }}
+                    >
+                        <button
+                            onClick={onClose}
+                            className="absolute top-2 right-2 text-gray-500 cursor-pointer"
+                        >
+                            ✕
+                        </button>
+                        <h2 className="text-xl font-bold mb-1">Become a Member</h2>
+                        <div className="h-[1px] bg-gray-100 mb-2"></div>
+
+                        <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-3">
+                            
+                            <div className="grid grid-cols-2 gap-2">
+                                <div className={`border rounded ${errors.firstName ? "border-primary-500" : "border-secondary-500"}`}>
+                                    <input
+                                        type="text"
+                                        placeholder="First Name"
+                                        {...register("firstName", { required: true })}
+                                        className="m-2 outline-none w-full bg-transparent"
+                                    />
+                                </div>
+                                <div className={`border rounded ${errors.lastName ? "border-primary-500" : "border-secondary-500"}`}>
+                                    <input
+                                        type="text"
+                                        placeholder="Last Name"
+                                        {...register("lastName", { required: true })}
+                                        className="m-2 outline-none w-full bg-transparent"
+                                    />
+                                </div>
+                            </div>
+                            {(errors.firstName || errors.lastName) && (
+                                <p className="mt-1 text-primary-500">First and Last name are required.</p>
+                            )}
+
+                            <div className={`border rounded ${errors.email ? "border-primary-500" : "border-secondary-500"}`}>
+                                <input
+                                    type="text"
+                                    placeholder="Email"
+                                    {...register("email", {
+                                        required: true,
+                                        pattern: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                                    })}
+                                    className="m-2 outline-none w-full bg-transparent"
+                                />
+                            </div>
+                            {errors.email && (
+                                <p className="mt-1 text-primary-500">
+                                    {errors.email.type === "required" && "Email is required."}
+                                    {errors.email.type === "pattern" && "Invalid email address."}
+                                </p>
+                            )}
+
+                            <div className="grid grid-cols-3 gap-2">
+                                <div className={`border rounded col-span-2 ${errors.phone ? "border-primary-500" : "border-secondary-500"}`}>
+                                    <input
+                                        type="text"
+                                        placeholder="Phone (e.g. +1234567)"
+                                        {...register("phone", { required: true })}
+                                        className="m-2 outline-none w-full bg-transparent"
+                                    />
+                                </div>
+                                <div className={`border rounded ${errors.age ? "border-primary-500" : "border-secondary-500"}`}>
+                                    <input
+                                        type="number"
+                                        placeholder="Age"
+                                        {...register("age", { 
+                                            required: true, 
+                                            min: 14 
+                                        })}
+                                        className="m-2 outline-none w-full bg-transparent"
+                                    />
+                                </div>
+                            </div>
+                            {(errors.phone || errors.age) && (
+                                <p className="mt-1 text-primary-500">
+                                    {errors.phone?.type === "required" && "Phone is required. "}
+                                    {errors.age?.type === "required" && "Age is required."}
+                                    {errors.age?.type === "min" && "Minimum age is 14."}
+                                </p>
+                            )}
+
+                            <div className={`border rounded flex items-center justify-between ${errors.password ? "border-primary-500" : "border-secondary-500"}`}>
+                                <input
+                                    type={passVisible ? "text" : "password"}
+                                    placeholder="Password"
+                                    {...register("password", {
+                                        required: true,
+                                        maxLength: 100,
+                                    })}
+                                    className="m-2 outline-none w-full bg-transparent"
+                                />
+                                <button
+                                    onClick={() => setPassVisible(!passVisible)}
+                                    className="mr-2 align-middle"
+                                    type="button"
+                                >
+                                    {passVisible ?
+                                        <EyeIcon className="h-5 w-5 opacity-70"/> :
+                                        <EyeSlashIcon className="h-5 w-5 opacity-70"/>
+                                    }
+                                </button>
+                            </div>
+                            {errors.password && (
+                                <p className="mt-1 text-primary-500">
+                                    {errors.password.type === "required" && "Password is required."}
+                                    {errors.password.type === "maxLength" && "Max length is 100 char."}
+                                </p>
+                            )}
+
+                            <button
+                                type="submit"
+                                className={`rounded-md px-10 py-2 cursor-pointer ${
+                                    Object.keys(errors).length > 0 
+                                        ? "text-gray-400" 
+                                        : "bg-secondary-500 hover:bg-primary-500 hover:text-white"
+                                }`}
+                                disabled={authStore.isLoading}
+                            >
+                                {authStore.isLoading ? "Loading..." : "Become a Member"}
+                            </button>
+                        </form>
+                    </motion.div>
+                </motion.div>
+            )}
+        </AnimatePresence>,
+        document.body
+    );
+};
+
+export default RegisterModal;

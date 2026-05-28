@@ -1,15 +1,12 @@
 'use client';
 
 import { useForm } from "react-hook-form";
-import {useStore} from "@/store/StoreProvider";
-import {createPortal} from "react-dom";
-import {AnimatePresence, motion} from "framer-motion";
-import {
-    EyeIcon,
-    EyeSlashIcon,
-} from "@heroicons/react/24/solid";
-import {useState} from "react";
-import {notify} from "@/lib/notify";
+import { useStore } from "@/store/StoreProvider";
+import { createPortal } from "react-dom";
+import { AnimatePresence, motion } from "framer-motion";
+import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/solid";
+import { useState } from "react";
+import { notify } from "@/lib/notify";
 
 interface FormData {
     email: string;
