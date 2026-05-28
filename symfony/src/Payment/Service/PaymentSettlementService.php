@@ -378,7 +378,9 @@ final readonly class PaymentSettlementService
             }
 
             $this->paymentLifecycleService->transitionTo($payment, PaymentStatusEnum::FAILED);
-            $payment->getBooking()?->setStatus(BookingStatusEnum::CANCELED_PAYMENT_FAILED);
+
+            $this->cancelRelatedBookingForPaymentFailure($payment);
+
             $payment->getMembership()?->cancel(MembershipStatusEnum::CANCELED_PAYMENT_FAILED);
 
             $this->em->flush();
@@ -431,8 +433,10 @@ final readonly class PaymentSettlementService
                 return;
             }
 
-            $payment->getBooking()?->setStatus(BookingStatusEnum::CANCELED_PAYMENT_FAILED);
+            $this->cancelRelatedBookingForPaymentFailure($payment);
+
             $payment->getMembership()?->cancel(MembershipStatusEnum::CANCELED_PAYMENT_FAILED);
+
             $this->paymentLifecycleService->transitionTo($payment, PaymentStatusEnum::CANCELED);
 
             $this->em->flush();
@@ -468,6 +472,17 @@ final readonly class PaymentSettlementService
         $this->em->flush();
     }
 
+    private function cancelRelatedBookingForPaymentFailure(Payment $payment): void
+    {
+        $booking = $payment->getBooking();
+
+        if ($booking === null) {
+            return;
+        }
+
+        $booking->setStatus(BookingStatusEnum::CANCELED_PAYMENT_FAILED);
+        $booking->getTraining()?->setIsBusy(false);
+    }
 
     /**
      * @param array<string, scalar|null> $extra
