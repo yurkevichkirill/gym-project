@@ -12,6 +12,7 @@ use App\Membership\Entity\Membership;
 use App\Membership\Enum\MembershipStatusEnum;
 use App\Membership\Mapper\MembershipMapperInterface;
 use App\Membership\Query\MembershipQuery;
+use App\Membership\Security\MembershipVoter;
 use App\Membership\Service\MembershipManager;
 use App\Response\ResponseTypeDTO\CollectionResponse;
 use App\Response\ResponseTypeDTO\ItemResponse;
@@ -256,6 +257,79 @@ final class MembershipController extends AbstractController
         $responseDto = $mapper->map($manager->create($client, $requestDto->membershipPlanId));
 
         return new ItemResponse(data: $responseDto, status: Response::HTTP_CREATED);
+    }
+
+    /**
+     * @throws Throwable
+     * @throws ExceptionInterface
+     */
+    #[Route('/api/memberships/{id}/cancel/', methods: ['POST'], format: 'json')]
+    #[OA\Post(
+        operationId: 'cancelMembership',
+        description: 'Cancels a pending membership that is awaiting payment.',
+        summary: 'Cancel a pending membership.',
+        tags: ['Admin: Memberships'],
+        parameters: [
+            new OA\Parameter(
+                name: 'id',
+                description: 'Membership ID',
+                in: 'path',
+                required: true,
+                schema: new OA\Schema(type: 'integer')
+            )
+        ],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Membership successfully canceled.',
+                content: new OA\JsonContent(
+                    allOf: [
+                        new OA\Schema(ref: new Model(type: AbstractItemResponseDTO::class)),
+                        new OA\Schema(
+                            properties: [
+                                new OA\Property(
+                                    property: 'data',
+                                    ref: new Model(type: MembershipResponseDTO::class)
+                                )
+                            ]
+                        )
+                    ]
+                )
+            ),
+            new OA\Response(
+                response: 401,
+                description: 'Unauthorized',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
+            ),
+            new OA\Response(
+                response: 403,
+                description: 'Forbidden - Access denied',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
+            ),
+            new OA\Response(
+                response: 404,
+                description: 'Membership not found',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
+            ),
+            new OA\Response(
+                response: 409,
+                description: 'Conflict - Membership is not in PENDING status.',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
+            )
+        ]
+    )]
+    #[IsGranted(UserRolesEnum::ROLE_ADMIN->value)]
+    public function cancel(
+        Membership $membership,
+        MembershipMapperInterface $mapper,
+        MembershipManager $manager
+    ): ItemResponse {
+        $responseDto = $mapper->map($manager->cancel($membership));
+
+        return new ItemResponse(
+            data: $responseDto,
+            status: Response::HTTP_OK
+        );
     }
 
     /**

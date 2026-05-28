@@ -258,7 +258,7 @@ final class MembershipController extends AbstractController
      */
     #[Route('/api/me/memberships/{id}/cancel/', methods: ['POST'], format: 'json')]
     #[OA\Post(
-        operationId: 'getClientCancelMembership',
+        operationId: 'cancelMyMembership',
         description: 'Cancels a pending membership that is awaiting payment.',
         summary: 'Cancel a pending membership (Client).',
         tags: ['Client: Memberships'],

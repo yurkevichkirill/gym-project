@@ -334,7 +334,7 @@ final class TrainerController extends AbstractController
     #[Route('/api/trainers/{id}/photo/', methods: ['POST'])]
     #[OA\Post(
         operationId: 'uploadTrainerPhoto',
-        summary: 'Upload or update current trainer photo.',
+        summary: 'Upload or update trainer photo.',
         requestBody: new OA\RequestBody(
             description: 'Image file to upload',
             required: true,
@@ -352,7 +352,7 @@ final class TrainerController extends AbstractController
                 )
             )
         ),
-        tags: ['Trainer: Profile'],
+        tags: ['Admin: Profile'],
         responses: [
             new OA\Response(
                 response: 200,
@@ -383,9 +383,9 @@ final class TrainerController extends AbstractController
             )
         ]
     )]
-    #[IsGranted(UserRolesEnum::ROLE_TRAINER->value)]
+    #[IsGranted(UserRolesEnum::ROLE_ADMIN->value)]
     public function uploadPhoto(
-        #[CurrentUser] Trainer $trainer,
+        Trainer $trainer,
         #[MapUploadedFile([
             new Assert\NotNull,
             new Assert\File(
