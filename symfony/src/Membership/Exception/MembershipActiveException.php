@@ -12,7 +12,7 @@ use Throwable;
 final class MembershipActiveException extends DomainException
 {
     public function __construct(
-        string $message = 'Client already have active membership',
+        string $message = 'Client already have active or frozen membership',
         ?Throwable $previous = null,
         int $code = 0
     )

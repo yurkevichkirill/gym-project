@@ -52,4 +52,19 @@ final class MembershipRepository extends ServiceEntityRepository
             'status' => MembershipStatusEnum::ACTIVE
         ]);
     }
+
+    public function findBlockingMembership(Client $client): ?Membership
+    {
+        return $this->createQueryBuilder('m')
+            ->andWhere('m.client = :client')
+            ->andWhere('m.status IN (:statuses)')
+            ->setParameter('client', $client)
+            ->setParameter('statuses', [
+                MembershipStatusEnum::ACTIVE,
+                MembershipStatusEnum::FROZEN,
+            ])
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getOneOrNullResult();
+    }
 }

@@ -72,7 +72,7 @@ final readonly class MembershipManager
                     throw new UserNotFoundException('Client not found');
                 }
 
-                if ($this->membershipAvailabilityService->hasActiveMembership($lockedClient)) {
+                if ($this->membershipRepo->findBlockingMembership($lockedClient) !== null) {
                     throw new MembershipActiveException();
                 }
 
