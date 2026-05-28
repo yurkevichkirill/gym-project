@@ -13,7 +13,6 @@ final readonly class AdminUpdateTrainerRequestDTO
         public ?string $phone,
         public ?string $password,
         public ?int $pricePerHour,
-        public ?string $photoUrl,
         public ?string $education,
         public ?string $about,
     )

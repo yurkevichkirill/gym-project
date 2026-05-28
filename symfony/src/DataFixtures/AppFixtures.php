@@ -193,18 +193,24 @@ final class AppFixtures extends Fixture
 //        $membershipPlanMonth->setDurationDays(31);
 //        $manager->persist($membershipPlanMonth);
 
-        $membershipPlan2Month = new MembershipPlan();
-        $membershipPlan2Month->setName("2 Month 20 visits");
-        $membershipPlan2Month->setPrice(16000);
-        $membershipPlan2Month->setDurationDays(62);
-        $membershipPlan2Month->setSessionLimit(20);
-        $manager->persist($membershipPlan2Month);
+//        $membershipPlan2Month = new MembershipPlan();
+//        $membershipPlan2Month->setName("2 Month 20 visits");
+//        $membershipPlan2Month->setPrice(16000);
+//        $membershipPlan2Month->setDurationDays(62);
+//        $membershipPlan2Month->setSessionLimit(20);
+//        $manager->persist($membershipPlan2Month);
 //
 //        $membershipPlanYear = new MembershipPlan();
 //        $membershipPlanYear->setName("Year Unlimit");
 //        $membershipPlanYear->setPrice(30000);
 //        $membershipPlanYear->setDurationDays(366);
 //        $manager->persist($membershipPlanYear);
+
+        $trainers = $manager->getRepository(Trainer::class)->findAll();
+
+        foreach ($trainers as $trainer) {
+            $trainer->setPhotoUrl(null);
+        }
 
         $manager->flush();
     }

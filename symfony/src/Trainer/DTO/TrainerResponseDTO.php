@@ -16,7 +16,7 @@ final readonly class TrainerResponseDTO
         public string                  $lastName,
         public TrainingTypeResponseDTO $trainingType,
         public int                     $pricePerHour,
-        public string                  $photoUrl,
+        public string                  $photoPath,
         public ?string                 $education,
         public ?string                 $about,
     )
@@ -36,7 +36,7 @@ final readonly class TrainerResponseDTO
             lastName: $trainer->getLastName(),
             trainingType:  TrainingTypeResponseDTO::fromEntity($trainingType),
             pricePerHour: $trainer->getPricePerHour(),
-            photoUrl: $trainer->getPhotoUrl(),
+            photoPath: $trainer->getPhotoPath(),
             education: $trainer->getEducation(),
             about: $trainer->getAbout(),
         );

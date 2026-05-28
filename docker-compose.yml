@@ -166,21 +166,59 @@ services:
   #   networks:
   #     - app-network
 
-  frontend:
-    container_name: frontend
-    build:
-      context: "nextjs"
-      dockerfile: ../docker/dockerfiles/node/Dockerfile
+  minio:
+    container_name: minio
+    image: minio/minio:RELEASE.2024-03-07T00-43-48Z
     restart: always
     ports:
-      - "${NEXT_PORT}:3000"
-    working_dir: /app
+      - "${MINIO_API_PORT:-9005}:9000"
+      - "${MINIO_CONSOLE_PORT:-9001}:9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
     volumes:
-      - ./nextjs:/app
-      - frontend_node_modules:/app/node_modules
-      - pnpm-store:/app/.pnpm-store
+      - ./data/minio:/data
+    command: server /data --console-address ":9001"
     networks:
       - app-network
+
+  minio-init:
+    container_name: minio-init
+    image: minio/mc:latest
+    depends_on:
+      - minio
+    networks:
+      - app-network
+    entrypoint: >
+      /bin/sh -c "
+      echo 'Waiting for MinIO to start...';
+      sleep 3;
+      
+      /usr/bin/mc alias set local http://minio:9000 ${MINIO_ROOT_USER:-minioadmin} ${MINIO_ROOT_PASSWORD:-minioadmin};
+      
+      /usr/bin/mc mb -p local/evogym-bucket;
+      
+      /usr/bin/mc anonymous set public local/evogym-bucket;
+      
+      echo 'MinIO is fully configured!';
+      exit 0;
+      "
+
+#  frontend:
+#    container_name: frontend
+#    build:
+#      context: "nextjs"
+#      dockerfile: ../docker/dockerfiles/node/Dockerfile
+#    restart: always
+#    ports:
+#      - "${NEXT_PORT}:3000"
+#    working_dir: /app
+#    volumes:
+#      - ./nextjs:/app
+#      - frontend_node_modules:/app/node_modules
+#      - pnpm-store:/app/.pnpm-store
+#    networks:
+#      - app-network
 
 networks:
   app-network:
@@ -188,7 +226,7 @@ networks:
 
 volumes:
   pgadmin_data:
-  frontend_node_modules:
+#  frontend_node_modules:
   pnpm-store:
   # rabbitmq_data:
   # clickhouse_data:

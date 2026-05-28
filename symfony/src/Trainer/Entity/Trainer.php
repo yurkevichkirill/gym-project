@@ -26,8 +26,8 @@ final class Trainer extends User
     #[ORM\Column]
     private int $pricePerHour;
 
-    #[ORM\Column]
-    private string $photoUrl;
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $photoPath = null;
 
     #[ORM\Column(nullable: true)]
     private ?string $education = null;
@@ -104,14 +104,16 @@ final class Trainer extends User
         return $this->pricePerHour;
     }
 
-    public function getPhotoUrl(): string
+    public function getPhotoPath(): ?string
     {
-        return $this->photoUrl;
+        return $this->photoPath;
     }
 
-    public function setPhotoUrl(string $photoUrl): void
+    public function setPhotoPath(?string $photoPath): static
     {
-        $this->photoUrl = $photoUrl;
+        $this->photoPath = $photoPath;
+
+        return $this;
     }
 
     public function setPricePerHour(int $pricePerHour): static

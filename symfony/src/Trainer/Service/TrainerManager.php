@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Trainer\Service;
 
+use App\File\Service\FileManager;
 use App\RefreshToken\Repository\RefreshTokenRepository;
 use App\Trainer\DTO\AdminUpdateTrainerRequestDTO;
 use App\Trainer\DTO\CreateTrainerRequestDTO;
@@ -22,8 +23,11 @@ use App\User\Exception\UserNotFoundException;
 use App\User\Repository\UserRepository;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
+use League\Flysystem\FilesystemException;
+use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
+use League\Flysystem\FilesystemOperator;
 
 final readonly class TrainerManager
 {
@@ -37,6 +41,8 @@ final readonly class TrainerManager
         private UserPasswordHasherInterface $passwordHasher,
         private RefreshTokenRepository $refreshTokenRepo,
         private EntityManagerInterface $entityManager,
+        private FilesystemOperator $trainersStorage,
+        private FileManager $fileManager,
     )
     {}
 
@@ -74,7 +80,6 @@ final readonly class TrainerManager
         );
 
         $trainer->setPassword($hashedPassword);
-        $trainer->setPhotoUrl($requestDto->photoUrl);
         $trainer->setAbout($requestDto->about);
         $trainer->setEducation($requestDto->education);
         $trainer->setPricePerHour($requestDto->pricePerHour);
@@ -128,10 +133,6 @@ final readonly class TrainerManager
             $trainer->setEducation($requestDto->education);
         }
 
-        if ($requestDto->photoUrl !== null) {
-            $trainer->setPhotoUrl($requestDto->photoUrl);
-        }
-
         $this->entityManager->flush();
 
         return $trainer;
@@ -147,6 +148,31 @@ final readonly class TrainerManager
         }
 
         $this->entityManager->flush();
+
+        return $trainer;
+    }
+
+    /**
+     * @throws FilesystemException
+     */
+    public function updatePhoto(Trainer $trainer, UploadedFile $file): Trainer
+    {
+        $oldPhotoPath = $trainer->getPhotoPath();
+
+        $newPhotoPath = $this->fileManager->upload(
+            storage: $this->trainersStorage,
+            file: $file,
+            directory: 'trainers',
+            prefix: 'avatar'
+        );
+
+        $trainer->setPhotoPath($newPhotoPath);
+
+        $this->entityManager->flush();
+
+        if ($oldPhotoPath !== null) {
+            $this->fileManager->delete($this->trainersStorage, $oldPhotoPath);
+        }
 
         return $trainer;
     }

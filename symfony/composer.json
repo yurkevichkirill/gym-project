@@ -12,6 +12,8 @@
         "doctrine/orm": "^3.6.2",
         "dragonmantank/cron-expression": "^3.6",
         "gedmo/doctrine-extensions": "^3.22",
+        "league/flysystem-aws-s3-v3": "*",
+        "league/flysystem-bundle": "*",
         "lexik/jwt-authentication-bundle": "^3.2",
         "nelmio/api-doc-bundle": "^5.9.2",
         "nelmio/cors-bundle": "^2.6",

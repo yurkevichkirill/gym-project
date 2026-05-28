@@ -90,3 +90,13 @@ services:
             $database: '%env(CLICKHOUSE_DB)%'
             $user: '%env(CLICKHOUSE_USER)%'
             $password: '%env(CLICKHOUSE_PASSWORD)%'
+
+    Aws\S3\S3Client:
+        arguments:
+            -   endpoint: '%env(MINIO_ENDPOINT)%'
+                credentials:
+                    key: '%env(MINIO_ACCESS_KEY)%'
+                    secret: '%env(MINIO_SECRET_KEY)%'
+                region: 'us-east-1'
+                version: 'latest'
+                use_path_style_endpoint: true
