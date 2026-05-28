@@ -382,8 +382,6 @@ final readonly class PaymentSettlementService
             $this->cancelRelatedBookingForPaymentFailure($payment);
 
             $payment->getMembership()?->cancel(MembershipStatusEnum::CANCELED_PAYMENT_FAILED);
-
-            $this->em->flush();
         } catch (Throwable $e) {
             $this->paymentLogger->error(
                 'payment.fail.failed',
@@ -408,6 +406,8 @@ final readonly class PaymentSettlementService
         }
 
         $this->failPayment($payment);
+
+        $this->em->flush();
     }
 
     /**
@@ -421,6 +421,8 @@ final readonly class PaymentSettlementService
         }
 
         $this->cancelPayment($payment);
+
+        $this->em->flush();
     }
 
     /**
@@ -438,8 +440,6 @@ final readonly class PaymentSettlementService
             $payment->getMembership()?->cancel(MembershipStatusEnum::CANCELED_PAYMENT_FAILED);
 
             $this->paymentLifecycleService->transitionTo($payment, PaymentStatusEnum::CANCELED);
-
-            $this->em->flush();
         } catch (Throwable $e) {
             $this->paymentLogger->error(
                 'payment.cancel.failed',

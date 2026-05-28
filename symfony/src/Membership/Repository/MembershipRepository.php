@@ -62,6 +62,7 @@ final class MembershipRepository extends ServiceEntityRepository
             ->setParameter('statuses', [
                 MembershipStatusEnum::ACTIVE,
                 MembershipStatusEnum::FROZEN,
+                MembershipStatusEnum::PENDING,
             ])
             ->setMaxResults(1)
             ->getQuery()

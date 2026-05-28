@@ -253,6 +253,78 @@ final class MembershipController extends AbstractController
     }
 
     /**
+     * @throws Throwable
+     * @throws ExceptionInterface
+     */
+    #[Route('/api/me/memberships/{id}/cancel/', methods: ['POST'], format: 'json')]
+    #[OA\Post(
+        operationId: 'getClientCancelMembership',
+        description: 'Cancels a pending membership that is awaiting payment.',
+        summary: 'Cancel a pending membership (Client).',
+        tags: ['Client: Memberships'],
+        parameters: [
+            new OA\Parameter(
+                name: 'id',
+                description: 'Membership ID',
+                in: 'path',
+                required: true,
+                schema: new OA\Schema(type: 'integer')
+            )
+        ],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Membership successfully canceled.',
+                content: new OA\JsonContent(
+                    allOf: [
+                        new OA\Schema(ref: new Model(type: AbstractItemResponseDTO::class)),
+                        new OA\Schema(
+                            properties: [
+                                new OA\Property(
+                                    property: 'data',
+                                    ref: new Model(type: MembershipResponseDTO::class)
+                                )
+                            ]
+                        )
+                    ]
+                )
+            ),
+            new OA\Response(
+                response: 401,
+                description: 'Unauthorized',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
+            ),
+            new OA\Response(
+                response: 403,
+                description: 'Forbidden - Access denied',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
+            ),
+            new OA\Response(
+                response: 404,
+                description: 'Membership not found',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
+            ),
+            new OA\Response(
+                response: 409,
+                description: 'Conflict - Membership is not in PENDING status.',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
+            )
+        ]
+    )]
+    #[IsGranted(UserRolesEnum::ROLE_CLIENT->value)]
+    public function cancel(
+        Membership $membership,
+        MembershipMapperInterface $mapper,
+        MembershipManager $manager
+    ): ItemResponse {
+        $this->denyAccessUnlessGranted(MembershipVoter::EDIT_OWN, $membership);
+
+        $responseDto = $mapper->map($manager->cancel($membership));
+
+        return new ItemResponse(data: $responseDto, status: Response::HTTP_OK);
+    }
+
+    /**
      * @throws DateMalformedStringException
      * @throws Throwable
      * @throws ExceptionInterface

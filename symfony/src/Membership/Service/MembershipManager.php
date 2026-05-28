@@ -13,6 +13,9 @@ use App\Membership\Exception\MembershipActiveException;
 use App\Membership\Repository\MembershipRepository;
 use App\MembershipPlan\Exception\MembershipPlanNotFoundException;
 use App\MembershipPlan\Repository\MembershipPlanRepository;
+use App\Payment\Entity\Payment;
+use App\Payment\Enum\PaymentStatusEnum;
+use App\Payment\Exception\PaymentNotFoundException;
 use App\Payment\Service\PaymentSettlementService;
 use App\User\Exception\UserNotFoundException;
 use App\User\Service\AvailabilityService;
@@ -21,6 +24,7 @@ use DateTimeImmutable;
 use Doctrine\DBAL\LockMode;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
+use Random\RandomException;
 use Symfony\Component\Messenger\Exception\ExceptionInterface;
 use Throwable;
 
@@ -31,7 +35,6 @@ final readonly class MembershipManager
         private MembershipPlanRepository $membershipPlanRepo,
         private EntityManagerInterface $entityManager,
         private AvailabilityService $userAvailabilityService,
-        private MembershipAvailabilityService $membershipAvailabilityService,
         private PaymentSettlementService $paymentSettlementService,
         private LoggerInterface $membershipLogger,
         private AnalyticsPublisher $analyticsPublisher,
@@ -72,8 +75,9 @@ final readonly class MembershipManager
                     throw new UserNotFoundException('Client not found');
                 }
 
-                if ($this->membershipRepo->findBlockingMembership($lockedClient) !== null) {
-                    throw new MembershipActiveException();
+                $blockingMembership = $this->membershipRepo->findBlockingMembership($lockedClient);
+                if ($blockingMembership !== null) {
+                    throw new MembershipActiveException("Client already has {$blockingMembership->getStatus()->value} membership");
                 }
 
                 $membership = new Membership();
@@ -125,6 +129,107 @@ final readonly class MembershipManager
         } catch (Throwable $e) {
             $this->membershipLogger->error('membership.failed',
                 $this->membershipEventContext($loggingContext, 'create', 'failed', [
+                    'error' => $e->getMessage(),
+                    'exception_class' => $e::class,
+                ])
+            );
+
+            throw $e;
+        }
+    }
+
+    /**
+     * @throws Throwable
+     * @throws RandomException
+     * @throws ExceptionInterface
+     */
+    public function cancel(Membership $membership): Membership
+    {
+        $loggingContext = [
+            'membership_id' => $membership->getId(),
+            'client_id' => $membership->getClient()->getId(),
+        ];
+
+        try {
+            if ($membership->getStatus() !== MembershipStatusEnum::PENDING) {
+                throw new InvalidMembershipStatusException('Only pending memberships can be canceled');
+            }
+
+            $paymentId = $membership->getPayment()?->getId();
+            if ($paymentId === null || $membership->getPlan() === null) {
+                throw new InvalidMembershipStatusException('Membership is not fully initialized');
+            }
+
+            $updatedMembership = $this->entityManager->wrapInTransaction(function () use ($paymentId) {
+                $row = $this->entityManager->getConnection()
+                    ->executeQuery(
+                        'SELECT id FROM payment WHERE id = :id FOR UPDATE',
+                        ['id' => $paymentId]
+                    )
+                    ->fetchAssociative();
+
+                if (!$row) {
+                    throw new PaymentNotFoundException('Payment not found during stripe success');
+                }
+
+                $lockedPayment = $this->entityManager->find(Payment::class, $paymentId);
+
+                if ($lockedPayment === null) {
+                    throw new PaymentNotFoundException('Payment not found during stripe success');
+                }
+
+                $this->entityManager->refresh($lockedPayment);
+
+                if ($lockedPayment->getStatus() !== PaymentStatusEnum::PENDING) {
+                    throw new InvalidMembershipStatusException('Associated payment is no longer pending. Cannot cancel.');
+                }
+
+                $membership = $lockedPayment->getMembership();
+
+                if ($membership === null) {
+                    throw new InvalidMembershipStatusException('Membership not found on locked payment');
+                }
+
+                $this->paymentSettlementService->cancelPayment($lockedPayment);
+
+                $membership->cancel(MembershipStatusEnum::CANCELED_BY_CLIENT);
+
+                return $membership;
+            });
+
+            try {
+                $this->analyticsPublisher->publish(
+                    'membership.canceled',
+                    [
+                        'client_id' => $updatedMembership->getClient()->getId(),
+                        'membership_id' => $updatedMembership->getId(),
+                        'plan_id' => $updatedMembership->getPlan()->getId(),
+                        'price' => $updatedMembership->getPayment()->getAmount(),
+                        'payment_method' => $updatedMembership->getPayment()->getMethod()->value,
+                    ]
+                );
+            } catch (Throwable $e) {
+                $this->membershipLogger->warning('membership.analytics_failed',
+                    $this->membershipEventContext($loggingContext, 'cancel', 'analytics_failed', [
+                        'error' => $e->getMessage(),
+                        'exception_class' => $e::class,
+                    ])
+                );
+            }
+
+            return $updatedMembership;
+
+        } catch (InvalidMembershipStatusException $e) {
+            $this->membershipLogger->notice('membership.cancel.rejected',
+                $this->membershipEventContext($loggingContext, 'cancel', 'rejected', [
+                    'reason' => $e::class,
+                ])
+            );
+
+            throw $e;
+        } catch (Throwable $e) {
+            $this->membershipLogger->error('membership.cancel.failed',
+                $this->membershipEventContext($loggingContext, 'cancel', 'failed', [
                     'error' => $e->getMessage(),
                     'exception_class' => $e::class,
                 ])

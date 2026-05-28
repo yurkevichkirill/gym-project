@@ -18,7 +18,7 @@ use Symfony\Component\Validator\Constraints as Assert;
 #[ORM\UniqueConstraint(
     name: 'uniq_active_client_membership',
     columns: ['client_id'],
-    options: ['where' => "status IN ('active', 'frozen')"]
+    options: ['where' => "status IN ('active', 'frozen', 'pending')"]
 )]
 #[ORM\HasLifecycleCallbacks]
 #[ORM\Entity(repositoryClass: MembershipRepository::class)]
