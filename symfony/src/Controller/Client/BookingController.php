@@ -10,7 +10,6 @@ use App\Booking\DTO\ResolvedBookingsRequestDTO;
 use App\Booking\Entity\Booking;
 use App\Booking\Enum\BookingStatusEnum;
 use App\Booking\Exception\InvalidBookingStatusException;
-use App\Booking\Mapper\BookingAdminMapperInterface;
 use App\Booking\Mapper\BookingMapperInterface;
 use App\Booking\Query\BookingsQuery;
 use App\Booking\Security\BookingVoter;
@@ -19,7 +18,6 @@ use App\Booking\Service\BookingManager;
 use App\Client\Entity\Client;
 use App\Response\ResponseTypeDTO\CollectionResponse;
 use App\Response\ResponseTypeDTO\ItemResponse;
-use App\Response\ResponseTypeDTO\NoContentResponse;
 use App\Response\SwaggerDocDTO\AbstractCollectionResponseDTO;
 use App\Response\SwaggerDocDTO\AbstractItemResponseDTO;
 use App\Response\SwaggerDocDTO\ErrorResponseDTO;
@@ -291,7 +289,7 @@ final class BookingController extends AbstractController
         Booking $booking,
         #[CurrentUser] User $actor,
         BookingCancellationService $bookingCancellationService,
-        BookingAdminMapperInterface            $mapper,
+        BookingMapperInterface            $mapper,
     ): ItemResponse {
         $this->denyAccessUnlessGranted(BookingVoter::CANCEL_OWN, $booking);
 
