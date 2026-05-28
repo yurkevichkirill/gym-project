@@ -136,8 +136,6 @@ final readonly class BookingManager
                     $lockedTrainer,
                 );
 
-                $this->paymentRepo->create($payment);
-
                 return $booking;
             });
 
