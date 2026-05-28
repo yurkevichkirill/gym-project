@@ -273,7 +273,18 @@ final class BookingController extends AbstractController
             new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'integer'))
         ],
         responses: [
-            new OA\Response(response: 204, description: 'Booking cancelled and payment refunded successfully'),
+            new OA\Response(
+                response: 200,
+                description: 'Booking cancelled successfully',
+                content: new OA\JsonContent(
+                    allOf: [
+                        new OA\Schema(ref: new Model(type: AbstractItemResponseDTO::class)),
+                        new OA\Schema(properties: [
+                            new OA\Property(property: 'data', ref: new Model(type: BookingResponseDTO::class))
+                        ])
+                    ]
+                )
+            ),
             new OA\Response(
                 response: 400,
                 description: 'Bad Request / Business Logic Error (e.g. Cannot transition payment status to REFUNDED, or Booking already canceled)',
