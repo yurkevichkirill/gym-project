@@ -25,8 +25,6 @@ final readonly class CreateTrainerRequestDTO
         #[Assert\NotBlank]
         #[Assert\Positive]
         public int $pricePerHour,
-        #[Assert\NotBlank]
-        public string $photoPath,
         public ?string $education,
         public ?string $about,
     )

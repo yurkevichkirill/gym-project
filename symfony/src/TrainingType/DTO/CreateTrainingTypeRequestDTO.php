@@ -13,8 +13,6 @@ final readonly class CreateTrainingTypeRequestDTO
         public string $name,
         #[Assert\NotBlank]
         public string $description,
-        #[Assert\NotBlank]
-        public string $photoUrl,
     )
     {}
 }

@@ -206,10 +206,10 @@ final class AppFixtures extends Fixture
 //        $membershipPlanYear->setDurationDays(366);
 //        $manager->persist($membershipPlanYear);
 
-        $trainers = $manager->getRepository(Trainer::class)->findAll();
+        $trainingTypes = $manager->getRepository(TrainingType::class)->findAll();
 
-        foreach ($trainers as $trainer) {
-            $trainer->setPhotoUrl(null);
+        foreach ($trainingTypes as $trainingType) {
+            $trainingType->setPhotoUrl(null);
         }
 
         $manager->flush();

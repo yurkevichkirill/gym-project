@@ -25,8 +25,8 @@ final class TrainingType
     #[ORM\Column(type: Types::TEXT)]
     private string $description;
 
-    #[ORM\Column()]
-    private string $photoUrl;
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $photoPath = null;
 
     /**
      * @var Collection<int, Trainer>
@@ -49,14 +49,14 @@ final class TrainingType
         return $this->name;
     }
 
-    public function getPhotoUrl(): string
+    public function getPhotoPath(): ?string
     {
-        return $this->photoUrl;
+        return $this->photoPath;
     }
 
-    public function setPhotoUrl(string $photoUrl): static
+    public function setPhotoPath(?string $photoPath): static
     {
-        $this->photoUrl = $photoUrl;
+        $this->photoPath = $photoPath;
 
         return $this;
     }

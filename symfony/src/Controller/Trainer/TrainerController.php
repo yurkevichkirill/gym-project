@@ -21,7 +21,6 @@ use Psr\Container\ContainerExceptionInterface;
 use Psr\Container\NotFoundExceptionInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
-use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
 use Symfony\Component\HttpKernel\Attribute\MapUploadedFile;
@@ -151,7 +150,7 @@ final class TrainerController extends AbstractController
      */
     #[Route('/api/trainer/me/photo/', methods: ['POST'])]
     #[OA\Post(
-        operationId: 'uploadTrainerPhoto',
+        operationId: 'uploadTrainerMyPhoto',
         summary: 'Upload or update current trainer photo.',
         requestBody: new OA\RequestBody(
             description: 'Image file to upload',

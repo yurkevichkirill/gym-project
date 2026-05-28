@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Controller\Admin;
 
-use App\Admin\Entity\Admin;
 use App\Response\ResponseTypeDTO\CollectionResponse;
 use App\Response\ResponseTypeDTO\ItemResponse;
 use App\Response\ResponseTypeDTO\NoContentResponse;
@@ -20,12 +19,15 @@ use App\Trainer\Mapper\TrainerMapperInterface;
 use App\Trainer\Query\TrainersQueryAdmin;
 use App\Trainer\Service\TrainerManager;
 use App\User\Enum\UserRolesEnum;
+use League\Flysystem\FilesystemException;
 use Nelmio\ApiDocBundle\Attribute\Model;
 use OpenApi\Attributes as OA;
 use Psr\Cache\InvalidArgumentException;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
+use Symfony\Component\HttpKernel\Attribute\MapUploadedFile;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
@@ -33,6 +35,7 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
+use Symfony\Component\Validator\Constraints as Assert;
 use Throwable;
 
 final class TrainerController extends AbstractController
@@ -318,6 +321,91 @@ final class TrainerController extends AbstractController
         TrainerMapperInterface                            $mapper,
     ): ItemResponse {
         $responseDto = $mapper->map($manager->updateByAdmin($requestDto, $trainer), true);
+
+        return new ItemResponse(
+            data: $responseDto,
+            status: Response::HTTP_OK,
+        );
+    }
+
+    /**
+     * @throws FilesystemException
+     */
+    #[Route('/api/trainers/{id}/photo/', methods: ['POST'])]
+    #[OA\Post(
+        operationId: 'uploadTrainerPhoto',
+        summary: 'Upload or update current trainer photo.',
+        requestBody: new OA\RequestBody(
+            description: 'Image file to upload',
+            required: true,
+            content: new OA\MediaType(
+                mediaType: 'multipart/form-data',
+                schema: new OA\Schema(
+                    properties: [
+                        new OA\Property(
+                            property: 'photo',
+                            description: 'The photo file (jpeg, png, webp). Max size 2MB.',
+                            type: 'string',
+                            format: 'binary'
+                        )
+                    ]
+                )
+            )
+        ),
+        tags: ['Trainer: Profile'],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Trainer photo uploaded successfully.',
+                content: new OA\JsonContent(
+                    allOf: [
+                        new OA\Schema(ref: new Model(type: AbstractItemResponseDTO::class)),
+                        new OA\Schema(
+                            properties: [
+                                new OA\Property(
+                                    property: 'data',
+                                    ref: new Model(type: TrainerResponsePrivateDTO::class)
+                                )
+                            ]
+                        )
+                    ]
+                )
+            ),
+            new OA\Response(
+                response: 401,
+                description: 'Unauthorized',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
+            ),
+            new OA\Response(
+                response: 422,
+                description: 'Validation failed (e.g., file too large, wrong format)',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
+            )
+        ]
+    )]
+    #[IsGranted(UserRolesEnum::ROLE_TRAINER->value)]
+    public function uploadPhoto(
+        #[CurrentUser] Trainer $trainer,
+        #[MapUploadedFile([
+            new Assert\NotNull,
+            new Assert\File(
+                maxSize: '2M',
+                mimeTypes: ['image/jpeg', 'image/png', 'image/webp']
+            ),
+            new Assert\Image(
+                minWidth: 300,
+                maxWidth: 1500,
+                maxHeight: 2000,
+                minHeight: 400,
+                maxRatio: 1.5,
+                minRatio: 0.5,
+            ),
+        ])]
+        UploadedFile $photo,
+        TrainerManager $manager,
+        TrainerMapperInterface $mapper,
+    ): ItemResponse {
+        $responseDto = $mapper->map($manager->updatePhoto($trainer, $photo), true);
 
         return new ItemResponse(
             data: $responseDto,

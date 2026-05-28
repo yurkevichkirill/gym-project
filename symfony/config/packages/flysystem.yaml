@@ -5,3 +5,9 @@ flysystem:
             options:
                 client: 'Aws\S3\S3Client'
                 bucket: '%env(MINIO_BUCKET)%'
+
+        training_types.storage:
+            adapter: 'aws'
+            options:
+                client: 'Aws\S3\S3Client'
+                bucket: '%env(MINIO_BUCKET)%'
