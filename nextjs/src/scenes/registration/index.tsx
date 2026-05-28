@@ -31,7 +31,8 @@ const RegisterModal = ({ isOpen, onClose, onSwitchToLogin }: RegisterModalProps)
         register,
         handleSubmit,
         formState: { errors },
-        reset
+        reset,
+        setError
     } = useForm<RegisterFormData>({
         mode: "onChange",
     });
@@ -52,11 +53,21 @@ const RegisterModal = ({ isOpen, onClose, onSwitchToLogin }: RegisterModalProps)
             
             if (onSwitchToLogin) onSwitchToLogin();
         } catch (error: any) {
-            notify.error(
-                "Registration failed",
-                error?.message || "Something went wrong",
-                toastId,
-            );
+            if (error.response?.status === 422 && error.response?.data?.violations) {
+                error.response.data.violations.forEach((violation: any) => {
+                    setError(violation.propertyPath as keyof RegisterFormData, {
+                        type: "server",
+                        message: violation.title || "Invalid value."
+                    });
+                });
+                notify.dismiss(toastId);
+            } else {
+                notify.error(
+                    "Registration failed",
+                    error?.message || "Something went wrong",
+                    toastId,
+                );
+            }
         }
     };
 
@@ -88,12 +99,13 @@ const RegisterModal = ({ isOpen, onClose, onSwitchToLogin }: RegisterModalProps)
 
                         <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-3">
                             
+                            {/* First Name & Last Name */}
                             <div className="grid grid-cols-2 gap-2">
                                 <div className={`border rounded ${errors.firstName ? "border-primary-500" : "border-secondary-500"}`}>
                                     <input
                                         type="text"
                                         placeholder="First Name"
-                                        {...register("firstName", { required: true })}
+                                        {...register("firstName", { required: "First name is required." })}
                                         className="m-2 outline-none w-full bg-transparent"
                                     />
                                 </div>
@@ -101,39 +113,49 @@ const RegisterModal = ({ isOpen, onClose, onSwitchToLogin }: RegisterModalProps)
                                     <input
                                         type="text"
                                         placeholder="Last Name"
-                                        {...register("lastName", { required: true })}
+                                        {...register("lastName", { required: "Last name is required." })}
                                         className="m-2 outline-none w-full bg-transparent"
                                     />
                                 </div>
                             </div>
                             {(errors.firstName || errors.lastName) && (
-                                <p className="mt-1 text-primary-500">First and Last name are required.</p>
+                                <p className="mt-1 text-primary-500">
+                                    {errors.firstName?.message || errors.lastName?.message}
+                                </p>
                             )}
 
+                            {/* Email */}
                             <div className={`border rounded ${errors.email ? "border-primary-500" : "border-secondary-500"}`}>
                                 <input
                                     type="text"
                                     placeholder="Email"
                                     {...register("email", {
-                                        required: true,
-                                        pattern: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                                        required: "Email is required.",
+                                        pattern: {
+                                            value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                                            message: "Invalid email address."
+                                        }
                                     })}
                                     className="m-2 outline-none w-full bg-transparent"
                                 />
                             </div>
                             {errors.email && (
-                                <p className="mt-1 text-primary-500">
-                                    {errors.email.type === "required" && "Email is required."}
-                                    {errors.email.type === "pattern" && "Invalid email address."}
-                                </p>
+                                <p className="mt-1 text-primary-500">{errors.email.message}</p>
                             )}
 
+                            {/* Phone & Age */}
                             <div className="grid grid-cols-3 gap-2">
                                 <div className={`border rounded col-span-2 ${errors.phone ? "border-primary-500" : "border-secondary-500"}`}>
                                     <input
                                         type="text"
                                         placeholder="Phone (e.g. +1234567)"
-                                        {...register("phone", { required: true })}
+                                        {...register("phone", { 
+                                            required: "Phone is required.",
+                                            pattern: {
+                                                value: /^\+?[1-9]\d{4,14}$/,
+                                                message: "International format required (e.g. +123456789)."
+                                            }
+                                        })}
                                         className="m-2 outline-none w-full bg-transparent"
                                     />
                                 </div>
@@ -142,8 +164,9 @@ const RegisterModal = ({ isOpen, onClose, onSwitchToLogin }: RegisterModalProps)
                                         type="number"
                                         placeholder="Age"
                                         {...register("age", { 
-                                            required: true, 
-                                            min: 14 
+                                            required: "Required.", 
+                                            valueAsNumber: true,
+                                            min: { value: 1, message: "Must be positive." }
                                         })}
                                         className="m-2 outline-none w-full bg-transparent"
                                     />
@@ -151,19 +174,19 @@ const RegisterModal = ({ isOpen, onClose, onSwitchToLogin }: RegisterModalProps)
                             </div>
                             {(errors.phone || errors.age) && (
                                 <p className="mt-1 text-primary-500">
-                                    {errors.phone?.type === "required" && "Phone is required. "}
-                                    {errors.age?.type === "required" && "Age is required."}
-                                    {errors.age?.type === "min" && "Minimum age is 14."}
+                                    {errors.phone?.message || errors.age?.message}
                                 </p>
                             )}
 
+                            {/* Password */}
                             <div className={`border rounded flex items-center justify-between ${errors.password ? "border-primary-500" : "border-secondary-500"}`}>
                                 <input
                                     type={passVisible ? "text" : "password"}
                                     placeholder="Password"
                                     {...register("password", {
-                                        required: true,
-                                        maxLength: 100,
+                                        required: "Password is required.",
+                                        minLength: { value: 8, message: "Password should be at least 8 chars long." }, // Пре-валидация для PasswordStrength
+                                        maxLength: { value: 100, message: "Max length is 100 char." }
                                     })}
                                     className="m-2 outline-none w-full bg-transparent"
                                 />
@@ -179,10 +202,7 @@ const RegisterModal = ({ isOpen, onClose, onSwitchToLogin }: RegisterModalProps)
                                 </button>
                             </div>
                             {errors.password && (
-                                <p className="mt-1 text-primary-500">
-                                    {errors.password.type === "required" && "Password is required."}
-                                    {errors.password.type === "maxLength" && "Max length is 100 char."}
-                                </p>
+                                <p className="mt-1 text-primary-500">{errors.password.message}</p>
                             )}
 
                             <button
