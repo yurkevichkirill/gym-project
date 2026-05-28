@@ -208,27 +208,50 @@ final readonly class PaymentSettlementService
     public function handleStripeSuccess(string $intentId): void
     {
         $payment = $this->paymentRepo->findOneByStripePaymentIntentId($intentId);
+
         if ($payment === null) {
             throw new PaymentNotFoundException('Payment for Stripe intent was not found');
         }
 
-        if ($payment->getStatus() === PaymentStatusEnum::SUCCEEDED) {
-            return;
-        }
+        $paymentId = $payment->getId();
 
-        if ($payment->getStatus() !== PaymentStatusEnum::PENDING) {
-            $this->paymentLogger->warning('payment.stripe_success.ignored', [
-                'intent_id' => $intentId,
-                'current_status' => $payment->getStatus()->value,
-            ]);
-            return;
-        }
+        $this->em->wrapInTransaction(function () use ($paymentId, $intentId) {
+            $row = $this->em->getConnection()
+                ->executeQuery(
+                    'SELECT id FROM payment WHERE id = :id FOR UPDATE',
+                    ['id' => $paymentId]
+                )
+                ->fetchAssociative();
 
-        $booking = $payment->getBooking();
+            if (!$row) {
+                throw new PaymentNotFoundException('Payment not found during stripe success');
+            }
 
-        $this->em->wrapInTransaction(function () use ($payment, $booking) {
+            $lockedPayment = $this->em->find(Payment::class, $paymentId);
+
+            if ($lockedPayment === null) {
+                throw new PaymentNotFoundException('Payment not found during stripe success');
+            }
+
+            $this->em->refresh($lockedPayment);
+
+            if ($lockedPayment->getStatus() === PaymentStatusEnum::SUCCEEDED) {
+                return;
+            }
+
+            if ($lockedPayment->getStatus() !== PaymentStatusEnum::PENDING) {
+                $this->paymentLogger->warning('payment.stripe_success.ignored', [
+                    'intent_id' => $intentId,
+                    'current_status' => $lockedPayment->getStatus()->value,
+                ]);
+
+                return;
+            }
+
+            $booking = $lockedPayment->getBooking();
+
             if ($booking !== null) {
-                $trainer = $payment->getTrainer();
+                $trainer = $lockedPayment->getTrainer();
                 if ($trainer === null) {
                     throw new TrainerNotFoundException('Trainer for booking payment was not found');
                 }
@@ -239,19 +262,19 @@ final readonly class PaymentSettlementService
                     LockMode::PESSIMISTIC_WRITE
                 );
 
-                $this->balanceService->depositTrainer($lockedTrainer, $payment->getAmount());
+                $this->balanceService->depositTrainer($lockedTrainer, $lockedPayment->getAmount());
 
                 $booking->confirm();
             }
 
-            $membership = $payment->getMembership();
+            $membership = $lockedPayment->getMembership();
             $membership?->activate();
 
-            if ($payment->getCategory() === PaymentCategoryEnum::BALANCE_TOP_UP) {
-                $this->settleTopUpPayment($payment);
+            if ($lockedPayment->getCategory() === PaymentCategoryEnum::BALANCE_TOP_UP) {
+                $this->settleTopUpPayment($lockedPayment);
             }
 
-            $this->paymentLifecycleService->transitionTo($payment, PaymentStatusEnum::SUCCEEDED);
+            $this->paymentLifecycleService->transitionTo($lockedPayment, PaymentStatusEnum::SUCCEEDED);
         });
     }
 
