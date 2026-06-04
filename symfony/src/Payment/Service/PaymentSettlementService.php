@@ -215,26 +215,7 @@ final readonly class PaymentSettlementService
 
         $paymentId = $payment->getId();
 
-        $this->em->wrapInTransaction(function () use ($paymentId, $intentId) {
-            $row = $this->em->getConnection()
-                ->executeQuery(
-                    'SELECT id FROM payment WHERE id = :id FOR UPDATE',
-                    ['id' => $paymentId]
-                )
-                ->fetchAssociative();
-
-            if (!$row) {
-                throw new PaymentNotFoundException('Payment not found during stripe success');
-            }
-
-            $lockedPayment = $this->em->find(Payment::class, $paymentId);
-
-            if ($lockedPayment === null) {
-                throw new PaymentNotFoundException('Payment not found during stripe success');
-            }
-
-            $this->em->refresh($lockedPayment);
-
+        $this->withLockedPayment($paymentId, function (Payment $lockedPayment) use ($intentId) {
             if ($lockedPayment->getStatus() === PaymentStatusEnum::SUCCEEDED) {
                 return;
             }
@@ -322,26 +303,7 @@ final readonly class PaymentSettlementService
 
         $paymentId = $payment->getId();
 
-        $this->em->wrapInTransaction(function () use ($paymentId) {
-            $row = $this->em->getConnection()
-                ->executeQuery(
-                    'SELECT id FROM payment WHERE id = :id FOR UPDATE',
-                    ['id' => $paymentId]
-                )
-                ->fetchAssociative();
-
-            if (!$row) {
-                throw new PaymentNotFoundException('Payment not found during refund');
-            }
-
-            $lockedPayment = $this->em->find(Payment::class, $paymentId);
-
-            if ($lockedPayment === null) {
-                throw new PaymentNotFoundException('Payment not found during refund');
-            }
-
-            $this->em->refresh($lockedPayment);
-
+        $this->withLockedPayment($paymentId, function (Payment $lockedPayment) {
             if ($lockedPayment->getStatus() === PaymentStatusEnum::REFUNDED) {
                 $this->paymentLogger->warning(
                     'payment.refund.rejected.already_refunded',
@@ -446,9 +408,9 @@ final readonly class PaymentSettlementService
             throw new PaymentNotFoundException('Payment for Stripe intent was not found');
         }
 
-        $this->failPayment($payment);
-
-        $this->em->flush();
+        $this->withLockedPayment($payment->getId(), function (Payment $lockedPayment) {
+            $this->failPayment($lockedPayment);
+        });
     }
 
     /**
@@ -461,9 +423,9 @@ final readonly class PaymentSettlementService
             throw new PaymentNotFoundException('Payment for Stripe intent was not found');
         }
 
-        $this->cancelPayment($payment);
-
-        $this->em->flush();
+        $this->withLockedPayment($payment->getId(), function (Payment $lockedPayment) {
+            $this->cancelPayment($lockedPayment);
+        });
     }
 
     /**
@@ -521,11 +483,11 @@ final readonly class PaymentSettlementService
         foreach ($payments as $payment) {
             $expiresAt = $payment->getExpiresAt();
             if ($expiresAt !== null && $expiresAt < $now) {
-                $this->cancelPayment($payment);
+                $this->withLockedPayment($payment->getId(), function (Payment $lockedPayment) {
+                    $this->cancelPayment($lockedPayment);
+                });
             }
         }
-
-        $this->em->flush();
     }
 
     private function cancelRelatedBookingForPaymentFailure(Payment $payment): void
@@ -538,6 +500,31 @@ final readonly class PaymentSettlementService
 
         $booking->setStatus(BookingStatusEnum::CANCELED_PAYMENT_FAILED);
         $booking->getTraining()?->setIsBusy(false);
+    }
+
+    public function withLockedPayment(int $paymentId, callable $callback): mixed
+    {
+        return $this->em->wrapInTransaction(function () use ($paymentId, $callback) {
+            $row = $this->em->getConnection()
+                ->executeQuery(
+                    'SELECT id FROM payment WHERE id = :id FOR UPDATE',
+                    ['id' => $paymentId]
+                )
+                ->fetchAssociative();
+
+            if (!$row) {
+                throw new PaymentNotFoundException('Payment not found');
+            }
+
+            $lockedPayment = $this->em->find(Payment::class, $paymentId);
+            if ($lockedPayment === null) {
+                throw new PaymentNotFoundException('Payment not found');
+            }
+
+            $this->em->refresh($lockedPayment);
+
+            return $callback($lockedPayment);
+        });
     }
 
     /**

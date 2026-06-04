@@ -142,26 +142,7 @@ final readonly class BookingCancellationService
         $paymentId = $payment->getId();
 
         try {
-            $this->entityManager->wrapInTransaction(function () use ($booking, $status, $paymentId) {
-                $row = $this->entityManager->getConnection()
-                    ->executeQuery(
-                        'SELECT id FROM payment WHERE id = :id FOR UPDATE',
-                        ['id' => $paymentId]
-                    )
-                    ->fetchAssociative();
-
-                if (!$row) {
-                    throw new PaymentNotFoundException('Payment not found during pending booking cancellation');
-                }
-
-                $lockedPayment = $this->entityManager->find(Payment::class, $paymentId);
-
-                if ($lockedPayment === null) {
-                    throw new PaymentNotFoundException('Payment not found during pending booking cancellation');
-                }
-
-                $this->entityManager->refresh($lockedPayment);
-
+            $this->paymentSettlementService->withLockedPayment($paymentId, function (Payment $lockedPayment) use ($booking, $status) {
                 if ($lockedPayment->getStatus() !== PaymentStatusEnum::PENDING) {
                     throw new InvalidBookingStatusException('Payment is no longer pending. Cancellation aborted.');
                 }

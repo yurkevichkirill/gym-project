@@ -160,26 +160,7 @@ final readonly class MembershipManager
                 throw new InvalidMembershipStatusException('Membership is not fully initialized');
             }
 
-            $updatedMembership = $this->entityManager->wrapInTransaction(function () use ($paymentId) {
-                $row = $this->entityManager->getConnection()
-                    ->executeQuery(
-                        'SELECT id FROM payment WHERE id = :id FOR UPDATE',
-                        ['id' => $paymentId]
-                    )
-                    ->fetchAssociative();
-
-                if (!$row) {
-                    throw new PaymentNotFoundException('Payment not found during stripe success');
-                }
-
-                $lockedPayment = $this->entityManager->find(Payment::class, $paymentId);
-
-                if ($lockedPayment === null) {
-                    throw new PaymentNotFoundException('Payment not found during stripe success');
-                }
-
-                $this->entityManager->refresh($lockedPayment);
-
+            $updatedMembership = $this->paymentSettlementService->withLockedPayment($paymentId, function (Payment $lockedPayment) {
                 if ($lockedPayment->getStatus() !== PaymentStatusEnum::PENDING) {
                     throw new InvalidMembershipStatusException('Associated payment is no longer pending. Cannot cancel.');
                 }

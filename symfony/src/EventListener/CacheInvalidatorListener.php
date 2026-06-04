@@ -90,6 +90,7 @@ final class CacheInvalidatorListener
             elseif ($entity instanceof Training) {
                 $trainerId = $entity->getTrainerWorkTime()->getTrainer()->getId();
                 $this->tagsToInvalidate[] = "trainer_worktimes_list_$trainerId";
+                $this->tagsToInvalidate[] = 'trainer_worktimes_list_all';
                 $this->tagsToInvalidate[] = "trainings_list_$trainerId";
                 $this->tagsToInvalidate[] = 'trainings_list_all';
                 $this->groupsToBump[] = 'worktime';

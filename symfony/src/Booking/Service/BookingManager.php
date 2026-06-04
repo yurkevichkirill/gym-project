@@ -41,7 +41,6 @@ final readonly class BookingManager
         private PaymentSettlementService  $paymentSettlementService,
         private EntityManagerInterface    $entityManager,
         private LoggerInterface           $bookingLogger,
-        private PaymentRepository         $paymentRepo,
         private AnalyticsPublisher        $analyticsPublisher,
     )
     {}
