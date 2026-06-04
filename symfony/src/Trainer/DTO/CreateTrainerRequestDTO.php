@@ -16,8 +16,14 @@ final readonly class CreateTrainerRequestDTO
         #[Assert\NotBlank]
         public string $email,
         #[Assert\NotBlank]
+        #[Assert\Regex(
+            pattern: '/^\+?[1-9]\d{4,14}$/'
+        )]
         public string $phone,
         #[Assert\NotBlank]
+        #[Assert\PasswordStrength(
+            minScore: Assert\PasswordStrength::STRENGTH_MEDIUM,
+        )]
         public string $password,
         #[Assert\NotBlank]
         #[Assert\Positive]

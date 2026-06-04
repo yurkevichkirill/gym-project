@@ -4,10 +4,15 @@ declare(strict_types=1);
 
 namespace App\Client\DTO;
 
+use Symfony\Component\Validator\Constraints as Assert;
+
 final readonly class ClientActivateRequestDTO
 {
     public function __construct(
         public string $activationToken,
+        #[Assert\PasswordStrength(
+            minScore: Assert\PasswordStrength::STRENGTH_MEDIUM,
+        )]
         public string $password,
     )
     {}

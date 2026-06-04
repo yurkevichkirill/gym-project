@@ -142,12 +142,16 @@ final readonly class BookingCancellationService
         $paymentId = $payment->getId();
 
         try {
-            $this->paymentSettlementService->withLockedPayment($paymentId, function (Payment $lockedPayment) use ($booking, $status) {
+            $this->paymentSettlementService->withLockedPayment($paymentId, function (Payment $lockedPayment) use ($booking, $status, $training) {
                 if ($lockedPayment->getStatus() !== PaymentStatusEnum::PENDING) {
                     throw new InvalidBookingStatusException('Payment is no longer pending. Cancellation aborted.');
                 }
 
                 $this->paymentSettlementService->cancelPayment($lockedPayment);
+
+                if ($training !== null) {
+                    $training->setIsBusy(false);
+                }
 
                 $booking->setStatus($status);
             });

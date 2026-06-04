@@ -17,6 +17,10 @@ final readonly class CreateClientImport
         #[Assert\NotBlank(groups: ['import'])]
         public ?string $lastName = null,
         #[Assert\NotBlank(groups: ['import'])]
+        #[Assert\Regex(
+            pattern: '/^\+?[1-9]\d{4,14}$/',
+            groups: ['import']
+        )]
         public ?string $phone = null,
         #[Assert\NotBlank(groups: ['import'])]
         #[Assert\Positive(groups: ['import'])]
