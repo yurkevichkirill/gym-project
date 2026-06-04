@@ -24,10 +24,15 @@ final readonly class FileManager
 
         $path = $directory . '/' . $uniqueName;
 
-        $storage->writeStream(
-            $path,
-            fopen($file->getPathname(), 'r')
-        );
+        $stream = fopen($file->getPathname(), 'r');
+
+        try {
+            $storage->writeStream($path, $stream);
+        } finally {
+            if (is_resource($stream)) {
+                fclose($stream);
+            }
+        }
 
         return $path;
     }
