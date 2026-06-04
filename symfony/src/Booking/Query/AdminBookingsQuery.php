@@ -14,7 +14,7 @@ use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Contracts\Cache\ItemInterface;
 use Symfony\Contracts\Cache\TagAwareCacheInterface;
 
-final readonly class BookingsQuery
+final readonly class AdminBookingsQuery
 {
     private const array SORT_MAP = [
         'trainingId' => 't.id',

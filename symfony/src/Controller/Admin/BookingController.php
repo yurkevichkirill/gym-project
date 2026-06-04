@@ -11,14 +11,13 @@ use App\Booking\Entity\Booking;
 use App\Booking\Enum\BookingStatusEnum;
 use App\Booking\Exception\InvalidBookingStatusException;
 use App\Booking\Mapper\BookingAdminMapperInterface;
-use App\Booking\Query\BookingsQuery;
+use App\Booking\Query\AdminBookingsQuery;
 use App\Booking\Security\BookingVoter;
 use App\Booking\Service\BookingCancellationService;
 use App\Booking\Service\BookingManager;
 use App\Client\Entity\Client;
 use App\Response\ResponseTypeDTO\CollectionResponse;
 use App\Response\ResponseTypeDTO\ItemResponse;
-use App\Response\ResponseTypeDTO\NoContentResponse;
 use App\Response\SwaggerDocDTO\AbstractCollectionResponseDTO;
 use App\Response\SwaggerDocDTO\AbstractItemResponseDTO;
 use App\Response\SwaggerDocDTO\ErrorResponseDTO;
@@ -105,7 +104,7 @@ final class BookingController extends AbstractController
     #[IsGranted(UserRolesEnum::ROLE_ADMIN->value)]
     public function getAll(
         ResolvedBookingsRequestDTO $resolvedDto,
-        BookingsQuery              $handler,
+        AdminBookingsQuery              $handler,
     ): CollectionResponse {
         $parsedSort = $handler->getParsedSort($resolvedDto);
 
