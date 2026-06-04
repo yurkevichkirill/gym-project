@@ -28,6 +28,7 @@ use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use League\Flysystem\FilesystemOperator;
+use Throwable;
 
 final readonly class TrainerManager
 {
@@ -154,6 +155,7 @@ final readonly class TrainerManager
 
     /**
      * @throws FilesystemException
+     * @throws Throwable
      */
     public function updatePhoto(Trainer $trainer, UploadedFile $file): Trainer
     {
@@ -166,9 +168,15 @@ final readonly class TrainerManager
             prefix: 'avatar'
         );
 
-        $trainer->setPhotoPath($newPhotoPath);
+        try {
+            $trainer->setPhotoPath($newPhotoPath);
 
-        $this->entityManager->flush();
+            $this->entityManager->flush();
+        } catch (Throwable $e) {
+            $this->fileManager->delete($this->trainersStorage, $newPhotoPath);
+
+            throw $e;
+        }
 
         if ($oldPhotoPath !== null) {
             $this->fileManager->delete($this->trainersStorage, $oldPhotoPath);

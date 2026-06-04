@@ -13,6 +13,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use League\Flysystem\FilesystemException;
 use League\Flysystem\FilesystemOperator;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
+use Throwable;
 
 final readonly class TrainingTypeManager
 {
@@ -55,6 +56,7 @@ final readonly class TrainingTypeManager
 
     /**
      * @throws FilesystemException
+     * @throws Throwable
      */
     public function updatePhoto(TrainingType $trainingType, UploadedFile $file): TrainingType
     {
@@ -67,8 +69,15 @@ final readonly class TrainingTypeManager
             prefix: 'type'
         );
 
-        $trainingType->setPhotoPath($newPhotoPath);
-        $this->entityManager->flush();
+        try {
+            $trainingType->setPhotoPath($newPhotoPath);
+
+            $this->entityManager->flush();
+        } catch (Throwable $e) {
+            $this->fileManager->delete($this->trainingTypesStorage, $newPhotoPath);
+
+            throw $e;
+        }
 
         if ($oldPhotoPath !== null) {
             $this->fileManager->delete($this->trainingTypesStorage, $oldPhotoPath);
