@@ -202,9 +202,6 @@ final readonly class PaymentSettlementService
         return $this->stripeService->createPaymentIntent($payment);
     }
 
-    /**
-     * @throws NotFoundHttpException
-     */
     public function handleStripeSuccess(string $intentId): void
     {
         $payment = $this->paymentRepo->findOneByStripePaymentIntentId($intentId);
