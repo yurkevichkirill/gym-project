@@ -19,19 +19,27 @@ final class Version20260528121104 extends AbstractMigration
 
     public function up(Schema $schema): void
     {
-        // this up() migration is auto-generated, please modify it to your needs
-        $this->addSql('DROP INDEX uniq_active_client_membership');
+        $this->addSql('DROP INDEX IF EXISTS uniq_active_client_membership');
+        $this->addSql('DROP INDEX IF EXISTS uniq_refund_original_payment');
+
         $this->addSql('CREATE UNIQUE INDEX uniq_active_client_membership ON membership (client_id) WHERE status IN (\'active\', \'frozen\', \'pending\')');
-        $this->addSql('DROP INDEX uniq_refund_original_payment');
         $this->addSql('CREATE UNIQUE INDEX uniq_refund_original_payment ON payment (original_payment_id) WHERE is_refund = true');
+
+        $this->addSql('ALTER TABLE "user" RENAME COLUMN photo_url TO photo_path');
+        $this->addSql('ALTER TABLE training_type ALTER photo_url DROP NOT NULL');
+        $this->addSql('ALTER TABLE training_type RENAME COLUMN photo_url TO photo_path');
     }
 
     public function down(Schema $schema): void
     {
-        // this down() migration is auto-generated, please modify it to your needs
-        $this->addSql('DROP INDEX uniq_active_client_membership');
-        $this->addSql('CREATE UNIQUE INDEX uniq_active_client_membership ON membership (client_id) WHERE ((status)::text = ANY ((ARRAY[\'active\'::character varying, \'frozen\'::character varying])::text[]))');
-        $this->addSql('DROP INDEX uniq_refund_original_payment');
-        $this->addSql('CREATE UNIQUE INDEX uniq_refund_original_payment ON payment (original_payment_id) WHERE (is_refund = true)');
+        $this->addSql('DROP INDEX IF EXISTS uniq_active_client_membership');
+        $this->addSql('DROP INDEX IF EXISTS uniq_refund_original_payment');
+
+        $this->addSql('CREATE UNIQUE INDEX uniq_active_client_membership ON membership (client_id) WHERE status IN (\'active\', \'frozen\')');
+        $this->addSql('CREATE UNIQUE INDEX uniq_refund_original_payment ON payment (original_payment_id) WHERE is_refund = true');
+
+        $this->addSql('ALTER TABLE "user" RENAME COLUMN photo_path TO photo_url');
+        $this->addSql('ALTER TABLE training_type RENAME COLUMN photo_path TO photo_url');
+        $this->addSql('ALTER TABLE training_type ALTER photo_url SET NOT NULL');
     }
 }
