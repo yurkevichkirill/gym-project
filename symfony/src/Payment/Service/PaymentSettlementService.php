@@ -240,6 +240,18 @@ final readonly class PaymentSettlementService
             }
 
             if ($lockedPayment->getStatus() !== PaymentStatusEnum::PENDING) {
+                if (in_array($lockedPayment->getStatus(), [PaymentStatusEnum::CANCELED, PaymentStatusEnum::FAILED], true)) {
+                    $this->paymentLogger->critical('payment.stripe_success.reconciliation_required', [
+                        'intent_id' => $intentId,
+                        'current_status' => $lockedPayment->getStatus()->value,
+                        'action' => 'initiating_stripe_refund'
+                    ]);
+
+                    $this->stripeService->refundPaymentIntent($intentId);
+
+                    return;
+                }
+
                 $this->paymentLogger->warning('payment.stripe_success.ignored', [
                     'intent_id' => $intentId,
                     'current_status' => $lockedPayment->getStatus()->value,
@@ -391,11 +403,26 @@ final readonly class PaymentSettlementService
                 return;
             }
 
-            $this->paymentLifecycleService->transitionTo($payment, PaymentStatusEnum::FAILED);
-
             $this->cancelRelatedBookingForPaymentFailure($payment);
 
             $payment->getMembership()?->cancel(MembershipStatusEnum::CANCELED_PAYMENT_FAILED);
+
+            if (
+                $payment->getMethod() === PaymentMethodEnum::CARD
+                && $payment->getStripePaymentIntentId() !== null
+            ) {
+                try {
+                    $this->stripeService->cancelPaymentIntent($payment->getStripePaymentIntentId());
+                } catch (Throwable $stripeException) {
+                    $this->paymentLogger->warning('payment.stripe_cancel.failed', [
+                        'payment_id' => $payment->getId(),
+                        'intent_id' => $payment->getStripePaymentIntentId(),
+                        'error' => $stripeException->getMessage(),
+                    ]);
+                }
+            }
+
+            $this->paymentLifecycleService->transitionTo($payment, PaymentStatusEnum::FAILED);
         } catch (Throwable $e) {
             $this->paymentLogger->error(
                 'payment.fail.failed',
@@ -452,6 +479,21 @@ final readonly class PaymentSettlementService
             $this->cancelRelatedBookingForPaymentFailure($payment);
 
             $payment->getMembership()?->cancel(MembershipStatusEnum::CANCELED_PAYMENT_FAILED);
+
+            if (
+                $payment->getMethod() === PaymentMethodEnum::CARD
+                && $payment->getStripePaymentIntentId() !== null
+            ) {
+                try {
+                    $this->stripeService->cancelPaymentIntent($payment->getStripePaymentIntentId());
+                } catch (Throwable $stripeException) {
+                    $this->paymentLogger->warning('payment.stripe_cancel.failed', [
+                        'payment_id' => $payment->getId(),
+                        'intent_id' => $payment->getStripePaymentIntentId(),
+                        'error' => $stripeException->getMessage(),
+                    ]);
+                }
+            }
 
             $this->paymentLifecycleService->transitionTo($payment, PaymentStatusEnum::CANCELED);
         } catch (Throwable $e) {

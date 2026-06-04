@@ -70,4 +70,22 @@ final readonly class StripeService
             throw $e;
         }
     }
+
+    /**
+     * @throws ApiErrorException
+     */
+    public function cancelPaymentIntent(string $intentId): void
+    {
+        $this->stripe->paymentIntents->cancel($intentId);
+    }
+
+    /**
+     * @throws ApiErrorException
+     */
+    public function refundPaymentIntent(string $intentId): void
+    {
+        $this->stripe->refunds->create([
+            'payment_intent' => $intentId,
+        ]);
+    }
 }
