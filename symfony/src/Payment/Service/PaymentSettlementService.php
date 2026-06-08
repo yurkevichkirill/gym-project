@@ -362,7 +362,7 @@ final readonly class PaymentSettlementService
     /**
      * @throws Throwable
      */
-    public function failPayment(Payment $payment): void
+    public function failPayment(Payment $payment, bool $cancelRemoteIntent = true): void
     {
         try {
             if ($payment->getStatus() !== PaymentStatusEnum::PENDING) {
@@ -374,7 +374,8 @@ final readonly class PaymentSettlementService
             $payment->getMembership()?->cancel(MembershipStatusEnum::CANCELED_PAYMENT_FAILED);
 
             if (
-                $payment->getMethod() === PaymentMethodEnum::CARD
+                $cancelRemoteIntent
+                && $payment->getMethod() === PaymentMethodEnum::CARD
                 && $payment->getStripePaymentIntentId() !== null
             ) {
                 $this->messageBus->dispatch(new CancelStripeIntentMessage(
@@ -408,7 +409,7 @@ final readonly class PaymentSettlementService
         }
 
         $this->withLockedPayment($payment->getId(), function (Payment $lockedPayment) {
-            $this->failPayment($lockedPayment);
+            $this->failPayment($lockedPayment, false);
         });
     }
 
@@ -423,14 +424,14 @@ final readonly class PaymentSettlementService
         }
 
         $this->withLockedPayment($payment->getId(), function (Payment $lockedPayment) {
-            $this->cancelPayment($lockedPayment);
+            $this->cancelPayment($lockedPayment, false);
         });
     }
 
     /**
      * @throws Throwable
      */
-    public function cancelPayment(Payment $payment): void
+    public function cancelPayment(Payment $payment, bool $cancelRemoteIntent = true): void
     {
         try {
             if ($payment->getStatus() !== PaymentStatusEnum::PENDING) {
@@ -442,7 +443,8 @@ final readonly class PaymentSettlementService
             $payment->getMembership()?->cancel(MembershipStatusEnum::CANCELED_PAYMENT_FAILED);
 
             if (
-                $payment->getMethod() === PaymentMethodEnum::CARD
+                $cancelRemoteIntent
+                &&$payment->getMethod() === PaymentMethodEnum::CARD
                 && $payment->getStripePaymentIntentId() !== null
             ) {
                 $this->messageBus->dispatch(new CancelStripeIntentMessage(
