@@ -14,6 +14,7 @@ final readonly class CreateTrainerRequestDTO
         #[Assert\NotBlank]
         public string $lastName,
         #[Assert\NotBlank]
+        #[Assert\Email]
         public string $email,
         #[Assert\NotBlank]
         #[Assert\Regex(

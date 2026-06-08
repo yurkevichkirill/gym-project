@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Controller\Admin;
 
+use App\Booking\DTO\BookingAdminResponseDTO;
 use App\Booking\DTO\BookingRequestDTO;
 use App\Booking\DTO\BookingResponseDTO;
 use App\Booking\DTO\ResolvedBookingsRequestDTO;
@@ -72,7 +73,7 @@ final class BookingController extends AbstractController
                                 new OA\Property(
                                     property: 'data',
                                     type: 'array',
-                                    items: new OA\Items(ref: new Model(type: BookingResponseDTO::class))
+                                    items: new OA\Items(ref: new Model(type: BookingAdminResponseDTO::class))
                                 )
                             ]
                         )
@@ -142,7 +143,7 @@ final class BookingController extends AbstractController
                             properties: [
                                 new OA\Property(
                                     property: 'data',
-                                    ref: new Model(type: BookingResponseDTO::class)
+                                    ref: new Model(type: BookingAdminResponseDTO::class)
                                 )
                             ]
                         )
@@ -207,7 +208,7 @@ final class BookingController extends AbstractController
                             properties: [
                                 new OA\Property(
                                     property: 'data',
-                                    ref: new Model(type: BookingResponseDTO::class)
+                                    ref: new Model(type: BookingAdminResponseDTO::class)
                                 )
                             ]
                         )
@@ -279,7 +280,7 @@ final class BookingController extends AbstractController
                     allOf: [
                         new OA\Schema(ref: new Model(type: AbstractItemResponseDTO::class)),
                         new OA\Schema(properties: [
-                            new OA\Property(property: 'data', ref: new Model(type: BookingResponseDTO::class))
+                            new OA\Property(property: 'data', ref: new Model(type: BookingAdminResponseDTO::class))
                         ])
                     ]
                 )
