@@ -30,7 +30,7 @@ const Trainers = ({ trainers }: Props) => {
                     key = { trainer.id }
                     id = { trainer.id }
                     name = { trainer.firstName + " " + trainer.lastName }
-                    photoUrl={ trainer.photoUrl }
+                    photoPath={ trainer.photoPath }
                 >
                 </OurTrainer>
             ))}

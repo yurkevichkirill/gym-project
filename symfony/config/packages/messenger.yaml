@@ -41,7 +41,9 @@ framework:
         default_bus: messenger.bus.default
 
         buses:
-            messenger.bus.default: []
+            messenger.bus.default:
+                middleware:
+                    - doctrine_transaction
 
         routing:
             Symfony\Component\Mailer\Messenger\SendEmailMessage: async
@@ -50,6 +52,9 @@ framework:
 
             App\ImportJob\Message\ImportMessage: async
             App\ImportJob\Message\SendActivationEmailMessage: async
+
+            App\Payment\Message\RefundPaymentMessage: async
+            App\Payment\Message\CancelStripeIntentMessage: async
 
             App\Infrastructure\ClickHouse\Event\AnalyticsEvent: analytics
 

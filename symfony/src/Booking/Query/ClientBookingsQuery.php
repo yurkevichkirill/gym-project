@@ -149,6 +149,6 @@ final readonly class ClientBookingsQuery
 
         $encoded = json_encode($params);
 
-        return 'bookings_' . hash('sha256', $encoded === false ? '' : $encoded);
+        return 'client_bookings_' . hash('sha256', $encoded === false ? '' : $encoded);
     }
 }

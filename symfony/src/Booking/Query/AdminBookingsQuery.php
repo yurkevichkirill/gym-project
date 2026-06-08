@@ -149,6 +149,6 @@ final readonly class AdminBookingsQuery
 
         $encoded = json_encode($params);
 
-        return 'bookings_' . hash('sha256', $encoded === false ? '' : $encoded);
+        return 'admin_bookings_' . hash('sha256', $encoded === false ? '' : $encoded);
     }
 }

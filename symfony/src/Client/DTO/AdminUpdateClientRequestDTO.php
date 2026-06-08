@@ -13,15 +13,15 @@ final readonly class AdminUpdateClientRequestDTO
         public ?string $firstName = null,
         public ?string $lastName = null,
         #[Assert\Email]
-        public ?string $email,
+        public ?string $email = null,
         #[Assert\Regex(
             pattern: '/^\+?[1-9]\d{4,14}$/'
         )]
-        public ?string $phone,
+        public ?string $phone = null,
         #[Assert\PasswordStrength(
             minScore: Assert\PasswordStrength::STRENGTH_MEDIUM,
         )]
-        public ?string $password,
+        public ?string $password = null,
     )
     {}
 }

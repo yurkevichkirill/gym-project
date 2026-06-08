@@ -5,9 +5,15 @@ const nextConfig: NextConfig = {
         remotePatterns: [
             {
                 protocol: "http",
-                hostname: "nginx",
-                port: "",
-                pathname: "/uploads/**",
+                hostname: "localhost",
+                port: "9005",
+                pathname: "/evogym-bucket/**",
+            },
+            {
+                protocol: "http",
+                hostname: "minio",
+                port: "9000",
+                pathname: "/evogym-bucket/**",
             },
         ],
         dangerouslyAllowLocalIP: process.env.NODE_ENV === "development",

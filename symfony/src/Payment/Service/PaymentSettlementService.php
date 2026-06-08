@@ -15,6 +15,8 @@ use App\Payment\Enum\PaymentMethodEnum;
 use App\Payment\Enum\PaymentStatusEnum;
 use App\Payment\Exception\InvalidPaymentStatusException;
 use App\Payment\Exception\PaymentNotFoundException;
+use App\Payment\Message\CancelStripeIntentMessage;
+use App\Payment\Message\RefundPaymentMessage;
 use App\Payment\Repository\PaymentRepository;
 use App\Trainer\Entity\Trainer;
 use App\Trainer\Exception\TrainerNotFoundException;
@@ -27,6 +29,7 @@ use Doctrine\ORM\OptimisticLockException;
 use Psr\Log\LoggerInterface;
 use Stripe\Exception\ApiErrorException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Symfony\Component\Messenger\MessageBusInterface;
 use Throwable;
 
 final readonly class PaymentSettlementService
@@ -38,6 +41,7 @@ final readonly class PaymentSettlementService
         private PaymentRepository $paymentRepo,
         private BalanceService $balanceService,
         private LoggerInterface $paymentLogger,
+        private MessageBusInterface $messageBus,
         private EntityManagerInterface $em,
     )
     {}
@@ -225,7 +229,10 @@ final readonly class PaymentSettlementService
                         'action' => 'initiating_stripe_refund'
                     ]);
 
-                    $this->stripeService->refundPaymentIntent($intentId);
+                    $this->messageBus->dispatch(new RefundPaymentMessage(
+                        $lockedPayment->getId(),
+                        $intentId
+                    ));
 
                     return;
                 }
@@ -370,15 +377,10 @@ final readonly class PaymentSettlementService
                 $payment->getMethod() === PaymentMethodEnum::CARD
                 && $payment->getStripePaymentIntentId() !== null
             ) {
-                try {
-                    $this->stripeService->cancelPaymentIntent($payment->getStripePaymentIntentId());
-                } catch (Throwable $stripeException) {
-                    $this->paymentLogger->warning('payment.stripe_cancel.failed', [
-                        'payment_id' => $payment->getId(),
-                        'intent_id' => $payment->getStripePaymentIntentId(),
-                        'error' => $stripeException->getMessage(),
-                    ]);
-                }
+                $this->messageBus->dispatch(new CancelStripeIntentMessage(
+                    $payment->getId(),
+                    $payment->getStripePaymentIntentId()
+                ));
             }
 
             $this->paymentLifecycleService->transitionTo($payment, PaymentStatusEnum::FAILED);
@@ -443,15 +445,10 @@ final readonly class PaymentSettlementService
                 $payment->getMethod() === PaymentMethodEnum::CARD
                 && $payment->getStripePaymentIntentId() !== null
             ) {
-                try {
-                    $this->stripeService->cancelPaymentIntent($payment->getStripePaymentIntentId());
-                } catch (Throwable $stripeException) {
-                    $this->paymentLogger->warning('payment.stripe_cancel.failed', [
-                        'payment_id' => $payment->getId(),
-                        'intent_id' => $payment->getStripePaymentIntentId(),
-                        'error' => $stripeException->getMessage(),
-                    ]);
-                }
+                $this->messageBus->dispatch(new CancelStripeIntentMessage(
+                    $payment->getId(),
+                    $payment->getStripePaymentIntentId()
+                ));
             }
 
             $this->paymentLifecycleService->transitionTo($payment, PaymentStatusEnum::CANCELED);

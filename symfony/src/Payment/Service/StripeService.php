@@ -82,10 +82,15 @@ final readonly class StripeService
     /**
      * @throws ApiErrorException
      */
-    public function refundPaymentIntent(string $intentId): void
+    public function refundPaymentIntent(string $intentId, ?string $idempotencyKey = null): void
     {
-        $this->stripe->refunds->create([
-            'payment_intent' => $intentId,
-        ]);
+        $params = ['payment_intent' => $intentId];
+        $options = [];
+
+        if ($idempotencyKey !== null) {
+            $options['idempotency_key'] = $idempotencyKey;
+        }
+
+        $this->stripe->refunds->create($params, $options);
     }
 }

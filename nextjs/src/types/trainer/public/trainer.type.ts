@@ -8,5 +8,5 @@ export default interface TrainerData {
     pricePerHour: number,
     education: string | null,
     about: string | null,
-    photoUrl: string,
+    photoPath: string,
 }
