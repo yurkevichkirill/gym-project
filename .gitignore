@@ -64,3 +64,5 @@ certs/
 .codex
 
 url
+
+./data
