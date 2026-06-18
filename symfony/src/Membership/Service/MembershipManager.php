@@ -160,7 +160,9 @@ final readonly class MembershipManager
                 throw new InvalidMembershipStatusException('Membership is not fully initialized');
             }
 
-            $updatedMembership = $this->paymentSettlementService->withLockedPayment($paymentId, function (Payment $lockedPayment) {
+            $cancelStripeIntentMessage = null;
+
+            $updatedMembership = $this->paymentSettlementService->withLockedPayment($paymentId, function (Payment $lockedPayment) use (&$cancelStripeIntentMessage) {
                 if ($lockedPayment->getStatus() !== PaymentStatusEnum::PENDING) {
                     throw new InvalidMembershipStatusException('Associated payment is no longer pending. Cannot cancel.');
                 }
@@ -171,12 +173,14 @@ final readonly class MembershipManager
                     throw new InvalidMembershipStatusException('Membership not found on locked payment');
                 }
 
-                $this->paymentSettlementService->cancelPayment($lockedPayment);
+                $cancelStripeIntentMessage = $this->paymentSettlementService->cancelPayment($lockedPayment);
 
                 $membership->cancel(MembershipStatusEnum::CANCELED_BY_CLIENT);
 
                 return $membership;
             });
+
+            $this->paymentSettlementService->dispatchPaymentMessage($cancelStripeIntentMessage);
 
             try {
                 $this->analyticsPublisher->publish(

@@ -214,11 +214,11 @@ final readonly class PaymentSettlementService
             throw new PaymentNotFoundException('Payment for Stripe intent was not found');
         }
 
-        $paymentId = $payment->getId();
+        $paymentId = $this->requirePaymentId($payment);
 
-        $this->withLockedPayment($paymentId, function (Payment $lockedPayment) use ($intentId) {
+        $refundMessage = $this->withLockedPayment($paymentId, function (Payment $lockedPayment) use ($intentId) {
             if ($lockedPayment->getStatus() === PaymentStatusEnum::SUCCEEDED) {
-                return;
+                return null;
             }
 
             if ($lockedPayment->getStatus() !== PaymentStatusEnum::PENDING) {
@@ -229,12 +229,10 @@ final readonly class PaymentSettlementService
                         'action' => 'initiating_stripe_refund'
                     ]);
 
-                    $this->messageBus->dispatch(new RefundPaymentMessage(
-                        $lockedPayment->getId(),
+                    return new RefundPaymentMessage(
+                        $this->requirePaymentId($lockedPayment),
                         $intentId
-                    ));
-
-                    return;
+                    );
                 }
 
                 $this->paymentLogger->warning('payment.stripe_success.ignored', [
@@ -242,7 +240,7 @@ final readonly class PaymentSettlementService
                     'current_status' => $lockedPayment->getStatus()->value,
                 ]);
 
-                return;
+                return null;
             }
 
             $booking = $lockedPayment->getBooking();
@@ -275,7 +273,7 @@ final readonly class PaymentSettlementService
                         'membership_status' => $membership->getStatus()->value,
                     ]);
 
-                    return;
+                    return null;
                 }
 
                 $membership->activate();
@@ -286,7 +284,11 @@ final readonly class PaymentSettlementService
             }
 
             $this->paymentLifecycleService->transitionTo($lockedPayment, PaymentStatusEnum::SUCCEEDED);
+
+            return null;
         });
+
+        $this->dispatchPaymentMessage($refundMessage);
     }
 
     /**
@@ -305,7 +307,7 @@ final readonly class PaymentSettlementService
             return;
         }
 
-        $paymentId = $payment->getId();
+        $paymentId = $this->requirePaymentId($payment);
 
         $this->withLockedPayment($paymentId, function (Payment $lockedPayment) {
             if ($lockedPayment->getStatus() === PaymentStatusEnum::REFUNDED) {
@@ -362,11 +364,11 @@ final readonly class PaymentSettlementService
     /**
      * @throws Throwable
      */
-    public function failPayment(Payment $payment, bool $cancelRemoteIntent = true): void
+    public function failPayment(Payment $payment, bool $cancelRemoteIntent = true): ?CancelStripeIntentMessage
     {
         try {
             if ($payment->getStatus() !== PaymentStatusEnum::PENDING) {
-                return;
+                return null;
             }
 
             $this->cancelRelatedBookingForPaymentFailure($payment);
@@ -378,13 +380,17 @@ final readonly class PaymentSettlementService
                 && $payment->getMethod() === PaymentMethodEnum::CARD
                 && $payment->getStripePaymentIntentId() !== null
             ) {
-                $this->messageBus->dispatch(new CancelStripeIntentMessage(
-                    $payment->getId(),
+                $cancelStripeIntentMessage = new CancelStripeIntentMessage(
+                    $this->requirePaymentId($payment),
                     $payment->getStripePaymentIntentId()
-                ));
+                );
+            } else {
+                $cancelStripeIntentMessage = null;
             }
 
             $this->paymentLifecycleService->transitionTo($payment, PaymentStatusEnum::FAILED);
+
+            return $cancelStripeIntentMessage;
         } catch (Throwable $e) {
             $this->paymentLogger->error(
                 'payment.fail.failed',
@@ -408,9 +414,11 @@ final readonly class PaymentSettlementService
             throw new PaymentNotFoundException('Payment for Stripe intent was not found');
         }
 
-        $this->withLockedPayment($payment->getId(), function (Payment $lockedPayment) {
-            $this->failPayment($lockedPayment, false);
+        $cancelStripeIntentMessage = $this->withLockedPayment($this->requirePaymentId($payment), function (Payment $lockedPayment) {
+            return $this->failPayment($lockedPayment, false);
         });
+
+        $this->dispatchPaymentMessage($cancelStripeIntentMessage);
     }
 
     /**
@@ -423,7 +431,7 @@ final readonly class PaymentSettlementService
             throw new PaymentNotFoundException('Payment for Stripe intent was not found');
         }
 
-        $this->withLockedPayment($payment->getId(), function (Payment $lockedPayment) {
+        $this->withLockedPayment($this->requirePaymentId($payment), function (Payment $lockedPayment) {
             $this->cancelPayment($lockedPayment, false);
         });
     }
@@ -431,11 +439,11 @@ final readonly class PaymentSettlementService
     /**
      * @throws Throwable
      */
-    public function cancelPayment(Payment $payment, bool $cancelRemoteIntent = true): void
+    public function cancelPayment(Payment $payment, bool $cancelRemoteIntent = true): ?CancelStripeIntentMessage
     {
         try {
             if ($payment->getStatus() !== PaymentStatusEnum::PENDING) {
-                return;
+                return null;
             }
 
             $this->cancelRelatedBookingForPaymentFailure($payment);
@@ -444,16 +452,20 @@ final readonly class PaymentSettlementService
 
             if (
                 $cancelRemoteIntent
-                &&$payment->getMethod() === PaymentMethodEnum::CARD
+                && $payment->getMethod() === PaymentMethodEnum::CARD
                 && $payment->getStripePaymentIntentId() !== null
             ) {
-                $this->messageBus->dispatch(new CancelStripeIntentMessage(
-                    $payment->getId(),
+                $cancelStripeIntentMessage = new CancelStripeIntentMessage(
+                    $this->requirePaymentId($payment),
                     $payment->getStripePaymentIntentId()
-                ));
+                );
+            } else {
+                $cancelStripeIntentMessage = null;
             }
 
             $this->paymentLifecycleService->transitionTo($payment, PaymentStatusEnum::CANCELED);
+
+            return $cancelStripeIntentMessage;
         } catch (Throwable $e) {
             $this->paymentLogger->error(
                 'payment.cancel.failed',
@@ -479,11 +491,33 @@ final readonly class PaymentSettlementService
         foreach ($payments as $payment) {
             $expiresAt = $payment->getExpiresAt();
             if ($expiresAt !== null && $expiresAt < $now) {
-                $this->withLockedPayment($payment->getId(), function (Payment $lockedPayment) {
-                    $this->cancelPayment($lockedPayment);
-                });
+                $cancelStripeIntentMessage = $this->withLockedPayment(
+                    $this->requirePaymentId($payment),
+                    fn (Payment $lockedPayment) => $this->cancelPayment($lockedPayment)
+                );
+
+                $this->dispatchPaymentMessage($cancelStripeIntentMessage);
             }
         }
+    }
+
+    public function dispatchPaymentMessage(RefundPaymentMessage|CancelStripeIntentMessage|null $message): void
+    {
+        if ($message === null) {
+            return;
+        }
+
+        $this->messageBus->dispatch($message);
+    }
+
+    private function requirePaymentId(Payment $payment): int
+    {
+        $paymentId = $payment->getId();
+        if ($paymentId === null) {
+            throw new PaymentNotFoundException('Payment id is missing');
+        }
+
+        return $paymentId;
     }
 
     private function cancelRelatedBookingForPaymentFailure(Payment $payment): void
@@ -498,6 +532,11 @@ final readonly class PaymentSettlementService
         $booking->getTraining()?->setIsBusy(false);
     }
 
+    /**
+     * @template T
+     * @param callable(Payment): T $callback
+     * @return T
+     */
     public function withLockedPayment(int $paymentId, callable $callback): mixed
     {
         return $this->em->wrapInTransaction(function () use ($paymentId, $callback) {
@@ -508,7 +547,7 @@ final readonly class PaymentSettlementService
                 )
                 ->fetchAssociative();
 
-            if (!$row) {
+            if ($row === false) {
                 throw new PaymentNotFoundException('Payment not found');
             }
 

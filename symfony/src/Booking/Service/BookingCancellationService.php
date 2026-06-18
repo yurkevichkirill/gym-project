@@ -135,19 +135,24 @@ final readonly class BookingCancellationService
             'client_id' => $client->getId(),
             'trainer_id' => $training?->getTrainerWorkTime()?->getTrainer()?->getId(),
             'booking_id' => $booking->getId(),
-            'price' => $payment?->getAmount() ?? 0,
-            'payment_method' => $payment?->getMethod()->value ?? 'unknown',
+            'price' => $payment->getAmount(),
+            'payment_method' => $payment->getMethod()->value,
         ];
 
         $paymentId = $payment->getId();
+        if ($paymentId === null) {
+            throw new InvalidBookingStatusException('Pending booking payment must be persisted');
+        }
 
         try {
-            $this->paymentSettlementService->withLockedPayment($paymentId, function (Payment $lockedPayment) use ($booking, $status, $training) {
+            $cancelStripeIntentMessage = null;
+
+            $this->paymentSettlementService->withLockedPayment($paymentId, function (Payment $lockedPayment) use ($booking, $status, $training, &$cancelStripeIntentMessage) {
                 if ($lockedPayment->getStatus() !== PaymentStatusEnum::PENDING) {
                     throw new InvalidBookingStatusException('Payment is no longer pending. Cancellation aborted.');
                 }
 
-                $this->paymentSettlementService->cancelPayment($lockedPayment);
+                $cancelStripeIntentMessage = $this->paymentSettlementService->cancelPayment($lockedPayment);
 
                 if ($training !== null) {
                     $training->setIsBusy(false);
@@ -155,6 +160,8 @@ final readonly class BookingCancellationService
 
                 $booking->setStatus($status);
             });
+
+            $this->paymentSettlementService->dispatchPaymentMessage($cancelStripeIntentMessage);
         } catch (Throwable $e) {
             $this->bookingLogger->error('cancel.failed',
                 [

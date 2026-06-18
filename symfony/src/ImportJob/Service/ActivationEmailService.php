@@ -29,7 +29,7 @@ final readonly class ActivationEmailService
             return;
         }
         $activationLink = sprintf(
-            'https://api.evogym.local/api/activate?token=%s',
+            'https://api.evogym.local/api/clients/activate/?token=%s',
             $client->getActivationToken()
         );
 

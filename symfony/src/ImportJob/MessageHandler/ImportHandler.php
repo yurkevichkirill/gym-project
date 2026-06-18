@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\ImportJob\MessageHandler;
 
+use App\Client\Entity\Client;
 use App\ImportError\Service\ImportErrorService;
 use App\ImportJob\Message\ImportMessage;
 use App\ImportJob\Message\SendActivationEmailMessage;
@@ -36,8 +37,8 @@ final readonly class ImportHandler
      */
     public function __invoke(ImportMessage $message): void
     {
-        $emailMessage = null;
-        $this->em->wrapInTransaction(function () use ($message, &$emailMessage) {
+        $importedClient = null;
+        $this->em->wrapInTransaction(function () use ($message, &$importedClient) {
             $jobItem = $this->jobItemManager->create($message);
 
             if ($jobItem === null) {
@@ -80,11 +81,7 @@ final readonly class ImportHandler
                 if ($client !== null) {
                     $this->jobRepo->incrementProcessed($message->jobId);
                     $this->jobItemManager->success($jobItem);
-
-                    $clientId = $client->getId();
-                    if ($clientId !== null) {
-                        $emailMessage = new SendActivationEmailMessage($clientId);
-                    }
+                    $importedClient = $client;
                 } else {
                     $this->jobRepo->incrementSkipped($message->jobId);
                     $this->jobItemManager->skip($jobItem);
@@ -95,8 +92,8 @@ final readonly class ImportHandler
 
         });
 
-        if ($emailMessage !== null) {
-            $this->bus->dispatch($emailMessage);
+        if ($importedClient instanceof Client && $importedClient->getId() !== null) {
+            $this->bus->dispatch(new SendActivationEmailMessage($importedClient->getId()));
         }
     }
 
