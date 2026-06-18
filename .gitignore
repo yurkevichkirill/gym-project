@@ -56,8 +56,17 @@
 */redis
 
 .env
+.env.local
+.env.*.local
+**/.env
+**/.env.local
+**/.env.*.local
+**/.env.dev
+
+.idea/
 
 docker/db/data
+docker/clickhouse/data
 
 certs/
 
@@ -66,3 +75,5 @@ certs/
 url
 
 data/
+config/sts/
+**/.minio.sys/
