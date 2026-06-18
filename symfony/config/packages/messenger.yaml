@@ -3,7 +3,7 @@ framework:
         failure_transport: failed
 
         transports:
-            scheduler_memberships: 'doctrine://default'
+            scheduler_memberships: 'schedule://memberships'
 
             async:
                 dsn: '%env(MESSENGER_TRANSPORT_DSN)%'

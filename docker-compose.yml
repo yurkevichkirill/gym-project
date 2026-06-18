@@ -29,12 +29,12 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     environment:
-      - XDEBUG_MODE=${XDEBUG_MODE}
-      - XDEBUG_CONFIG=${XDEBUG_CONFIG}
-      - XDEBUG_CLIENT_HOST=${XDEBUG_CLIENT_HOST}
-      - PHP_IDE_CONFIG=${PHP_IDE_CONFIG}
-    # depends_on:
-    #   - mailpit
+       - XDEBUG_MODE=${XDEBUG_MODE}
+       - XDEBUG_CONFIG=${XDEBUG_CONFIG}
+       - XDEBUG_CLIENT_HOST=${XDEBUG_CLIENT_HOST}
+       - PHP_IDE_CONFIG=${PHP_IDE_CONFIG}
+    depends_on:
+     - mailpit
     networks:
       - app-network
 
@@ -85,86 +85,133 @@ services:
     networks:
       - app-network
 
-  # rabbitmq:
-  #   container_name: rabbitmq
-  #   image: rabbitmq:4.0-management-alpine
-  #   restart: always
-  #   ports:
-  #     - "${RABBITMQ_AMQP_PORT}:5672"
-  #     - "${RABBITMQ_UI_PORT}:15672"
-  #   environment:
-  #     RABBITMQ_DEFAULT_USER: user
-  #     RABBITMQ_DEFAULT_PASS: password
-  #   volumes:
-  #     - rabbitmq_data:/var/lib/rabbitmq
-  #   networks:
-  #     - app-network
+  rabbitmq:
+   container_name: rabbitmq
+   image: rabbitmq:4.0-management-alpine
+   restart: always
+   ports:
+     - "${RABBITMQ_AMQP_PORT}:5672"
+     - "${RABBITMQ_UI_PORT}:15672"
+   environment:
+     RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER:-user}
+     RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS:-password}
+   volumes:
+     - rabbitmq_data:/var/lib/rabbitmq
+   networks:
+     - app-network
 
-  # messenger-worker:
-  #   container_name: messenger-worker
-  #   build:
-  #     context: "docker/dockerfiles/php"
-  #     dockerfile: Dockerfile
-  #   restart: always
-  #   working_dir: /var/www
-  #   command: >
-  #     php bin/console messenger:consume async
-  #     --time-limit=3600
-  #     --memory-limit=256M
-  #     --limit=1000
-  #     -vv
-  #   volumes:
-  #     - ./symfony:/var/www
-  #   depends_on:
-  #     - rabbitmq
-  #     - postgres
-  #     - mailpit
-  #   networks:
-  #     - app-network
+  messenger-worker:
+   container_name: messenger-worker
+   build:
+     context: "docker/dockerfiles/php"
+     dockerfile: Dockerfile
+   restart: always
+   working_dir: /var/www
+   command: >
+     php bin/console messenger:consume async
+     --time-limit=3600
+     --memory-limit=256M
+     --limit=1000
+     -vv
+   volumes:
+     - ./symfony:/var/www
+   extra_hosts:
+     - "host.docker.internal:host-gateway"
+   environment:
+      - XDEBUG_MODE=${XDEBUG_MODE}
+      - XDEBUG_CONFIG=${XDEBUG_CONFIG}
+      - XDEBUG_CLIENT_HOST=${XDEBUG_CLIENT_HOST}
+      - PHP_IDE_CONFIG=${PHP_IDE_CONFIG}
+   depends_on:
+     - rabbitmq
+     - postgres
+     - mailpit
+   networks:
+     - app-network
 
-  # analytics-worker:
-  #   container_name: analytics-worker
-  #   build:
-  #     context: "docker/dockerfiles/php"
-  #     dockerfile: Dockerfile
-  #   restart: always
-  #   working_dir: /var/www
-  #   command: >
-  #     php bin/console messenger:consume analytics
-  #     --time-limit=3600
-  #     --memory-limit=256M
-  #     --limit=1000
-  #     -vv
-  #   volumes:
-  #     - ./symfony:/var/www
-  #   depends_on:
-  #     - rabbitmq
-  #   networks:
-  #     - app-network
+  analytics-worker:
+   container_name: analytics-worker
+   build:
+     context: "docker/dockerfiles/php"
+     dockerfile: Dockerfile
+   restart: always
+   working_dir: /var/www
+   command: >
+     php bin/console messenger:consume analytics
+     --time-limit=3600
+     --memory-limit=256M
+     --limit=1000
+     -vv
+   volumes:
+     - ./symfony:/var/www
+   extra_hosts:
+     - "host.docker.internal:host-gateway"
+   environment:
+      - XDEBUG_MODE=${XDEBUG_MODE}
+      - XDEBUG_CONFIG=${XDEBUG_CONFIG}
+      - XDEBUG_CLIENT_HOST=${XDEBUG_CLIENT_HOST}
+      - PHP_IDE_CONFIG=${PHP_IDE_CONFIG}
+   depends_on:
+     - rabbitmq
+   networks:
+     - app-network
 
-  # clickhouse:
-  #   container_name: clickhouse
-  #   image: clickhouse/clickhouse-server:25.8
-  #   restart: always
-  #   ports:
-  #     - "${CLICKHOUSE_API_PORT}:8123"
-  #     - "${CLICKHOUSE_NATIVE_PORT}:9000"
-  #   volumes:
-  #     - clickhouse_data:/var/lib/clickhouse
-  #   ulimits:
-  #     nofile:
-  #       soft: 262144
-  #       hard: 262144
-  #   networks:
-  #     - app-network
+  scheduler-worker:
+    container_name: scheduler-worker
+    build:
+      context: "docker/dockerfiles/php"
+      dockerfile: Dockerfile
+    restart: always
+    working_dir: /var/www
+    command: >
+      php bin/console messenger:consume scheduler_default
+      --time-limit=3600
+      --memory-limit=256M
+      -vv
+    volumes:
+      - ./symfony:/var/www
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      - XDEBUG_MODE=${XDEBUG_MODE}
+      - XDEBUG_CONFIG=${XDEBUG_CONFIG}
+      - XDEBUG_CLIENT_HOST=${XDEBUG_CLIENT_HOST}
+      - PHP_IDE_CONFIG=${PHP_IDE_CONFIG}
+    depends_on:
+      - postgres
+      - rabbitmq
+    networks:
+      - app-network
 
-  # mailpit:
-  #   image: axllent/mailpit:v1.29
-  #   ports:
-  #     - "$MAILPIT_PORT:1025"
-  #     - "$MAILPIT_INTERFACE_PORT:8025"
-  #   networks:
-  #     - app-network
+  clickhouse:
+   container_name: clickhouse
+   image: clickhouse/clickhouse-server:25.8
+   restart: always
+   environment:
+     CLICKHOUSE_DB: ${CLICKHOUSE_DB:-analytics}
+     CLICKHOUSE_USER: ${CLICKHOUSE_USER:-analytics}
+     CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:-local_placeholder}
+     CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: 1
+   ports:
+     - "${CLICKHOUSE_API_PORT}:8123"
+     - "${CLICKHOUSE_NATIVE_PORT}:9000"
+   volumes:
+     - clickhouse_data:/var/lib/clickhouse
+     - ./docker/clickhouse/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+   ulimits:
+     nofile:
+       soft: 262144
+       hard: 262144
+   networks:
+     - app-network
+
+  mailpit:
+   image: axllent/mailpit:v1.29
+   ports:
+     - "$MAILPIT_PORT:1025"
+     - "$MAILPIT_INTERFACE_PORT:8025"
+   networks:
+     - app-network
 
   minio:
     container_name: minio
@@ -228,5 +275,5 @@ volumes:
   pgadmin_data:
   frontend_node_modules:
   pnpm-store:
-  # rabbitmq_data:
-  # clickhouse_data:
+  rabbitmq_data:
+  clickhouse_data:

@@ -6,8 +6,8 @@ RUN corepack enable
 
 COPY package.json pnpm-lock.yaml ./
 
-RUN pnpm install && \
-    pnpm config set store-dir /app/.pnpm-store
+RUN pnpm config set store-dir /app/.pnpm-store && \
+    pnpm install --dangerously-allow-all-builds
 
 COPY . .
 
