@@ -12,6 +12,7 @@ use App\RefreshToken\Service\RefreshTokenManager;
 use App\Response\ResponseTypeDTO\ItemResponse;
 use App\Response\SwaggerDocDTO\AbstractItemResponseDTO;
 use App\Response\SwaggerDocDTO\ErrorResponseDTO;
+use App\Security\AuthenticationRateLimiter;
 use App\User\DTO\LoginUserRequestDTO;
 use App\User\Service\UserManager;
 use Nelmio\ApiDocBundle\Attribute\Model;
@@ -78,14 +79,27 @@ final class ApiLoginController extends AbstractController
                 description: 'Validation failed (invalid JSON or DTO constraints)',
                 content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
             ),
+            new OA\Response(
+                response: 429,
+                description: 'Too many requests. Retry-After header contains the delay in seconds.',
+                content: new OA\JsonContent(
+                    ref: new Model(type: ErrorResponseDTO::class)
+                ),
+            ),
         ]
     )]
     public function login(
+        Request                                  $request,
         #[MapRequestPayload] LoginUserRequestDTO $dto,
         UserManager                              $userManager,
         RefreshTokenManager                      $refreshTokenManager,
+        AuthenticationRateLimiter                $rateLimiter,
     ): JsonResponse {
+        $rateLimiter->consumeLoginIdentity($request, $dto->email);
+
         $user = $userManager->login($dto);
+
+        $rateLimiter->resetLoginIdentity($request, $dto->email);
 
         $accessToken = $refreshTokenManager->generateAccessToken($user);
         $refreshToken = $refreshTokenManager->generateRefreshToken();
@@ -130,7 +144,14 @@ final class ApiLoginController extends AbstractController
                 response: 400,
                 description: 'Bad request - invalid data provided.',
                 content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
-            )
+            ),
+            new OA\Response(
+                response: 429,
+                description: 'Too many requests. Retry-After header contains the delay in seconds.',
+                content: new OA\JsonContent(
+                    ref: new Model(type: ErrorResponseDTO::class)
+                ),
+            ),
         ]
     )]
     public function refresh(
@@ -227,7 +248,14 @@ final class ApiLoginController extends AbstractController
                 response: 422,
                 description: 'Validation failed (e.g. weak password)',
                 content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
-            )
+            ),
+            new OA\Response(
+                response: 429,
+                description: 'Too many requests. Retry-After header contains the delay in seconds.',
+                content: new OA\JsonContent(
+                    ref: new Model(type: ErrorResponseDTO::class)
+                ),
+            ),
         ]
     )]
     public function activate(

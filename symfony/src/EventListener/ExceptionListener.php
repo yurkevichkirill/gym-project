@@ -32,9 +32,11 @@ final readonly class ExceptionListener
         $request = $event->getRequest();
 
         $statusCode = 500;
+        $headers = [];
 
         if ($exception instanceof HttpExceptionInterface) {
             $statusCode = $exception->getStatusCode();
+            $headers = $exception->getHeaders();
         } else {
             $reflection = new ReflectionClass($exception);
             $attributes = $reflection->getAttributes(WithHttpStatus::class);
@@ -78,6 +80,12 @@ final readonly class ExceptionListener
             $responseData['trace'] = $exception->getTrace();
         }
 
-        $event->setResponse(new JsonResponse($responseData, $statusCode));
+        $event->setResponse(
+            new JsonResponse(
+                data: $responseData,
+                status: $statusCode,
+                headers: $headers
+            )
+        );
     }
 }

@@ -100,3 +100,7 @@ services:
                 region: 'us-east-1'
                 version: 'latest'
                 use_path_style_endpoint: true
+
+    App\Security\AuthenticationRateLimiter:
+        arguments:
+            $secret: '%kernel.secret%'

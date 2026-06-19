@@ -15,6 +15,7 @@ final readonly class UserManager
     public function __construct(
         public UserRepository $repo,
         public UserPasswordHasherInterface $hasher,
+        private AvailabilityService $availabilityService,
     )
     {}
 
@@ -32,6 +33,9 @@ final readonly class UserManager
         if ($user->getDeletedAt() !== null) {
             throw new UnauthorizedHttpException('Bearer', 'User is deleted');
         }
+
+        $this->availabilityService->ensureNotBlocked($user);
+        $this->availabilityService->ensureActive($user);
 
         return $user;
     }

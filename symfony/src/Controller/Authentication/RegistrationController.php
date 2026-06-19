@@ -63,7 +63,14 @@ final class RegistrationController extends AbstractController
                 response: 422,
                 description: 'Validation failed (Invalid input data)',
                 content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
-            )
+            ),
+            new OA\Response(
+                response: 429,
+                description: 'Too many requests. Retry-After header contains the delay in seconds.',
+                content: new OA\JsonContent(
+                    ref: new Model(type: ErrorResponseDTO::class)
+                ),
+            ),
         ]
     )]
     public function register(
