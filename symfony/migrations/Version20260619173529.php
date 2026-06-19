@@ -14,22 +14,30 @@ final class Version20260619173529 extends AbstractMigration
 {
     public function getDescription(): string
     {
-        return '';
+        return 'Store refresh token hashes and invalidate existing refresh sessions';
     }
 
     public function up(Schema $schema): void
     {
-        // this up() migration is auto-generated, please modify it to your needs
-        $this->addSql('ALTER TABLE refresh_token ADD token_hash VARCHAR(64) NOT NULL');
-        $this->addSql('ALTER TABLE refresh_token DROP token');
+        $this->addSql('DELETE FROM refresh_token');
+        $this->addSql('ALTER TABLE refresh_token RENAME COLUMN token TO token_hash');
+        $this->addSql(
+        'ALTER TABLE refresh_token
+            ALTER COLUMN token_hash TYPE VARCHAR(64)'
+        );
         $this->addSql('CREATE UNIQUE INDEX UNIQ_C74F2195B3BC57DA ON refresh_token (token_hash)');
     }
 
     public function down(Schema $schema): void
     {
-        // this down() migration is auto-generated, please modify it to your needs
+        $this->addSql('DELETE FROM refresh_token');
         $this->addSql('DROP INDEX UNIQ_C74F2195B3BC57DA');
-        $this->addSql('ALTER TABLE refresh_token ADD token VARCHAR(1023) NOT NULL');
-        $this->addSql('ALTER TABLE refresh_token DROP token_hash');
+        $this->addSql(
+        'ALTER TABLE refresh_token RENAME COLUMN token_hash TO token'
+        );
+        $this->addSql(
+        'ALTER TABLE refresh_token
+             ALTER COLUMN token TYPE VARCHAR(1023)'
+        );
     }
 }
