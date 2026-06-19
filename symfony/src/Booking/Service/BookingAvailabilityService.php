@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Booking\Service;
 
+use App\Booking\Entity\Booking;
 use App\Booking\Enum\BookingStatusEnum;
 use App\Booking\Exception\ClientAlreadyBookedException;
 use App\Booking\Exception\DateTimeAlreadyTakenException;
@@ -96,6 +97,7 @@ final readonly class BookingAvailabilityService
         }
 
         $oldStartTime = $training->getStartTime()->format('H:i:s');
+        $oldWorktime = $training->getTrainerWorkTime();
 
         $durationMinutes = $training->getDurationMinutes();
 
@@ -117,11 +119,13 @@ final readonly class BookingAvailabilityService
             throw new InvalidRescheduleDateException('The minimum reschedule date must be no earlier than tomorrow.');
         }
 
-        if (!$this->isTimeAvailable($worktime, $newStartTime, $durationMinutes, $oldStartTime)) {
+        $oldStartTimeForWorktime = $this->isSameWorktime($oldWorktime, $worktime) ? $oldStartTime : null;
+
+        if (!$this->isTimeAvailable($worktime, $newStartTime, $durationMinutes, $oldStartTimeForWorktime)) {
             throw new TrainerTimeUnavailableException();
         }
 
-        if (!$this->isClientAvailableInDate($client, $newDate, $newStartTime, $durationMinutes,  $oldStartTime)) {
+        if (!$this->isClientAvailableInDate($client, $newDate, $newStartTime, $durationMinutes, $booking)) {
             throw new ClientAlreadyBookedException();
         }
     }
@@ -159,15 +163,14 @@ final readonly class BookingAvailabilityService
         DateTimeImmutable $date,
         string $startTime,
         int $durationMinutes,
-        ?string $oldStartTime = null
+        ?Booking $bookingToIgnore = null
     ): bool
     {
-        $clientBusy = $this->getClientBusySlots($client, $date);
-        $clientBusyWithoutCurrent = array_filter($clientBusy, fn ($slot) => $slot['start'] !== $oldStartTime);
+        $clientBusy = $this->getClientBusySlots($client, $date, $bookingToIgnore);
         $endTime = new DateTimeImmutable($startTime)->add(new DateInterval('PT' . $durationMinutes . 'M'))->format('H:i:s');
 
         return array_all(
-            $clientBusyWithoutCurrent,
+            $clientBusy,
             fn($busy) => $endTime <= $busy['start'] || $startTime >= $busy['end']
         );
     }
@@ -177,12 +180,16 @@ final readonly class BookingAvailabilityService
      * @throws DateMalformedIntervalStringException
      * @throws DateMalformedIntervalStringException
      */
-    private function getClientBusySlots(Client $client, DateTimeImmutable $date): array
+    private function getClientBusySlots(Client $client, DateTimeImmutable $date, ?Booking $bookingToIgnore = null): array
     {
         $bookings = $this->bookingRepo->getActiveClientBookingsByDate($client, $date);
 
         $clientBusy = [];
         foreach ($bookings as $booking) {
+            if ($this->isSameBooking($booking, $bookingToIgnore)) {
+                continue;
+            }
+
             $training = $booking->getTraining();
             if ($training === null) {
                 continue;
@@ -195,6 +202,34 @@ final readonly class BookingAvailabilityService
         }
 
         return $clientBusy;
+    }
+
+    private function isSameWorktime(TrainerWorkTime $currentWorktime, TrainerWorkTime $checkedWorktime): bool
+    {
+        $currentId = $currentWorktime->getId();
+        $checkedId = $checkedWorktime->getId();
+
+        if ($currentId !== null && $checkedId !== null) {
+            return $currentId === $checkedId;
+        }
+
+        return $currentWorktime === $checkedWorktime;
+    }
+
+    private function isSameBooking(Booking $booking, ?Booking $bookingToIgnore): bool
+    {
+        if ($bookingToIgnore === null) {
+            return false;
+        }
+
+        $bookingId = $booking->getId();
+        $ignoredId = $bookingToIgnore->getId();
+
+        if ($bookingId !== null && $ignoredId !== null) {
+            return $bookingId === $ignoredId;
+        }
+
+        return $booking === $bookingToIgnore;
     }
 
     /**

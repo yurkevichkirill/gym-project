@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Training\Service;
 
+use App\Booking\Entity\Booking;
 use App\Booking\Enum\BookingStatusEnum;
 use App\Booking\Exception\TrainingWithoutBookingException;
 use App\Booking\Service\BookingAvailabilityService;
@@ -139,17 +140,28 @@ final readonly class TrainingManager
         ];
 
         try {
-            $this->bookingAvailabilityService->checkCompleteBookingAvailability($training);
-
             if ($booking === null) {
                 throw new TrainingWithoutBookingException();
             }
 
-            $booking->setStatus(BookingStatusEnum::COMPLETED);
+            $bookingId = $booking->getId();
+            if ($bookingId === null) {
+                throw new TrainingWithoutBookingException('Training booking must be persisted');
+            }
 
-            $this->entityManager->flush();
+            return $this->entityManager->wrapInTransaction(function () use ($bookingId) {
+                $lockedBooking = $this->lockBooking($bookingId);
+                $lockedTraining = $lockedBooking->getTraining();
+                if ($lockedTraining === null) {
+                    throw new TrainingWithoutBookingException();
+                }
 
-            return $training;
+                $this->bookingAvailabilityService->checkCompleteBookingAvailability($lockedTraining);
+
+                $lockedBooking->setStatus(BookingStatusEnum::COMPLETED);
+
+                return $lockedTraining;
+            });
         } catch (DomainException $e) {
             $this->bookingLogger->notice('complete.rejected', $this->bookingEventContext($loggingContext, 'complete', 'rejected', [
                 'reason' => $e::class,
@@ -164,6 +176,23 @@ final readonly class TrainingManager
 
             throw $e;
         }
+    }
+
+    private function lockBooking(int $bookingId): Booking
+    {
+        $this->entityManager->getConnection()->executeStatement(
+            'SELECT id FROM booking WHERE id = :id FOR UPDATE',
+            ['id' => $bookingId]
+        );
+
+        $lockedBooking = $this->entityManager->find(Booking::class, $bookingId);
+        if ($lockedBooking === null) {
+            throw new TrainingWithoutBookingException('Training booking was not found');
+        }
+
+        $this->entityManager->refresh($lockedBooking);
+
+        return $lockedBooking;
     }
 
     /**

@@ -14,6 +14,7 @@ use App\Payment\Exception\PaymentNotFoundException;
 use App\Payment\Service\PaymentSettlementService;
 use App\User\Entity\User;
 use App\User\Enum\UserRolesEnum;
+use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
 use Throwable;
@@ -66,16 +67,27 @@ final readonly class BookingCancellationService
             'payment_method' => $payment?->getMethod()->value ?? 'unknown',
         ];
 
+        $bookingId = $booking->getId();
+        if ($bookingId === null) {
+            throw new InvalidBookingStatusException('Scheduled booking must be persisted');
+        }
+
         try {
             $refundMessage = null;
 
-            $this->entityManager->wrapInTransaction(function () use ($booking, $status, $payment, &$refundMessage) {
+            $this->entityManager->wrapInTransaction(function () use ($bookingId, $actor, $status, &$refundMessage) {
+                $lockedBooking = $this->lockBooking($bookingId);
+
+                $this->assertScheduledBookingCanBeCanceled($lockedBooking);
+                $this->assertClientCanCancelScheduledBooking($lockedBooking, $actor);
+
+                $payment = $lockedBooking->getPayment();
                 if ($payment !== null) {
                     $refundMessage = $this->paymentSettlementService->refund($payment);
                 }
 
-                $booking->setStatus($status);
-                $training = $booking->getTraining();
+                $lockedBooking->setStatus($status);
+                $training = $lockedBooking->getTraining();
                 if ($training !== null) {
                     $training->setIsBusy(false);
                 }
@@ -198,6 +210,59 @@ final readonly class BookingCancellationService
                 + $loggingContext
             );
         }
+    }
+
+    private function assertScheduledBookingCanBeCanceled(Booking $booking): void
+    {
+        if ($booking->getStatus() !== BookingStatusEnum::SCHEDULED) {
+            throw new InvalidBookingStatusException(
+                sprintf('Booking with status "%s" cannot be canceled', $booking->getStatus()->value)
+            );
+        }
+    }
+
+    private function lockBooking(int $bookingId): Booking
+    {
+        $this->entityManager->getConnection()->executeStatement(
+            'SELECT id FROM booking WHERE id = :id FOR UPDATE',
+            ['id' => $bookingId]
+        );
+
+        $lockedBooking = $this->entityManager->find(Booking::class, $bookingId);
+        if ($lockedBooking === null) {
+            throw new InvalidBookingStatusException('Booking not found');
+        }
+
+        $this->entityManager->refresh($lockedBooking);
+
+        return $lockedBooking;
+    }
+
+    private function assertClientCanCancelScheduledBooking(Booking $booking, User $actor): void
+    {
+        if (!$this->isClientActor($actor)) {
+            return;
+        }
+
+        $training = $booking->getTraining();
+        if ($training === null) {
+            throw new InvalidBookingStatusException('Scheduled booking must have an associated training');
+        }
+
+        $trainingStart = new DateTimeImmutable(sprintf(
+            '%s %s',
+            $training->getTrainerWorkTime()->getDate()->format('Y-m-d'),
+            $training->getStartTime()->format('H:i:s'),
+        ));
+
+        if ($trainingStart <= new DateTimeImmutable()) {
+            throw new InvalidBookingStatusException('Client cannot cancel a training after it has started');
+        }
+    }
+
+    private function isClientActor(User $actor): bool
+    {
+        return in_array(UserRolesEnum::ROLE_CLIENT->value, $actor->getRoles(), true);
     }
 
     /**
