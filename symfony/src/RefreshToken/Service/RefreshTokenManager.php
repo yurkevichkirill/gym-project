@@ -15,6 +15,8 @@ use Symfony\Component\HttpKernel\Exception\UnauthorizedHttpException;
 
 final readonly class RefreshTokenManager
 {
+    private const string TOKEN_HASH_ALGORITHM = 'sha256';
+
     public function __construct(
         private RefreshTokenRepository $repo,
         private JWTTokenManagerInterface $jwtManager,
@@ -24,7 +26,9 @@ final readonly class RefreshTokenManager
     public function create(string $refreshToken, User $user): void
     {
         $entityRefreshToken = new RefreshToken();
-        $entityRefreshToken->setToken($refreshToken);
+        $entityRefreshToken->setTokenHash(
+            $this->hashToken($refreshToken)
+        );
         $entityRefreshToken->setUser($user);
         $entityRefreshToken->setExpiresAt(new DateTimeImmutable('+7 days'));
 
@@ -35,8 +39,7 @@ final readonly class RefreshTokenManager
      * @throws RandomException
      * @throws UnauthorizedHttpException
      * @throws AccessDeniedHttpException
-     */
-    /**
+     *
      * @return array{0: string, 1: string}
      */
     public function refresh(?string $refreshToken): array
@@ -45,7 +48,9 @@ final readonly class RefreshTokenManager
             throw new UnauthorizedHttpException('Bearer', 'No refresh token');
         }
 
-        $tokenEntity = $this->repo->findOneBy(['token' => $refreshToken]);
+        $tokenEntity = $this->repo->findOneBy([
+            'tokenHash' => $this->hashToken($refreshToken),
+        ]);
 
         if ($tokenEntity === null || $tokenEntity->getExpiresAt() < new DateTimeImmutable()) {
             throw new UnauthorizedHttpException('Bearer', 'Invalid refresh token');
@@ -90,5 +95,21 @@ final readonly class RefreshTokenManager
         }
 
         return $this->jwtManager->create($user);
+    }
+
+    public function revoke(?string $refreshToken): void
+    {
+        if ($refreshToken === null || $refreshToken === '') {
+            return;
+        }
+
+        $this->repo->removeByTokenHash(
+            $this->hashToken($refreshToken)
+        );
+    }
+
+    private function hashToken(string $refreshToken): string
+    {
+        return hash(self::TOKEN_HASH_ALGORITHM, $refreshToken);
     }
 }

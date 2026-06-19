@@ -18,8 +18,8 @@ final class RefreshToken
     #[ORM\Column]
     private ?int $id = null;
 
-    #[ORM\Column(length: 1023)]
-    private string $token;
+    #[ORM\Column(length: 64, unique: true)]
+    private string $tokenHash;
 
     #[ORM\ManyToOne(inversedBy: 'refreshTokens')]
     #[ORM\JoinColumn(nullable: false)]
@@ -57,14 +57,14 @@ final class RefreshToken
         return $this;
     }
 
-    public function getToken(): string
+    public function getTokenHash(): string
     {
-        return $this->token;
+        return $this->tokenHash;
     }
 
-    public function setToken(string $token): static
+    public function setTokenHash(string $tokenHash): static
     {
-        $this->token = $token;
+        $this->tokenHash = $tokenHash;
 
         return $this;
     }

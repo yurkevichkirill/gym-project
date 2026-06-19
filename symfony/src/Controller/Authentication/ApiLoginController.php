@@ -118,7 +118,7 @@ final class ApiLoginController extends AbstractController
     /**
      * @throws BadRequestException
      * @throws UnauthorizedHttpException
-     * @throws AccessDeniedHttpException
+     * @throws AccessDeniedHttpException|RandomException
      */
     #[Route('/api/refresh/', methods: ['POST'])]
     #[OA\Tag(name: 'Authentication')]
@@ -176,8 +176,17 @@ final class ApiLoginController extends AbstractController
             new OA\Response(response: 200, description: 'Logged out')
         ]
     )]
-    public function logout(): JsonResponse
-    {
+    public function logout(
+        Request $request,
+        RefreshTokenManager $refreshTokenManager,
+    ): JsonResponse
+     {
+        $refreshToken = $request->cookies->get('refresh_token');
+
+        $refreshTokenManager->revoke(
+            is_string($refreshToken) ? $refreshToken : null,
+        );
+
         $response = new JsonResponse();
 
         $response->headers->clearCookie('access_token', '/', '.evogym.local');

@@ -45,4 +45,14 @@ final class RefreshTokenRepository extends ServiceEntityRepository
             ->getQuery()
             ->execute();
     }
+
+    public function removeByTokenHash(string $tokenHash): void
+    {
+        $this->createQueryBuilder('rt')
+            ->delete()
+            ->andWhere('rt.tokenHash = :tokenHash')
+            ->setParameter('tokenHash', $tokenHash)
+            ->getQuery()
+            ->execute();
+    }
 }
