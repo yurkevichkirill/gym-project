@@ -18,10 +18,23 @@ final readonly class PaymentLifecycleService
             PaymentStatusEnum::FAILED,
         ],
         PaymentStatusEnum::SUCCEEDED->value => [
+            PaymentStatusEnum::REFUND_PENDING,
             PaymentStatusEnum::REFUNDED,
         ],
-        PaymentStatusEnum::FAILED->value => [],
-        PaymentStatusEnum::CANCELED->value => [],
+        PaymentStatusEnum::REFUND_PENDING->value => [
+            PaymentStatusEnum::REFUNDED,
+            PaymentStatusEnum::REFUND_FAILED,
+        ],
+        PaymentStatusEnum::REFUND_FAILED->value => [
+            PaymentStatusEnum::REFUND_PENDING,
+            PaymentStatusEnum::REFUNDED,
+        ],
+        PaymentStatusEnum::FAILED->value => [
+            PaymentStatusEnum::REFUNDED,
+        ],
+        PaymentStatusEnum::CANCELED->value => [
+            PaymentStatusEnum::REFUNDED,
+        ],
         PaymentStatusEnum::REFUNDED->value => [],
     ];
 
@@ -55,7 +68,9 @@ final readonly class PaymentLifecycleService
                 $payment->setExpiresAt(null);
                 break;
 
+            case PaymentStatusEnum::REFUND_PENDING:
             case PaymentStatusEnum::REFUNDED:
+            case PaymentStatusEnum::REFUND_FAILED:
                 break;
         }
     }

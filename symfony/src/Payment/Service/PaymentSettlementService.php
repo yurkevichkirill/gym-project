@@ -142,6 +142,10 @@ final readonly class PaymentSettlementService
             LockMode::PESSIMISTIC_WRITE,
         );
 
+        if ($lockedClient === null) {
+            throw new UserNotFoundException('Payment client was not found');
+        }
+
         $amount = $payment->getAmount();
 
         $this->balanceService->depositClient($lockedClient, $amount);
@@ -257,6 +261,10 @@ final readonly class PaymentSettlementService
                     LockMode::PESSIMISTIC_WRITE
                 );
 
+                if ($lockedTrainer === null) {
+                    throw new TrainerNotFoundException('Trainer for booking payment was not found');
+                }
+
                 $this->balanceService->depositTrainer($lockedTrainer, $lockedPayment->getAmount());
 
                 $booking->confirm();
@@ -267,13 +275,11 @@ final readonly class PaymentSettlementService
                 $this->em->refresh($membership);
 
                 if ($membership->getStatus() !== MembershipStatusEnum::PENDING) {
-                    $this->paymentLogger->warning('payment.stripe_success.membership_already_processed', [
-                        'intent_id' => $intentId,
-                        'membership_id' => $membership->getId(),
-                        'membership_status' => $membership->getStatus()->value,
-                    ]);
-
-                    return null;
+                    return $this->refundSucceededStripePaymentForProcessedMembership(
+                        $lockedPayment,
+                        $membership,
+                        $intentId
+                    );
                 }
 
                 $membership->activate();
@@ -294,7 +300,80 @@ final readonly class PaymentSettlementService
     /**
      * @throws Throwable
      */
-    public function refund(Payment $payment): void
+    public function handleStripeRefundSucceeded(string $intentId): void
+    {
+        $payment = $this->paymentRepo->findOneByStripePaymentIntentId($intentId);
+        if ($payment === null) {
+            throw new PaymentNotFoundException('Payment for Stripe intent was not found');
+        }
+
+        $this->withLockedPayment($this->requirePaymentId($payment), function (Payment $lockedPayment) use ($intentId) {
+            if ($lockedPayment->getStatus() === PaymentStatusEnum::REFUNDED) {
+                return;
+            }
+
+            if (!in_array($lockedPayment->getStatus(), [
+                PaymentStatusEnum::REFUND_PENDING,
+                PaymentStatusEnum::REFUND_FAILED,
+                PaymentStatusEnum::SUCCEEDED,
+                PaymentStatusEnum::CANCELED,
+                PaymentStatusEnum::FAILED,
+            ], true)) {
+                $this->paymentLogger->warning('payment.stripe_refund.ignored', [
+                    'intent_id' => $intentId,
+                    'payment_id' => $lockedPayment->getId(),
+                    'current_status' => $lockedPayment->getStatus()->value,
+                ]);
+
+                return;
+            }
+
+            if (in_array($lockedPayment->getStatus(), [PaymentStatusEnum::REFUND_PENDING, PaymentStatusEnum::REFUND_FAILED, PaymentStatusEnum::SUCCEEDED], true)) {
+                $this->reverseTrainerPayoutForRefund($lockedPayment);
+            }
+
+            $membership = $lockedPayment->getMembership();
+            if ($membership !== null && $lockedPayment->getStatus() === PaymentStatusEnum::SUCCEEDED) {
+                $this->paymentLogger->critical('payment.stripe_refund.membership_reconciliation_required', [
+                    'intent_id' => $intentId,
+                    'payment_id' => $lockedPayment->getId(),
+                    'membership_id' => $membership->getId(),
+                    'membership_status' => $membership->getStatus()->value,
+                ]);
+            }
+
+            $this->paymentLifecycleService->transitionTo($lockedPayment, PaymentStatusEnum::REFUNDED);
+        });
+    }
+
+    /**
+     * @throws Throwable
+     */
+    public function handleStripeRefundFailed(string $intentId): void
+    {
+        $payment = $this->paymentRepo->findOneByStripePaymentIntentId($intentId);
+        if ($payment === null) {
+            throw new PaymentNotFoundException('Payment for Stripe intent was not found');
+        }
+
+        $this->withLockedPayment($this->requirePaymentId($payment), function (Payment $lockedPayment) use ($intentId) {
+            if ($lockedPayment->getStatus() === PaymentStatusEnum::REFUND_PENDING) {
+                $this->paymentLifecycleService->transitionTo($lockedPayment, PaymentStatusEnum::REFUND_FAILED);
+            }
+
+            $this->paymentLogger->critical('payment.stripe_refund.failed', [
+                'intent_id' => $intentId,
+                'payment_id' => $lockedPayment->getId(),
+                'current_status' => $lockedPayment->getStatus()->value,
+                'action' => 'manual_reconciliation_required',
+            ]);
+        });
+    }
+
+    /**
+     * @throws Throwable
+     */
+    public function refund(Payment $payment): ?RefundPaymentMessage
     {
         if ($payment->getIsRefund()) {
             $this->paymentLogger->warning(
@@ -304,61 +383,96 @@ final readonly class PaymentSettlementService
                 ])
             );
 
-            return;
+            return null;
         }
 
         $paymentId = $this->requirePaymentId($payment);
 
-        $this->withLockedPayment($paymentId, function (Payment $lockedPayment) {
-            if ($lockedPayment->getStatus() === PaymentStatusEnum::REFUNDED) {
+        return $this->withLockedPayment($paymentId, function (Payment $lockedPayment) {
+            if (in_array($lockedPayment->getStatus(), [PaymentStatusEnum::REFUNDED, PaymentStatusEnum::REFUND_PENDING], true)) {
                 $this->paymentLogger->warning(
                     'payment.refund.rejected.already_refunded',
                     $this->paymentEventContext($lockedPayment, 'refund', 'rejected', [
-                        'error' => 'Payment already refunded',
+                        'error' => 'Payment already refunded or pending refund',
                     ])
                 );
-                return;
+
+                return null;
             }
 
-            $this->paymentLifecycleService->transitionTo($lockedPayment, PaymentStatusEnum::REFUNDED);
-
-            $clientId = $lockedPayment->getClient()?->getId();
-            if ($clientId === null) {
-                throw new UserNotFoundException('Payment client was not found');
+            if ($lockedPayment->getStatus() !== PaymentStatusEnum::SUCCEEDED) {
+                throw new InvalidPaymentStatusException('Only succeeded payments can be refunded');
             }
 
-            $lockedClient = $this->em->find(
-                Client::class,
-                $clientId,
-                LockMode::PESSIMISTIC_WRITE
-            );
-
-            $this->balanceService->depositClient($lockedClient, $lockedPayment->getAmount());
-
-            $trainer = $lockedPayment->getTrainer();
-            if ($trainer !== null) {
-                $lockedTrainer = $this->em->find(
-                    Trainer::class,
-                    $trainer->getId(),
-                    LockMode::PESSIMISTIC_WRITE
-                );
-
-                $this->balanceService->chargeTrainer($lockedTrainer, $lockedPayment->getAmount());
+            if ($lockedPayment->getMethod() === PaymentMethodEnum::CARD) {
+                return $this->requestStripeCardRefund($lockedPayment);
             }
 
-            $refundPayment = $this->paymentService->createPayment(
-                $lockedClient,
-                $lockedPayment->getAmount(),
-                $lockedPayment->getCategory(),
-                PaymentMethodEnum::BALANCE,
-                $lockedPayment->getTrainer(),
-            );
+            $this->refundBalancePaymentToInternalBalance($lockedPayment);
 
-            $refundPayment->setOriginalPayment($lockedPayment);
-            $refundPayment->setIsRefund(true);
-
-            $this->paymentLifecycleService->transitionTo($refundPayment, PaymentStatusEnum::SUCCEEDED);
+            return null;
         });
+    }
+
+    private function requestStripeCardRefund(Payment $lockedPayment): RefundPaymentMessage
+    {
+        $intentId = $lockedPayment->getStripePaymentIntentId();
+        if ($intentId === null) {
+            throw new InvalidPaymentStatusException('Card payment is missing Stripe PaymentIntent ID');
+        }
+
+        $this->paymentLifecycleService->transitionTo($lockedPayment, PaymentStatusEnum::REFUND_PENDING);
+
+        $this->paymentLogger->info(
+            'payment.card_refund.requested',
+            $this->paymentEventContext($lockedPayment, 'refund', 'requested', [
+                'intent_id' => $intentId,
+            ])
+        );
+
+        return new RefundPaymentMessage(
+            $this->requirePaymentId($lockedPayment),
+            $intentId
+        );
+    }
+
+    /**
+     * @throws Throwable
+     */
+    private function refundBalancePaymentToInternalBalance(Payment $lockedPayment): void
+    {
+        $this->paymentLifecycleService->transitionTo($lockedPayment, PaymentStatusEnum::REFUNDED);
+
+        $clientId = $lockedPayment->getClient()?->getId();
+        if ($clientId === null) {
+            throw new UserNotFoundException('Payment client was not found');
+        }
+
+        $lockedClient = $this->em->find(
+            Client::class,
+            $clientId,
+            LockMode::PESSIMISTIC_WRITE
+        );
+
+        if ($lockedClient === null) {
+            throw new UserNotFoundException('Payment client was not found');
+        }
+
+        $this->balanceService->depositClient($lockedClient, $lockedPayment->getAmount());
+        $this->reverseTrainerPayoutForRefund($lockedPayment);
+
+        $refundPayment = $this->paymentService->createPayment(
+            $lockedClient,
+            $lockedPayment->getAmount(),
+            $lockedPayment->getCategory(),
+            PaymentMethodEnum::BALANCE,
+            $lockedPayment->getTrainer(),
+        );
+
+        $refundPayment->setOriginalPayment($lockedPayment);
+        $refundPayment->setIsRefund(true);
+
+        $this->paymentLifecycleService->transitionTo($refundPayment, PaymentStatusEnum::SUCCEEDED);
     }
 
     /**
@@ -403,6 +517,7 @@ final readonly class PaymentSettlementService
             throw $e;
         }
     }
+
 
     /**
      * @throws Throwable
@@ -508,6 +623,51 @@ final readonly class PaymentSettlementService
         }
 
         $this->messageBus->dispatch($message);
+    }
+
+    private function reverseTrainerPayoutForRefund(Payment $payment): void
+    {
+        $trainer = $payment->getTrainer();
+        if ($trainer === null) {
+            return;
+        }
+
+        $trainerId = $trainer->getId();
+        if ($trainerId === null) {
+            throw new TrainerNotFoundException('Trainer for refunded payment was not found');
+        }
+
+        $lockedTrainer = $this->em->find(
+            Trainer::class,
+            $trainerId,
+            LockMode::PESSIMISTIC_WRITE
+        );
+
+        if ($lockedTrainer === null) {
+            throw new TrainerNotFoundException('Trainer for refunded payment was not found');
+        }
+
+        $this->balanceService->chargeTrainer($lockedTrainer, $payment->getAmount());
+    }
+
+    private function refundSucceededStripePaymentForProcessedMembership(
+        Payment $payment,
+        Membership $membership,
+        string $intentId,
+    ): RefundPaymentMessage {
+        $paymentId = $this->requirePaymentId($payment);
+
+        $this->paymentLogger->critical('payment.stripe_success.membership_reconciliation_required', [
+            'intent_id' => $intentId,
+            'payment_id' => $paymentId,
+            'membership_id' => $membership->getId(),
+            'membership_status' => $membership->getStatus()->value,
+            'action' => 'initiating_stripe_refund',
+        ]);
+
+        $this->paymentLifecycleService->transitionTo($payment, PaymentStatusEnum::CANCELED);
+
+        return new RefundPaymentMessage($paymentId, $intentId);
     }
 
     private function requirePaymentId(Payment $payment): int

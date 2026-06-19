@@ -67,9 +67,11 @@ final readonly class BookingCancellationService
         ];
 
         try {
-            $this->entityManager->wrapInTransaction(function () use ($booking, $status, $payment) {
+            $refundMessage = null;
+
+            $this->entityManager->wrapInTransaction(function () use ($booking, $status, $payment, &$refundMessage) {
                 if ($payment !== null) {
-                    $this->paymentSettlementService->refund($payment);
+                    $refundMessage = $this->paymentSettlementService->refund($payment);
                 }
 
                 $booking->setStatus($status);
@@ -78,6 +80,8 @@ final readonly class BookingCancellationService
                     $training->setIsBusy(false);
                 }
             });
+
+            $this->paymentSettlementService->dispatchPaymentMessage($refundMessage);
         } catch (Throwable $e) {
             $this->bookingLogger->error('cancel.failed',
                 [
@@ -196,6 +200,9 @@ final readonly class BookingCancellationService
         }
     }
 
+    /**
+     * @param array<string> $roles
+     */
     private function resolveCancellationStatus(array $roles): BookingStatusEnum
     {
         if (in_array(UserRolesEnum::ROLE_CLIENT->value, $roles, true)) {
