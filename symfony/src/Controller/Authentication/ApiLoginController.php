@@ -99,12 +99,12 @@ final class ApiLoginController extends AbstractController
 
         $user = $userManager->login($dto);
 
-        $rateLimiter->resetLoginIdentity($request, $dto->email);
-
         $accessToken = $refreshTokenManager->generateAccessToken($user);
         $refreshToken = $refreshTokenManager->generateRefreshToken();
 
         $refreshTokenManager->create($refreshToken, $user);
+
+        $rateLimiter->resetLoginIdentity($request, $dto->email);
 
         $response = $this->json([
             'data' => ['user' => $user->getUserIdentifier()]
