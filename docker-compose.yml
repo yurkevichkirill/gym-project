@@ -164,7 +164,7 @@ services:
     restart: always
     working_dir: /var/www
     command: >
-      php bin/console messenger:consume scheduler_default
+      php bin/console messenger:consume scheduler_default scheduler_memberships
       --time-limit=3600
       --memory-limit=256M
       -vv
