@@ -15,22 +15,24 @@ use Symfony\Component\Security\Core\User\UserInterface;
 
 final class UserCheckerTest extends TestCase
 {
+    /**
+     * @param callable(UserChecker, UserInterface): void $check
+     */
     #[DataProvider('checkMethodProvider')]
-    public function testActiveAppUserIsAllowed(string $method): void
+    public function testActiveAppUserIsAllowed(callable $check): void
     {
-        $checker = new UserChecker();
-
-        $checker->{$method}($this->activeUser());
+        $check(new UserChecker(), $this->activeUser());
 
         self::addToAssertionCount(1);
     }
 
+    /**
+     * @param callable(UserChecker, UserInterface): void $check
+     */
     #[DataProvider('checkMethodProvider')]
-    public function testNonAppUserInterfaceIsAllowed(string $method): void
+    public function testNonAppUserInterfaceIsAllowed(callable $check): void
     {
-        $checker = new UserChecker();
-
-        $checker->{$method}(new class implements UserInterface {
+        $check(new UserChecker(), new class implements UserInterface {
             public function getRoles(): array
             {
                 return ['ROLE_EXTERNAL'];
@@ -50,10 +52,11 @@ final class UserCheckerTest extends TestCase
     }
 
     /**
+     * @param callable(UserChecker, UserInterface): void $check
      * @param callable(User): void $mutate
      */
     #[DataProvider('rejectedUserProvider')]
-    public function testRejectedAppUserStates(string $method, callable $mutate, string $expectedMessage): void
+    public function testRejectedAppUserStates(callable $check, callable $mutate, string $expectedMessage): void
     {
         $user = $this->activeUser();
         $mutate($user);
@@ -61,11 +64,14 @@ final class UserCheckerTest extends TestCase
         $this->expectException(CustomUserMessageAccountStatusException::class);
         $this->expectExceptionMessage($expectedMessage);
 
-        (new UserChecker())->{$method}($user);
+        $check(new UserChecker(), $user);
     }
 
+    /**
+     * @param callable(UserChecker, UserInterface): void $check
+     */
     #[DataProvider('checkMethodProvider')]
-    public function testDeletedStateHasPriorityOverBlockedAndInactive(string $method): void
+    public function testDeletedStateHasPriorityOverBlockedAndInactive(callable $check): void
     {
         $user = $this->activeUser();
         $user->setDeletedAt(new DateTime('2026-01-01 00:00:00'));
@@ -75,11 +81,14 @@ final class UserCheckerTest extends TestCase
         $this->expectException(CustomUserMessageAccountStatusException::class);
         $this->expectExceptionMessage('User account is deleted.');
 
-        (new UserChecker())->{$method}($user);
+        $check(new UserChecker(), $user);
     }
 
+    /**
+     * @param callable(UserChecker, UserInterface): void $check
+     */
     #[DataProvider('checkMethodProvider')]
-    public function testBlockedStateHasPriorityOverInactive(string $method): void
+    public function testBlockedStateHasPriorityOverInactive(callable $check): void
     {
         $user = $this->activeUser();
         $user->setBlockedAt(new DateTimeImmutable('2026-01-02 00:00:00'));
@@ -88,26 +97,31 @@ final class UserCheckerTest extends TestCase
         $this->expectException(CustomUserMessageAccountStatusException::class);
         $this->expectExceptionMessage('User account is blocked.');
 
-        (new UserChecker())->{$method}($user);
+        $check(new UserChecker(), $user);
     }
 
     /**
-     * @return iterable<string, array{string}>
+     * @return iterable<string, array{callable(UserChecker, UserInterface): void}>
      */
     public static function checkMethodProvider(): iterable
     {
-        yield 'pre auth' => ['checkPreAuth'];
-        yield 'post auth' => ['checkPostAuth'];
+        yield 'pre auth' => [static function (UserChecker $checker, UserInterface $user): void {
+            $checker->checkPreAuth($user);
+        }];
+
+        yield 'post auth' => [static function (UserChecker $checker, UserInterface $user): void {
+            $checker->checkPostAuth($user);
+        }];
     }
 
     /**
-     * @return iterable<string, array{string, callable(User): void, string}>
+     * @return iterable<string, array{callable(UserChecker, UserInterface): void, callable(User): void, string}>
      */
     public static function rejectedUserProvider(): iterable
     {
-        foreach (self::checkMethodProvider() as $methodName => [$method]) {
+        foreach (self::checkMethodProvider() as $methodName => [$check]) {
             yield $methodName . ' deleted' => [
-                $method,
+                $check,
                 static function (User $user): void {
                     $user->setDeletedAt(new DateTime('2026-01-01 00:00:00'));
                 },
@@ -115,7 +129,7 @@ final class UserCheckerTest extends TestCase
             ];
 
             yield $methodName . ' blocked' => [
-                $method,
+                $check,
                 static function (User $user): void {
                     $user->setBlockedAt(new DateTimeImmutable('2026-01-01 00:00:00'));
                 },
@@ -123,7 +137,7 @@ final class UserCheckerTest extends TestCase
             ];
 
             yield $methodName . ' inactive' => [
-                $method,
+                $check,
                 static function (User $user): void {
                     $user->setIsActive(false);
                 },

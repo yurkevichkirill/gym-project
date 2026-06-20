@@ -147,6 +147,7 @@ final class AuthenticationRateLimitListenerTest extends TestCase
             'consumeRefreshIp' => 'refresh_ip',
             'consumeActivationIp' => 'activation_ip',
             'consumeRegistrationIp' => 'registration_ip',
+            default => throw new \InvalidArgumentException(sprintf('Unknown limiter method "%s".', $method)),
         };
     }
 
