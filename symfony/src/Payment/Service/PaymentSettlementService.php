@@ -220,9 +220,9 @@ final readonly class PaymentSettlementService
 
         $paymentId = $this->requirePaymentId($payment);
 
-        $refundMessage = $this->withLockedPayment($paymentId, function (Payment $lockedPayment) use ($intentId) {
+        $this->withLockedPayment($paymentId, function (Payment $lockedPayment) use ($intentId): void {
             if ($lockedPayment->getStatus() === PaymentStatusEnum::SUCCEEDED) {
-                return null;
+                return;
             }
 
             if ($lockedPayment->getStatus() !== PaymentStatusEnum::PENDING) {
@@ -233,10 +233,14 @@ final readonly class PaymentSettlementService
                         'action' => 'initiating_stripe_refund'
                     ]);
 
-                    return new RefundPaymentMessage(
-                        $this->requirePaymentId($lockedPayment),
-                        $intentId
+                    $this->dispatchPaymentMessage(
+                        new RefundPaymentMessage(
+                            $this->requirePaymentId($lockedPayment),
+                            $intentId,
+                        )
                     );
+
+                    return;
                 }
 
                 $this->paymentLogger->warning('payment.stripe_success.ignored', [
@@ -244,7 +248,7 @@ final readonly class PaymentSettlementService
                     'current_status' => $lockedPayment->getStatus()->value,
                 ]);
 
-                return null;
+                return;
             }
 
             $booking = $lockedPayment->getBooking();
@@ -275,11 +279,15 @@ final readonly class PaymentSettlementService
                 $this->em->refresh($membership);
 
                 if ($membership->getStatus() !== MembershipStatusEnum::PENDING) {
-                    return $this->refundSucceededStripePaymentForProcessedMembership(
+                    $refundMessage = $this->refundSucceededStripePaymentForProcessedMembership(
                         $lockedPayment,
                         $membership,
                         $intentId
                     );
+
+                    $this->dispatchPaymentMessage($refundMessage);
+
+                    return;
                 }
 
                 $membership->activate();
@@ -290,11 +298,7 @@ final readonly class PaymentSettlementService
             }
 
             $this->paymentLifecycleService->transitionTo($lockedPayment, PaymentStatusEnum::SUCCEEDED);
-
-            return null;
         });
-
-        $this->dispatchPaymentMessage($refundMessage);
     }
 
     /**

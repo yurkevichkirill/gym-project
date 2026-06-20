@@ -159,27 +159,29 @@ final readonly class MembershipManager
                 throw new InvalidMembershipStatusException('Membership is not fully initialized');
             }
 
-            $cancelStripeIntentMessage = null;
+                $updatedMembership = $this->paymentSettlementService->withLockedPayment(
+                $paymentId,
+                function (Payment $lockedPayment): Membership {
+                    if ($lockedPayment->getStatus() !== PaymentStatusEnum::PENDING) {
+                        throw new InvalidMembershipStatusException('Associated payment is no longer pending. Cannot cancel.');
+                    }
 
-            $updatedMembership = $this->paymentSettlementService->withLockedPayment($paymentId, function (Payment $lockedPayment) use (&$cancelStripeIntentMessage) {
-                if ($lockedPayment->getStatus() !== PaymentStatusEnum::PENDING) {
-                    throw new InvalidMembershipStatusException('Associated payment is no longer pending. Cannot cancel.');
+                    $membership = $lockedPayment->getMembership();
+
+                    if ($membership === null) {
+                        throw new InvalidMembershipStatusException('Membership not found on locked payment');
+                    }
+
+                    $message = $this->paymentSettlementService
+                        ->cancelPayment($lockedPayment);
+
+                    $membership->cancel(MembershipStatusEnum::CANCELED_BY_CLIENT);
+
+                    $this->paymentSettlementService->dispatchPaymentMessage($message);
+
+                    return $membership;
                 }
-
-                $membership = $lockedPayment->getMembership();
-
-                if ($membership === null) {
-                    throw new InvalidMembershipStatusException('Membership not found on locked payment');
-                }
-
-                $cancelStripeIntentMessage = $this->paymentSettlementService->cancelPayment($lockedPayment);
-
-                $membership->cancel(MembershipStatusEnum::CANCELED_BY_CLIENT);
-
-                $this->paymentSettlementService->dispatchPaymentMessage($cancelStripeIntentMessage);
-
-                return $membership;
-            });
+            );
 
             try {
                 $this->analyticsPublisher->publish(
