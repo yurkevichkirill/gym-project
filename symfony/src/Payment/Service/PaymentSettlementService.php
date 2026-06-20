@@ -522,23 +522,6 @@ final readonly class PaymentSettlementService
     /**
      * @throws Throwable
      */
-    public function failPaymentByStripeIntentId(string $intentId): void
-    {
-        $payment = $this->paymentRepo->findOneByStripePaymentIntentId($intentId);
-        if ($payment === null) {
-            throw new PaymentNotFoundException('Payment for Stripe intent was not found');
-        }
-
-        $cancelStripeIntentMessage = $this->withLockedPayment($this->requirePaymentId($payment), function (Payment $lockedPayment) {
-            return $this->failPayment($lockedPayment, false);
-        });
-
-        $this->dispatchPaymentMessage($cancelStripeIntentMessage);
-    }
-
-    /**
-     * @throws Throwable
-     */
     public function cancelPaymentByStripeIntentId(string $intentId): void
     {
         $payment = $this->paymentRepo->findOneByStripePaymentIntentId($intentId);
@@ -606,12 +589,13 @@ final readonly class PaymentSettlementService
         foreach ($payments as $payment) {
             $expiresAt = $payment->getExpiresAt();
             if ($expiresAt !== null && $expiresAt < $now) {
-                $cancelStripeIntentMessage = $this->withLockedPayment(
+                $this->withLockedPayment(
                     $this->requirePaymentId($payment),
-                    fn (Payment $lockedPayment) => $this->cancelPayment($lockedPayment)
+                    function (Payment $lockedPayment): void {
+                        $message = $this->cancelPayment($lockedPayment);
+                        $this->dispatchPaymentMessage($message);
+                    }
                 );
-
-                $this->dispatchPaymentMessage($cancelStripeIntentMessage);
             }
         }
     }

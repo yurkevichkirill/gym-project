@@ -73,9 +73,7 @@ final readonly class BookingCancellationService
         }
 
         try {
-            $refundMessage = null;
-
-            $this->entityManager->wrapInTransaction(function () use ($bookingId, $actor, $status, &$refundMessage) {
+            $this->entityManager->wrapInTransaction(function () use ($bookingId, $actor, $status) {
                 $lockedBooking = $this->lockBooking($bookingId);
 
                 $this->assertScheduledBookingCanBeCanceled($lockedBooking);
@@ -84,6 +82,7 @@ final readonly class BookingCancellationService
                 $payment = $lockedBooking->getPayment();
                 if ($payment !== null) {
                     $refundMessage = $this->paymentSettlementService->refund($payment);
+                    $this->paymentSettlementService->dispatchPaymentMessage($refundMessage);
                 }
 
                 $lockedBooking->setStatus($status);
@@ -92,8 +91,6 @@ final readonly class BookingCancellationService
                     $training->setIsBusy(false);
                 }
             });
-
-            $this->paymentSettlementService->dispatchPaymentMessage($refundMessage);
         } catch (Throwable $e) {
             $this->bookingLogger->error('cancel.failed',
                 [
@@ -161,23 +158,20 @@ final readonly class BookingCancellationService
         }
 
         try {
-            $cancelStripeIntentMessage = null;
+            $message = null;
 
             $this->paymentSettlementService->withLockedPayment($paymentId, function (Payment $lockedPayment) use ($booking, $status, $training, &$cancelStripeIntentMessage) {
                 if ($lockedPayment->getStatus() !== PaymentStatusEnum::PENDING) {
                     throw new InvalidBookingStatusException('Payment is no longer pending. Cancellation aborted.');
                 }
 
-                $cancelStripeIntentMessage = $this->paymentSettlementService->cancelPayment($lockedPayment);
+                $message = $this->paymentSettlementService->cancelPayment($lockedPayment);
 
-                if ($training !== null) {
-                    $training->setIsBusy(false);
-                }
-
+                $training?->setIsBusy(false);
                 $booking->setStatus($status);
-            });
 
-            $this->paymentSettlementService->dispatchPaymentMessage($cancelStripeIntentMessage);
+                $this->paymentSettlementService->dispatchPaymentMessage($message);
+            });
         } catch (Throwable $e) {
             $this->bookingLogger->error('cancel.failed',
                 [

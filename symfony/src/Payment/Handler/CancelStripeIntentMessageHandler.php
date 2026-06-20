@@ -24,7 +24,10 @@ final readonly class CancelStripeIntentMessageHandler
     public function __invoke(CancelStripeIntentMessage $message): void
     {
         try {
-            $this->stripeService->cancelPaymentIntent($message->intentId);
+            $this->stripeService->cancelPaymentIntent(
+                    $message->intentId,
+                    'cancel_payment_intent_' . $message->paymentId,
+            );
         } catch (Throwable $stripeException) {
             $this->paymentLogger->warning('payment.stripe_cancel.failed', [
                 'payment_id' => $message->paymentId,

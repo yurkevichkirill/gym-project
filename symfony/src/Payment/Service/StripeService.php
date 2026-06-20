@@ -74,9 +74,22 @@ final readonly class StripeService
     /**
      * @throws ApiErrorException
      */
-    public function cancelPaymentIntent(string $intentId): void
+    public function cancelPaymentIntent(
+        string $intentId,
+        ?string $idempotencyKey = null,
+    ): void
     {
-        $this->stripe->paymentIntents->cancel($intentId);
+        $options = [];
+
+        if ($idempotencyKey !== null) {
+            $options['idempotency_key'] = $idempotencyKey;
+        }
+
+        $this->stripe->paymentIntents->cancel(
+            $intentId,
+            [],
+            $options,
+        );
     }
 
     /**

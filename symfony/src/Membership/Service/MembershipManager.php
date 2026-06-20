@@ -15,7 +15,6 @@ use App\MembershipPlan\Exception\MembershipPlanNotFoundException;
 use App\MembershipPlan\Repository\MembershipPlanRepository;
 use App\Payment\Entity\Payment;
 use App\Payment\Enum\PaymentStatusEnum;
-use App\Payment\Exception\PaymentNotFoundException;
 use App\Payment\Service\PaymentSettlementService;
 use App\User\Exception\UserNotFoundException;
 use App\User\Service\AvailabilityService;
@@ -177,10 +176,10 @@ final readonly class MembershipManager
 
                 $membership->cancel(MembershipStatusEnum::CANCELED_BY_CLIENT);
 
+                $this->paymentSettlementService->dispatchPaymentMessage($cancelStripeIntentMessage);
+
                 return $membership;
             });
-
-            $this->paymentSettlementService->dispatchPaymentMessage($cancelStripeIntentMessage);
 
             try {
                 $this->analyticsPublisher->publish(
