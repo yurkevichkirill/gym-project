@@ -11,6 +11,7 @@ final readonly class TopUpBalanceRequestDTO
     public function __construct(
         #[Assert\NotBlank]
         #[Assert\GreaterThan(100)]
+        #[Assert\LessThanOrEqual(1000000)]
         public int $amount,
     )
     {}

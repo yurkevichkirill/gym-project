@@ -1,5 +1,9 @@
 # Repository Guidelines
 
+## Executing commands
+
+To execute command you should open php-fpm container with `docker compose exec -it php-fpm sh` and then execute your command.
+
 ## Project Structure & Module Organization
 
 This gym management system is split across `nextjs/` and `symfony/`. The frontend keeps routes in `nextjs/src/app`, page sections in `nextjs/src/scenes`, shared UI in `nextjs/src/shared`, API wrappers in `nextjs/src/api`, stores in `nextjs/src/store`, and typed contracts in `nextjs/src/types`. The Symfony 8 backend lives in `symfony/src`, organized by domains such as `Booking`, `Client`, `Membership`, `Payment`, `Trainer`, and `Training`; see `symfony/AGENTS.md` for backend-specific details. Docker, Nginx, and ClickHouse setup files are under `docker/`; Loki/Grafana assets are under `observability/`.

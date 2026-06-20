@@ -6,6 +6,7 @@ namespace App\RefreshToken\Repository;
 
 use App\RefreshToken\Entity\RefreshToken;
 use App\User\Entity\User;
+use DateTimeImmutable;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
@@ -46,12 +47,55 @@ final class RefreshTokenRepository extends ServiceEntityRepository
             ->execute();
     }
 
-    public function removeByTokenHash(string $tokenHash): void
+    public function revokeByTokenHash(string $tokenHash, DateTimeImmutable $revokedAt): void
     {
         $this->createQueryBuilder('rt')
-            ->delete()
+            ->update()
+            ->set('rt.revokedAt', ':revokedAt')
             ->andWhere('rt.tokenHash = :tokenHash')
+            ->andWhere('rt.revokedAt IS NULL')
             ->setParameter('tokenHash', $tokenHash)
+            ->setParameter('revokedAt', $revokedAt)
+            ->getQuery()
+            ->execute();
+    }
+
+    public function revokeOldestActiveByUser(User $user, int $maxActiveTokens, DateTimeImmutable $revokedAt): void
+    {
+        if ($maxActiveTokens < 1) {
+            $this->removeAllByUser($user);
+
+            return;
+        }
+
+        $tokensToRevoke = $this->findBy(
+            criteria: [
+                'user' => $user,
+                'revokedAt' => null,
+            ],
+            orderBy: ['id' => 'DESC'],
+            limit: null,
+            offset: $maxActiveTokens,
+        );
+
+        if ($tokensToRevoke === []) {
+            return;
+        }
+
+        foreach ($tokensToRevoke as $refreshToken) {
+            $refreshToken->setRevokedAt($revokedAt);
+        }
+
+        $this->save();
+    }
+
+    public function removeExpiredAndStaleRevoked(DateTimeImmutable $now, DateTimeImmutable $revokedBefore): int
+    {
+        return $this->createQueryBuilder('rt')
+            ->delete()
+            ->andWhere('rt.expiresAt < :now OR rt.revokedAt < :revokedBefore')
+            ->setParameter('now', $now)
+            ->setParameter('revokedBefore', $revokedBefore)
             ->getQuery()
             ->execute();
     }

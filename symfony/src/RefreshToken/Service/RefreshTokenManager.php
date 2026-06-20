@@ -16,6 +16,7 @@ use Symfony\Component\HttpKernel\Exception\UnauthorizedHttpException;
 final readonly class RefreshTokenManager
 {
     private const string TOKEN_HASH_ALGORITHM = 'sha256';
+    private const int MAX_ACTIVE_REFRESH_TOKENS = 5;
 
     public function __construct(
         private RefreshTokenRepository $repo,
@@ -33,6 +34,7 @@ final readonly class RefreshTokenManager
         $entityRefreshToken->setExpiresAt(new DateTimeImmutable('+7 days'));
 
         $this->repo->create($entityRefreshToken);
+        $this->repo->revokeOldestActiveByUser($user, self::MAX_ACTIVE_REFRESH_TOKENS, new DateTimeImmutable());
     }
 
     /**
@@ -52,11 +54,21 @@ final readonly class RefreshTokenManager
             'tokenHash' => $this->hashToken($refreshToken),
         ]);
 
-        if ($tokenEntity === null || $tokenEntity->getExpiresAt() < new DateTimeImmutable()) {
+        if ($tokenEntity === null) {
             throw new UnauthorizedHttpException('Bearer', 'Invalid refresh token');
         }
 
         $user = $tokenEntity->getUser();
+
+        if ($tokenEntity->getRevokedAt() !== null) {
+            $this->repo->removeAllByUser($user);
+            throw new UnauthorizedHttpException('Bearer', 'Refresh token reuse detected');
+        }
+
+        if ($tokenEntity->getExpiresAt() < new DateTimeImmutable()) {
+            $this->repo->remove($tokenEntity);
+            throw new UnauthorizedHttpException('Bearer', 'Invalid refresh token');
+        }
 
         if (
             $user->getDeletedAt() !== null
@@ -67,7 +79,8 @@ final readonly class RefreshTokenManager
             throw new AccessDeniedHttpException('User is unavailable');
         }
 
-        $this->repo->remove($tokenEntity);
+        $tokenEntity->setRevokedAt(new DateTimeImmutable());
+        $this->repo->save();
 
         $newRefreshToken = $this->generateRefreshToken();
         $this->create($newRefreshToken, $user);
@@ -103,8 +116,9 @@ final readonly class RefreshTokenManager
             return;
         }
 
-        $this->repo->removeByTokenHash(
-            $this->hashToken($refreshToken)
+        $this->repo->revokeByTokenHash(
+            $this->hashToken($refreshToken),
+            new DateTimeImmutable(),
         );
     }
 

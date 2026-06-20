@@ -25,8 +25,11 @@ final class RefreshToken
     #[ORM\JoinColumn(nullable: false)]
     private User $user;
 
-    #[ORM\Column(type: Types::DATE_IMMUTABLE)]
+    #[ORM\Column(type: Types::DATETIME_IMMUTABLE)]
     private DateTimeImmutable $expiresAt;
+
+    #[ORM\Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
+    private ?DateTimeImmutable $revokedAt = null;
 
     public function getId(): ?int
     {
@@ -53,6 +56,18 @@ final class RefreshToken
     public function setExpiresAt(DateTimeImmutable $expiresAt): static
     {
         $this->expiresAt = $expiresAt;
+
+        return $this;
+    }
+
+    public function getRevokedAt(): ?DateTimeImmutable
+    {
+        return $this->revokedAt;
+    }
+
+    public function setRevokedAt(?DateTimeImmutable $revokedAt): static
+    {
+        $this->revokedAt = $revokedAt;
 
         return $this;
     }

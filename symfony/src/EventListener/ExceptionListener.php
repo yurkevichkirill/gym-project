@@ -72,17 +72,11 @@ final readonly class ExceptionListener
             ? 'Internal Server Error'
             : $exception->getMessage();
 
-        $responseData = [
-            'message' => $errorMessage,
-        ];
-
-        if ($isDev) {
-            $responseData['trace'] = $exception->getTrace();
-        }
-
         $event->setResponse(
             new JsonResponse(
-                data: $responseData,
+                data: [
+                    'message' => $errorMessage,
+                ],
                 status: $statusCode,
                 headers: $headers
             )

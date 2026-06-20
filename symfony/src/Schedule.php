@@ -22,7 +22,7 @@ class Schedule implements ScheduleProviderInterface
         return (new SymfonySchedule())
             ->stateful($this->cache)
             ->processOnlyLastMissedRun(true)
-            ->add(RecurringMessage::every('1 minute', new RunCommandMessage('app:payments:cleanup')));
-        ;
+            ->add(RecurringMessage::every('1 minute', new RunCommandMessage('app:payments:cleanup')))
+            ->add(RecurringMessage::every('1 hour', new RunCommandMessage('app:refresh-tokens:cleanup')));
     }
 }

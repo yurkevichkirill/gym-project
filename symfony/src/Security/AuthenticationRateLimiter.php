@@ -40,11 +40,10 @@ final readonly class AuthenticationRateLimiter
         );
     }
 
-    public function consumeLoginIdentity(Request $request, string $email): void
+    public function consumeLoginIdentity(string $email): void
     {
         $key = $this->createKey(
             'login_identity',
-            $this->getClientIp($request),
             strtolower(trim($email)),
         );
 
@@ -53,11 +52,10 @@ final readonly class AuthenticationRateLimiter
         );
     }
 
-    public function resetLoginIdentity(Request $request, string $email): void
+    public function resetLoginIdentity(string $email): void
     {
         $key = $this->createKey(
             'login_identity',
-            $this->getClientIp($request),
             strtolower(trim($email)),
         );
 

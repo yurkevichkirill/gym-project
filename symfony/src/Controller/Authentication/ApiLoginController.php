@@ -89,13 +89,12 @@ final class ApiLoginController extends AbstractController
         ]
     )]
     public function login(
-        Request                                  $request,
         #[MapRequestPayload] LoginUserRequestDTO $dto,
         UserManager                              $userManager,
         RefreshTokenManager                      $refreshTokenManager,
         AuthenticationRateLimiter                $rateLimiter,
     ): JsonResponse {
-        $rateLimiter->consumeLoginIdentity($request, $dto->email);
+        $rateLimiter->consumeLoginIdentity($dto->email);
 
         $user = $userManager->login($dto);
 
@@ -104,7 +103,7 @@ final class ApiLoginController extends AbstractController
 
         $refreshTokenManager->create($refreshToken, $user);
 
-        $rateLimiter->resetLoginIdentity($request, $dto->email);
+        $rateLimiter->resetLoginIdentity($dto->email);
 
         $response = $this->json([
             'data' => ['user' => $user->getUserIdentifier()]
@@ -198,11 +197,11 @@ final class ApiLoginController extends AbstractController
     private function setAuthCookies(JsonResponse $response, string $accessToken, string $refreshToken): void
     {
         $response->headers->setCookie(Cookie::create(
-            'access_token', $accessToken, time() + 3600, '/', '.evogym.local', true, true, false, 'none'
+            'access_token', $accessToken, time() + 3600, '/', '.evogym.local', true, true, false, Cookie::SAMESITE_LAX
         ));
 
         $response->headers->setCookie(Cookie::create(
-            'refresh_token', $refreshToken, time() + 604800, '/', '.evogym.local', true, true, false, 'none'
+            'refresh_token', $refreshToken, time() + 604800, '/', '.evogym.local', true, true, false, Cookie::SAMESITE_LAX
         ));
     }
 
