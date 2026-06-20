@@ -1,0 +1,31 @@
+framework:
+    rate_limiter:
+        auth_login_ip:
+            policy: sliding_window
+            limit: 1
+            interval: '1 hour'
+            cache_pool: cache.auth_rate_limiter
+
+        auth_refresh_ip:
+            policy: sliding_window
+            limit: 1
+            interval: '1 hour'
+            cache_pool: cache.auth_rate_limiter
+
+        auth_activation_ip:
+            policy: sliding_window
+            limit: 1
+            interval: '1 hour'
+            cache_pool: cache.auth_rate_limiter
+
+        auth_registration_burst:
+            policy: sliding_window
+            limit: 1
+            interval: '1 hour'
+            cache_pool: cache.auth_rate_limiter
+
+        auth_registration_hourly:
+            policy: sliding_window
+            limit: 1
+            interval: '1 hour'
+            cache_pool: cache.auth_rate_limiter

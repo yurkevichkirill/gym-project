@@ -1,0 +1,6 @@
+framework:
+    cache:
+        directory: '%kernel.cache_dir%/pools'
+        pools:
+            cache.auth_rate_limiter:
+                adapter: cache.adapter.filesystem
