@@ -3,6 +3,18 @@ framework:
         failure_transport: failed
 
         transports:
+            payment_outbox:
+                dsn: 'doctrine://default'
+                options:
+                    table_name: messenger_messages
+                    queue_name: payments
+                    auto_setup: false
+                retry_strategy:
+                    max_retries: 10
+                    delay: 1000
+                    multiplier: 2
+                    max_delay: 60000
+
             scheduler_memberships: 'schedule://memberships'
 
             async:
@@ -53,8 +65,8 @@ framework:
             App\ImportJob\Message\ImportMessage: async
             App\ImportJob\Message\SendActivationEmailMessage: async
 
-            App\Payment\Message\RefundPaymentMessage: async
-            App\Payment\Message\CancelStripeIntentMessage: async
+            App\Payment\Message\RefundPaymentMessage: payment_outbox
+            App\Payment\Message\CancelStripeIntentMessage: payment_outbox
 
             App\Infrastructure\ClickHouse\Event\AnalyticsEvent: analytics
 

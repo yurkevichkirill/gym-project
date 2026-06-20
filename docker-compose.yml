@@ -183,6 +183,24 @@ services:
     networks:
       - app-network
 
+  payment-worker:
+    build:
+      context: "docker/dockerfiles/php"
+      dockerfile: Dockerfile
+    restart: always
+    working_dir: /var/www
+    command: >
+      php bin/console messenger:consume payment_outbox
+      --time-limit=3600
+      --memory-limit=256M
+      -vv
+    volumes:
+      - ./symfony:/var/www
+    depends_on:
+      - postgres
+    networks:
+      - app-network
+
   clickhouse:
    container_name: clickhouse
    image: clickhouse/clickhouse-server:25.8
