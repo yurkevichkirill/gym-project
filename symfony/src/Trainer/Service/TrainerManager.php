@@ -7,6 +7,7 @@ namespace App\Trainer\Service;
 use App\Booking\Enum\BookingStatusEnum;
 use App\Booking\Repository\BookingRepository;
 use App\File\Service\FileManager;
+use App\Payment\Repository\PaymentRepository;
 use App\RefreshToken\Repository\RefreshTokenRepository;
 use App\Trainer\DTO\AdminUpdateTrainerRequestDTO;
 use App\Trainer\DTO\CreateTrainerRequestDTO;
@@ -14,7 +15,6 @@ use App\Trainer\DTO\UpdateTrainerRequestDTO;
 use App\Trainer\Entity\Trainer;
 use App\Trainer\Exception\CannotDeleteTrainerException;
 use App\Trainer\Repository\TrainerRepository;
-use App\Training\Repository\TrainingRepository;
 use App\TrainingType\Exception\TrainingTypeNotFoundException;
 use App\TrainingType\Repository\TrainingTypeRepository;
 use App\User\Exception\UserAlreadyBlockedException;
@@ -41,6 +41,7 @@ final readonly class TrainerManager
         private BookingRepository $bookingRepo,
         private UserRepository $userRepo,
         private TrainingTypeRepository $trainingTypeRepo,
+        private PaymentRepository $paymentRepo,
         private UserPasswordHasherInterface $passwordHasher,
         private RefreshTokenRepository $refreshTokenRepo,
         private EntityManagerInterface $entityManager,
@@ -218,6 +219,12 @@ final readonly class TrainerManager
                 )) {
                     throw new CannotDeleteTrainerException(
                         'Cannot delete trainer with pending or scheduled bookings'
+                    );
+                }
+
+                if ($this->paymentRepo->existsUnsettledForTrainer($lockedTrainer)) {
+                    throw new CannotDeleteTrainerException(
+                        'Cannot delete trainer with unsettled payments'
                     );
                 }
 

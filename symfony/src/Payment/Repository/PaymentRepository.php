@@ -7,6 +7,7 @@ namespace App\Payment\Repository;
 use App\Client\Entity\Client;
 use App\Payment\Entity\Payment;
 use App\Payment\Enum\PaymentStatusEnum;
+use App\Trainer\Entity\Trainer;
 use DateTimeImmutable;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
@@ -68,6 +69,23 @@ final class PaymentRepository extends ServiceEntityRepository
                 ->andWhere('payment.client = :client')
                 ->andWhere('payment.status IN (:statuses)')
                 ->setParameter('client', $client)
+                ->setParameter('statuses', [
+                    PaymentStatusEnum::PENDING,
+                    PaymentStatusEnum::REFUND_PENDING,
+                    PaymentStatusEnum::REFUND_FAILED,
+                ])
+                ->setMaxResults(1)
+                ->getQuery()
+                ->getOneOrNullResult() !== null;
+    }
+
+    public function existsUnsettledForTrainer(Trainer $trainer): bool
+    {
+        return $this->createQueryBuilder('payment')
+                ->select('1')
+                ->andWhere('payment.trainer = :trainer')
+                ->andWhere('payment.status IN (:statuses)')
+                ->setParameter('trainer', $trainer)
                 ->setParameter('statuses', [
                     PaymentStatusEnum::PENDING,
                     PaymentStatusEnum::REFUND_PENDING,

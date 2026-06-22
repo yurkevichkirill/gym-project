@@ -77,7 +77,8 @@ final class BookingRepository extends ServiceEntityRepository
     public function existsForTrainerInStatuses(
         Trainer $trainer,
         array $statuses,
-    ): bool {
+    ): bool
+    {
         return $this->createQueryBuilder('booking')
                 ->select('1')
                 ->innerJoin('booking.training', 'training')

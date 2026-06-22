@@ -94,7 +94,13 @@ final class CacheInvalidatorListener
                 $this->tagsToInvalidate[] = "trainings_list_$trainerId";
                 $this->tagsToInvalidate[] = 'trainings_list_all';
                 $this->tagsToInvalidate[] = 'bookings_list_all';
-                $this->tagsToInvalidate[] = "bookings_list_{$entity->getBooking()->getClient()->getId()}";
+
+                $bookingClientId = $entity->getBooking()?->getClient()->getId();
+
+                if ($bookingClientId !== null) {
+                    $this->tagsToInvalidate[] = "bookings_list_$bookingClientId";
+                }
+
                 $this->groupsToBump[] = 'worktime';
                 $this->groupsToBump[] = 'training';
             }

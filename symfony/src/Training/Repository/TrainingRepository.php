@@ -4,11 +4,9 @@ declare(strict_types=1);
 
 namespace App\Training\Repository;
 
-use App\Booking\Enum\BookingStatusEnum;
 use App\Trainer\Entity\Trainer;
 use App\TrainerWorkTime\Entity\TrainerWorkTime;
 use App\Training\Entity\Training;
-use DateTimeImmutable;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\ORM\NonUniqueResultException;
 use Doctrine\ORM\NoResultException;

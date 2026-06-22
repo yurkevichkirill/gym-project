@@ -25,7 +25,6 @@ use App\User\Exception\UserAlreadyDeletedException;
 use App\User\Exception\UserAlreadyExistsException;
 use App\User\Exception\UserAlreadyActiveException;
 use App\User\Exception\UserAlreadyNotBlockedException;
-use App\User\Exception\UserBlockedException;
 use App\User\Exception\UserNotFoundException;
 use App\User\Repository\UserRepository;
 use App\User\Service\AvailabilityService;
@@ -39,6 +38,8 @@ final readonly class ClientManager
         private ClientRepository $clientRepo,
         private UserRepository $userRepo,
         private BookingRepository $bookingRepo,
+        private PaymentRepository $paymentRepo,
+        private MembershipRepository $membershipRepo,
         private RefreshTokenRepository $refreshTokenRepo,
         private UserPasswordHasherInterface $passwordHasher,
         private AvailabilityService $userAvailabilityService,
@@ -161,6 +162,18 @@ final readonly class ClientManager
                     );
                 }
 
+                if ($this->paymentRepo->existsUnsettledForClient($lockedClient)) {
+                    throw new CannotDeleteClientException(
+                        'Cannot delete client account with unsettled payments'
+                    );
+                }
+
+                if ($this->membershipRepo->findBlockingMembership($lockedClient) !== null) {
+                    throw new CannotDeleteClientException(
+                        'Cannot delete client account with active, frozen or pending membership'
+                    );
+                }
+
                 if ($lockedClient->getBalance() !== 0) {
                     throw new CannotDeleteClientException(
                         'Cannot delete client account while balance is not zero'
@@ -222,21 +235,33 @@ final readonly class ClientManager
         return $membership;
     }
 
-    public function topUpBalance(Client $client, TopUpBalanceRequestDTO $requestDto): Payment
-    {
-        $this->userAvailabilityService->ensureNotBlocked($client);
-        $this->userAvailabilityService->ensureActive($client);
+    public function topUpBalance(
+        Client $client,
+        TopUpBalanceRequestDTO $requestDto,
+    ): Payment {
+        $clientId = $client->getId();
 
-        $amount = $requestDto->amount;
+        if ($clientId === null) {
+            throw new UserNotFoundException('Client not found');
+        }
 
-        $payment = $this->paymentSettlementService->createTopUpPayment(
-            $client,
-            $amount,
+        return $this->entityManager->wrapInTransaction(
+            function () use ($clientId, $requestDto): Payment {
+                $lockedClient = $this->clientRepo->findForUpdate($clientId);
+
+                if ($lockedClient === null) {
+                    throw new UserNotFoundException('Client not found');
+                }
+
+                $this->userAvailabilityService->ensureNotBlocked($lockedClient);
+                $this->userAvailabilityService->ensureActive($lockedClient);
+
+                return $this->paymentSettlementService->createTopUpPayment(
+                    $lockedClient,
+                    $requestDto->amount,
+                );
+            }
         );
-
-        $this->entityManager->flush();
-
-        return $payment;
     }
 
     public function activate(ClientActivateRequestDTO $requestDto): Client
