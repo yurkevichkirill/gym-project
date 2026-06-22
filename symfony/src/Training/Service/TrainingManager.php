@@ -8,14 +8,18 @@ use App\Booking\Entity\Booking;
 use App\Booking\Enum\BookingStatusEnum;
 use App\Booking\Exception\TrainingWithoutBookingException;
 use App\Booking\Service\BookingAvailabilityService;
+use App\Client\Entity\Client;
 use App\TrainerWorkTime\Entity\TrainerWorkTime;
+use App\TrainerWorkTime\Exception\TrainerWorktimeNotFoundException;
 use App\TrainerWorkTime\Exception\WorktimeNotFoundException;
 use App\TrainerWorkTime\Repository\TrainerWorkTimeRepository;
 use App\Training\DTO\TrainingUpdateRequestDTO;
 use App\Training\Entity\Training;
+use App\User\Exception\UserNotFoundException;
 use DateMalformedIntervalStringException;
 use DateMalformedStringException;
 use DateTimeImmutable;
+use Doctrine\DBAL\LockMode;
 use Doctrine\ORM\EntityManagerInterface;
 use DomainException;
 use Psr\Log\LoggerInterface;
@@ -53,7 +57,6 @@ final readonly class TrainingManager
                 throw new TrainingWithoutBookingException();
             }
 
-            $client = $booking->getClient();
             $trainer = $training->getTrainerWorkTime()->getTrainer();
 
             $newDate = $requestDto->date !== null
@@ -72,24 +75,36 @@ final readonly class TrainingManager
                 throw new WorktimeNotFoundException('There is no work time for this date');
             }
 
+            $clientId = $booking->getClient()->getId();
             $newWorktimeId = $newWorktime->getId();
             $trainingId = $training->getId();
 
-            return $this->entityManager->wrapInTransaction(function () use ($trainingId, $newWorktimeId, $client, $newDate, $newStartTime) {
-                $this->entityManager->getConnection()->executeStatement(
-                    'SELECT id FROM trainer_work_time WHERE id = :id FOR UPDATE',
-                    ['id' => $newWorktimeId]
+            return $this->entityManager->wrapInTransaction(function () use ($trainingId, $newWorktimeId, $clientId, $newDate, $newStartTime) {
+                $lockedClient = $this->entityManager->find(
+                    Client::class,
+                    $clientId,
+                    LockMode::PESSIMISTIC_WRITE
                 );
-                $lockedWorktime = $this->entityManager->find(TrainerWorkTime::class, $newWorktimeId);
+                if ($lockedClient === null) {
+                    throw new UserNotFoundException("Client not found");
+                }
 
-                $this->entityManager->getConnection()->executeStatement(
-                    'SELECT id FROM training WHERE id = :id FOR UPDATE',
-                    ['id' => $trainingId]
+                $lockedWorktime = $this->entityManager->find(
+                    TrainerWorkTime::class,
+                    $newWorktimeId,
+                    LockMode::PESSIMISTIC_WRITE
                 );
-                $lockedTraining = $this->entityManager->find(Training::class, $trainingId);
+                if ($lockedWorktime === null) {
+                    throw new TrainerWorktimeNotFoundException();
+                }
 
-                if ($lockedWorktime === null || $lockedTraining === null) {
-                    throw new WorktimeNotFoundException('Worktime or training not found during update');
+                $lockedTraining = $this->entityManager->find(
+                    Training::class,
+                    $trainingId,
+                    LockMode::PESSIMISTIC_WRITE
+                );
+                if ($lockedTraining === null) {
+                    throw new TrainingWithoutBookingException();
                 }
 
                 $this->entityManager->refresh($lockedWorktime);
@@ -97,7 +112,7 @@ final readonly class TrainingManager
 
                 $this->bookingAvailabilityService->checkUpdateBookingAvailability(
                     $lockedTraining,
-                    $client,
+                    $lockedClient,
                     $lockedWorktime,
                     $newDate,
                     $newStartTime
