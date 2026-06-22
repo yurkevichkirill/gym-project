@@ -104,3 +104,7 @@ services:
     App\Security\AuthenticationRateLimiter:
         arguments:
             $secret: '%kernel.secret%'
+
+    App\ImportJob\Service\ActivationEmailService:
+        arguments:
+            $clientActivationUrl: '%env(resolve:CLIENT_ACTIVATION_URL)%'

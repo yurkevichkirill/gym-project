@@ -14,7 +14,8 @@ final readonly class ActivationEmailService
 {
     public function __construct(
         private ClientRepository $clientRepo,
-        private MailerInterface $mailer
+        private MailerInterface $mailer,
+        private string $clientActivationUrl,
     )
     {}
 
@@ -29,8 +30,9 @@ final readonly class ActivationEmailService
             return;
         }
         $activationLink = sprintf(
-            'https://api.evogym.local/api/clients/activate/?token=%s',
-            $client->getActivationToken()
+            '%s?token=%s',
+            rtrim($this->clientActivationUrl, '?&'),
+            rawurlencode($client->getActivationToken()),
         );
 
         $email = new TemplatedEmail()

@@ -3,6 +3,19 @@ framework:
         failure_transport: failed
 
         transports:
+            client_outbox:
+                dsn: 'doctrine://default'
+                options:
+                    table_name: messenger_messages
+                    queue_name: client_notifications
+                    auto_setup: false
+                retry_strategy:
+                    max_retries: 5
+                    delay: 1000
+                    multiplier: 2
+                    max_delay: 60000
+
+
             payment_outbox:
                 dsn: 'doctrine://default'
                 options:
@@ -64,7 +77,7 @@ framework:
             Symfony\Component\Notifier\Message\SmsMessage: async
 
             App\ImportJob\Message\ImportMessage: async
-            App\ImportJob\Message\SendActivationEmailMessage: async
+            App\ImportJob\Message\SendActivationEmailMessage: client_outbox
 
             App\Payment\Message\RefundPaymentMessage: payment_outbox
             App\Payment\Message\CancelStripeIntentMessage: payment_outbox

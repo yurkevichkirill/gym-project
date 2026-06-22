@@ -108,7 +108,7 @@ services:
    restart: always
    working_dir: /var/www
    command: >
-     php bin/console messenger:consume async
+     php bin/console messenger:consume async client_outbox
      --time-limit=3600
      --memory-limit=256M
      --limit=1000
