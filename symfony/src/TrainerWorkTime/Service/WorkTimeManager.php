@@ -14,6 +14,7 @@ use App\TrainerWorkTime\Exception\PastWorktimeDateException;
 use App\TrainerWorkTime\Exception\WorktimeHasActiveTrainingsException;
 use App\TrainerWorkTime\Exception\WorktimeNotFoundException;
 use App\TrainerWorkTime\Repository\TrainerWorkTimeRepository;
+use App\Training\Repository\TrainingRepository;
 use App\User\Service\AvailabilityService;
 use DateMalformedIntervalStringException;
 use DateMalformedStringException;
@@ -26,6 +27,7 @@ final readonly class WorkTimeManager
 {
     public function __construct(
         private TrainerWorkTimeRepository $worktimeRepo,
+        private TrainingRepository $trainingRepo,
         private AvailabilityService $userAvailabilityService,
         private EntityManagerInterface $entityManager,
         private LoggerInterface $worktimeLogger,
@@ -118,92 +120,99 @@ final readonly class WorkTimeManager
 
     /**
      * @throws DateMalformedStringException
-     * @throws DateTimeAlreadyTakenException
-     * @throws DateMalformedIntervalStringException|Throwable
+     * @throws Throwable
      */
-    public function update(TrainerWorkTime $worktime, UpdateWorkTimeRequestDTO $dto, bool $byAdmin = false): TrainerWorkTime
-    {
+    public function update(
+        TrainerWorkTime $worktime,
+        UpdateWorkTimeRequestDTO $dto,
+        bool $byAdmin = false
+    ): TrainerWorkTime {
         $context = $this->contextFromEntity($worktime);
+        $worktimeId = $worktime->getId();
 
-        $this->worktimeLogger->info(
-            'Worktime update started',
-            $this->event($context, 'update', 'started')
-        );
+        if ($worktimeId === null) {
+            throw new WorktimeNotFoundException();
+        }
 
         try {
-            if ($byAdmin === false) {
-                $this->userAvailabilityService->ensureNotDeleted($worktime->getTrainer());
-                $this->userAvailabilityService->ensureNotBlocked($worktime->getTrainer());
-            }
+            $updatedWorktime = $this->entityManager->wrapInTransaction(
+                function () use ($worktimeId, $dto, $byAdmin): TrainerWorkTime {
+                    $lockedWorktime = $this->worktimeRepo->findForUpdate($worktimeId);
 
-            $newStartTimeStr = $dto->startTime ?? $worktime->getStartTime()->format('H:i:s');
-            $newEndTimeStr = $dto->endTime ?? $worktime->getEndTime()->format('H:i:s');
-
-            $dateStr = $worktime->getDate()->format('Y-m-d');
-            $newStartDateTime = new DateTimeImmutable($dateStr . ' ' . $newStartTimeStr);
-            $newEndDateTime = new DateTimeImmutable($dateStr . ' ' . $newEndTimeStr);
-
-            if ($newEndDateTime <= $newStartDateTime) {
-                throw new EndTimeBeforeStartException();
-            }
-
-            $trainings = $worktime->getTrainings();
-            if (count($trainings) > 0) {
-                $firstTrainingStart = null;
-                $lastTrainingEnd = null;
-
-                foreach ($trainings as $training) {
-                    $trainingTimeStr = $training->getStartTime()->format('H:i:s');
-                    $tStart = new DateTimeImmutable($dateStr . ' ' . $trainingTimeStr);
-
-                    $duration = $training->getDurationMinutes();
-                    $tEnd = $tStart->modify("+$duration minutes");
-
-                    if ($firstTrainingStart === null || $tStart < $firstTrainingStart) {
-                        $firstTrainingStart = $tStart;
+                    if ($lockedWorktime === null) {
+                        throw new WorktimeNotFoundException();
                     }
-                    if ($lastTrainingEnd === null || $tEnd > $lastTrainingEnd) {
-                        $lastTrainingEnd = $tEnd;
+
+                    if (!$byAdmin) {
+                        $trainer = $lockedWorktime->getTrainer();
+
+                        $this->userAvailabilityService->ensureNotDeleted($trainer);
+                        $this->userAvailabilityService->ensureNotBlocked($trainer);
                     }
+
+                    $date = $lockedWorktime->getDate()->format('Y-m-d');
+
+                    $newStartTime = new DateTimeImmutable(sprintf(
+                        '%s %s',
+                        $date,
+                        $dto->startTime
+                        ?? $lockedWorktime->getStartTime()->format('H:i:s'),
+                    ));
+
+                    $newEndTime = new DateTimeImmutable(sprintf(
+                        '%s %s',
+                        $date,
+                        $dto->endTime
+                        ?? $lockedWorktime->getEndTime()->format('H:i:s'),
+                    ));
+
+                    if ($newEndTime <= $newStartTime) {
+                        throw new EndTimeBeforeStartException();
+                    }
+
+                    $busyTrainings = $this->trainingRepo
+                        ->findBusyByWorktime($lockedWorktime);
+
+                    foreach ($busyTrainings as $training) {
+                        $trainingStart = new DateTimeImmutable(sprintf(
+                            '%s %s',
+                            $date,
+                            $training->getStartTime()->format('H:i:s'),
+                        ));
+
+                        $trainingEnd = $trainingStart->modify(sprintf(
+                            '+%d minutes',
+                            $training->getDurationMinutes(),
+                        ));
+
+                        if (
+                            $trainingStart < $newStartTime
+                            || $trainingEnd > $newEndTime
+                        ) {
+                            throw new DateTimeAlreadyTakenException(
+                                'Active training is outside the new worktime interval'
+                            );
+                        }
+                    }
+
+                    $lockedWorktime->setStartTime($newStartTime);
+                    $lockedWorktime->setEndTime($newEndTime);
+
+                    return $lockedWorktime;
                 }
-
-                /** @var DateTimeImmutable $firstTrainingStart */
-                /** @var DateTimeImmutable $lastTrainingEnd */
-                if ($newStartDateTime > $firstTrainingStart || $newEndDateTime < $lastTrainingEnd) {
-                    $this->worktimeLogger->warning(
-                        'Worktime update rejected: intersects with existing trainings',
-                        $this->event($context, 'update', 'rejected', [
-                            'newStart' => $newStartDateTime->format('c'),
-                            'newEnd' => $newEndDateTime->format('c'),
-                            'firstTraining' => $firstTrainingStart->format('c'),
-                            'lastTraining' => $lastTrainingEnd->format('c'),
-                        ])
-                    );
-
-                    throw new DateTimeAlreadyTakenException('Trainer already has a training in this time interval');
-                }
-            }
-
-            $worktime->setStartTime($newStartDateTime);
-            $worktime->setEndTime($newEndDateTime);
-
-            $this->entityManager->flush();
+            );
 
             $this->worktimeLogger->info(
                 'Worktime updated successfully',
-                $this->event($this->contextFromEntity($worktime), 'update', 'succeeded')
+                $this->event(
+                    $this->contextFromEntity($updatedWorktime),
+                    'update',
+                    'succeeded',
+                ),
             );
 
-            return $worktime;
+            return $updatedWorktime;
         } catch (Throwable $e) {
-            $this->worktimeLogger->error(
-                'Worktime update failed',
-                $this->event($context, 'update', 'failed', [
-                    'exception' => $e::class,
-                    'error' => $e->getMessage(),
-                ])
-            );
-
             throw $e;
         }
     }
@@ -214,38 +223,37 @@ final readonly class WorkTimeManager
     public function remove(TrainerWorkTime $worktime): void
     {
         $context = $this->contextFromEntity($worktime);
+        $worktimeId = $worktime->getId();
 
-        $this->worktimeLogger->info(
-            'Worktime removal started',
-            $this->event($context, 'remove', 'started')
-        );
+        if ($worktimeId === null) {
+            throw new WorktimeNotFoundException();
+        }
 
         try {
-            if (!$worktime->getTrainings()->isEmpty()) {
-                $this->worktimeLogger->notice(
-                    'Worktime removal rejected: trainings exist',
-                    $this->event($context, 'remove', 'rejected')
-                );
+            $this->entityManager->wrapInTransaction(
+                function () use ($worktimeId): void {
+                    $lockedWorktime = $this->worktimeRepo
+                        ->findForUpdate($worktimeId);
 
-                throw new WorktimeHasActiveTrainingsException('Cannot remove work time slot with active trainings.');
-            }
+                    if ($lockedWorktime === null) {
+                        throw new WorktimeNotFoundException();
+                    }
 
-            $this->worktimeRepo->remove($worktime);
-            $this->entityManager->flush();
+                    if (!$lockedWorktime->getTrainings()->isEmpty()) {
+                        throw new WorktimeHasActiveTrainingsException(
+                            'Cannot remove worktime with associated training history'
+                        );
+                    }
+
+                    $this->worktimeRepo->remove($lockedWorktime);
+                }
+            );
 
             $this->worktimeLogger->info(
                 'Worktime removed successfully',
-                $this->event($context, 'remove', 'succeeded')
+                $this->event($context, 'remove', 'succeeded'),
             );
         } catch (Throwable $e) {
-            $this->worktimeLogger->error(
-                'Worktime removal failed',
-                $this->event($context, 'remove', 'failed', [
-                    'exception' => $e::class,
-                    'error' => $e->getMessage(),
-                ])
-            );
-
             throw $e;
         }
     }

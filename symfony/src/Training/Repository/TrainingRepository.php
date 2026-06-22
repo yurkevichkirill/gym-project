@@ -6,6 +6,7 @@ namespace App\Training\Repository;
 
 use App\Booking\Enum\BookingStatusEnum;
 use App\Trainer\Entity\Trainer;
+use App\TrainerWorkTime\Entity\TrainerWorkTime;
 use App\Training\Entity\Training;
 use DateTimeImmutable;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
@@ -46,6 +47,24 @@ final class TrainingRepository extends ServiceEntityRepository
             ->setParameter('trainer', $trainer)
             ->getQuery()
             ->getSingleScalarResult();
+    }
+
+    /**
+     * @return list<Training>
+     */
+    public function findBusyByWorktime(TrainerWorkTime $worktime): array
+    {
+        /** @var list<Training> $trainings */
+        $trainings = $this->createQueryBuilder('training')
+            ->andWhere('training.trainerWorkTime = :worktime')
+            ->andWhere('training.isBusy = :isBusy')
+            ->setParameter('worktime', $worktime)
+            ->setParameter('isBusy', true)
+            ->orderBy('training.startTime', 'ASC')
+            ->getQuery()
+            ->getResult();
+
+        return $trainings;
     }
 
     /**
