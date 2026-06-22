@@ -220,7 +220,7 @@ final class TrainerWorkTimeController extends AbstractController
             ),
             new OA\Response(
                 response: 409,
-                description: 'Conflict (Cannot remove work time with active bookings)',
+                description: 'Conflict (Cannot remove work time with associated training history)',
                 content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
             )
         ]

@@ -13,7 +13,7 @@ use Throwable;
 final class WorktimeHasActiveTrainingsException extends DomainException
 {
     public function __construct(
-        string $message = 'Trainer worktime has active trainings',
+        string $message = 'Trainer worktime has associated training history',
         int $code = 0,
         ?Throwable $previous = null
     ) {

@@ -88,4 +88,15 @@ final class TrainingRepository extends ServiceEntityRepository
             ->getQuery()
             ->getSingleScalarResult();
     }
+
+    public function existsForWorktime(TrainerWorkTime $worktime): bool
+    {
+        return $this->createQueryBuilder('training')
+            ->select('1')
+            ->andWhere('training.trainerWorkTime = :worktime')
+            ->setParameter('worktime', $worktime)
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getOneOrNullResult() !== null;
+    }
 }

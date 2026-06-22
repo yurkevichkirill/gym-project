@@ -16,7 +16,6 @@ use App\TrainerWorkTime\Exception\WorktimeNotFoundException;
 use App\TrainerWorkTime\Repository\TrainerWorkTimeRepository;
 use App\Training\Repository\TrainingRepository;
 use App\User\Service\AvailabilityService;
-use DateMalformedIntervalStringException;
 use DateMalformedStringException;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
@@ -213,6 +212,14 @@ final readonly class WorkTimeManager
 
             return $updatedWorktime;
         } catch (Throwable $e) {
+            $this->worktimeLogger->error(
+                'Worktime update failed',
+                $this->event($context, 'update', 'failed', [
+                    'exception' => $e::class,
+                    'message' => $e->getMessage(),
+                ]),
+            );
+
             throw $e;
         }
     }
@@ -239,10 +246,8 @@ final readonly class WorkTimeManager
                         throw new WorktimeNotFoundException();
                     }
 
-                    if (!$lockedWorktime->getTrainings()->isEmpty()) {
-                        throw new WorktimeHasActiveTrainingsException(
-                            'Cannot remove worktime with associated training history'
-                        );
+                    if ($this->trainingRepo->existsForWorktime($lockedWorktime)) {
+                        throw new WorktimeHasActiveTrainingsException();
                     }
 
                     $this->worktimeRepo->remove($lockedWorktime);
@@ -254,6 +259,14 @@ final readonly class WorkTimeManager
                 $this->event($context, 'remove', 'succeeded'),
             );
         } catch (Throwable $e) {
+            $this->worktimeLogger->error(
+                'Worktime removal failed',
+                $this->event($context, 'remove', 'failed', [
+                    'exception' => $e::class,
+                    'message' => $e->getMessage(),
+                ]),
+            );
+
             throw $e;
         }
     }

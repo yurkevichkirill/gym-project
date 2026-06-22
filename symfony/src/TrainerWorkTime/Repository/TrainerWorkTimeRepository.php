@@ -6,7 +6,6 @@ namespace App\TrainerWorkTime\Repository;
 
 use App\Trainer\Entity\Trainer;
 use App\TrainerWorkTime\Entity\TrainerWorkTime;
-use App\Training\Entity\Training;
 use DateTimeImmutable;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\DBAL\LockMode;
@@ -48,14 +47,10 @@ final class TrainerWorkTimeRepository extends ServiceEntityRepository
 
     public function findForUpdate(int $id): ?TrainerWorkTime
     {
-        /** @var TrainerWorkTime|null $worktime */
-        $worktime = $this->createQueryBuilder('worktime')
-            ->andWhere('worktime.id = :id')
-            ->setParameter('id', $id)
-            ->getQuery()
-            ->setLockMode(LockMode::PESSIMISTIC_WRITE)
-            ->getOneOrNullResult();
-
-        return $worktime;
+        return $this->getEntityManager()->find(
+            TrainerWorkTime::class,
+            $id,
+            LockMode::PESSIMISTIC_WRITE,
+        );
     }
 }
