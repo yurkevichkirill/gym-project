@@ -396,17 +396,25 @@ final class ClientController extends AbstractController
                 response: 404,
                 description: 'Client not found',
                 content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
+            ),
+            new OA\Response(
+                response: 409,
+                description: 'Conflict - Client is not deleted',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class)),
             )
         ]
     )]
     #[IsGranted(UserRolesEnum::ROLE_ADMIN->value)]
-    public function restore(Client $client, ClientManager $manager, ClientMapperInterface $mapper): ItemResponse
-    {
-        $responseDto = $mapper->map($manager->restore($client));
+    public function restore(
+        int $id,
+        ClientManager $manager,
+        ClientMapperInterface $mapper,
+    ): ItemResponse {
+        $responseDto = $mapper->map($manager->restore($id));
 
         return new ItemResponse(
             data: $responseDto,
-            status: Response::HTTP_OK
+            status: Response::HTTP_OK,
         );
     }
 

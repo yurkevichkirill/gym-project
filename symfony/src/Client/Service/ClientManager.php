@@ -33,6 +33,8 @@ use App\User\Service\AvailabilityService;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
+use App\Infrastructure\Doctrine\SoftDeleteableFilterScope;
+use App\User\Exception\UserNotDeletedException;
 
 final readonly class ClientManager
 {
@@ -48,6 +50,7 @@ final readonly class ClientManager
         private VisitingService $visitingService,
         private PaymentSettlementService $paymentSettlementService,
         private EntityManagerInterface $entityManager,
+        private SoftDeleteableFilterScope $softDeleteableFilterScope,
     )
     {}
 
@@ -188,13 +191,27 @@ final readonly class ClientManager
         );
     }
 
-    public function restore(Client $client): Client
+    public function restore(int $clientId): Client
     {
-        $client->setDeletedAt();
+        return $this->entityManager->wrapInTransaction(
+            function () use ($clientId): Client {
+                $client = $this->softDeleteableFilterScope->run(
+                    fn (): ?Client => $this->clientRepo->findForUpdate($clientId),
+                );
 
-        $this->entityManager->flush();
+                if ($client === null) {
+                    throw new UserNotFoundException('Client not found');
+                }
 
-        return $client;
+                if ($client->getDeletedAt() === null) {
+                    throw new UserNotDeletedException('Client is not deleted');
+                }
+
+                $client->setDeletedAt();
+
+                return $client;
+            },
+        );
     }
 
     public function block(Client $client): Client

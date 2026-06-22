@@ -31,6 +31,8 @@ use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use League\Flysystem\FilesystemOperator;
 use Throwable;
+use App\Infrastructure\Doctrine\SoftDeleteableFilterScope;
+use App\User\Exception\UserNotDeletedException;
 
 final readonly class TrainerManager
 {
@@ -45,6 +47,7 @@ final readonly class TrainerManager
         private UserPasswordHasherInterface $passwordHasher,
         private RefreshTokenRepository $refreshTokenRepo,
         private EntityManagerInterface $entityManager,
+        private SoftDeleteableFilterScope $softDeleteableFilterScope,
         private FilesystemOperator $trainersStorage,
         private FileManager $fileManager,
     )
@@ -240,13 +243,27 @@ final readonly class TrainerManager
         );
     }
 
-    public function restore(Trainer $trainer): Trainer
+    public function restore(int $trainerId): Trainer
     {
-        $trainer->setDeletedAt();
+        return $this->entityManager->wrapInTransaction(
+            function () use ($trainerId): Trainer {
+                $trainer = $this->softDeleteableFilterScope->run(
+                    fn (): ?Trainer => $this->trainerRepo->findForUpdate($trainerId),
+                );
 
-        $this->entityManager->flush();
+                if ($trainer === null) {
+                    throw new UserNotFoundException('Trainer not found');
+                }
 
-        return $trainer;
+                if ($trainer->getDeletedAt() === null) {
+                    throw new UserNotDeletedException('Trainer is not deleted');
+                }
+
+                $trainer->setDeletedAt();
+
+                return $trainer;
+            },
+        );
     }
 
     public function block(Trainer $trainer): Trainer

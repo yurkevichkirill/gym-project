@@ -13,6 +13,7 @@ use Psr\Cache\InvalidArgumentException;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Contracts\Cache\ItemInterface;
 use Symfony\Contracts\Cache\TagAwareCacheInterface;
+use App\Infrastructure\Doctrine\SoftDeleteableFilterScope;
 
 final readonly class ClientQuery
 {
@@ -20,6 +21,7 @@ final readonly class ClientQuery
         private ClientRepository       $clientRepo,
         private ClientMapperInterface  $mapper,
         private TagAwareCacheInterface $cache,
+        private SoftDeleteableFilterScope $softDeleteableFilterScope,
     ) {}
 
     /**
@@ -33,29 +35,42 @@ final readonly class ClientQuery
 
         return $this->cache->get($cacheKey, function (ItemInterface $item) use ($dto, $parsedSort): array {
             $item->expiresAfter(3600);
-
             $item->tag(['clients_list']);
 
-            $qb = $this->createQuery($dto);
+            $loadData = function () use ($dto, $parsedSort): array {
+                $qb = $this->createQuery($dto);
 
-            $totalQb = clone $qb;
-            $total = (int) $totalQb->select('COUNT(c.id)')->getQuery()->getSingleScalarResult();
+                $totalQb = clone $qb;
+                $total = (int) $totalQb
+                    ->select('COUNT(c.id)')
+                    ->getQuery()
+                    ->getSingleScalarResult();
 
-            foreach ($parsedSort as $field => $order) {
-                $qb->addOrderBy("c.$field", $order);
+                foreach ($parsedSort as $field => $order) {
+                    $qb->addOrderBy("c.$field", $order);
+                }
+
+                $qb->setFirstResult(($dto->page - 1) * $dto->limit)
+                    ->setMaxResults($dto->limit);
+
+                $clients = $qb->getQuery()->getResult();
+
+                $items = array_map(
+                    fn ($client) => $this->mapper->map($client),
+                    $clients,
+                );
+
+                return [
+                    'items' => $items,
+                    'total' => $total,
+                ];
+            };
+
+            if ($dto->isDeleted === true) {
+                return $this->softDeleteableFilterScope->run($loadData);
             }
 
-            $qb->setFirstResult(($dto->page - 1) * $dto->limit)
-                ->setMaxResults($dto->limit);
-
-            $clients = $qb->getQuery()->getResult();
-
-            $items = array_map(fn ($client) => $this->mapper->map($client), $clients);
-
-            return [
-                'items' => $items,
-                'total' => $total,
-            ];
+            return $loadData();
         });
     }
 

@@ -512,11 +512,11 @@ final class TrainerController extends AbstractController
     )]
     #[IsGranted(UserRolesEnum::ROLE_ADMIN->value)]
     public function restore(
-        Trainer $trainer,
+        int $id,
         TrainerManager $manager,
         TrainerMapperInterface $mapper,
     ): ItemResponse {
-        $responseDto = $mapper->map($manager->restore($trainer), true);
+        $responseDto = $mapper->map($manager->restore($id), true);
 
         return new ItemResponse(
             data: $responseDto,

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Trainer\Query;
 
 use App\Request\SortParser;
+use App\Infrastructure\Doctrine\SoftDeleteableFilterScope;
 use App\Trainer\DTO\ResolvedTrainersRequestAdminDTO;
 use App\Trainer\Mapper\TrainerMapperInterface;
 use App\Trainer\Repository\TrainerRepository;
@@ -23,7 +24,8 @@ final readonly class TrainersQueryAdmin
     public function __construct(
         private TrainerRepository $repo,
         private TrainerMapperInterface $mapper,
-        private TagAwareCacheInterface $cache
+        private TagAwareCacheInterface $cache,
+        private SoftDeleteableFilterScope $softDeleteableFilterScope,
     ) {}
 
     /**
@@ -37,36 +39,49 @@ final readonly class TrainersQueryAdmin
 
         return $this->cache->get($cacheKey, function (ItemInterface $item) use ($dto, $parsedSort): array {
             $item->expiresAfter(3600);
-
             $item->tag(['trainers_list']);
 
-            $qb = $this->createQuery(
-                dto: $dto
-            );
+            $loadData = function () use ($dto, $parsedSort): array {
+                $qb = $this->createQuery(
+                    dto: $dto,
+                );
 
-            $totalQb = $this->createQuery(
-                dto: $dto,
-                isCount: true
-            );
+                $totalQb = $this->createQuery(
+                    dto: $dto,
+                    isCount: true,
+                );
 
-            $total = (int) $totalQb->select('COUNT(t.id)')->getQuery()->getSingleScalarResult();
+                $total = (int) $totalQb
+                    ->select('COUNT(t.id)')
+                    ->getQuery()
+                    ->getSingleScalarResult();
 
-            foreach ($parsedSort as $field => $order) {
-                $mapped = self::SORT_MAP[$field] ?? "t.$field";
-                $qb->addOrderBy($mapped, $order);
+                foreach ($parsedSort as $field => $order) {
+                    $mapped = self::SORT_MAP[$field] ?? "t.$field";
+                    $qb->addOrderBy($mapped, $order);
+                }
+
+                $qb->setFirstResult(($dto->page - 1) * $dto->limit)
+                    ->setMaxResults($dto->limit);
+
+                $trainers = $qb->getQuery()->getResult();
+
+                $items = array_map(
+                    fn ($trainer) => $this->mapper->map($trainer, true),
+                    $trainers,
+                );
+
+                return [
+                    'items' => $items,
+                    'total' => $total,
+                ];
+            };
+
+            if ($dto->isDeleted === true) {
+                return $this->softDeleteableFilterScope->run($loadData);
             }
 
-            $qb->setFirstResult(($dto->page - 1) * $dto->limit)
-                ->setMaxResults($dto->limit);
-
-            $trainers = $qb->getQuery()->getResult();
-
-            $items = array_map(fn ($trainer) => $this->mapper->map($trainer, true), $trainers);
-
-            return [
-                'items' => $items,
-                'total' => $total,
-            ];
+            return $loadData();
         });
     }
 
