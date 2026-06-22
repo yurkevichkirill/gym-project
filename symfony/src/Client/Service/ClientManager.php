@@ -16,8 +16,10 @@ use App\Client\Exception\CannotDeleteClientException;
 use App\Client\Repository\ClientRepository;
 use App\Membership\Entity\Membership;
 use App\Membership\Exception\NoActiveMembershipException;
+use App\Membership\Repository\MembershipRepository;
 use App\Membership\Service\VisitingService;
 use App\Payment\Entity\Payment;
+use App\Payment\Repository\PaymentRepository;
 use App\Payment\Service\PaymentSettlementService;
 use App\RefreshToken\Repository\RefreshTokenRepository;
 use App\User\Exception\UserAlreadyBlockedException;
@@ -246,13 +248,15 @@ final readonly class ClientManager
         }
 
         return $this->entityManager->wrapInTransaction(
-            function () use ($clientId, $requestDto): Payment {
+            function () use ($clientId, $requestDto): Payment
+            {
                 $lockedClient = $this->clientRepo->findForUpdate($clientId);
 
                 if ($lockedClient === null) {
                     throw new UserNotFoundException('Client not found');
                 }
 
+                $this->userAvailabilityService->ensureNotDeleted($lockedClient);
                 $this->userAvailabilityService->ensureNotBlocked($lockedClient);
                 $this->userAvailabilityService->ensureActive($lockedClient);
 

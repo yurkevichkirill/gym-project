@@ -30,9 +30,11 @@ final readonly class PaymentLifecycleService
             PaymentStatusEnum::REFUNDED,
         ],
         PaymentStatusEnum::FAILED->value => [
+            PaymentStatusEnum::REFUND_PENDING,
             PaymentStatusEnum::REFUNDED,
         ],
         PaymentStatusEnum::CANCELED->value => [
+            PaymentStatusEnum::REFUND_PENDING,
             PaymentStatusEnum::REFUNDED,
         ],
         PaymentStatusEnum::REFUNDED->value => [],

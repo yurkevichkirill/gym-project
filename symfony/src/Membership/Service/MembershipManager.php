@@ -74,6 +74,10 @@ final readonly class MembershipManager
                     throw new UserNotFoundException('Client not found');
                 }
 
+                $this->userAvailabilityService->ensureNotDeleted($lockedClient);
+                $this->userAvailabilityService->ensureNotBlocked($lockedClient);
+                $this->userAvailabilityService->ensureActive($lockedClient);
+
                 $blockingMembership = $this->membershipRepo->findBlockingMembership($lockedClient);
                 if ($blockingMembership !== null) {
                     throw new MembershipActiveException("Client already has {$blockingMembership->getStatus()->value} membership");

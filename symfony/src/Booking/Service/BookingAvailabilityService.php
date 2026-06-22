@@ -75,6 +75,10 @@ final readonly class BookingAvailabilityService
         if (!$this->isTimeAvailable($worktime, $startTime, $durationMinutes)) {
             throw new DateTimeAlreadyTakenException();
         }
+
+        $this->userAvailabilityService->ensureNotDeleted($client);
+        $this->userAvailabilityService->ensureNotBlocked($client);
+        $this->userAvailabilityService->ensureActive($client);
     }
 
     /**

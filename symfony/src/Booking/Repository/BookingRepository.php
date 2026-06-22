@@ -59,7 +59,8 @@ final class BookingRepository extends ServiceEntityRepository
     public function existsForClientInStatuses(
         Client $client,
         array $statuses,
-    ): bool {
+    ): bool
+    {
         return $this->createQueryBuilder('booking')
                 ->select('1')
                 ->andWhere('booking.client = :client')
@@ -90,5 +91,5 @@ final class BookingRepository extends ServiceEntityRepository
                 ->setMaxResults(1)
                 ->getQuery()
                 ->getOneOrNullResult() !== null;
+        }
     }
-}
