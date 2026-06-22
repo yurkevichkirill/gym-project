@@ -4,12 +4,15 @@ declare(strict_types=1);
 
 namespace App\Client\Service;
 
+use App\Booking\Enum\BookingStatusEnum;
+use App\Booking\Repository\BookingRepository;
 use App\Client\DTO\AdminUpdateClientRequestDTO;
 use App\Client\DTO\ClientActivateRequestDTO;
 use App\Client\DTO\CreateClientRequestDTO;
 use App\Client\DTO\TopUpBalanceRequestDTO;
 use App\Client\DTO\UpdateClientRequestDTO;
 use App\Client\Entity\Client;
+use App\Client\Exception\CannotDeleteClientException;
 use App\Client\Repository\ClientRepository;
 use App\Membership\Entity\Membership;
 use App\Membership\Exception\NoActiveMembershipException;
@@ -35,6 +38,7 @@ final readonly class ClientManager
     public function __construct(
         private ClientRepository $clientRepo,
         private UserRepository $userRepo,
+        private BookingRepository $bookingRepo,
         private RefreshTokenRepository $refreshTokenRepo,
         private UserPasswordHasherInterface $passwordHasher,
         private AvailabilityService $userAvailabilityService,
@@ -125,15 +129,48 @@ final readonly class ClientManager
 
     public function softDelete(Client $client): void
     {
-        if ($client->getDeletedAt() !== null) {
-            throw new UserAlreadyDeletedException('Client already deleted');
+        $clientId = $client->getId();
+
+        if ($clientId === null) {
+            throw new UserNotFoundException('Client not found');
         }
 
-        $this->entityManager->wrapInTransaction(function () use ($client) {
-            $this->clientRepo->remove($client);
+        $this->entityManager->wrapInTransaction(
+            function () use ($clientId): void {
+                $lockedClient = $this->clientRepo->findForUpdate($clientId);
 
-            $this->refreshTokenRepo->removeAllByUser($client);
-        });
+                if ($lockedClient === null) {
+                    throw new UserNotFoundException('Client not found');
+                }
+
+                if ($lockedClient->getDeletedAt() !== null) {
+                    throw new UserAlreadyDeletedException(
+                        'Client already deleted'
+                    );
+                }
+
+                if ($this->bookingRepo->existsForClientInStatuses(
+                    $lockedClient,
+                    [
+                        BookingStatusEnum::PENDING,
+                        BookingStatusEnum::SCHEDULED,
+                    ],
+                )) {
+                    throw new CannotDeleteClientException(
+                        'Cannot delete client account with pending or scheduled bookings'
+                    );
+                }
+
+                if ($lockedClient->getBalance() !== 0) {
+                    throw new CannotDeleteClientException(
+                        'Cannot delete client account while balance is not zero'
+                    );
+                }
+
+                $this->clientRepo->remove($lockedClient);
+                $this->refreshTokenRepo->removeAllByUser($lockedClient);
+            }
+        );
     }
 
     public function restore(Client $client): Client

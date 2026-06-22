@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Payment\Repository;
 
+use App\Client\Entity\Client;
 use App\Payment\Entity\Payment;
 use App\Payment\Enum\PaymentStatusEnum;
 use DateTimeImmutable;
@@ -58,5 +59,22 @@ final class PaymentRepository extends ServiceEntityRepository
             ->setParameter('now', new DateTimeImmutable())
             ->getQuery()
             ->getResult();
+    }
+
+    public function existsUnsettledForClient(Client $client): bool
+    {
+        return $this->createQueryBuilder('payment')
+                ->select('1')
+                ->andWhere('payment.client = :client')
+                ->andWhere('payment.status IN (:statuses)')
+                ->setParameter('client', $client)
+                ->setParameter('statuses', [
+                    PaymentStatusEnum::PENDING,
+                    PaymentStatusEnum::REFUND_PENDING,
+                    PaymentStatusEnum::REFUND_FAILED,
+                ])
+                ->setMaxResults(1)
+                ->getQuery()
+                ->getOneOrNullResult() !== null;
     }
 }

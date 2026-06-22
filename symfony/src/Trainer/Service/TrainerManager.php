@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Trainer\Service;
 
+use App\Booking\Enum\BookingStatusEnum;
+use App\Booking\Repository\BookingRepository;
 use App\File\Service\FileManager;
 use App\RefreshToken\Repository\RefreshTokenRepository;
 use App\Trainer\DTO\AdminUpdateTrainerRequestDTO;
@@ -36,7 +38,7 @@ final readonly class TrainerManager
     const int TRAINER_PRICE_DIVIDER = 2;
     public function __construct(
         private TrainerRepository $trainerRepo,
-        private TrainingRepository $trainingRepo,
+        private BookingRepository $bookingRepo,
         private UserRepository $userRepo,
         private TrainingTypeRepository $trainingTypeRepo,
         private UserPasswordHasherInterface $passwordHasher,
@@ -187,21 +189,48 @@ final readonly class TrainerManager
 
     public function softDelete(Trainer $trainer): void
     {
-        if ($trainer->getDeletedAt() !== null) {
-            throw new UserAlreadyDeletedException('Trainer already deleted');
+        $trainerId = $trainer->getId();
+
+        if ($trainerId === null) {
+            throw new UserNotFoundException('Trainer not found');
         }
 
-        $scheduledTrainings = $this->trainingRepo->findScheduledTrainings($trainer);
+        $this->entityManager->wrapInTransaction(
+            function () use ($trainerId): void {
+                $lockedTrainer = $this->trainerRepo->findForUpdate($trainerId);
 
-        if ($scheduledTrainings !== 0) {
-            throw new CannotDeleteTrainerException('Cannot delete account: you have upcoming scheduled trainings. Please cancel them first.');
-        }
+                if ($lockedTrainer === null) {
+                    throw new UserNotFoundException('Trainer not found');
+                }
 
-        $this->entityManager->wrapInTransaction(function () use ($trainer) {
-            $this->trainerRepo->remove($trainer);
+                if ($lockedTrainer->getDeletedAt() !== null) {
+                    throw new UserAlreadyDeletedException(
+                        'Trainer already deleted'
+                    );
+                }
 
-            $this->refreshTokenRepo->removeAllByUser($trainer);
-        });
+                if ($this->bookingRepo->existsForTrainerInStatuses(
+                    $lockedTrainer,
+                    [
+                        BookingStatusEnum::PENDING,
+                        BookingStatusEnum::SCHEDULED,
+                    ],
+                )) {
+                    throw new CannotDeleteTrainerException(
+                        'Cannot delete trainer with pending or scheduled bookings'
+                    );
+                }
+
+                if ($lockedTrainer->getBalance() !== 0) {
+                    throw new CannotDeleteTrainerException(
+                        'Cannot delete trainer while balance is not zero'
+                    );
+                }
+
+                $this->trainerRepo->remove($lockedTrainer);
+                $this->refreshTokenRepo->removeAllByUser($lockedTrainer);
+            }
+        );
     }
 
     public function restore(Trainer $trainer): Trainer

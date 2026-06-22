@@ -6,6 +6,9 @@ namespace App\Client\Repository;
 
 use App\Client\Entity\Client;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
+use Doctrine\DBAL\LockMode;
+use Doctrine\ORM\Exception\ORMException;
+use Doctrine\ORM\OptimisticLockException;
 use Doctrine\Persistence\ManagerRegistry;
 
 /**
@@ -26,5 +29,18 @@ final class ClientRepository extends ServiceEntityRepository
     public function remove(Client $client): void
     {
         $this->getEntityManager()->remove($client);
+    }
+
+    /**
+     * @throws OptimisticLockException
+     * @throws ORMException
+     */
+    public function findForUpdate(int $id): ?Client
+    {
+        return $this->getEntityManager()->find(
+            Client::class,
+            $id,
+            LockMode::PESSIMISTIC_WRITE,
+        );
     }
 }

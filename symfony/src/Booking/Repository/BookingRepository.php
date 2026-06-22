@@ -7,6 +7,7 @@ namespace App\Booking\Repository;
 use App\Booking\Entity\Booking;
 use App\Booking\Enum\BookingStatusEnum;
 use App\Client\Entity\Client;
+use App\Trainer\Entity\Trainer;
 use DateTimeImmutable;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
@@ -50,5 +51,43 @@ final class BookingRepository extends ServiceEntityRepository
             ])
             ->getQuery()
             ->getResult();
+    }
+
+    /**
+     * @param list<BookingStatusEnum> $statuses
+     */
+    public function existsForClientInStatuses(
+        Client $client,
+        array $statuses,
+    ): bool {
+        return $this->createQueryBuilder('booking')
+                ->select('1')
+                ->andWhere('booking.client = :client')
+                ->andWhere('booking.status IN (:statuses)')
+                ->setParameter('client', $client)
+                ->setParameter('statuses', $statuses)
+                ->setMaxResults(1)
+                ->getQuery()
+                ->getOneOrNullResult() !== null;
+    }
+
+    /**
+     * @param list<BookingStatusEnum> $statuses
+     */
+    public function existsForTrainerInStatuses(
+        Trainer $trainer,
+        array $statuses,
+    ): bool {
+        return $this->createQueryBuilder('booking')
+                ->select('1')
+                ->innerJoin('booking.training', 'training')
+                ->innerJoin('training.trainerWorkTime', 'worktime')
+                ->andWhere('worktime.trainer = :trainer')
+                ->andWhere('booking.status IN (:statuses)')
+                ->setParameter('trainer', $trainer)
+                ->setParameter('statuses', $statuses)
+                ->setMaxResults(1)
+                ->getQuery()
+                ->getOneOrNullResult() !== null;
     }
 }

@@ -67,28 +67,6 @@ final class TrainingRepository extends ServiceEntityRepository
         return $trainings;
     }
 
-    /**
-     * @throws NonUniqueResultException
-     * @throws NoResultException
-     */
-    public function findScheduledTrainings(Trainer $trainer): int
-    {
-        $date = new DateTimeImmutable()->setTime(0, 0);
-
-        return (int) $this->createQueryBuilder('t')
-            ->select('COUNT(t.id)')
-            ->innerJoin('t.trainerWorkTime', 'wt')
-            ->innerJoin('t.booking', 'b')
-            ->where('wt.trainer = :trainer')
-            ->andWhere('wt.date >= :date')
-            ->andWhere('b.status = :status')
-            ->setParameter('trainer', $trainer)
-            ->setParameter('date', $date)
-            ->setParameter('status', BookingStatusEnum::SCHEDULED)
-            ->getQuery()
-            ->getSingleScalarResult();
-    }
-
     public function existsForWorktime(TrainerWorkTime $worktime): bool
     {
         return $this->createQueryBuilder('training')
