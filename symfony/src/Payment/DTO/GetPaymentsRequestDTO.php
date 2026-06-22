@@ -40,6 +40,7 @@ final readonly class GetPaymentsRequestDTO
         public int                $page = 1,
 
         #[Assert\Positive]
+        #[Assert\Range(max: 100)]
         public int                $limit = 20,
     ) {}
 }

@@ -27,9 +27,9 @@ final class Version20260413154318 extends AbstractMigration
         $this->addSql('ALTER TABLE payment ADD currency VARCHAR(10) NOT NULL');
         $this->addSql('ALTER TABLE payment ADD status VARCHAR(9) NOT NULL');
         $this->addSql('ALTER TABLE payment ADD confirmed_at TIMESTAMP(0) WITHOUT TIME ZONE DEFAULT NULL');
-        $this->addSql('ALTER TABLE payment ALTER amount TYPE INT');
+        $this->addSql('ALTER TABLE payment ALTER amount TYPE INT USING ROUND(amount * 100)::INT');
         $this->addSql('CREATE UNIQUE INDEX UNIQ_6D28840DFC72F97E ON payment (stripe_payment_intent_id)');
-        $this->addSql('ALTER TABLE "user" ALTER balance TYPE INT');
+        $this->addSql('ALTER TABLE "user" ALTER balance TYPE INT USING ROUND(balance * 100)::INT');
     }
 
     public function down(Schema $schema): void
@@ -43,7 +43,7 @@ final class Version20260413154318 extends AbstractMigration
         $this->addSql('ALTER TABLE payment DROP currency');
         $this->addSql('ALTER TABLE payment DROP status');
         $this->addSql('ALTER TABLE payment DROP confirmed_at');
-        $this->addSql('ALTER TABLE payment ALTER amount TYPE NUMERIC(10, 2)');
-        $this->addSql('ALTER TABLE "user" ALTER balance TYPE NUMERIC(10, 2)');
+        $this->addSql('ALTER TABLE payment ALTER amount TYPE NUMERIC(10, 2) USING amount / 100.0');
+        $this->addSql('ALTER TABLE "user" ALTER balance TYPE NUMERIC(10, 2) USING balance / 100.0');
     }
 }

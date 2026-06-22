@@ -9,69 +9,44 @@ use App\Payment\Mapper\PaymentMapperInterface;
 use App\Payment\Repository\PaymentRepository;
 use App\Request\SortParser;
 use Doctrine\ORM\QueryBuilder;
-use Psr\Cache\InvalidArgumentException;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
-use Symfony\Contracts\Cache\ItemInterface;
-use Symfony\Contracts\Cache\TagAwareCacheInterface;
 
 final readonly class PaymentsQuery
 {
     public function __construct(
         private PaymentMapperInterface $mapper,
         private PaymentRepository $paymentRepo,
-        private TagAwareCacheInterface $cache,
     )
     {}
 
     /**
      * @param array<string, string> $parsedSort
      * @return array{items: list<mixed>, total: int}
-     * @throws InvalidArgumentException
      */
     public function getCachedData(ResolvedPaymentsRequestDTO $dto, array $parsedSort): array
     {
-        $cacheKey = $this->generateCacheKey($dto);
+        $qb = $this->createQuery($dto);
 
-        return $this->cache->get($cacheKey, function (ItemInterface $item) use ($dto, $parsedSort): array {
-            $item->expiresAfter(3600);
+        $totalQb = $this->createQuery($dto, true);
+        $total = (int) $totalQb->select('COUNT(p.id)')->getQuery()->getSingleScalarResult();
 
-            $tags = [];
+        $offset = ($dto->page - 1) * $dto->limit;
 
-            if ($dto->client !== null) {
-                $tags[] = 'payments_list_' . $dto->client->getId();
-            }
-            if ($dto->trainer !== null) {
-                $tags[] = 'payments_list_trainer_' . $dto->trainer->getId();
-            }
-            if ($tags === []) {
-                $tags[] = 'payments_list_all';
-            }
+        foreach ($parsedSort as $field => $order) {
+            $qb->addOrderBy("p.$field", $order);
+        }
 
-            $item->tag($tags);
+        $qb->setFirstResult($offset)
+            ->setMaxResults($dto->limit);
 
-            $qb = $this->createQuery($dto);
+        $payments = $qb->getQuery()->getResult();
 
-            $totalQb = $this->createQuery($dto, true);
-            $total = (int) $totalQb->select('COUNT(p.id)')->getQuery()->getSingleScalarResult();
+        $items = array_map(fn ($payment) => $this->mapper->map($payment), $payments);
 
-            $offset = ($dto->page - 1) * $dto->limit;
-
-            foreach ($parsedSort as $field => $order) {
-                $qb->addOrderBy("p.$field", $order);
-            }
-
-            $qb->setFirstResult($offset)
-                ->setMaxResults($dto->limit);
-
-            $payments = $qb->getQuery()->getResult();
-
-            $items = array_map(fn ($payment) => $this->mapper->map($payment), $payments);
-
-            return [
-                'items' => $items,
-                'total' => $total,
-            ];
-        });
+        return [
+            'items' => $items,
+            'total' => $total,
+        ];
     }
 
     private function createQuery(ResolvedPaymentsRequestDTO $dto, bool $isCount = false): QueryBuilder
@@ -139,24 +114,4 @@ final readonly class PaymentsQuery
         return SortParser::parseSort($dto->sort, ResolvedPaymentsRequestDTO::ALLOWED_SORT_FIELDS);
     }
 
-    private function generateCacheKey(ResolvedPaymentsRequestDTO $dto): string
-    {
-        $params = [
-            'sort' => $dto->sort,
-            'page' => $dto->page,
-            'limit' => $dto->limit,
-            'clientId' => $dto->client?->getId(),
-            'trainerId' => $dto->trainer?->getId(),
-            'minAmount' => $dto->minAmount,
-            'maxAmount' => $dto->maxAmount,
-            'isRefund' => $dto->isRefund,
-            'status' => $dto->status?->value,
-            'minCreatedAt' => $dto->minCreatedAt?->format('Y-m-d'),
-            'maxCreatedAt' => $dto->maxCreatedAt?->format('Y-m-d'),
-        ];
-
-        $encoded = json_encode($params);
-
-        return 'payments_' . hash('sha256', $encoded === false ? '' : $encoded);
-    }
 }

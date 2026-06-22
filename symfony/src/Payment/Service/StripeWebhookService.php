@@ -50,7 +50,7 @@ final readonly class StripeWebhookService
     private function handleEvent(Event $event): void
     {
         $paymentIntentId = match ($event->type) {
-            'charge.refunded', 'refund.failed', 'refund.updated' => $this->stripeObjectStringValue($event, 'payment_intent'),
+            'charge.refunded', 'charge.dispute.created', 'refund.failed', 'refund.updated' => $this->stripeObjectStringValue($event, 'payment_intent'),
             default => $this->stripeObjectStringValue($event, 'id'),
         };
 
@@ -75,6 +75,9 @@ final readonly class StripeWebhookService
                 case 'charge.refunded':
                     $this->paymentSettlementService->handleStripeRefundSucceeded($paymentIntentId);
                     break;
+                case 'charge.dispute.created':
+                    $this->paymentSettlementService->handleStripeDisputeCreated($paymentIntentId);
+                    break;
                 case 'refund.failed':
                     $this->paymentSettlementService->handleStripeRefundFailed($paymentIntentId);
                     break;
@@ -88,12 +91,13 @@ final readonly class StripeWebhookService
                     break;
             }
         } catch (PaymentNotFoundException $e) {
-            $this->logger->warning('Stripe webhook payment record not found', [
+            $this->logger->warning('Stripe webhook payment record not found; acknowledging event', [
                 'type' => $event->type,
+                'intent_id' => $paymentIntentId,
                 'message' => $e->getMessage(),
             ]);
 
-            throw $e;
+            return;
         } catch (Throwable $e) {
             $this->logger->error('Stripe webhook warning', [
                 'type' => $event->type,

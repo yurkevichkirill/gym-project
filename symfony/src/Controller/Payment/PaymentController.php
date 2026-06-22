@@ -7,7 +7,6 @@ namespace App\Controller\Payment;
 use App\Payment\DTO\StripeIntentResponseDTO;
 use App\Payment\Entity\Payment;
 use App\Payment\Enum\PaymentMethodEnum;
-use App\Payment\Enum\PaymentStatusEnum;
 use App\Payment\Security\PaymentVoter;
 use App\Payment\Service\PaymentSettlementService;
 use App\Response\ResponseTypeDTO\ItemResponse;
@@ -87,10 +86,6 @@ final class PaymentController extends AbstractController
         if ($payment->getMethod() !== PaymentMethodEnum::CARD) {
             throw new BadRequestHttpException('Payment is not payable by card.');
 
-        }
-
-        if ($payment->getStatus() !== PaymentStatusEnum::PENDING) {
-            throw new BadRequestHttpException('Payment already processed');
         }
 
         $clientSecret = $paymentSettlementService->createStripeIntent($payment);

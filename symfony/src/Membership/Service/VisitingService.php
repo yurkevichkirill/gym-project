@@ -15,7 +15,6 @@ use Psr\Log\LoggerInterface;
 final readonly class VisitingService
 {
     public function __construct(
-        private MembershipAvailabilityService $membershipAvailabilityService,
         public MembershipRepository $membershipRepo,
         private LoggerInterface $membershipLogger,
     )
@@ -32,20 +31,13 @@ final readonly class VisitingService
             'client_id' => $client->getId(),
         ];
 
-        if (!$this->membershipAvailabilityService->hasActiveMembership($client)) {
+        $activeMembership = $this->membershipRepo->recordVisit($client, new DateTimeImmutable());
+        if ($activeMembership === null) {
             $this->membershipLogger->notice('Membership visit rejected: no active membership', $context + [
                     'outcome' => 'rejected',
                 ]);
             throw new NoActiveMembershipException();
         }
-
-        $activeMembership = $this->membershipRepo->findActive($client);
-        if ($activeMembership === null) {
-            throw new NoActiveMembershipException();
-        }
-
-        $activeMembership->setVisits($activeMembership->getVisits() + 1);
-        $this->checkOnExpire($activeMembership);
 
         return $activeMembership;
     }

@@ -125,7 +125,7 @@ final readonly class PaymentSettlementService
      * @throws OptimisticLockException
      * @throws ORMException
      */
-    public function settleTopUpPayment(Payment $payment): void
+    private function settleTopUpPayment(Payment $payment): void
     {
         if ($payment->getStatus() !== PaymentStatusEnum::PENDING) {
             throw new InvalidPaymentStatusException('Cannot settle not pending payment');
@@ -149,6 +149,7 @@ final readonly class PaymentSettlementService
         $amount = $payment->getAmount();
 
         $this->balanceService->depositClient($lockedClient, $amount);
+        $this->paymentLifecycleService->transitionTo($payment, PaymentStatusEnum::SUCCEEDED);
     }
 
     /**
@@ -207,7 +208,20 @@ final readonly class PaymentSettlementService
      */
     public function createStripeIntent(Payment $payment): string
     {
-        return $this->stripeService->createPaymentIntent($payment);
+        $paymentId = $this->requirePaymentId($payment);
+
+        return $this->withLockedPayment($paymentId, function (Payment $lockedPayment): string {
+            if ($lockedPayment->getStatus() !== PaymentStatusEnum::PENDING) {
+                throw new InvalidPaymentStatusException('Payment already processed');
+            }
+
+            $expiresAt = $lockedPayment->getExpiresAt();
+            if ($expiresAt !== null && $expiresAt < new DateTimeImmutable()) {
+                throw new InvalidPaymentStatusException('Payment expired');
+            }
+
+            return $this->stripeService->createPaymentIntent($lockedPayment);
+        });
     }
 
     public function handleStripeSuccess(string $intentId): void
@@ -295,6 +309,8 @@ final readonly class PaymentSettlementService
 
             if ($lockedPayment->getCategory() === PaymentCategoryEnum::BALANCE_TOP_UP) {
                 $this->settleTopUpPayment($lockedPayment);
+
+                return;
             }
 
             $this->paymentLifecycleService->transitionTo($lockedPayment, PaymentStatusEnum::SUCCEEDED);
@@ -346,6 +362,38 @@ final readonly class PaymentSettlementService
                 ]);
             }
 
+            $this->createStripeRefundPaymentRecord($lockedPayment);
+            $this->paymentLifecycleService->transitionTo($lockedPayment, PaymentStatusEnum::REFUNDED);
+        });
+    }
+
+    /**
+     * @throws Throwable
+     */
+    public function handleStripeDisputeCreated(string $intentId): void
+    {
+        $payment = $this->paymentRepo->findOneByStripePaymentIntentId($intentId);
+        if ($payment === null) {
+            throw new PaymentNotFoundException('Payment for Stripe intent was not found');
+        }
+
+        $this->withLockedPayment($this->requirePaymentId($payment), function (Payment $lockedPayment) use ($intentId) {
+            if ($lockedPayment->getStatus() === PaymentStatusEnum::REFUNDED) {
+                return;
+            }
+
+            $this->paymentLogger->critical('payment.stripe_dispute.created', [
+                'intent_id' => $intentId,
+                'payment_id' => $lockedPayment->getId(),
+                'current_status' => $lockedPayment->getStatus()->value,
+                'action' => 'recording_dispute_reversal',
+            ]);
+
+            if (in_array($lockedPayment->getStatus(), [PaymentStatusEnum::REFUND_PENDING, PaymentStatusEnum::REFUND_FAILED, PaymentStatusEnum::SUCCEEDED], true)) {
+                $this->reverseTrainerPayoutForRefund($lockedPayment);
+            }
+
+            $this->createStripeRefundPaymentRecord($lockedPayment);
             $this->paymentLifecycleService->transitionTo($lockedPayment, PaymentStatusEnum::REFUNDED);
         });
     }
@@ -475,6 +523,35 @@ final readonly class PaymentSettlementService
 
         $refundPayment->setOriginalPayment($lockedPayment);
         $refundPayment->setIsRefund(true);
+
+        $this->paymentLifecycleService->transitionTo($refundPayment, PaymentStatusEnum::SUCCEEDED);
+    }
+
+    private function createStripeRefundPaymentRecord(Payment $lockedPayment): void
+    {
+        if ($this->paymentRepo->findRefundForOriginalPayment($lockedPayment) !== null) {
+            return;
+        }
+
+        $client = $lockedPayment->getClient();
+        if ($client === null) {
+            throw new UserNotFoundException('Payment client was not found');
+        }
+
+        $refundPayment = $this->paymentService->createPayment(
+            $client,
+            $lockedPayment->getAmount(),
+            $lockedPayment->getCategory(),
+            PaymentMethodEnum::CARD,
+            $lockedPayment->getTrainer(),
+        );
+
+        $refundPayment->setOriginalPayment($lockedPayment);
+        $refundPayment->setIsRefund(true);
+        $refundPayment->setCurrency($lockedPayment->getCurrency());
+        $refundPayment->setStripePaymentIntentId(null);
+        $refundPayment->setExpiresAt(null);
+        $refundPayment->setPaidAt(new DateTimeImmutable());
 
         $this->paymentLifecycleService->transitionTo($refundPayment, PaymentStatusEnum::SUCCEEDED);
     }

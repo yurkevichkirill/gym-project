@@ -21,7 +21,11 @@ final readonly class StripeService
         private EntityManagerInterface $em,
         private LoggerInterface $stripeLogger,
     ) {
-        $this->stripe = new StripeClient($stripeSecretKey);
+        $this->stripe = new StripeClient([
+            'api_key' => $stripeSecretKey,
+            'max_network_retries' => 2,
+            'request_timeout' => 10,
+        ]);
     }
 
     /**
@@ -95,7 +99,7 @@ final readonly class StripeService
     /**
      * @throws ApiErrorException
      */
-    public function refundPaymentIntent(string $intentId, ?string $idempotencyKey = null): void
+    public function refundPaymentIntent(string $intentId, ?string $idempotencyKey = null): ?string
     {
         $params = ['payment_intent' => $intentId];
         $options = [];
@@ -104,6 +108,8 @@ final readonly class StripeService
             $options['idempotency_key'] = $idempotencyKey;
         }
 
-        $this->stripe->refunds->create($params, $options);
+        $refund = $this->stripe->refunds->create($params, $options);
+
+        return is_string($refund->status) ? $refund->status : null;
     }
 }

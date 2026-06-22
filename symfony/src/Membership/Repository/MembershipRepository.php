@@ -53,6 +53,55 @@ final class MembershipRepository extends ServiceEntityRepository
         ]);
     }
 
+    public function recordVisit(Client $client, DateTimeImmutable $now): ?Membership
+    {
+        $clientId = $client->getId();
+        if ($clientId === null) {
+            return null;
+        }
+
+        $membershipId = $this->getEntityManager()->getConnection()
+            ->executeQuery(
+                <<<'SQL'
+                    UPDATE membership
+                    SET
+                        visits = visits + 1,
+                        status = CASE
+                            WHEN session_limit IS NOT NULL AND visits + 1 >= session_limit THEN :expiredStatus
+                            ELSE status
+                        END
+                    WHERE client_id = :clientId
+                      AND status = :activeStatus
+                      AND (end_date IS NULL OR end_date >= :now)
+                      AND (session_limit IS NULL OR visits < session_limit)
+                    RETURNING id
+                SQL,
+                [
+                    'clientId' => $clientId,
+                    'activeStatus' => MembershipStatusEnum::ACTIVE->value,
+                    'expiredStatus' => MembershipStatusEnum::EXPIRED->value,
+                    'now' => $now,
+                ],
+                [
+                    'now' => 'datetime_immutable',
+                ]
+            )
+            ->fetchOne();
+
+        if (!is_int($membershipId) && !is_string($membershipId)) {
+            return null;
+        }
+
+        $membership = $this->find((int) $membershipId);
+        if (!$membership instanceof Membership) {
+            return null;
+        }
+
+        $this->getEntityManager()->refresh($membership);
+
+        return $membership;
+    }
+
     public function findBlockingMembership(Client $client): ?Membership
     {
         return $this->createQueryBuilder('m')

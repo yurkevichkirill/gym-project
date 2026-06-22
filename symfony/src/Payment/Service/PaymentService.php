@@ -31,7 +31,7 @@ final readonly class PaymentService
         $payment->setAmount($amount);
         $payment->setCategory($category);
         $payment->setStatus(PaymentStatusEnum::PENDING);
-        $payment->setExpiresAt(new DateTimeImmutable('+5 minutes'));
+        $payment->setExpiresAt(new DateTimeImmutable('+30 minutes'));
 
         if ($trainer !== null) {
             $payment->setTrainer($trainer);

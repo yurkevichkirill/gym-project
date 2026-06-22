@@ -37,6 +37,14 @@ final class PaymentRepository extends ServiceEntityRepository
         ]);
     }
 
+    public function findRefundForOriginalPayment(Payment $payment): ?Payment
+    {
+        return $this->findOneBy([
+            'originalPayment' => $payment,
+            'isRefund' => true,
+        ]);
+    }
+
     /**
      * @return list<Payment>
      */

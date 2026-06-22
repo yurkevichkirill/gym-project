@@ -155,7 +155,7 @@ final readonly class MembershipManager
             }
 
             $paymentId = $membership->getPayment()?->getId();
-            if ($paymentId === null || $membership->getPlan() === null) {
+            if ($paymentId === null) {
                 throw new InvalidMembershipStatusException('Membership is not fully initialized');
             }
 
@@ -189,9 +189,9 @@ final readonly class MembershipManager
                     [
                         'client_id' => $updatedMembership->getClient()->getId(),
                         'membership_id' => $updatedMembership->getId(),
-                        'plan_id' => $updatedMembership->getPlan()->getId(),
-                        'price' => $updatedMembership->getPayment()->getAmount(),
-                        'payment_method' => $updatedMembership->getPayment()->getMethod()->value,
+                        'plan_id' => $updatedMembership->getPlan()?->getId(),
+                        'price' => $updatedMembership->getPayment()?->getAmount(),
+                        'payment_method' => $updatedMembership->getPayment()?->getMethod()->value,
                     ]
                 );
             } catch (Throwable $e) {
@@ -242,9 +242,8 @@ final readonly class MembershipManager
                 throw new InvalidMembershipStatusException();
             }
 
-            $plan = $membership->getPlan();
             $payment = $membership->getPayment();
-            if ($plan === null || $payment === null) {
+            if ($payment === null) {
                 throw new InvalidMembershipStatusException('Membership is not fully initialized');
             }
 
@@ -314,9 +313,8 @@ final readonly class MembershipManager
 
             $frozenAt = $membership->getFrozenAt();
             $endDate = $membership->getEndDate();
-            $plan = $membership->getPlan();
             $payment = $membership->getPayment();
-            if ($frozenAt === null || $endDate === null || $plan === null || $payment === null) {
+            if ($frozenAt === null || $endDate === null || $payment === null) {
                 throw new InvalidMembershipStatusException('Membership is not fully initialized');
             }
 
@@ -424,9 +422,8 @@ final readonly class MembershipManager
                 throw new InvalidMembershipStatusException('Membership already expired');
             }
 
-            $plan = $membership->getPlan();
             $payment = $membership->getPayment();
-            if ($plan === null || $payment === null) {
+            if ($payment === null) {
                 throw new InvalidMembershipStatusException('Membership is not fully initialized');
             }
 

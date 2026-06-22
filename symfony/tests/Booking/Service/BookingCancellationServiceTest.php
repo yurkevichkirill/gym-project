@@ -18,15 +18,27 @@ use ReflectionMethod;
 
 final class BookingCancellationServiceTest extends TestCase
 {
-    public function testClientCannotCancelScheduledBookingAfterTrainingStarted(): void
+    public function testClientCannotCancelScheduledBookingAfterCancellationDeadline(): void
     {
         $service = (new ReflectionClass(BookingCancellationService::class))->newInstanceWithoutConstructor();
-        $booking = $this->bookingAt(new DateTimeImmutable('yesterday'), '10:00:00');
+        $startAt = new DateTimeImmutable('+1 hour');
+        $booking = $this->bookingAt($startAt, $startAt->format('H:i:s'));
 
         $this->expectException(InvalidBookingStatusException::class);
-        $this->expectExceptionMessage('Client cannot cancel a training after it has started');
+        $this->expectExceptionMessage('Client cancellation deadline has passed');
 
         $this->assertClientCanCancelScheduledBooking($service, $booking, new Client());
+    }
+
+    public function testClientCanCancelScheduledBookingBeforeCancellationDeadline(): void
+    {
+        $service = (new ReflectionClass(BookingCancellationService::class))->newInstanceWithoutConstructor();
+        $startAt = new DateTimeImmutable('+3 hours');
+        $booking = $this->bookingAt($startAt, $startAt->format('H:i:s'));
+
+        $this->assertClientCanCancelScheduledBooking($service, $booking, new Client());
+
+        self::addToAssertionCount(1);
     }
 
     public function testTrainerIsNotBlockedByClientCancellationDeadline(): void

@@ -14,6 +14,7 @@ use App\Payment\Exception\PaymentNotFoundException;
 use App\Payment\Service\PaymentSettlementService;
 use App\User\Entity\User;
 use App\User\Enum\UserRolesEnum;
+use DateInterval;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
@@ -21,6 +22,8 @@ use Throwable;
 
 final readonly class BookingCancellationService
 {
+    private const string CLIENT_CANCELLATION_WINDOW = 'PT2H';
+
     public function __construct(
         private PaymentSettlementService $paymentSettlementService,
         private EntityManagerInterface $entityManager,
@@ -250,8 +253,10 @@ final readonly class BookingCancellationService
             $training->getStartTime()->format('H:i:s'),
         ));
 
-        if ($trainingStart <= new DateTimeImmutable()) {
-            throw new InvalidBookingStatusException('Client cannot cancel a training after it has started');
+        $cancellationDeadline = $trainingStart->sub(new DateInterval(self::CLIENT_CANCELLATION_WINDOW));
+
+        if (new DateTimeImmutable() >= $cancellationDeadline) {
+            throw new InvalidBookingStatusException('Client cancellation deadline has passed');
         }
     }
 

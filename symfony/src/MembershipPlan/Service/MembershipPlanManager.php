@@ -7,7 +7,9 @@ namespace App\MembershipPlan\Service;
 use App\MembershipPlan\DTO\CreateMembershipPlanRequestDTO;
 use App\MembershipPlan\DTO\UpdateMembershipPlanRequestDTO;
 use App\MembershipPlan\Entity\MembershipPlan;
+use App\MembershipPlan\Exception\MembershipPlanInUseException;
 use App\MembershipPlan\Repository\MembershipPlanRepository;
+use Doctrine\DBAL\Exception\ForeignKeyConstraintViolationException;
 use Doctrine\ORM\EntityManagerInterface;
 
 final readonly class MembershipPlanManager
@@ -56,8 +58,15 @@ final readonly class MembershipPlanManager
 
     public function remove(MembershipPlan $membershipPlan): void
     {
-        $this->repo->remove($membershipPlan);
+        if ($this->repo->existsForPlan($membershipPlan)) {
+            throw new MembershipPlanInUseException();
+        }
 
-        $this->entityManager->flush();
+        try {
+            $this->repo->remove($membershipPlan);
+            $this->entityManager->flush();
+        } catch (ForeignKeyConstraintViolationException $exception) {
+            throw new MembershipPlanInUseException(previous: $exception);
+        }
     }
 }

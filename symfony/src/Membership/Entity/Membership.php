@@ -34,7 +34,7 @@ final class Membership
     private Client $client;
 
     #[ORM\ManyToOne(inversedBy: 'memberships')]
-    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'RESTRICT')]
     private ?MembershipPlan $plan = null;
 
     #[ORM\Column]

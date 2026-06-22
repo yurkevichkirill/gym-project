@@ -202,6 +202,11 @@ final class MembershipPlanController extends AbstractController
                 response: 404,
                 description: 'Membership plan not found',
                 content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
+            ),
+            new OA\Response(
+                response: 409,
+                description: 'Membership plan is used by memberships',
+                content: new OA\JsonContent(ref: new Model(type: ErrorResponseDTO::class))
             )
         ]
     )]
