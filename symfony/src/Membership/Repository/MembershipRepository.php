@@ -7,6 +7,7 @@ namespace App\Membership\Repository;
 use App\Client\Entity\Client;
 use App\Membership\Entity\Membership;
 use App\Membership\Enum\MembershipStatusEnum;
+use App\MembershipPlan\Entity\MembershipPlan;
 use DateTimeImmutable;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
@@ -104,7 +105,7 @@ final class MembershipRepository extends ServiceEntityRepository
 
     public function findBlockingMembership(Client $client): ?Membership
     {
-        return $this->createQueryBuilder('m')
+        $membership = $this->createQueryBuilder('m')
             ->andWhere('m.client = :client')
             ->andWhere('m.status IN (:statuses)')
             ->setParameter('client', $client)
@@ -116,5 +117,18 @@ final class MembershipRepository extends ServiceEntityRepository
             ->setMaxResults(1)
             ->getQuery()
             ->getOneOrNullResult();
+
+        return $membership instanceof Membership ? $membership : null;
+    }
+
+    public function existsForPlan(MembershipPlan $plan): bool
+    {
+        return $this->createQueryBuilder('m')
+            ->select('1')
+            ->andWhere('m.plan = :plan')
+            ->setParameter('plan', $plan)
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getOneOrNullResult() !== null;
     }
 }

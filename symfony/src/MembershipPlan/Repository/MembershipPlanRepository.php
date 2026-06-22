@@ -27,15 +27,4 @@ final class MembershipPlanRepository extends ServiceEntityRepository
     {
         $this->getEntityManager()->remove($membershipPlan);
     }
-
-    public function existsForPlan(MembershipPlan $plan): bool
-    {
-        return $this->createQueryBuilder('membership')
-                ->select('1')
-                ->andWhere('membership.plan = :plan')
-                ->setParameter('plan', $plan)
-                ->setMaxResults(1)
-                ->getQuery()
-                ->getOneOrNullResult() !== null;
-    }
 }

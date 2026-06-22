@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\MembershipPlan\Service;
 
+use App\Membership\Repository\MembershipRepository;
 use App\MembershipPlan\DTO\CreateMembershipPlanRequestDTO;
 use App\MembershipPlan\DTO\UpdateMembershipPlanRequestDTO;
 use App\MembershipPlan\Entity\MembershipPlan;
@@ -16,7 +17,8 @@ final readonly class MembershipPlanManager
 {
     public function __construct(
         private MembershipPlanRepository $repo,
-        private EntityManagerInterface  $entityManager,
+        private MembershipRepository $membershipRepo,
+        private EntityManagerInterface $entityManager,
     )
     {}
 
@@ -58,7 +60,7 @@ final readonly class MembershipPlanManager
 
     public function remove(MembershipPlan $membershipPlan): void
     {
-        if ($this->repo->existsForPlan($membershipPlan)) {
+        if ($this->membershipRepo->existsForPlan($membershipPlan)) {
             throw new MembershipPlanInUseException();
         }
 

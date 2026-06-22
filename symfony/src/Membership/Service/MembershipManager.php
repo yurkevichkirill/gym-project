@@ -103,7 +103,7 @@ final readonly class MembershipManager
                 $this->analyticsPublisher->publish('membership.created', [
                     'client_id' => $client->getId(),
                     'membership_id' => $membership->getId(),
-                    'plan_id' => $plan->getId(),
+                    'plan_id' => $membership->getPlan()?->getId(),
                     'price' => $plan->getPrice(),
                     'payment_method' => $membership->getPayment()?->getMethod()->value ?? 'unknown',
                 ]);
@@ -258,7 +258,7 @@ final readonly class MembershipManager
                 [
                     'client_id' => $membership->getClient()->getId(),
                     'membership_id' => $membership->getId(),
-                    'plan_id' => $plan->getId(),
+                    'plan_id' => $membership->getPlan()?->getId(),
                     'price' => $payment->getAmount(),
                     'payment_method' => $payment->getMethod()->value,
                 ]
@@ -335,7 +335,7 @@ final readonly class MembershipManager
                     [
                         'client_id' => $membership->getClient()->getId(),
                         'membership_id' => $membership->getId(),
-                        'plan_id' => $plan->getId(),
+                        'plan_id' => $membership->getPlan()?->getId(),
                         'price' => $payment->getAmount(),
                         'payment_method' => $payment->getMethod()->value,
                     ]
@@ -382,17 +382,72 @@ final readonly class MembershipManager
         ];
 
         try {
+            $this->userAvailabilityService->ensureNotBlocked($membership->getClient());
+            $this->userAvailabilityService->ensureActive($membership->getClient());
+
+            $payment = $membership->getPayment();
+            if ($payment === null) {
+                throw new InvalidMembershipStatusException('Membership is not fully initialized');
+            }
+
+            $clientId = $membership->getClient()->getId();
             $plan = $membership->getPlan();
-            if ($plan === null) {
-                throw new MembershipPlanNotFoundException();
+            $price = $payment->getAmount();
+            $name = $membership->getName();
+            $durationDays = $membership->getDurationDays();
+            $sessionLimit = $membership->getSessionLimit();
+
+            $renewedMembership = $this->entityManager->wrapInTransaction(function () use ($clientId, $plan, $price, $name, $durationDays, $sessionLimit): Membership {
+                $lockedClient = $this->entityManager->find(
+                    Client::class,
+                    $clientId,
+                    LockMode::PESSIMISTIC_WRITE
+                );
+
+                if ($lockedClient === null) {
+                    throw new UserNotFoundException('Client not found');
+                }
+
+                $blockingMembership = $this->membershipRepo->findBlockingMembership($lockedClient);
+                if ($blockingMembership !== null) {
+                    throw new MembershipActiveException("Client already has {$blockingMembership->getStatus()->value} membership");
+                }
+
+                $renewedMembership = new Membership();
+                $renewedMembership->setClient($lockedClient);
+                $renewedMembership->setPlan($plan);
+                $renewedMembership->setName($name);
+                $renewedMembership->setDurationDays($durationDays);
+                $renewedMembership->setSessionLimit($sessionLimit);
+
+                $this->membershipRepo->create($renewedMembership);
+                $this->paymentSettlementService->createMembershipPayment(
+                    $lockedClient,
+                    $price,
+                    $renewedMembership,
+                );
+
+                return $renewedMembership;
+            });
+
+            try {
+                $this->analyticsPublisher->publish('membership.renewed', [
+                    'client_id' => $renewedMembership->getClient()->getId(),
+                    'membership_id' => $renewedMembership->getId(),
+                    'plan_id' => $renewedMembership->getPlan()?->getId(),
+                    'price' => $renewedMembership->getPayment()?->getAmount(),
+                    'payment_method' => $renewedMembership->getPayment()?->getMethod()->value ?? 'unknown',
+                ]);
+            } catch (Throwable $e) {
+                $this->membershipLogger->warning('membership.analytics_failed',
+                    $this->membershipEventContext($loggingContext, 'renew', 'analytics_failed', [
+                        'error' => $e->getMessage(),
+                        'exception_class' => $e::class,
+                    ])
+                );
             }
 
-            $planId = $plan->getId();
-            if ($planId === null) {
-                throw new MembershipPlanNotFoundException();
-            }
-
-            return $this->create($membership->getClient(), $planId);
+            return $renewedMembership;
         } catch (Throwable $e) {
             $this->membershipLogger->error('membership.renew.failed',
                 $this->membershipEventContext($loggingContext, 'renew', 'failed', [
@@ -438,7 +493,7 @@ final readonly class MembershipManager
                     [
                         'client_id' => $membership->getClient()->getId(),
                         'membership_id' => $membership->getId(),
-                        'plan_id' => $plan->getId(),
+                        'plan_id' => $membership->getPlan()?->getId(),
                         'price' => $payment->getAmount(),
                         'payment_method' => $payment->getMethod()->value,
                     ]

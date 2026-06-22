@@ -17,7 +17,7 @@ final readonly class MembershipResponseDTO
         public string $name,
         public int $durationDays,
         public ?int $sessionLimit,
-        public MembershipPlanResponseDTO $membershipPlan,
+        public ?MembershipPlanResponseDTO $membershipPlan,
         public ?string $startDate,
         public ?string $endDate,
         public MembershipStatusEnum $status,
@@ -34,7 +34,7 @@ final readonly class MembershipResponseDTO
         $plan = $membership->getPlan();
         $payment = $membership->getPayment();
 
-        if ($id === null || $plan === null || $payment === null) {
+        if ($id === null || $payment === null) {
             throw new LogicException('Membership is not fully initialized.');
         }
 
@@ -43,7 +43,7 @@ final readonly class MembershipResponseDTO
             name: $membership->getName(),
             durationDays: $membership->getDurationDays(),
             sessionLimit: $membership->getSessionLimit(),
-            membershipPlan: MembershipPlanResponseDTO::fromEntity($plan),
+            membershipPlan: $plan !== null ? MembershipPlanResponseDTO::fromEntity($plan) : null,
             startDate: $membership->getStartDate()?->format('Y-m-d'),
             endDate: $membership->getEndDate()?->format('Y-m-d'),
             status: $membership->getStatus(),
