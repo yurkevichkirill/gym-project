@@ -8,6 +8,7 @@ use App\RefreshToken\Entity\RefreshToken;
 use App\User\Entity\User;
 use DateTimeImmutable;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
+use Doctrine\DBAL\LockMode;
 use Doctrine\Persistence\ManagerRegistry;
 
 /**
@@ -18,6 +19,19 @@ final class RefreshTokenRepository extends ServiceEntityRepository
     public function __construct(ManagerRegistry $registry)
     {
         parent::__construct($registry, RefreshToken::class);
+    }
+
+    public function findOneByTokenHashForUpdate(string $tokenHash): ?RefreshToken
+    {
+        /** @var RefreshToken|null $refreshToken */
+        $refreshToken = $this->createQueryBuilder('rt')
+            ->andWhere('rt.tokenHash = :tokenHash')
+            ->setParameter('tokenHash', $tokenHash)
+            ->getQuery()
+            ->setLockMode(LockMode::PESSIMISTIC_WRITE)
+            ->getOneOrNullResult();
+
+        return $refreshToken;
     }
 
     public function save(): void

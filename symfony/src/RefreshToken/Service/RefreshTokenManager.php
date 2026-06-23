@@ -8,7 +8,9 @@ use App\RefreshToken\Entity\RefreshToken;
 use App\RefreshToken\Repository\RefreshTokenRepository;
 use App\User\Entity\User;
 use DateTimeImmutable;
+use Doctrine\ORM\EntityManagerInterface;
 use Lexik\Bundle\JWTAuthenticationBundle\Services\JWTTokenManagerInterface;
+use LogicException;
 use Random\RandomException;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\UnauthorizedHttpException;
@@ -17,12 +19,16 @@ final readonly class RefreshTokenManager
 {
     private const string TOKEN_HASH_ALGORITHM = 'sha256';
     private const int MAX_ACTIVE_REFRESH_TOKENS = 5;
+    private const string ROTATION_SUCCESS = 'success';
+    private const string ROTATION_INVALID = 'invalid';
+    private const string ROTATION_REUSE = 'reuse';
+    private const string ROTATION_USER_UNAVAILABLE = 'user_unavailable';
 
     public function __construct(
         private RefreshTokenRepository $repo,
         private JWTTokenManagerInterface $jwtManager,
-    )
-    {}
+        private EntityManagerInterface $entityManager,
+    ) {}
 
     public function create(string $refreshToken, User $user): void
     {
@@ -50,24 +56,57 @@ final readonly class RefreshTokenManager
             throw new UnauthorizedHttpException('Bearer', 'No refresh token');
         }
 
-        $tokenEntity = $this->repo->findOneBy([
-            'tokenHash' => $this->hashToken($refreshToken),
-        ]);
+        /** @var array{status: string, accessToken: ?string, refreshToken: ?string} $rotation */
+        $rotation = $this->entityManager->wrapInTransaction(
+            fn (): array => $this->rotate($this->hashToken($refreshToken)),
+        );
+
+        if ($rotation['status'] === self::ROTATION_SUCCESS) {
+            if ($rotation['accessToken'] === null || $rotation['refreshToken'] === null) {
+                throw new LogicException('Successful refresh token rotation must return both tokens');
+            }
+
+            return [$rotation['accessToken'], $rotation['refreshToken']];
+        }
+
+        if ($rotation['status'] === self::ROTATION_REUSE) {
+            throw new UnauthorizedHttpException('Bearer', 'Refresh token reuse detected');
+        }
+
+        if ($rotation['status'] === self::ROTATION_USER_UNAVAILABLE) {
+            throw new AccessDeniedHttpException('User is unavailable');
+        }
+
+        throw new UnauthorizedHttpException('Bearer', 'Invalid refresh token');
+    }
+
+    /**
+     * @throws RandomException
+     *
+     * @return array{status: string, accessToken: ?string, refreshToken: ?string}
+     */
+    private function rotate(string $tokenHash): array
+    {
+        $tokenEntity = $this->repo->findOneByTokenHashForUpdate($tokenHash);
 
         if ($tokenEntity === null) {
-            throw new UnauthorizedHttpException('Bearer', 'Invalid refresh token');
+            return $this->rotationResult(self::ROTATION_INVALID);
         }
 
         $user = $tokenEntity->getUser();
 
         if ($tokenEntity->getRevokedAt() !== null) {
             $this->repo->removeAllByUser($user);
-            throw new UnauthorizedHttpException('Bearer', 'Refresh token reuse detected');
+
+            return $this->rotationResult(self::ROTATION_REUSE);
         }
 
-        if ($tokenEntity->getExpiresAt() < new DateTimeImmutable()) {
+        $now = new DateTimeImmutable();
+
+        if ($tokenEntity->getExpiresAt() < $now) {
             $this->repo->remove($tokenEntity);
-            throw new UnauthorizedHttpException('Bearer', 'Invalid refresh token');
+
+            return $this->rotationResult(self::ROTATION_INVALID);
         }
 
         if (
@@ -76,18 +115,36 @@ final readonly class RefreshTokenManager
             || !$user->isActive()
         ) {
             $this->repo->removeAllByUser($user);
-            throw new AccessDeniedHttpException('User is unavailable');
+
+            return $this->rotationResult(self::ROTATION_USER_UNAVAILABLE);
         }
 
-        $tokenEntity->setRevokedAt(new DateTimeImmutable());
+        $tokenEntity->setRevokedAt($now);
         $this->repo->save();
 
         $newRefreshToken = $this->generateRefreshToken();
         $this->create($newRefreshToken, $user);
 
-        $newAccessToken = $this->jwtManager->create($user);
+        return $this->rotationResult(
+            status: self::ROTATION_SUCCESS,
+            accessToken: $this->jwtManager->create($user),
+            refreshToken: $newRefreshToken,
+        );
+    }
 
-        return [$newAccessToken, $newRefreshToken];
+    /**
+     * @return array{status: string, accessToken: ?string, refreshToken: ?string}
+     */
+    private function rotationResult(
+        string $status,
+        ?string $accessToken = null,
+        ?string $refreshToken = null,
+    ): array {
+        return [
+            'status' => $status,
+            'accessToken' => $accessToken,
+            'refreshToken' => $refreshToken,
+        ];
     }
 
     /**
