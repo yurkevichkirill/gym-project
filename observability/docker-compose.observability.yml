@@ -1,18 +1,31 @@
+x-default-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+x-service-defaults: &service-defaults
+  restart: unless-stopped
+  logging: *default-logging
+
 services:
   loki:
+    <<: *service-defaults
     image: grafana/loki:3.2.1
     container_name: loki
     command: -config.file=/etc/loki/config.yml
     ports:
-      - "3100:3100"
+      - "${OBSERVABILITY_BIND_ADDRESS:-127.0.0.1}:3100:3100"
     volumes:
       - ./loki/config.yml:/etc/loki/config.yml:ro
       - ./loki/rules:/etc/loki/rules:ro
       - loki_data:/loki
     depends_on:
-      - alertmanager
+      alertmanager:
+        condition: service_started
 
   promtail:
+    <<: *service-defaults
     image: grafana/promtail:3.2.1
     container_name: promtail
     command: -config.file=/etc/promtail/config.yml
@@ -21,33 +34,46 @@ services:
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
     depends_on:
-      - loki
+      loki:
+        condition: service_started
 
   alertmanager:
+    <<: *service-defaults
     image: prom/alertmanager:v0.28.1
     container_name: alertmanager
-    command:
-      - --config.file=/etc/alertmanager/config.yml
+    entrypoint: [ "/bin/sh", "/etc/alertmanager/entrypoint.sh" ]
+    command: [ "--storage.path=/alertmanager" ]
+    environment:
+      ALERTMANAGER_WEBHOOK_URL: ${ALERTMANAGER_WEBHOOK_URL:?ALERTMANAGER_WEBHOOK_URL is required}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     ports:
-      - "9093:9093"
+      - "${OBSERVABILITY_BIND_ADDRESS:-127.0.0.1}:9093:9093"
     volumes:
-      - ./alertmanager/config.yml:/etc/alertmanager/config.yml:ro
+      - ./alertmanager/config.yml:/etc/alertmanager/config.yml.template:ro
+      - ./alertmanager/entrypoint.sh:/etc/alertmanager/entrypoint.sh:ro
+      - alertmanager_data:/alertmanager
 
   grafana:
+    <<: *service-defaults
     image: grafana/grafana:11.2.0
     container_name: grafana
     ports:
-      - "3001:3000"
+      - "${OBSERVABILITY_BIND_ADDRESS:-127.0.0.1}:3001:3000"
     environment:
-      GF_SECURITY_ADMIN_USER: admin
-      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:?GRAFANA_ADMIN_USER is required}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?GRAFANA_ADMIN_PASSWORD is required}
+      GF_USERS_ALLOW_SIGN_UP: "false"
       GF_PATHS_PROVISIONING: /etc/grafana/provisioning
     volumes:
       - ./grafana/provisioning:/etc/grafana/provisioning:ro
       - ./grafana:/var/lib/grafana/dashboards:ro
     depends_on:
-      - loki
-      - alertmanager
+      loki:
+        condition: service_started
+      alertmanager:
+        condition: service_started
 
 volumes:
   loki_data:
+  alertmanager_data:
