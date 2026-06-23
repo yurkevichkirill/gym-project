@@ -130,7 +130,27 @@ jobs:
         run: php bin/console cache:clear --env=dev --no-interaction
 
       - name: Run PHPStan
-        run: vendor/bin/phpstan analyse --no-progress
+        id: phpstan
+        shell: bash
+        run: |
+          set +e
+          vendor/bin/phpstan analyse --no-progress --error-format=json > phpstan-result.json
+          status=$?
+          cat phpstan-result.json
+          echo "exit_code=$status" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Upload PHPStan report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: phpstan-report
+          path: symfony/phpstan-result.json
+          if-no-files-found: error
+
+      - name: Check PHPStan result
+        if: always()
+        run: exit "${{ steps.phpstan.outputs.exit_code }}"
 
       - name: Run PHPUnit
         run: php bin/phpunit
