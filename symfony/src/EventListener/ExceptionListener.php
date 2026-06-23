@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\EventListener;
 
+use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Psr\Log\LoggerInterface;
 use ReflectionClass;
 use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
@@ -30,6 +31,7 @@ final readonly class ExceptionListener
     {
         $exception = $event->getThrowable();
         $request = $event->getRequest();
+        $isUniqueConstraintViolation = $exception instanceof UniqueConstraintViolationException;
 
         $statusCode = 500;
         $headers = [];
@@ -37,6 +39,8 @@ final readonly class ExceptionListener
         if ($exception instanceof HttpExceptionInterface) {
             $statusCode = $exception->getStatusCode();
             $headers = $exception->getHeaders();
+        } elseif ($isUniqueConstraintViolation) {
+            $statusCode = 409;
         } else {
             $reflection = new ReflectionClass($exception);
             $attributes = $reflection->getAttributes(WithHttpStatus::class);
@@ -68,9 +72,13 @@ final readonly class ExceptionListener
         }
 
         $isDev = $this->kernel->getEnvironment() === 'dev';
-        $errorMessage = ($statusCode >= 500 && !$isDev)
-            ? 'Internal Server Error'
-            : $exception->getMessage();
+        if ($isUniqueConstraintViolation) {
+            $errorMessage = 'A resource with the same unique value already exists';
+        } else {
+            $errorMessage = ($statusCode >= 500 && !$isDev)
+                ? 'Internal Server Error'
+                : $exception->getMessage();
+        }
 
         $event->setResponse(
             new JsonResponse(
