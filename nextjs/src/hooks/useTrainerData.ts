@@ -1,11 +1,12 @@
 import {useEffect, useState} from "react";
-import type TrainerData from "@/types/trainer/public/trainer.type";
+import type {TrainerDetailsData} from "@/types/trainer/public/trainer.type";
 import type WorktimeData from "@/types/trainer/public/worktime.type";
 import {getTrainer} from "@/api/public/trainers.api";
 import {getWorktimes} from "@/api/public/worktime.api";
+import {getErrorMessage} from "@/lib/getErrorMessage";
 
 export const useTrainerData = (id: string) => {
-    const [trainer, setTrainer] = useState<TrainerData>();
+    const [trainer, setTrainer] = useState<TrainerDetailsData>();
     const [worktimes, setWorktimes] = useState<WorktimeData[]>([]);
     const [error, setError] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
@@ -22,9 +23,9 @@ export const useTrainerData = (id: string) => {
 
                 setTrainer(trainerData);
                 setWorktimes(worktimeData);
-            } catch (e) {
-                console.error(e);
-                setError(e instanceof Error ? e.message : "Something went wrong");
+            } catch (error: unknown) {
+                console.error(error);
+                setError(getErrorMessage(error));
             } finally {
                 setLoading(false);
             }
@@ -38,5 +39,5 @@ export const useTrainerData = (id: string) => {
         worktimes,
         loading,
         error,
-    }
-}
+    };
+};
