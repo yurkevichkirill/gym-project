@@ -3,6 +3,7 @@ import {useStore} from "@/store/StoreProvider";
 import {observer} from "mobx-react-lite";
 import {notify} from "@/lib/notify";
 import { BookingStatusEnum } from "@/types/booking/bookings-status.enum";
+import {getErrorMessage} from "@/lib/getErrorMessage";
 
 const statusColorMap: Record<string, string> = {
     scheduled: "bg-blue-100 text-blue-800",
@@ -24,7 +25,7 @@ type Props = {
     status: BookingStatusEnum,
 }
 
-const Booking = observer(({ id, trainerId, bookedAt, date, durationMinutes, startTime, status }: Props) => {
+const Booking = observer(({ id, date, durationMinutes, startTime, status }: Props) => {
     const { bookingStore } = useStore();
 
     const handleDelete = async () => {
@@ -40,15 +41,14 @@ const Booking = observer(({ id, trainerId, bookedAt, date, durationMinutes, star
                 "Your training has been removed",
                 toastId
             );
-
-        } catch (error: any) {
+        } catch (error: unknown) {
             notify.error(
                 "Cancellation failed",
-                error?.message || "Something went wrong",
+                getErrorMessage(error),
                 toastId,
             );
         }
-    }
+    };
 
     const badgeColors = statusColorMap[status] || "bg-gray-100 text-gray-800";
 
@@ -73,7 +73,7 @@ const Booking = observer(({ id, trainerId, bookedAt, date, durationMinutes, star
                     {status.replace(/_/g, ' ')}
                 </span>
             </motion.div>
-            
+
             {isScheduled && (
                 <button
                     className="rounded-b-2xl cursor-pointer bg-primary-300 px-10 hover:bg-primary-500 hover:text-white"
