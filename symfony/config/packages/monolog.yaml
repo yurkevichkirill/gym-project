@@ -59,7 +59,7 @@ when@prod:
                 path: php://stdout
                 level: info
                 formatter: monolog.formatter.json
-                channels: ["!event", "!doctrine", "!console", "!booking", "!payment", "!membership", "!security", "!stripe", "!client", "!request"]
+                channels: ["!event", "!doctrine", "!console", "!booking", "!payment", "!membership", "!worktime", "!security", "!stripe", "!client", "!request"]
 
             error:
                 type: stream
