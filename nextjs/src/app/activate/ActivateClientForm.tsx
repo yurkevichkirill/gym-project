@@ -1,6 +1,7 @@
 'use client';
 
-import {FormEvent, useMemo, useState} from "react";
+import {useMemo, useState} from "react";
+import type {FormEvent} from "react";
 import {useSearchParams} from "next/navigation";
 import {ApiClientError, apiPost} from "@/lib/apiClient";
 import {ApiItemResponse} from "@/types/api-item-response.type";
