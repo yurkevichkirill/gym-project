@@ -66,6 +66,7 @@ jobs:
 
     env:
       APP_ENV: test
+      APP_TIMEZONE: UTC
       APP_DEBUG: '0'
       APP_SECRET: ci-secret-not-for-production
       APP_SHARE_DIR: /tmp/gym-share
