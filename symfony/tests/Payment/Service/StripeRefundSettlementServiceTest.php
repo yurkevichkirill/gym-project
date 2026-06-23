@@ -76,6 +76,7 @@ final class StripeRefundSettlementServiceTest extends KernelTestCase
             $payment->getStripePaymentIntentId() ?? '',
             $payment->getAmount(),
         );
+        $this->entityManager->refresh($client);
 
         self::assertSame(500, $client->getBalance());
         self::assertSame(PaymentStatusEnum::REFUNDED, $payment->getStatus());
@@ -102,6 +103,7 @@ final class StripeRefundSettlementServiceTest extends KernelTestCase
         $this->service->handleChargeRefunded($intentId, 400);
         $this->service->handleChargeRefunded($intentId, 700);
         $this->service->handleChargeRefunded($intentId, 500);
+        $this->entityManager->refresh($client);
 
         self::assertSame(800, $client->getBalance());
         self::assertSame(PaymentStatusEnum::SUCCEEDED, $payment->getStatus());
@@ -124,6 +126,7 @@ final class StripeRefundSettlementServiceTest extends KernelTestCase
 
         $this->service->handleChargeRefunded($intentId, 400);
         $this->service->handleChargeRefunded($intentId, 1000);
+        $this->entityManager->refresh($client);
 
         self::assertSame(500, $client->getBalance());
         self::assertSame(PaymentStatusEnum::REFUNDED, $payment->getStatus());
@@ -147,6 +150,7 @@ final class StripeRefundSettlementServiceTest extends KernelTestCase
         self::assertSame(PaymentStatusEnum::CANCELED, $payment->getStatus());
 
         $this->service->handleSucceeded($intentId, $payment->getAmount());
+        $this->entityManager->refresh($client);
 
         self::assertSame(500, $client->getBalance());
         self::assertSame(PaymentStatusEnum::REFUNDED, $payment->getStatus());
