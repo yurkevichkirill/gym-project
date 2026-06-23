@@ -160,7 +160,18 @@ jobs:
         run: vendor/bin/phpstan analyse --no-progress
 
       - name: Run PHPUnit
-        run: php bin/phpunit
+        run: |
+          mkdir -p var/ci
+          set -o pipefail
+          php bin/phpunit 2>&1 | tee var/ci/phpunit.log
+
+      - name: Upload PHPUnit diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: phpunit-diagnostics
+          path: symfony/var/ci/phpunit.log
+          if-no-files-found: warn
 
   frontend:
     name: Frontend / Node 22
