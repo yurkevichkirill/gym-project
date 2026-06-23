@@ -19,13 +19,14 @@ final readonly class GetTrainersRequestDTO
         #[Assert\Positive]
         public ?int $trainingTypeId = null,
 
-        public string             $sort = 'lastName:ASC',
+        public string $sort = 'lastName:ASC',
 
         #[Assert\Positive]
-        public int                $page = 1,
+        public int $page = 1,
 
         #[Assert\Positive]
-        public int                $limit = 20,
+        #[Assert\LessThanOrEqual(100)]
+        public int $limit = 20,
     )
     {}
 }
