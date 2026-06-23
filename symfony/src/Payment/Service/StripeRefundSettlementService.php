@@ -41,8 +41,6 @@ final readonly class StripeRefundSettlementService
             function (Payment $lockedPayment): void {
                 if (in_array($lockedPayment->getStatus(), [
                     PaymentStatusEnum::SUCCEEDED,
-                    PaymentStatusEnum::CANCELED,
-                    PaymentStatusEnum::FAILED,
                     PaymentStatusEnum::REFUND_FAILED,
                 ], true)) {
                     $this->paymentLifecycleService->transitionTo(
@@ -121,26 +119,40 @@ final readonly class StripeRefundSettlementService
                     return;
                 }
 
-                if ($lockedPayment->getStatus() !== PaymentStatusEnum::REFUND_PENDING) {
-                    $this->paymentLogger->warning('payment.stripe_refund.failure_ignored', [
+                if ($lockedPayment->getStatus() === PaymentStatusEnum::REFUND_PENDING) {
+                    $this->paymentLifecycleService->transitionTo(
+                        $lockedPayment,
+                        PaymentStatusEnum::REFUND_FAILED,
+                    );
+
+                    $this->paymentLogger->critical('payment.stripe_refund.failed', [
                         'intent_id' => $intentId,
                         'payment_id' => $lockedPayment->getId(),
                         'current_status' => $lockedPayment->getStatus()->value,
+                        'action' => 'manual_reconciliation_required',
                     ]);
 
                     return;
                 }
 
-                $this->paymentLifecycleService->transitionTo(
-                    $lockedPayment,
-                    PaymentStatusEnum::REFUND_FAILED,
-                );
+                if (in_array($lockedPayment->getStatus(), [
+                    PaymentStatusEnum::CANCELED,
+                    PaymentStatusEnum::FAILED,
+                ], true)) {
+                    $this->paymentLogger->critical('payment.stripe_refund.reconciliation_failed', [
+                        'intent_id' => $intentId,
+                        'payment_id' => $lockedPayment->getId(),
+                        'current_status' => $lockedPayment->getStatus()->value,
+                        'action' => 'manual_reconciliation_required',
+                    ]);
 
-                $this->paymentLogger->critical('payment.stripe_refund.failed', [
+                    return;
+                }
+
+                $this->paymentLogger->warning('payment.stripe_refund.failure_ignored', [
                     'intent_id' => $intentId,
                     'payment_id' => $lockedPayment->getId(),
                     'current_status' => $lockedPayment->getStatus()->value,
-                    'action' => 'manual_reconciliation_required',
                 ]);
             },
         );
