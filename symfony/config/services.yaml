@@ -23,16 +23,6 @@ services:
         arguments:
             - '%env(resolve:REDIS_URL)%'
 
-    Gedmo\Mapping\Driver\AttributeReader: ~
-
-    Gedmo\SoftDeleteable\SoftDeleteableListener:
-        class: Gedmo\SoftDeleteable\SoftDeleteableListener
-        tags:
-            - { name: doctrine.event_listener, event: 'onFlush' }
-            - { name: doctrine.event_listener, event: 'loadClassMetadata' }
-        calls:
-            - [ setAnnotationReader, ['@Gedmo\Mapping\Driver\AttributeReader'] ]
-
     App\Payment\Service\StripeService:
         arguments:
             $stripeSecretKey: '%env(STRIPE_SECRET_KEY)%'
