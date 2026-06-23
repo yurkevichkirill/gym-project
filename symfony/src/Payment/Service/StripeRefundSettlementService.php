@@ -32,6 +32,28 @@ final readonly class StripeRefundSettlementService
         private LoggerInterface $paymentLogger,
     ) {}
 
+    public function markPending(string $intentId): void
+    {
+        $payment = $this->findPayment($intentId);
+
+        $this->paymentSettlementService->withLockedPayment(
+            $this->requirePaymentId($payment),
+            function (Payment $lockedPayment): void {
+                if (in_array($lockedPayment->getStatus(), [
+                    PaymentStatusEnum::SUCCEEDED,
+                    PaymentStatusEnum::CANCELED,
+                    PaymentStatusEnum::FAILED,
+                    PaymentStatusEnum::REFUND_FAILED,
+                ], true)) {
+                    $this->paymentLifecycleService->transitionTo(
+                        $lockedPayment,
+                        PaymentStatusEnum::REFUND_PENDING,
+                    );
+                }
+            },
+        );
+    }
+
     public function handleSucceeded(string $intentId, ?int $refundAmount = null): void
     {
         $payment = $this->findPayment($intentId);
@@ -92,12 +114,27 @@ final readonly class StripeRefundSettlementService
         $this->paymentSettlementService->withLockedPayment(
             $this->requirePaymentId($payment),
             function (Payment $lockedPayment) use ($intentId): void {
-                if ($lockedPayment->getStatus() === PaymentStatusEnum::REFUND_PENDING) {
-                    $this->paymentLifecycleService->transitionTo(
-                        $lockedPayment,
-                        PaymentStatusEnum::REFUND_FAILED,
-                    );
+                if (in_array($lockedPayment->getStatus(), [
+                    PaymentStatusEnum::REFUNDED,
+                    PaymentStatusEnum::REFUND_FAILED,
+                ], true)) {
+                    return;
                 }
+
+                if ($lockedPayment->getStatus() !== PaymentStatusEnum::REFUND_PENDING) {
+                    $this->paymentLogger->warning('payment.stripe_refund.failure_ignored', [
+                        'intent_id' => $intentId,
+                        'payment_id' => $lockedPayment->getId(),
+                        'current_status' => $lockedPayment->getStatus()->value,
+                    ]);
+
+                    return;
+                }
+
+                $this->paymentLifecycleService->transitionTo(
+                    $lockedPayment,
+                    PaymentStatusEnum::REFUND_FAILED,
+                );
 
                 $this->paymentLogger->critical('payment.stripe_refund.failed', [
                     'intent_id' => $intentId,
@@ -112,6 +149,10 @@ final readonly class StripeRefundSettlementService
     public function handleActionRequired(string $intentId): void
     {
         $payment = $this->findPayment($intentId);
+
+        if ($payment->getStatus() === PaymentStatusEnum::REFUNDED) {
+            return;
+        }
 
         $this->paymentLogger->critical('payment.stripe_refund.action_required', [
             'intent_id' => $intentId,
@@ -225,12 +266,21 @@ final readonly class StripeRefundSettlementService
             throw new UserNotFoundException('Payment client was not found');
         }
 
+        $trainer = null;
+        $trainerId = $payment->getTrainer()?->getId();
+        if ($trainerId !== null) {
+            $trainer = $this->findTrainerForUpdate($trainerId);
+            if ($trainer === null) {
+                throw new TrainerNotFoundException('Trainer for refunded payment was not found');
+            }
+        }
+
         $refundPayment = $this->paymentService->createPayment(
             $client,
             $payment->getAmount(),
             $payment->getCategory(),
             PaymentMethodEnum::CARD,
-            $payment->getTrainer(),
+            $trainer,
         );
 
         $refundPayment->setOriginalPayment($payment);
