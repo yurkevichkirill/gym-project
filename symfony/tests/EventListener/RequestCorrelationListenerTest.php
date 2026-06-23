@@ -47,7 +47,7 @@ final class RequestCorrelationListenerTest extends TestCase
     {
         $kernel = $this->createMock(HttpKernelInterface::class);
         $request = Request::create('/api/trainers/');
-        $request->headers->set('X-Request-Id', "invalid\nvalue");
+        $request->headers->set('X-Request-Id', 'invalid value with spaces');
         $listener = new RequestCorrelationListener();
 
         $listener->onKernelRequest(new RequestEvent(
