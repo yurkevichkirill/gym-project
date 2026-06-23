@@ -11,6 +11,7 @@ use App\Payment\Enum\PaymentMethodEnum;
 use App\Payment\Enum\PaymentStatusEnum;
 use App\Payment\Repository\PaymentRepository;
 use App\Payment\Service\StripeRefundSettlementService;
+use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
@@ -147,7 +148,7 @@ final class StripeRefundSettlementServiceTest extends KernelTestCase
         $intentId = $payment->getStripePaymentIntentId() ?? '';
 
         $this->service->markPending($intentId);
-        self::assertSame(PaymentStatusEnum::CANCELED, $payment->getStatus());
+        self::assertSame(PaymentStatusEnum::REFUND_PENDING, $payment->getStatus());
 
         $this->service->handleSucceeded($intentId, $payment->getAmount());
         $this->entityManager->refresh($client);
@@ -155,6 +156,23 @@ final class StripeRefundSettlementServiceTest extends KernelTestCase
         self::assertSame(500, $client->getBalance());
         self::assertSame(PaymentStatusEnum::REFUNDED, $payment->getStatus());
         self::assertNotNull($this->paymentRepository->findRefundForOriginalPayment($payment));
+    }
+
+    public function testFailedLatePaymentRefundRemainsVisibleInLifecycle(): void
+    {
+        $client = $this->persistClient(500);
+        $payment = $this->persistTopUpPayment(
+            $client,
+            'pi_failed_late_refund_' . bin2hex(random_bytes(4)),
+            PaymentStatusEnum::FAILED,
+        );
+        $intentId = $payment->getStripePaymentIntentId() ?? '';
+
+        $this->service->markPending($intentId);
+        $this->service->handleFailed($intentId);
+
+        self::assertSame(PaymentStatusEnum::REFUND_FAILED, $payment->getStatus());
+        self::assertSame(500, $client->getBalance());
     }
 
     private function persistClient(int $balance): Client
@@ -191,6 +209,14 @@ final class StripeRefundSettlementServiceTest extends KernelTestCase
         $payment->setCategory(PaymentCategoryEnum::BALANCE_TOP_UP);
         $payment->setStatus($status);
         $payment->setStripePaymentIntentId($intentId);
+
+        if (in_array($status, [
+            PaymentStatusEnum::SUCCEEDED,
+            PaymentStatusEnum::REFUND_PENDING,
+            PaymentStatusEnum::REFUND_FAILED,
+        ], true)) {
+            $payment->setPaidAt(new DateTimeImmutable());
+        }
 
         $this->entityManager->persist($payment);
         $this->entityManager->flush();
