@@ -29,6 +29,7 @@ final readonly class GetBookingsRequestDTO
 
         #[Assert\Type('integer')]
         #[Assert\GreaterThanOrEqual(30)]
+        #[Assert\LessThanOrEqual(1440)]
         #[MultipleOf(multiple: 30)]
         public ?int $durationMinutes = null,
 
@@ -38,6 +39,7 @@ final readonly class GetBookingsRequestDTO
         public int $page = 1,
 
         #[Assert\Positive]
+        #[Assert\LessThanOrEqual(100)]
         public int $limit = 20,
     ) {}
 }
