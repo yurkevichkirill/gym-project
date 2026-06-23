@@ -22,6 +22,22 @@ use Psr\Log\LoggerInterface;
 
 final readonly class StripeRefundSettlementService
 {
+    /** @var list<PaymentStatusEnum> */
+    private const array REFUNDABLE_STATUSES = [
+        PaymentStatusEnum::REFUND_PENDING,
+        PaymentStatusEnum::REFUND_FAILED,
+        PaymentStatusEnum::SUCCEEDED,
+        PaymentStatusEnum::CANCELED,
+        PaymentStatusEnum::FAILED,
+    ];
+
+    /** @var list<PaymentStatusEnum> */
+    private const array SETTLED_STATUSES = [
+        PaymentStatusEnum::REFUND_PENDING,
+        PaymentStatusEnum::REFUND_FAILED,
+        PaymentStatusEnum::SUCCEEDED,
+    ];
+
     public function __construct(
         private PaymentSettlementService $paymentSettlementService,
         private PaymentService $paymentService,
@@ -52,6 +68,40 @@ final readonly class StripeRefundSettlementService
         );
     }
 
+    public function handleChargeRefunded(string $intentId, int $cumulativeRefundAmount): void
+    {
+        $payment = $this->findPayment($intentId);
+
+        $this->paymentSettlementService->withLockedPayment(
+            $this->requirePaymentId($payment),
+            function (Payment $lockedPayment) use ($intentId, $cumulativeRefundAmount): void {
+                if ($cumulativeRefundAmount <= 0 || $cumulativeRefundAmount > $lockedPayment->getAmount()) {
+                    $this->paymentLogger->critical('payment.stripe_refund.invalid_amount', [
+                        'intent_id' => $intentId,
+                        'payment_id' => $lockedPayment->getId(),
+                        'payment_amount' => $lockedPayment->getAmount(),
+                        'refund_amount' => $cumulativeRefundAmount,
+                        'action' => 'manual_reconciliation_required',
+                    ]);
+
+                    return;
+                }
+
+                if ($cumulativeRefundAmount === $lockedPayment->getAmount()) {
+                    $this->settleFullRefund($lockedPayment, $intentId);
+
+                    return;
+                }
+
+                $this->settlePartialRefund(
+                    $lockedPayment,
+                    $intentId,
+                    $cumulativeRefundAmount,
+                );
+            },
+        );
+    }
+
     public function handleSucceeded(string $intentId, ?int $refundAmount = null): void
     {
         $payment = $this->findPayment($intentId);
@@ -59,48 +109,18 @@ final readonly class StripeRefundSettlementService
         $this->paymentSettlementService->withLockedPayment(
             $this->requirePaymentId($payment),
             function (Payment $lockedPayment) use ($intentId, $refundAmount): void {
-                if ($lockedPayment->getStatus() === PaymentStatusEnum::REFUNDED) {
-                    return;
-                }
-
-                if (!in_array($lockedPayment->getStatus(), [
-                    PaymentStatusEnum::REFUND_PENDING,
-                    PaymentStatusEnum::REFUND_FAILED,
-                    PaymentStatusEnum::SUCCEEDED,
-                    PaymentStatusEnum::CANCELED,
-                    PaymentStatusEnum::FAILED,
-                ], true)) {
-                    $this->paymentLogger->warning('payment.stripe_refund.ignored', [
-                        'intent_id' => $intentId,
-                        'payment_id' => $lockedPayment->getId(),
-                        'current_status' => $lockedPayment->getStatus()->value,
-                    ]);
-
-                    return;
-                }
-
                 if ($refundAmount !== null && $refundAmount !== $lockedPayment->getAmount()) {
-                    $this->paymentLogger->critical('payment.stripe_refund.partial_unsupported', [
+                    $this->paymentLogger->warning('payment.stripe_refund.awaiting_charge_event', [
                         'intent_id' => $intentId,
                         'payment_id' => $lockedPayment->getId(),
                         'payment_amount' => $lockedPayment->getAmount(),
                         'refund_amount' => $refundAmount,
-                        'action' => 'manual_reconciliation_required',
                     ]);
 
                     return;
                 }
 
-                if (in_array($lockedPayment->getStatus(), [
-                    PaymentStatusEnum::REFUND_PENDING,
-                    PaymentStatusEnum::REFUND_FAILED,
-                    PaymentStatusEnum::SUCCEEDED,
-                ], true)) {
-                    $this->reverseSettledPaymentEffects($lockedPayment);
-                }
-
-                $this->createRefundPaymentRecord($lockedPayment);
-                $this->paymentLifecycleService->transitionTo($lockedPayment, PaymentStatusEnum::REFUNDED);
+                $this->settleFullRefund($lockedPayment, $intentId);
             },
         );
     }
@@ -197,10 +217,111 @@ final readonly class StripeRefundSettlementService
         ]);
     }
 
-    private function reverseSettledPaymentEffects(Payment $payment): void
+    private function settleFullRefund(Payment $payment, string $intentId): void
+    {
+        if ($payment->getStatus() === PaymentStatusEnum::REFUNDED) {
+            return;
+        }
+
+        if (!in_array($payment->getStatus(), self::REFUNDABLE_STATUSES, true)) {
+            $this->paymentLogger->warning('payment.stripe_refund.ignored', [
+                'intent_id' => $intentId,
+                'payment_id' => $payment->getId(),
+                'current_status' => $payment->getStatus()->value,
+            ]);
+
+            return;
+        }
+
+        $refundPayment = $this->paymentRepository->findRefundForOriginalPayment($payment);
+        $alreadyRefundedAmount = $refundPayment?->getAmount() ?? 0;
+
+        if ($alreadyRefundedAmount > $payment->getAmount()) {
+            $this->paymentLogger->critical('payment.stripe_refund.record_exceeds_payment', [
+                'intent_id' => $intentId,
+                'payment_id' => $payment->getId(),
+                'payment_amount' => $payment->getAmount(),
+                'recorded_refund_amount' => $alreadyRefundedAmount,
+                'action' => 'manual_reconciliation_required',
+            ]);
+
+            return;
+        }
+
+        if (in_array($payment->getStatus(), self::SETTLED_STATUSES, true)) {
+            $this->reverseSettledPaymentEffects($payment, $alreadyRefundedAmount);
+        }
+
+        $this->upsertRefundPaymentRecord($payment, $payment->getAmount());
+        $this->paymentLifecycleService->transitionTo($payment, PaymentStatusEnum::REFUNDED);
+    }
+
+    private function settlePartialRefund(
+        Payment $payment,
+        string $intentId,
+        int $cumulativeRefundAmount,
+    ): void {
+        if ($payment->getStatus() === PaymentStatusEnum::REFUNDED) {
+            return;
+        }
+
+        if (!in_array($payment->getStatus(), self::REFUNDABLE_STATUSES, true)) {
+            $this->paymentLogger->warning('payment.stripe_refund.partial_ignored', [
+                'intent_id' => $intentId,
+                'payment_id' => $payment->getId(),
+                'current_status' => $payment->getStatus()->value,
+                'refund_amount' => $cumulativeRefundAmount,
+            ]);
+
+            return;
+        }
+
+        $refundPayment = $this->paymentRepository->findRefundForOriginalPayment($payment);
+        $alreadyRefundedAmount = $refundPayment?->getAmount() ?? 0;
+
+        if ($cumulativeRefundAmount <= $alreadyRefundedAmount) {
+            if ($cumulativeRefundAmount < $alreadyRefundedAmount) {
+                $this->paymentLogger->warning('payment.stripe_refund.out_of_order_amount', [
+                    'intent_id' => $intentId,
+                    'payment_id' => $payment->getId(),
+                    'recorded_refund_amount' => $alreadyRefundedAmount,
+                    'received_refund_amount' => $cumulativeRefundAmount,
+                ]);
+            }
+
+            return;
+        }
+
+        $refundDelta = $cumulativeRefundAmount - $alreadyRefundedAmount;
+
+        if (
+            $payment->getCategory() === PaymentCategoryEnum::BALANCE_TOP_UP
+            && in_array($payment->getStatus(), self::SETTLED_STATUSES, true)
+        ) {
+            $this->reverseTopUpCredit($payment, $refundDelta);
+        }
+
+        $this->upsertRefundPaymentRecord($payment, $cumulativeRefundAmount);
+
+        $this->paymentLogger->critical('payment.stripe_refund.partial_recorded', [
+            'intent_id' => $intentId,
+            'payment_id' => $payment->getId(),
+            'payment_amount' => $payment->getAmount(),
+            'refund_amount' => $cumulativeRefundAmount,
+            'refund_delta' => $refundDelta,
+            'action' => $payment->getCategory() === PaymentCategoryEnum::BALANCE_TOP_UP
+                ? 'client_credit_reversed'
+                : 'manual_business_effect_reconciliation_required',
+        ]);
+    }
+
+    private function reverseSettledPaymentEffects(Payment $payment, int $alreadyRefundedAmount): void
     {
         if ($payment->getCategory() === PaymentCategoryEnum::BALANCE_TOP_UP) {
-            $this->reverseTopUpCredit($payment);
+            $remainingAmount = $payment->getAmount() - $alreadyRefundedAmount;
+            if ($remainingAmount > 0) {
+                $this->reverseTopUpCredit($payment, $remainingAmount);
+            }
         } else {
             $this->reverseTrainerPayout($payment);
         }
@@ -232,7 +353,7 @@ final readonly class StripeRefundSettlementService
         }
     }
 
-    private function reverseTopUpCredit(Payment $payment): void
+    private function reverseTopUpCredit(Payment $payment, int $amount): void
     {
         $clientId = $payment->getClient()?->getId();
         if ($clientId === null) {
@@ -244,7 +365,7 @@ final readonly class StripeRefundSettlementService
             throw new UserNotFoundException('Payment client was not found');
         }
 
-        $this->balanceService->reverseClientCredit($client, $payment->getAmount());
+        $this->balanceService->reverseClientCredit($client, $amount);
     }
 
     private function reverseTrainerPayout(Payment $payment): void
@@ -262,9 +383,12 @@ final readonly class StripeRefundSettlementService
         $this->balanceService->chargeTrainer($trainer, $payment->getAmount());
     }
 
-    private function createRefundPaymentRecord(Payment $payment): void
+    private function upsertRefundPaymentRecord(Payment $payment, int $refundAmount): void
     {
-        if ($this->paymentRepository->findRefundForOriginalPayment($payment) !== null) {
+        $refundPayment = $this->paymentRepository->findRefundForOriginalPayment($payment);
+        if ($refundPayment !== null) {
+            $refundPayment->setAmount($refundAmount);
+
             return;
         }
 
@@ -289,7 +413,7 @@ final readonly class StripeRefundSettlementService
 
         $refundPayment = $this->paymentService->createPayment(
             $client,
-            $payment->getAmount(),
+            $refundAmount,
             $payment->getCategory(),
             PaymentMethodEnum::CARD,
             $trainer,
