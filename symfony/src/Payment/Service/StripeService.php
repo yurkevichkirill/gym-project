@@ -7,13 +7,18 @@ namespace App\Payment\Service;
 use App\Payment\Entity\Payment;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
+use Stripe\ApiRequestor;
 use Stripe\Exception\ApiErrorException;
+use Stripe\HttpClient\CurlClient;
 use Stripe\StripeClient;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Throwable;
 
 final readonly class StripeService
 {
+    private const int REQUEST_TIMEOUT_SECONDS = 15;
+    private const int CONNECT_TIMEOUT_SECONDS = 5;
+
     private StripeClient $stripe;
 
     public function __construct(
@@ -21,6 +26,11 @@ final readonly class StripeService
         private EntityManagerInterface $em,
         private LoggerInterface $stripeLogger,
     ) {
+        $httpClient = new CurlClient();
+        $httpClient->setTimeout(self::REQUEST_TIMEOUT_SECONDS);
+        $httpClient->setConnectTimeout(self::CONNECT_TIMEOUT_SECONDS);
+        ApiRequestor::setHttpClient($httpClient);
+
         $this->stripe = new StripeClient([
             'api_key' => $stripeSecretKey,
             'max_network_retries' => 2,
@@ -62,7 +72,6 @@ final readonly class StripeService
             }
 
             return $intent->client_secret;
-
         } catch (Throwable $e) {
             $this->stripeLogger->error('stripe.intent.failed', [
                 'payment_id' => $payment->getId(),
@@ -80,8 +89,7 @@ final readonly class StripeService
     public function cancelPaymentIntent(
         string $intentId,
         ?string $idempotencyKey = null,
-    ): void
-    {
+    ): void {
         $options = [];
 
         if ($idempotencyKey !== null) {

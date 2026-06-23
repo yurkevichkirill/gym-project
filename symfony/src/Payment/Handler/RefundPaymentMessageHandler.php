@@ -5,18 +5,19 @@ declare(strict_types=1);
 namespace App\Payment\Handler;
 
 use App\Payment\Message\RefundPaymentMessage;
-use App\Payment\Service\PaymentSettlementService;
+use App\Payment\Service\StripeRefundSettlementService;
 use App\Payment\Service\StripeService;
 use Stripe\Exception\ApiErrorException;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 use Throwable;
+use UnexpectedValueException;
 
 #[AsMessageHandler]
 final readonly class RefundPaymentMessageHandler
 {
     public function __construct(
         private StripeService $stripeService,
-        private PaymentSettlementService $paymentSettlementService,
+        private StripeRefundSettlementService $stripeRefundSettlementService,
     ) {}
 
     /**
@@ -25,17 +26,40 @@ final readonly class RefundPaymentMessageHandler
      */
     public function __invoke(RefundPaymentMessage $message): void
     {
+        $this->stripeRefundSettlementService->markPending($message->intentId);
+
         $idempotencyKey = 'reconcile_refund_' . $message->paymentId;
 
         $refundStatus = $this->stripeService->refundPaymentIntent(
             $message->intentId,
-            $idempotencyKey
+            $idempotencyKey,
         );
 
         if ($refundStatus === 'succeeded') {
-            $this->paymentSettlementService->handleStripeRefundSucceeded($message->intentId);
-        } elseif ($refundStatus === 'failed') {
-            $this->paymentSettlementService->handleStripeRefundFailed($message->intentId);
+            $this->stripeRefundSettlementService->handleSucceeded($message->intentId);
+
+            return;
         }
+
+        if (in_array($refundStatus, ['failed', 'canceled'], true)) {
+            $this->stripeRefundSettlementService->handleFailed($message->intentId);
+
+            return;
+        }
+
+        if ($refundStatus === 'requires_action') {
+            $this->stripeRefundSettlementService->handleActionRequired($message->intentId);
+
+            return;
+        }
+
+        if ($refundStatus === 'pending') {
+            return;
+        }
+
+        throw new UnexpectedValueException(sprintf(
+            'Unexpected Stripe refund status "%s"',
+            $refundStatus ?? 'null',
+        ));
     }
 }

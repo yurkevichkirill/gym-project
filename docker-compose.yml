@@ -108,7 +108,7 @@ services:
    restart: always
    working_dir: /var/www
    command: >
-     php bin/console messenger:consume async client_outbox
+     php bin/console messenger:consume async client_outbox cache_outbox
      --time-limit=3600
      --memory-limit=256M
      --limit=1000
@@ -125,6 +125,7 @@ services:
    depends_on:
      - rabbitmq
      - postgres
+     - redis
      - mailpit
    networks:
      - app-network

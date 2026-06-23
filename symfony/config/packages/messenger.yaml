@@ -15,12 +15,23 @@ framework:
                     multiplier: 2
                     max_delay: 60000
 
-
             payment_outbox:
                 dsn: 'doctrine://default'
                 options:
                     table_name: messenger_messages
                     queue_name: payments
+                    auto_setup: false
+                retry_strategy:
+                    max_retries: 10
+                    delay: 1000
+                    multiplier: 2
+                    max_delay: 60000
+
+            cache_outbox:
+                dsn: 'doctrine://default'
+                options:
+                    table_name: messenger_messages
+                    queue_name: cache_invalidation
                     auto_setup: false
                 retry_strategy:
                     max_retries: 10
@@ -93,6 +104,7 @@ when@test:
             transports:
                 client_outbox: 'in-memory://'
                 payment_outbox: 'in-memory://'
+                cache_outbox: 'in-memory://'
                 async: 'in-memory://'
                 analytics: 'in-memory://'
                 failed: 'in-memory://'
