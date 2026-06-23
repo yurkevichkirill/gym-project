@@ -19,6 +19,7 @@ security:
             jwt: ~
 
     access_control:
+        - { path: ^/api/coffee/?$, roles: ROLE_ADMIN }
         - { path: ^/api/membership/plans, methods: [ GET ], roles: PUBLIC_ACCESS }
         - { path: ^/api/trainers, methods: [ GET ], roles: PUBLIC_ACCESS }
         - { path: ^/api/trainers/[^/]+/worktime, methods: [ GET ], roles: PUBLIC_ACCESS }
