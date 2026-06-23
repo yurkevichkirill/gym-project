@@ -13,12 +13,13 @@ import { observer } from "mobx-react-lite";
 import { usePathname, useRouter } from "next/navigation";
 import { notify } from "@/lib/notify";
 import dynamic from "next/dynamic";
+import { getErrorMessage } from "@/lib/getErrorMessage";
 
-const LoginModal = dynamic(() => import("@/scenes/authorization"), { 
-    ssr: false 
+const LoginModal = dynamic(() => import("@/scenes/authorization"), {
+    ssr: false
 });
-const RegisterModal = dynamic(() => import("../registration"), { 
-    ssr: false 
+const RegisterModal = dynamic(() => import("../registration"), {
+    ssr: false
 });
 
 const Navbar = observer(() => {
@@ -31,10 +32,10 @@ const Navbar = observer(() => {
     const [isMenuToggled, setIsMenuToggled] = useState<boolean>(false);
     const isAboveMediumScreens = useMediaQuery("(min-width: 1250px)");
     const navbarBackground = isTopOfPage ? "bg-gray-20" : "bg-primary-100 drop-shadow";
-    
+
     const [isLoginOpen, setIsLoginOpen] = useState(false);
     const [isRegisterOpen, setIsRegisterOpen] = useState(false);
-    
+
     const { authStore } = useStore();
 
     const handleLogout = async () => {
@@ -46,10 +47,10 @@ const Navbar = observer(() => {
             await authStore.logout();
             router.push("/");
             notify.success("Logged out", "Log in to continue", toastId);
-        } catch (error: any) {
-            notify.error("Logout failed", error?.message || "Something went wrong", toastId);
+        } catch (error: unknown) {
+            notify.error("Logout failed", getErrorMessage(error), toastId);
         }
-    }
+    };
 
     useEffect(() => {
         if (!isLoginOpen && !isRegisterOpen) return;
@@ -108,8 +109,8 @@ const Navbar = observer(() => {
                                     <button className="hover:text-secondary-500 cursor-pointer" type="button" onClick={() => setIsLoginOpen(true)}>
                                         Sign In
                                     </button>
-                                    
-                                    <button 
+
+                                    <button
                                         className="rounded-md cursor-pointer bg-secondary-500 px-10 py-2 hover:bg-primary-500 hover:text-white transition duration-300"
                                         type="button"
                                         onClick={() => setIsRegisterOpen(true)}
@@ -161,8 +162,8 @@ const Navbar = observer(() => {
                             </Link>
                             <button
                                 className="cursor-pointer text-left transition duration-500 hover:text-primary-300"
-                                type="button" 
-                                onClick={() => { handleLogout(); setIsMenuToggled(false); }}
+                                type="button"
+                                onClick={() => { void handleLogout(); setIsMenuToggled(false); }}
                             >
                                 Logout
                             </button>
@@ -171,21 +172,21 @@ const Navbar = observer(() => {
                         <>
                             <button
                                 className="cursor-pointer text-left transition duration-500 hover:text-primary-300"
-                                type="button" 
+                                type="button"
                                 onClick={() => { setIsLoginOpen(true); setIsMenuToggled(false); }}
                             >
                                 Sign In
                             </button>
                             <button
                                 className="cursor-pointer text-left transition duration-500 text-secondary-500 font-bold hover:text-primary-300"
-                                type="button" 
+                                type="button"
                                 onClick={() => { setIsRegisterOpen(true); setIsMenuToggled(false); }}
                             >
                                 Become a member
                             </button>
                         </>
                     }
-                    
+
                     <NavLink page="Home" selectedPage={selectedPage} setSelectedPage={setSelectedPage} />
                     <NavLink page="Our Trainers" selectedPage={selectedPage} setSelectedPage={setSelectedPage} />
                     <NavLink page="Memberships" selectedPage={selectedPage} setSelectedPage={setSelectedPage} />
@@ -195,9 +196,9 @@ const Navbar = observer(() => {
         )}
 
         <LoginModal isOpen={isLoginOpen} onClose={() => setIsLoginOpen(false)} />
-        <RegisterModal 
-            isOpen={isRegisterOpen} 
-            onClose={() => setIsRegisterOpen(false)} 
+        <RegisterModal
+            isOpen={isRegisterOpen}
+            onClose={() => setIsRegisterOpen(false)}
             onSwitchToLogin={() => setIsLoginOpen(true)}
         />
     </nav>

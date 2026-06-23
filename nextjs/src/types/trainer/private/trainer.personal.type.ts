@@ -1,5 +1,3 @@
 import {User} from "@/types/auth.type";
 
-export interface TrainerPersonalType extends User {
-
-}
+export type TrainerPersonalType = User;

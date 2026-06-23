@@ -7,6 +7,13 @@ import HText from "@/shared/HText";
 import ContactUsPageGraphic from "@/assets/ContactUsPageGraphic.png";
 import Image from "next/image";
 import {useNavigation} from "@/context/navigation-context";
+import type {FormEvent} from "react";
+
+interface ContactFormData {
+    name: string;
+    email: string;
+    message: string;
+}
 
 const ContactUs = () => {
     const { setSelectedPage } = useNavigation();
@@ -16,14 +23,16 @@ const ContactUs = () => {
         register,
         trigger,
         formState: { errors }
-    } = useForm();
+    } = useForm<ContactFormData>();
 
-    const onSubmit = async (e: any) => {
-        const isValid = await trigger();
-        if (!isValid) {
-            e.preventDefault()
+    const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
+        const form = event.currentTarget;
+        event.preventDefault();
+
+        if (await trigger()) {
+            form.submit();
         }
-    }
+    };
 
     return <section id="contactus" className="mx-auto w-5/6 pt-24 pb-32">
         <motion.div onViewportEnter={() => setSelectedPage(SelectedPage.ContactUs)}>
@@ -42,7 +51,7 @@ const ContactUs = () => {
                 <HText>
                     <span className="text-primary-500">JOIN NOW</span>
                     <p className="my-5">
-                        Join thousands of warriors who've shattered their limits.
+                        Join thousands of warriors who’ve shattered their limits.
                         Enter your info below to unlock elite training programs,
                         savage classes, and personalized coaching that delivers
                         unbreakable results. No weakness tolerated. Transformation starts now.
@@ -149,6 +158,6 @@ const ContactUs = () => {
             </div>
         </motion.div>
     </section>
-}
+};
 
 export default ContactUs;

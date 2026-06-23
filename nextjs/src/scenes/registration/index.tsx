@@ -7,6 +7,8 @@ import { AnimatePresence, motion } from "framer-motion";
 import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/solid";
 import { useState } from "react";
 import { notify } from "@/lib/notify";
+import { ApiClientError } from "@/lib/apiClient";
+import { getErrorMessage } from "@/lib/getErrorMessage";
 
 interface RegisterFormData {
     firstName: string;
@@ -22,6 +24,20 @@ interface RegisterModalProps {
     onClose: () => void;
     onSwitchToLogin?: () => void;
 }
+
+const registerFieldNames = new Set<keyof RegisterFormData>([
+    "firstName",
+    "lastName",
+    "email",
+    "phone",
+    "age",
+    "password",
+]);
+
+const isRegisterField = (value: unknown): value is keyof RegisterFormData => {
+    return typeof value === "string"
+        && registerFieldNames.has(value as keyof RegisterFormData);
+};
 
 const RegisterModal = ({ isOpen, onClose, onSwitchToLogin }: RegisterModalProps) => {
     const { authStore } = useStore();
@@ -50,24 +66,35 @@ const RegisterModal = ({ isOpen, onClose, onSwitchToLogin }: RegisterModalProps)
                 "Account created successfully. You can now log in.",
                 toastId,
             );
-            
+
             if (onSwitchToLogin) onSwitchToLogin();
-        } catch (error: any) {
-            if (error.response?.status === 422 && error.response?.data?.violations) {
-                error.response.data.violations.forEach((violation: any) => {
-                    setError(violation.propertyPath as keyof RegisterFormData, {
+        } catch (error: unknown) {
+            let fieldErrorWasApplied = false;
+
+            if (error instanceof ApiClientError && error.status === 422) {
+                for (const violation of error.payload.violations ?? []) {
+                    if (!isRegisterField(violation.propertyPath)) {
+                        continue;
+                    }
+
+                    setError(violation.propertyPath, {
                         type: "server",
-                        message: violation.title || "Invalid value."
+                        message: violation.title || violation.message || "Invalid value.",
                     });
-                });
-                notify.dismiss(toastId);
-            } else {
-                notify.error(
-                    "Registration failed",
-                    error?.message || "Something went wrong",
-                    toastId,
-                );
+                    fieldErrorWasApplied = true;
+                }
             }
+
+            if (fieldErrorWasApplied) {
+                notify.dismiss(toastId);
+                return;
+            }
+
+            notify.error(
+                "Registration failed",
+                getErrorMessage(error),
+                toastId,
+            );
         }
     };
 
@@ -98,7 +125,7 @@ const RegisterModal = ({ isOpen, onClose, onSwitchToLogin }: RegisterModalProps)
                         <div className="h-[1px] bg-gray-100 mb-2"></div>
 
                         <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-3">
-                            
+
                             {/* First Name & Last Name */}
                             <div className="grid grid-cols-2 gap-2">
                                 <div className={`border rounded ${errors.firstName ? "border-primary-500" : "border-secondary-500"}`}>
@@ -149,7 +176,7 @@ const RegisterModal = ({ isOpen, onClose, onSwitchToLogin }: RegisterModalProps)
                                     <input
                                         type="text"
                                         placeholder="Phone (e.g. +1234567)"
-                                        {...register("phone", { 
+                                        {...register("phone", {
                                             required: "Phone is required.",
                                             pattern: {
                                                 value: /^\+?[1-9]\d{4,14}$/,
@@ -163,8 +190,8 @@ const RegisterModal = ({ isOpen, onClose, onSwitchToLogin }: RegisterModalProps)
                                     <input
                                         type="number"
                                         placeholder="Age"
-                                        {...register("age", { 
-                                            required: "Required.", 
+                                        {...register("age", {
+                                            required: "Required.",
                                             valueAsNumber: true,
                                             min: { value: 1, message: "Must be positive." }
                                         })}
@@ -185,7 +212,7 @@ const RegisterModal = ({ isOpen, onClose, onSwitchToLogin }: RegisterModalProps)
                                     placeholder="Password"
                                     {...register("password", {
                                         required: "Password is required.",
-                                        minLength: { value: 8, message: "Password should be at least 8 chars long." }, // Пре-валидация для PasswordStrength
+                                        minLength: { value: 8, message: "Password should be at least 8 chars long." },
                                         maxLength: { value: 100, message: "Max length is 100 char." }
                                     })}
                                     className="m-2 outline-none w-full bg-transparent"
@@ -208,8 +235,8 @@ const RegisterModal = ({ isOpen, onClose, onSwitchToLogin }: RegisterModalProps)
                             <button
                                 type="submit"
                                 className={`rounded-md px-10 py-2 cursor-pointer ${
-                                    Object.keys(errors).length > 0 
-                                        ? "text-gray-400" 
+                                    Object.keys(errors).length > 0
+                                        ? "text-gray-400"
                                         : "bg-secondary-500 hover:bg-primary-500 hover:text-white"
                                 }`}
                                 disabled={authStore.isLoading}

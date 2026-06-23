@@ -1,4 +1,3 @@
-import type {JSX} from "react";
 import {StaticImageData} from "next/image";
 
 export const SelectedPage = {

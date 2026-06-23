@@ -8,5 +8,9 @@ export default interface TrainerData {
     pricePerHour: number,
     education: string | null,
     about: string | null,
-    photoPath: string,
+    photoPath: string | null,
+}
+
+export interface TrainerDetailsData extends TrainerData {
+    photoUrl: string;
 }

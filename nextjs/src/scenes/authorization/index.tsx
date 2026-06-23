@@ -7,6 +7,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/solid";
 import { useState } from "react";
 import { notify } from "@/lib/notify";
+import { getErrorMessage } from "@/lib/getErrorMessage";
 
 interface FormData {
     email: string;
@@ -42,10 +43,10 @@ const LoginModal = ({
                 `User ${res.data.user} signed in`,
                 toastId,
             );
-        } catch (error: any) {
+        } catch (error: unknown) {
             notify.error(
                 "Logging failed",
-                error?.message || "Something went wrong",
+                getErrorMessage(error),
                 toastId,
             );
         }

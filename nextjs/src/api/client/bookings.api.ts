@@ -12,7 +12,7 @@ export const getMyBookings = async (
 
     if (params) {
         const cleanParams = Object.fromEntries(
-            Object.entries(params).filter(([_, value]) => value !== undefined && value !== null)
+            Object.entries(params).filter(([, value]) => value !== undefined && value !== null)
         );
 
         const stringParams = Object.fromEntries(
@@ -25,13 +25,13 @@ export const getMyBookings = async (
     const data = await apiGet<ApiCollectionResponse<BookingType[]>>(url);
 
     return data.data;
-}
+};
 
 export const getBooking = async (id: number): Promise<BookingType> => {
     const data = await apiGet<ApiItemResponse<BookingType>>(`/me/bookings/${id}/`);
 
     return data.data;
-}
+};
 
 export const createBooking = async ({ trainerId, date, durationMinutes, startTime }: BookingCreateType): Promise<BookingType> => {
     const data = await apiPost<ApiItemResponse<BookingType>, BookingCreateType>('/me/bookings/', {
@@ -42,8 +42,8 @@ export const createBooking = async ({ trainerId, date, durationMinutes, startTim
     });
 
     return data.data;
-}
+};
 
 export const cancelBooking = async (id: number) => {
     return apiPost<null>(`/me/bookings/${id}/cancel/`);
-}
+};
