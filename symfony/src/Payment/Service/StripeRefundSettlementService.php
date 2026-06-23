@@ -16,7 +16,6 @@ use App\Payment\Repository\PaymentRepository;
 use App\Trainer\Entity\Trainer;
 use App\Trainer\Exception\TrainerNotFoundException;
 use App\User\Exception\UserNotFoundException;
-use Doctrine\DBAL\LockMode;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
 
@@ -293,12 +292,14 @@ final readonly class StripeRefundSettlementService
         }
 
         $refundDelta = $cumulativeRefundAmount - $alreadyRefundedAmount;
+        $clientCreditReversed = false;
 
         if (
             $payment->getCategory() === PaymentCategoryEnum::BALANCE_TOP_UP
             && in_array($payment->getStatus(), self::SETTLED_STATUSES, true)
         ) {
             $this->reverseTopUpCredit($payment, $refundDelta);
+            $clientCreditReversed = true;
         }
 
         $this->upsertRefundPaymentRecord($payment, $cumulativeRefundAmount);
@@ -309,7 +310,7 @@ final readonly class StripeRefundSettlementService
             'payment_amount' => $payment->getAmount(),
             'refund_amount' => $cumulativeRefundAmount,
             'refund_delta' => $refundDelta,
-            'action' => $payment->getCategory() === PaymentCategoryEnum::BALANCE_TOP_UP
+            'action' => $clientCreditReversed
                 ? 'client_credit_reversed'
                 : 'manual_business_effect_reconciliation_required',
         ]);
@@ -458,11 +459,18 @@ final readonly class StripeRefundSettlementService
         }
 
         try {
-            $client = $this->entityManager->find(
-                Client::class,
-                $clientId,
-                LockMode::PESSIMISTIC_WRITE,
-            );
+            $row = $this->entityManager->getConnection()
+                ->executeQuery(
+                    'SELECT id FROM "user" WHERE id = :id FOR UPDATE',
+                    ['id' => $clientId],
+                )
+                ->fetchAssociative();
+
+            if ($row === false) {
+                return null;
+            }
+
+            $client = $this->entityManager->find(Client::class, $clientId);
 
             return $client instanceof Client ? $client : null;
         } finally {
@@ -482,11 +490,18 @@ final readonly class StripeRefundSettlementService
         }
 
         try {
-            $trainer = $this->entityManager->find(
-                Trainer::class,
-                $trainerId,
-                LockMode::PESSIMISTIC_WRITE,
-            );
+            $row = $this->entityManager->getConnection()
+                ->executeQuery(
+                    'SELECT id FROM "user" WHERE id = :id FOR UPDATE',
+                    ['id' => $trainerId],
+                )
+                ->fetchAssociative();
+
+            if ($row === false) {
+                return null;
+            }
+
+            $trainer = $this->entityManager->find(Trainer::class, $trainerId);
 
             return $trainer instanceof Trainer ? $trainer : null;
         } finally {
