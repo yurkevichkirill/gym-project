@@ -130,52 +130,10 @@ jobs:
         run: php bin/console cache:clear --env=dev --no-interaction
 
       - name: Run PHPStan
-        id: phpstan
-        shell: bash
-        run: |
-          set +e
-          vendor/bin/phpstan analyse --no-progress --error-format=json > phpstan-result.json
-          status=$?
-          cat phpstan-result.json
-          echo "exit_code=$status" >> "$GITHUB_OUTPUT"
-          exit 0
-
-      - name: Upload PHPStan report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: phpstan-report
-          path: symfony/phpstan-result.json
-          if-no-files-found: error
-
-      - name: Check PHPStan result
-        if: always()
-        run: exit "${{ steps.phpstan.outputs.exit_code }}"
+        run: vendor/bin/phpstan analyse --no-progress
 
       - name: Run PHPUnit
-        id: phpunit
-        shell: bash
-        run: |
-          set +e
-          php bin/phpunit --log-junit phpunit-result.xml > phpunit-output.txt 2>&1
-          status=$?
-          cat phpunit-output.txt
-          echo "exit_code=$status" >> "$GITHUB_OUTPUT"
-          exit 0
-
-      - name: Upload PHPUnit report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: phpunit-report
-          path: |
-            symfony/phpunit-output.txt
-            symfony/phpunit-result.xml
-          if-no-files-found: error
-
-      - name: Check PHPUnit result
-        if: always()
-        run: exit "${{ steps.phpunit.outputs.exit_code }}"
+        run: php bin/phpunit
 
   frontend:
     name: Frontend / Node 22
