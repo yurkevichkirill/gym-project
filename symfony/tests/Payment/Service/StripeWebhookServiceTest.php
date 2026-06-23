@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\Payment\Service;
 
 use App\Payment\Service\PaymentSettlementService;
+use App\Payment\Service\StripeRefundSettlementService;
 use App\Payment\Service\StripeWebhookService;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\AbstractLogger;
@@ -17,8 +18,14 @@ final class StripeWebhookServiceTest extends TestCase
     public function testPaymentFailedEventKeepsLocalPaymentPending(): void
     {
         $settlementService = (new ReflectionClass(PaymentSettlementService::class))->newInstanceWithoutConstructor();
+        $refundSettlementService = (new ReflectionClass(StripeRefundSettlementService::class))->newInstanceWithoutConstructor();
         $logger = new InMemoryLogger();
-        $webhookService = new StripeWebhookService('unused', $settlementService, $logger);
+        $webhookService = new StripeWebhookService(
+            'unused',
+            $settlementService,
+            $refundSettlementService,
+            $logger,
+        );
 
         $this->handleEvent($webhookService, Event::constructFrom([
             'id' => 'evt_payment_failed',
