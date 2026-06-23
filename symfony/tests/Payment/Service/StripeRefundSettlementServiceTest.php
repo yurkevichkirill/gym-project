@@ -88,7 +88,7 @@ final class StripeRefundSettlementServiceTest extends KernelTestCase
         self::assertSame(PaymentStatusEnum::SUCCEEDED, $refundPayment->getStatus());
     }
 
-    public function testPartialRefundDoesNotMarkWholePaymentAsRefunded(): void
+    public function testCumulativePartialTopUpRefundOnlyReversesNewAmount(): void
     {
         $client = $this->persistClient(1500);
         $payment = $this->persistTopUpPayment(
@@ -96,15 +96,41 @@ final class StripeRefundSettlementServiceTest extends KernelTestCase
             'pi_partial_top_up_refund_' . bin2hex(random_bytes(4)),
             PaymentStatusEnum::SUCCEEDED,
         );
+        $intentId = $payment->getStripePaymentIntentId() ?? '';
 
-        $this->service->handleSucceeded(
-            $payment->getStripePaymentIntentId() ?? '',
-            400,
-        );
+        $this->service->handleChargeRefunded($intentId, 400);
+        $this->service->handleChargeRefunded($intentId, 400);
+        $this->service->handleChargeRefunded($intentId, 700);
+        $this->service->handleChargeRefunded($intentId, 500);
 
-        self::assertSame(1500, $client->getBalance());
+        self::assertSame(800, $client->getBalance());
         self::assertSame(PaymentStatusEnum::SUCCEEDED, $payment->getStatus());
-        self::assertNull($this->paymentRepository->findRefundForOriginalPayment($payment));
+
+        $refundPayment = $this->paymentRepository->findRefundForOriginalPayment($payment);
+        self::assertNotNull($refundPayment);
+        self::assertSame(700, $refundPayment->getAmount());
+        self::assertSame(PaymentStatusEnum::SUCCEEDED, $refundPayment->getStatus());
+    }
+
+    public function testFullTopUpRefundAfterPartialOnlyReversesRemainingCredit(): void
+    {
+        $client = $this->persistClient(1500);
+        $payment = $this->persistTopUpPayment(
+            $client,
+            'pi_full_after_partial_refund_' . bin2hex(random_bytes(4)),
+            PaymentStatusEnum::SUCCEEDED,
+        );
+        $intentId = $payment->getStripePaymentIntentId() ?? '';
+
+        $this->service->handleChargeRefunded($intentId, 400);
+        $this->service->handleChargeRefunded($intentId, 1000);
+
+        self::assertSame(500, $client->getBalance());
+        self::assertSame(PaymentStatusEnum::REFUNDED, $payment->getStatus());
+
+        $refundPayment = $this->paymentRepository->findRefundForOriginalPayment($payment);
+        self::assertNotNull($refundPayment);
+        self::assertSame(1000, $refundPayment->getAmount());
     }
 
     public function testLateSuccessAfterCancellationDoesNotReverseUncreditedBalance(): void
