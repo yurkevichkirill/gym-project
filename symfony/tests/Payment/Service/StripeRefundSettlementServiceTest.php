@@ -107,6 +107,26 @@ final class StripeRefundSettlementServiceTest extends KernelTestCase
         self::assertNull($this->paymentRepository->findRefundForOriginalPayment($payment));
     }
 
+    public function testLateSuccessAfterCancellationDoesNotReverseUncreditedBalance(): void
+    {
+        $client = $this->persistClient(500);
+        $payment = $this->persistTopUpPayment(
+            $client,
+            'pi_late_success_after_cancel_' . bin2hex(random_bytes(4)),
+            PaymentStatusEnum::CANCELED,
+        );
+        $intentId = $payment->getStripePaymentIntentId() ?? '';
+
+        $this->service->markPending($intentId);
+        self::assertSame(PaymentStatusEnum::CANCELED, $payment->getStatus());
+
+        $this->service->handleSucceeded($intentId, $payment->getAmount());
+
+        self::assertSame(500, $client->getBalance());
+        self::assertSame(PaymentStatusEnum::REFUNDED, $payment->getStatus());
+        self::assertNotNull($this->paymentRepository->findRefundForOriginalPayment($payment));
+    }
+
     private function persistClient(int $balance): Client
     {
         $suffix = bin2hex(random_bytes(6));
