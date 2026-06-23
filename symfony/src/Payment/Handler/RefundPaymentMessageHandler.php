@@ -25,6 +25,8 @@ final readonly class RefundPaymentMessageHandler
      */
     public function __invoke(RefundPaymentMessage $message): void
     {
+        $this->stripeRefundSettlementService->markPending($message->intentId);
+
         $idempotencyKey = 'reconcile_refund_' . $message->paymentId;
 
         $refundStatus = $this->stripeService->refundPaymentIntent(
