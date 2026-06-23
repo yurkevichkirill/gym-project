@@ -89,7 +89,7 @@ final readonly class StripeWebhookService
                         break;
                     }
 
-                    $this->stripeRefundSettlementService->handleSucceeded(
+                    $this->stripeRefundSettlementService->handleChargeRefunded(
                         $paymentIntentId,
                         $amountRefunded,
                     );
