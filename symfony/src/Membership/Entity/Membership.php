@@ -20,6 +20,10 @@ use Symfony\Component\Validator\Constraints as Assert;
     columns: ['client_id'],
     options: ['where' => "((status)::text = ANY ((ARRAY['active'::character varying, 'frozen'::character varying, 'pending'::character varying])::text[]))"]
 )]
+#[ORM\Index(
+    name: 'IDX_MEMBERSHIP_STATUS_END_DATE',
+    columns: ['status', 'end_date'],
+)]
 #[ORM\HasLifecycleCallbacks]
 #[ORM\Entity(repositoryClass: MembershipRepository::class)]
 final class Membership
@@ -63,7 +67,7 @@ final class Membership
     #[Assert\GreaterThanOrEqual(0)]
     private int $visits = 0;
 
-    #[ORM\Column(options: ['default' => 'CURRENT_TIMESTAMP'])]
+    #[ORM\Column]
     private DateTimeImmutable $createdAt;
 
     #[ORM\Column(nullable: true)]
@@ -121,7 +125,6 @@ final class Membership
 
         return $this;
     }
-
 
     public function getName(): string
     {
