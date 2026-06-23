@@ -153,7 +153,29 @@ jobs:
         run: exit "${{ steps.phpstan.outputs.exit_code }}"
 
       - name: Run PHPUnit
-        run: php bin/phpunit
+        id: phpunit
+        shell: bash
+        run: |
+          set +e
+          php bin/phpunit --log-junit phpunit-result.xml > phpunit-output.txt 2>&1
+          status=$?
+          cat phpunit-output.txt
+          echo "exit_code=$status" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Upload PHPUnit report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: phpunit-report
+          path: |
+            symfony/phpunit-output.txt
+            symfony/phpunit-result.xml
+          if-no-files-found: error
+
+      - name: Check PHPUnit result
+        if: always()
+        run: exit "${{ steps.phpunit.outputs.exit_code }}"
 
   frontend:
     name: Frontend / Node 22
