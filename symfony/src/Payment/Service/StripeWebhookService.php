@@ -18,6 +18,7 @@ final readonly class StripeWebhookService
     public function __construct(
         private string $webhookSecret,
         private PaymentSettlementService $paymentSettlementService,
+        private StripeRefundSettlementService $stripeRefundSettlementService,
         private LoggerInterface $logger,
     ) {}
 
@@ -35,7 +36,7 @@ final readonly class StripeWebhookService
             $event = Webhook::constructEvent(
                 $payload,
                 $signature,
-                $this->webhookSecret
+                $this->webhookSecret,
             );
         } catch (UnexpectedValueException|SignatureVerificationException $e) {
             throw new BadRequestHttpException('Invalid Stripe webhook', $e);
@@ -50,12 +51,19 @@ final readonly class StripeWebhookService
     private function handleEvent(Event $event): void
     {
         $paymentIntentId = match ($event->type) {
-            'charge.refunded', 'charge.dispute.created', 'refund.failed', 'refund.updated' => $this->stripeObjectStringValue($event, 'payment_intent'),
+            'charge.refunded',
+            'charge.dispute.created',
+            'charge.dispute.funds_reinstated',
+            'refund.failed',
+            'refund.updated' => $this->stripeObjectStringValue($event, 'payment_intent'),
             default => $this->stripeObjectStringValue($event, 'id'),
         };
 
         if ($paymentIntentId === '') {
-            $this->logger->warning('Stripe webhook received without PaymentIntent ID', ['type' => $event->type]);
+            $this->logger->warning('Stripe webhook received without PaymentIntent ID', [
+                'type' => $event->type,
+            ]);
+
             return;
         }
 
@@ -73,21 +81,30 @@ final readonly class StripeWebhookService
                     $this->paymentSettlementService->cancelPaymentByStripeIntentId($paymentIntentId);
                     break;
                 case 'charge.refunded':
-                    $this->paymentSettlementService->handleStripeRefundSucceeded($paymentIntentId);
+                    $amountRefunded = $this->stripeObjectIntValue($event, 'amount_refunded');
+                    if ($amountRefunded === null) {
+                        $this->logger->warning('Stripe charge.refunded received without amount_refunded', [
+                            'intent_id' => $paymentIntentId,
+                        ]);
+                        break;
+                    }
+
+                    $this->stripeRefundSettlementService->handleSucceeded(
+                        $paymentIntentId,
+                        $amountRefunded,
+                    );
                     break;
                 case 'charge.dispute.created':
-                    $this->paymentSettlementService->handleStripeDisputeCreated($paymentIntentId);
+                    $this->stripeRefundSettlementService->handleDisputeCreated($paymentIntentId);
+                    break;
+                case 'charge.dispute.funds_reinstated':
+                    $this->stripeRefundSettlementService->handleDisputeFundsReinstated($paymentIntentId);
                     break;
                 case 'refund.failed':
-                    $this->paymentSettlementService->handleStripeRefundFailed($paymentIntentId);
+                    $this->stripeRefundSettlementService->handleFailed($paymentIntentId);
                     break;
                 case 'refund.updated':
-                    $refundStatus = $this->stripeObjectStringValue($event, 'status');
-                    if ($refundStatus === 'succeeded') {
-                        $this->paymentSettlementService->handleStripeRefundSucceeded($paymentIntentId);
-                    } elseif ($refundStatus === 'failed') {
-                        $this->paymentSettlementService->handleStripeRefundFailed($paymentIntentId);
-                    }
+                    $this->handleRefundUpdated($event, $paymentIntentId);
                     break;
             }
         } catch (PaymentNotFoundException $e) {
@@ -96,8 +113,6 @@ final readonly class StripeWebhookService
                 'intent_id' => $paymentIntentId,
                 'message' => $e->getMessage(),
             ]);
-
-            return;
         } catch (Throwable $e) {
             $this->logger->error('Stripe webhook warning', [
                 'type' => $event->type,
@@ -108,10 +123,50 @@ final readonly class StripeWebhookService
         }
     }
 
+    private function handleRefundUpdated(Event $event, string $paymentIntentId): void
+    {
+        $refundStatus = $this->stripeObjectStringValue($event, 'status');
+
+        if ($refundStatus === 'succeeded') {
+            $refundAmount = $this->stripeObjectIntValue($event, 'amount');
+            if ($refundAmount === null) {
+                $this->logger->warning('Stripe refund.updated received without amount', [
+                    'intent_id' => $paymentIntentId,
+                ]);
+
+                return;
+            }
+
+            $this->stripeRefundSettlementService->handleSucceeded(
+                $paymentIntentId,
+                $refundAmount,
+            );
+
+            return;
+        }
+
+        if (in_array($refundStatus, ['failed', 'canceled'], true)) {
+            $this->stripeRefundSettlementService->handleFailed($paymentIntentId);
+
+            return;
+        }
+
+        if ($refundStatus === 'requires_action') {
+            $this->stripeRefundSettlementService->handleActionRequired($paymentIntentId);
+        }
+    }
+
     private function stripeObjectStringValue(Event $event, string $key): string
     {
         $value = $event->data->object[$key] ?? null;
 
         return is_string($value) ? $value : '';
+    }
+
+    private function stripeObjectIntValue(Event $event, string $key): ?int
+    {
+        $value = $event->data->object[$key] ?? null;
+
+        return is_int($value) ? $value : null;
     }
 }
