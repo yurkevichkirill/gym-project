@@ -6,6 +6,7 @@ namespace App\Training\Entity;
 
 use App\Booking\Entity\Booking;
 use App\TrainerWorkTime\Entity\TrainerWorkTime;
+use App\Training\Exception\TrainingCrossesMidnightException;
 use App\Training\Repository\TrainingRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
@@ -59,7 +60,7 @@ final class Training
 
         $this->booking = $booking;
 
-        if($booking !== null && $this !== $booking->getTraining()) {
+        if ($booking !== null && $this !== $booking->getTraining()) {
             $booking->setTraining($this);
         }
 
@@ -90,6 +91,7 @@ final class Training
 
     public function setStartTime(\DateTimeImmutable $startTime): static
     {
+        $this->assertFitsWithinCalendarDay($startTime, $this->durationMinutes);
         $this->startTime = $startTime;
 
         return $this;
@@ -102,8 +104,25 @@ final class Training
 
     public function setDurationMinutes(int $durationMinutes): static
     {
+        if (isset($this->startTime)) {
+            $this->assertFitsWithinCalendarDay($this->startTime, $durationMinutes);
+        }
+
         $this->durationMinutes = $durationMinutes;
 
         return $this;
+    }
+
+    private function assertFitsWithinCalendarDay(
+        \DateTimeImmutable $startTime,
+        int $durationMinutes,
+    ): void {
+        $startSeconds = ((int) $startTime->format('H') * 3600)
+            + ((int) $startTime->format('i') * 60)
+            + (int) $startTime->format('s');
+
+        if ($startSeconds + ($durationMinutes * 60) >= 86400) {
+            throw new TrainingCrossesMidnightException();
+        }
     }
 }

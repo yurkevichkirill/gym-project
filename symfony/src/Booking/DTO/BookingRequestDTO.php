@@ -13,6 +13,7 @@ final readonly class BookingRequestDTO
         #[Assert\NotBlank]
         #[Assert\Positive]
         #[Assert\GreaterThanOrEqual(30)]
+        #[Assert\LessThanOrEqual(1440)]
         #[MultipleOf(multiple: 30)]
         public int $durationMinutes,
         #[Assert\Time]
