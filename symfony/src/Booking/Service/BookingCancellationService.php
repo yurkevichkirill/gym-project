@@ -113,7 +113,9 @@ final readonly class BookingCancellationService
                 );
             } else {
                 $this->entityManager->wrapInTransaction(
-                    fn (): mixed => $cancelLockedBooking(null),
+                    function () use ($cancelLockedBooking): void {
+                        $cancelLockedBooking(null);
+                    },
                 );
             }
         } catch (Throwable $e) {
