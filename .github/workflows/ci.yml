@@ -97,6 +97,9 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v6
 
+      - name: Create Symfony environment file
+        run: cp .env.example .env
+
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
