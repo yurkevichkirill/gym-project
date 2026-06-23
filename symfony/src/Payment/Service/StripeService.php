@@ -24,7 +24,6 @@ final readonly class StripeService
         $this->stripe = new StripeClient([
             'api_key' => $stripeSecretKey,
             'max_network_retries' => 2,
-            'request_timeout' => 10,
         ]);
     }
 
