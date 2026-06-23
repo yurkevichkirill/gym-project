@@ -58,17 +58,16 @@ final class RefreshTokenManagerTest extends KernelTestCase
     public function testCreateStoresOnlyHashesAndLimitsActiveSessions(): void
     {
         $user = $this->persistManager();
-        $tokens = [];
+        $firstToken = bin2hex(random_bytes(64));
+        $this->refreshTokenManager->create($firstToken, $user);
 
-        for ($index = 0; $index < 6; ++$index) {
-            $token = bin2hex(random_bytes(64));
-            $tokens[] = $token;
-            $this->refreshTokenManager->create($token, $user);
+        for ($index = 1; $index < 6; ++$index) {
+            $this->refreshTokenManager->create(bin2hex(random_bytes(64)), $user);
         }
 
-        self::assertNull($this->refreshTokenRepository->findOneBy(['tokenHash' => $tokens[0]]));
+        self::assertNull($this->refreshTokenRepository->findOneBy(['tokenHash' => $firstToken]));
         self::assertNotNull($this->refreshTokenRepository->findOneBy([
-            'tokenHash' => hash('sha256', $tokens[0]),
+            'tokenHash' => hash('sha256', $firstToken),
         ]));
         self::assertSame(6, $this->refreshTokenRepository->count(['user' => $user]));
         self::assertSame(5, $this->refreshTokenRepository->count([
