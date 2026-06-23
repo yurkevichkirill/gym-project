@@ -9,6 +9,7 @@ use App\RefreshToken\Repository\RefreshTokenRepository;
 use App\RefreshToken\Service\RefreshTokenManager;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
+use Lexik\Bundle\JWTAuthenticationBundle\Services\JWTTokenManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\UnauthorizedHttpException;
@@ -27,7 +28,15 @@ final class RefreshTokenManagerTest extends KernelTestCase
         $container = self::getContainer();
         $this->entityManager = $container->get(EntityManagerInterface::class);
         $this->refreshTokenRepository = $container->get(RefreshTokenRepository::class);
-        $this->refreshTokenManager = $container->get(RefreshTokenManager::class);
+
+        $jwtManager = $this->createMock(JWTTokenManagerInterface::class);
+        $jwtManager->method('create')->willReturn('access-token');
+
+        $this->refreshTokenManager = new RefreshTokenManager(
+            $this->refreshTokenRepository,
+            $jwtManager,
+            $this->entityManager,
+        );
     }
 
     protected function tearDown(): void
@@ -84,7 +93,7 @@ final class RefreshTokenManagerTest extends KernelTestCase
 
         [$accessToken, $rotatedRefreshToken] = $this->refreshTokenManager->refresh($refreshToken);
 
-        self::assertNotSame('', $accessToken);
+        self::assertSame('access-token', $accessToken);
         self::assertNotSame($refreshToken, $rotatedRefreshToken);
 
         $previousToken = $this->refreshTokenRepository->findOneBy([
@@ -102,8 +111,6 @@ final class RefreshTokenManagerTest extends KernelTestCase
 
     public function testRefreshTokenReuseRevokesEverySession(): void
     {
-        self::markTestSkipped('Temporarily isolated while diagnosing CI failure.');
-
         $user = $this->persistManager();
         $refreshToken = bin2hex(random_bytes(64));
         $this->refreshTokenManager->create($refreshToken, $user);
@@ -122,8 +129,6 @@ final class RefreshTokenManagerTest extends KernelTestCase
 
     public function testRefreshRejectsBlockedUserAndRevokesSessions(): void
     {
-        self::markTestSkipped('Temporarily isolated while diagnosing CI failure.');
-
         $user = $this->persistManager();
         $refreshToken = bin2hex(random_bytes(64));
         $this->refreshTokenManager->create($refreshToken, $user);
