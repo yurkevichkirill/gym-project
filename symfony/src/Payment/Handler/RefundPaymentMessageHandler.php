@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Payment\Handler;
 
 use App\Payment\Message\RefundPaymentMessage;
-use App\Payment\Service\PaymentSettlementService;
+use App\Payment\Service\StripeRefundSettlementService;
 use App\Payment\Service\StripeService;
 use Stripe\Exception\ApiErrorException;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
@@ -16,7 +16,7 @@ final readonly class RefundPaymentMessageHandler
 {
     public function __construct(
         private StripeService $stripeService,
-        private PaymentSettlementService $paymentSettlementService,
+        private StripeRefundSettlementService $stripeRefundSettlementService,
     ) {}
 
     /**
@@ -29,13 +29,15 @@ final readonly class RefundPaymentMessageHandler
 
         $refundStatus = $this->stripeService->refundPaymentIntent(
             $message->intentId,
-            $idempotencyKey
+            $idempotencyKey,
         );
 
         if ($refundStatus === 'succeeded') {
-            $this->paymentSettlementService->handleStripeRefundSucceeded($message->intentId);
-        } elseif ($refundStatus === 'failed') {
-            $this->paymentSettlementService->handleStripeRefundFailed($message->intentId);
+            $this->stripeRefundSettlementService->handleSucceeded($message->intentId);
+        } elseif (in_array($refundStatus, ['failed', 'canceled'], true)) {
+            $this->stripeRefundSettlementService->handleFailed($message->intentId);
+        } elseif ($refundStatus === 'requires_action') {
+            $this->stripeRefundSettlementService->handleActionRequired($message->intentId);
         }
     }
 }
