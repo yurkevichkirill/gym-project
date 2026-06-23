@@ -70,24 +70,19 @@ jobs:
       APP_SECRET: ci-secret-not-for-production
       APP_SHARE_DIR: /tmp/gym-share
       DEFAULT_URI: http://localhost
-
       DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/gym_ci?serverVersion=16&charset=utf8
       MESSENGER_TRANSPORT_DSN: amqp://user:password@127.0.0.1:5672/%2f/messages
       MAILER_DSN: null://null
-
       JWT_SECRET_KEY: ${{ github.workspace }}/symfony/config/jwt/private.pem
       JWT_PUBLIC_KEY: ${{ github.workspace }}/symfony/config/jwt/public.pem
       JWT_PASSPHRASE: ci-passphrase
-
       STRIPE_SECRET_KEY: sk_test_ci
       STRIPE_PUBLIC_KEY: pk_test_ci
       STRIPE_WEBHOOK_SECRET: whsec_ci
-
       CLICKHOUSE_HOST: http://127.0.0.1:8123/
       CLICKHOUSE_DB: analytics
       CLICKHOUSE_USER: analytics
       CLICKHOUSE_PASSWORD: ci-password
-
       MINIO_ACCESS_KEY: ci-access-key
       MINIO_SECRET_KEY: ci-secret-key
       MINIO_BUCKET: evogym-bucket
@@ -109,46 +104,24 @@ jobs:
           tools: composer:v2
 
       - name: Configure service hostnames
-        run: |
-          echo "127.0.0.1 redis" | sudo tee -a /etc/hosts
+        run: echo "127.0.0.1 redis" | sudo tee -a /etc/hosts
 
       - name: Install Composer dependencies
-        run: >
-          composer install
-          --prefer-dist
-          --no-progress
-          --no-interaction
-          --no-scripts
+        run: composer install --prefer-dist --no-progress --no-interaction --no-scripts
 
       - name: Generate temporary JWT keys
         run: |
           mkdir -p config/jwt
-
-          openssl genpkey \
-            -algorithm RSA \
-            -aes-256-cbc \
-            -pass pass:ci-passphrase \
-            -pkeyopt rsa_keygen_bits:2048 \
-            -out config/jwt/private.pem
-
-          openssl pkey \
-            -in config/jwt/private.pem \
-            -passin pass:ci-passphrase \
-            -pubout \
-            -out config/jwt/public.pem
+          openssl genpkey -algorithm RSA -aes-256-cbc -pass pass:ci-passphrase -pkeyopt rsa_keygen_bits:2048 -out config/jwt/private.pem
+          openssl pkey -in config/jwt/private.pem -passin pass:ci-passphrase -pubout -out config/jwt/public.pem
 
       - name: Run Composer auto-scripts
         run: composer run-script --no-interaction post-install-cmd
 
       - name: Prepare test database
         run: |
-          php bin/console doctrine:database:create \
-            --if-not-exists \
-            --env=test
-
-          php bin/console doctrine:migrations:migrate \
-            --no-interaction \
-            --env=test
+          php bin/console doctrine:database:create --if-not-exists --env=test
+          php bin/console doctrine:migrations:migrate --no-interaction --env=test
 
       - name: Build Symfony dev container for PHPStan
         env:
@@ -196,29 +169,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Run ESLint
-        run: |
-          mkdir -p .ci
-          set -o pipefail
-          pnpm lint 2>&1 | tee .ci/eslint.log
-
-      - name: Upload ESLint diagnostics
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: eslint-diagnostics
-          path: nextjs/.ci/eslint.log
-          if-no-files-found: warn
+        run: pnpm lint
 
       - name: Build Next.js application
-        run: |
-          mkdir -p .ci
-          set -o pipefail
-          pnpm build 2>&1 | tee .ci/build.log
-
-      - name: Upload build diagnostics
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: next-build-diagnostics
-          path: nextjs/.ci/build.log
-          if-no-files-found: warn
+        run: pnpm build
