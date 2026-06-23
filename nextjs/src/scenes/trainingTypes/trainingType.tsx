@@ -15,12 +15,17 @@ const TrainingType = ({ name, description, photoUrl }: Props) => {
     return (
         <div className="relative inline-block">
             <div className={overlayStyles}>
-                <p className="text-2xl" >{name}</p>
+                <p className="text-2xl">{name}</p>
+                <p className="mt-2 px-4 text-sm">{description}</p>
             </div>
             <Image
-                   src={photoUrl} alt="" width={500} height={300}/>
+                src={photoUrl}
+                alt={name}
+                width={500}
+                height={300}
+            />
         </div>
     );
-}
+};
 
 export default TrainingType;
