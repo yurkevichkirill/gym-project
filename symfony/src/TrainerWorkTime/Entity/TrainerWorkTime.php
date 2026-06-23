@@ -17,6 +17,7 @@ use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: TrainerWorkTimeRepository::class)]
 #[ORM\UniqueConstraint(name: 'unique_trainer_day', columns: ['trainer_id', 'date'])]
+#[ORM\Index(name: 'IDX_TRAINER_WORK_TIME_DATE', columns: ['date'])]
 final class TrainerWorkTime
 {
     #[ORM\Id]

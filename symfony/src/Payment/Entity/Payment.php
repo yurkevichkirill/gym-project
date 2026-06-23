@@ -21,6 +21,10 @@ use Doctrine\ORM\Mapping as ORM;
     columns: ['original_payment_id'],
     options: ['where' => '(is_refund = true)']
 )]
+#[ORM\Index(
+    name: 'IDX_PAYMENT_STATUS_EXPIRES_AT',
+    columns: ['status', 'expires_at'],
+)]
 #[ORM\HasLifecycleCallbacks]
 #[ORM\Entity(repositoryClass: PaymentRepository::class)]
 final class Payment

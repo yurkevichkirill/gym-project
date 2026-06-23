@@ -40,6 +40,7 @@ final readonly class GetTrainingsRequestDTO
         public int $page = 1,
 
         #[Assert\Positive]
+        #[Assert\LessThanOrEqual(100)]
         public int $limit = 20,
     ) {}
 }

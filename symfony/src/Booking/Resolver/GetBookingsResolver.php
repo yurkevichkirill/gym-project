@@ -20,6 +20,7 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Serializer\Normalizer\AbstractObjectNormalizer;
 use Symfony\Component\Serializer\Normalizer\DenormalizerInterface;
 use Symfony\Component\Serializer\SerializerInterface;
+use Symfony\Component\Validator\ConstraintViolationListInterface;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 use Throwable;
 
@@ -59,7 +60,7 @@ final readonly class GetBookingsResolver implements ValueResolverInterface
 
         $errors = $this->validator->validate($rawDto);
         if (count($errors) > 0) {
-            throw new BadRequestHttpException((string) $errors);
+            throw new BadRequestHttpException($this->formatValidationErrors($errors));
         }
 
         $user = $this->security->getUser();
@@ -67,23 +68,27 @@ final readonly class GetBookingsResolver implements ValueResolverInterface
 
         if ($user instanceof Client) {
             $client = $user;
-        }
-
-        elseif ($rawDto->clientId !== null) {
+        } elseif ($rawDto->clientId !== null) {
             $client = $this->clientRepo->find($rawDto->clientId)
-                ?? throw new NotFoundHttpException('Client with ID $rawDto->clientId not found');
+                ?? throw new NotFoundHttpException(sprintf(
+                    'Client with ID %d not found',
+                    $rawDto->clientId,
+                ));
         }
 
         $trainer = null;
         if ($rawDto->trainerId !== null) {
-            /** @var int $trainerId */
-            $trainerId = $rawDto->trainerId;
             $trainer = $this->trainerRepo->find($rawDto->trainerId)
-                ?? throw new NotFoundHttpException("Trainer with ID $trainerId not found");
+                ?? throw new NotFoundHttpException(sprintf(
+                    'Trainer with ID %d not found',
+                    $rawDto->trainerId,
+                ));
         }
 
         $date = $rawDto->date !== null ? new DateTimeImmutable($rawDto->date) : null;
-        $startTime = $rawDto->startTime !== null ? DateTimeImmutable::createFromFormat('H:i:s', $rawDto->startTime) : null;
+        $startTime = $rawDto->startTime !== null
+            ? DateTimeImmutable::createFromFormat('H:i:s', $rawDto->startTime)
+            : null;
         if ($startTime === false) {
             $startTime = null;
         }
@@ -99,5 +104,20 @@ final readonly class GetBookingsResolver implements ValueResolverInterface
             page: $rawDto->page,
             limit: $rawDto->limit,
         );
+    }
+
+    private function formatValidationErrors(ConstraintViolationListInterface $errors): string
+    {
+        $messages = [];
+
+        foreach ($errors as $error) {
+            $propertyPath = $error->getPropertyPath();
+            $message = (string) $error->getMessage();
+            $messages[] = $propertyPath === ''
+                ? $message
+                : sprintf('%s: %s', $propertyPath, $message);
+        }
+
+        return implode('; ', $messages);
     }
 }

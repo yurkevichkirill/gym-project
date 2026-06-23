@@ -43,7 +43,7 @@ The Symfony application currently stores only `symfony/.env.example`, so a base 
 For local development, update at least the following values:
 
 - in `.env`, replace all `REPLACE_WITH_*` placeholders;
-- in `symfony/.env`, set `APP_ENV=dev`, generate a strong `APP_SECRET`, set `DEFAULT_URI=https://api.evogym.local`, and replace all placeholders;
+- in `symfony/.env`, set `APP_ENV=dev`, generate a strong `APP_SECRET`, set `DEFAULT_URI=https://api.evogym.local`, set `CLIENT_ACTIVATION_URL=https://evogym.local/activate/`, and replace all placeholders;
 - in `nextjs/.env.local`, set the Stripe publishable key when payment flows are needed.
 
 Values used by application containers must match the infrastructure credentials:
@@ -51,6 +51,7 @@ Values used by application containers must match the infrastructure credentials:
 | Root `.env` | Symfony setting |
 | --- | --- |
 | `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB` | credentials and database in `DATABASE_URL` |
+| Redis service hostname | host in `REDIS_URL` must remain `redis` inside containers |
 | `RABBITMQ_DEFAULT_USER`, `RABBITMQ_DEFAULT_PASS` | credentials in `MESSENGER_TRANSPORT_DSN` |
 | `CLICKHOUSE_DB`, `CLICKHOUSE_USER`, `CLICKHOUSE_PASSWORD` | `CLICKHOUSE_DB`, `CLICKHOUSE_USER`, `CLICKHOUSE_PASSWORD` |
 | `MINIO_ROOT_USER`, `MINIO_ROOT_PASSWORD` | `MINIO_ACCESS_KEY`, `MINIO_SECRET_KEY` |
@@ -111,7 +112,7 @@ docker compose ps
 docker compose exec php-fpm php bin/console doctrine:migrations:migrate --no-interaction
 ```
 
-Optional demo data can be loaded with the following command. It purges existing application data before loading fixtures:
+The fixture set does not currently provide demo records. Running the following command purges existing application data, so use it only when a database reset is intended:
 
 ```bash
 docker compose exec php-fpm php bin/console doctrine:fixtures:load --no-interaction
@@ -159,9 +160,9 @@ Check that both certificate files exist under `certs/` with the exact names show
 docker compose logs nginx
 ```
 
-### API cannot connect to PostgreSQL, RabbitMQ, ClickHouse, or MinIO
+### API cannot connect to PostgreSQL, Redis, RabbitMQ, ClickHouse, or MinIO
 
-Check that credentials in `symfony/.env` match the corresponding values in the root `.env`. Container hostnames must remain `postgres`, `rabbitmq`, `clickhouse`, and `minio`; do not replace them with `localhost`.
+Check that credentials and DSNs in `symfony/.env` match the corresponding values in the root `.env`. Container hostnames must remain `postgres`, `redis`, `rabbitmq`, `clickhouse`, and `minio`; do not replace them with `localhost`.
 
 ### Frontend sends requests to an invalid URL
 

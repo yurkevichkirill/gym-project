@@ -13,6 +13,7 @@ use DateTimeImmutable;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 
+#[ORM\Index(name: 'IDX_BOOKING_STATUS', columns: ['status'])]
 #[ORM\HasLifecycleCallbacks]
 #[ORM\Entity(repositoryClass: BookingRepository::class)]
 final class Booking
@@ -127,7 +128,6 @@ final class Booking
 
         $this->status = BookingStatusEnum::SCHEDULED;
     }
-
 
     #[ORM\PrePersist]
     public function initializeDefaults(): static

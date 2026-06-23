@@ -116,11 +116,11 @@ final class CacheInvalidatorListener
         /** @var list<string> $groups */
         $groups = array_values(array_unique($this->groupsToBump));
 
+        $this->tagsToInvalidate = [];
+        $this->groupsToBump = [];
+
         $this->cacheOutbox->send(new Envelope(
             new InvalidateCacheMessage($tags, $groups),
         ));
-
-        $this->tagsToInvalidate = [];
-        $this->groupsToBump = [];
     }
 }

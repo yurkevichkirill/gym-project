@@ -77,7 +77,13 @@ services:
   redis:
     container_name: redis
     image: redis:8.6.0-alpine
+    command: [ "redis-server", "--appendonly", "yes", "--appendfsync", "everysec" ]
     restart: always
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     ports:
       - "${REDIS_PORT}:6379"
     volumes:
@@ -86,76 +92,77 @@ services:
       - app-network
 
   rabbitmq:
-   container_name: rabbitmq
-   image: rabbitmq:4.0-management-alpine
-   restart: always
-   ports:
-     - "${RABBITMQ_AMQP_PORT}:5672"
-     - "${RABBITMQ_UI_PORT}:15672"
-   environment:
-     RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER:?RABBITMQ_DEFAULT_USER is required}
-     RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS:?RABBITMQ_DEFAULT_PASS is required}
-   volumes:
-     - rabbitmq_data:/var/lib/rabbitmq
-   networks:
-     - app-network
+    container_name: rabbitmq
+    image: rabbitmq:4.0-management-alpine
+    restart: always
+    ports:
+      - "${RABBITMQ_AMQP_PORT}:5672"
+      - "${RABBITMQ_UI_PORT}:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER:?RABBITMQ_DEFAULT_USER is required}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS:?RABBITMQ_DEFAULT_PASS is required}
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - app-network
 
   messenger-worker:
-   container_name: messenger-worker
-   build:
-     context: "docker/dockerfiles/php"
-     dockerfile: Dockerfile
-   restart: always
-   working_dir: /var/www
-   command: >
-     php bin/console messenger:consume async client_outbox cache_outbox
-     --time-limit=3600
-     --memory-limit=256M
-     --limit=1000
-     -vv
-   volumes:
-     - ./symfony:/var/www
-   extra_hosts:
-     - "host.docker.internal:host-gateway"
-   environment:
-      - XDEBUG_MODE=${XDEBUG_MODE}
-      - XDEBUG_CONFIG=${XDEBUG_CONFIG}
-      - XDEBUG_CLIENT_HOST=${XDEBUG_CLIENT_HOST}
-      - PHP_IDE_CONFIG=${PHP_IDE_CONFIG}
-   depends_on:
-     - rabbitmq
-     - postgres
-     - redis
-     - mailpit
-   networks:
-     - app-network
+    container_name: messenger-worker
+    build:
+      context: "docker/dockerfiles/php"
+      dockerfile: Dockerfile
+    restart: always
+    working_dir: /var/www
+    command: >
+      php bin/console messenger:consume async client_outbox cache_outbox
+      --time-limit=3600
+      --memory-limit=256M
+      --limit=1000
+      -vv
+    volumes:
+      - ./symfony:/var/www
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+       - XDEBUG_MODE=${XDEBUG_MODE}
+       - XDEBUG_CONFIG=${XDEBUG_CONFIG}
+       - XDEBUG_CLIENT_HOST=${XDEBUG_CLIENT_HOST}
+       - PHP_IDE_CONFIG=${PHP_IDE_CONFIG}
+    depends_on:
+      - rabbitmq
+      - postgres
+      - redis
+      - mailpit
+    networks:
+      - app-network
 
   analytics-worker:
-   container_name: analytics-worker
-   build:
-     context: "docker/dockerfiles/php"
-     dockerfile: Dockerfile
-   restart: always
-   working_dir: /var/www
-   command: >
-     php bin/console messenger:consume analytics
-     --time-limit=3600
-     --memory-limit=256M
-     --limit=1000
-     -vv
-   volumes:
-     - ./symfony:/var/www
-   extra_hosts:
-     - "host.docker.internal:host-gateway"
-   environment:
-      - XDEBUG_MODE=${XDEBUG_MODE}
-      - XDEBUG_CONFIG=${XDEBUG_CONFIG}
-      - XDEBUG_CLIENT_HOST=${XDEBUG_CLIENT_HOST}
-      - PHP_IDE_CONFIG=${PHP_IDE_CONFIG}
-   depends_on:
-     - rabbitmq
-   networks:
-     - app-network
+    container_name: analytics-worker
+    build:
+      context: "docker/dockerfiles/php"
+      dockerfile: Dockerfile
+    restart: always
+    working_dir: /var/www
+    command: >
+      php bin/console messenger:consume analytics
+      --time-limit=3600
+      --memory-limit=256M
+      --limit=1000
+      -vv
+    volumes:
+      - ./symfony:/var/www
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+       - XDEBUG_MODE=${XDEBUG_MODE}
+       - XDEBUG_CONFIG=${XDEBUG_CONFIG}
+       - XDEBUG_CLIENT_HOST=${XDEBUG_CLIENT_HOST}
+       - PHP_IDE_CONFIG=${PHP_IDE_CONFIG}
+    depends_on:
+      - rabbitmq
+      - clickhouse
+    networks:
+      - app-network
 
   scheduler-worker:
     container_name: scheduler-worker
@@ -203,34 +210,34 @@ services:
       - app-network
 
   clickhouse:
-   container_name: clickhouse
-   image: clickhouse/clickhouse-server:25.8
-   restart: always
-   environment:
-     CLICKHOUSE_DB: ${CLICKHOUSE_DB:-analytics}
-     CLICKHOUSE_USER: ${CLICKHOUSE_USER:?CLICKHOUSE_USER is required}
-     CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:?CLICKHOUSE_PASSWORD is required}
-     CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: 1
-   ports:
-     - "${CLICKHOUSE_API_PORT}:8123"
-     - "${CLICKHOUSE_NATIVE_PORT}:9000"
-   volumes:
-     - clickhouse_data:/var/lib/clickhouse
-     - ./docker/clickhouse/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
-   ulimits:
-     nofile:
-       soft: 262144
-       hard: 262144
-   networks:
-     - app-network
+    container_name: clickhouse
+    image: clickhouse/clickhouse-server:25.8
+    restart: always
+    environment:
+      CLICKHOUSE_DB: ${CLICKHOUSE_DB:-analytics}
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER:?CLICKHOUSE_USER is required}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:?CLICKHOUSE_PASSWORD is required}
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: 1
+    ports:
+      - "${CLICKHOUSE_API_PORT}:8123"
+      - "${CLICKHOUSE_NATIVE_PORT}:9000"
+    volumes:
+      - clickhouse_data:/var/lib/clickhouse
+      - ./docker/clickhouse/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    ulimits:
+      nofile:
+        soft: 262144
+        hard: 262144
+    networks:
+      - app-network
 
   mailpit:
-   image: axllent/mailpit:v1.29
-   ports:
-     - "$MAILPIT_PORT:1025"
-     - "$MAILPIT_INTERFACE_PORT:8025"
-   networks:
-     - app-network
+    image: axllent/mailpit:v1.29
+    ports:
+      - "$MAILPIT_PORT:1025"
+      - "$MAILPIT_INTERFACE_PORT:8025"
+    networks:
+      - app-network
 
   minio:
     container_name: minio
