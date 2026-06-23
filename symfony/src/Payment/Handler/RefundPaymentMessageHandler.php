@@ -10,6 +10,7 @@ use App\Payment\Service\StripeService;
 use Stripe\Exception\ApiErrorException;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 use Throwable;
+use UnexpectedValueException;
 
 #[AsMessageHandler]
 final readonly class RefundPaymentMessageHandler
@@ -36,10 +37,29 @@ final readonly class RefundPaymentMessageHandler
 
         if ($refundStatus === 'succeeded') {
             $this->stripeRefundSettlementService->handleSucceeded($message->intentId);
-        } elseif (in_array($refundStatus, ['failed', 'canceled'], true)) {
-            $this->stripeRefundSettlementService->handleFailed($message->intentId);
-        } elseif ($refundStatus === 'requires_action') {
-            $this->stripeRefundSettlementService->handleActionRequired($message->intentId);
+
+            return;
         }
+
+        if (in_array($refundStatus, ['failed', 'canceled'], true)) {
+            $this->stripeRefundSettlementService->handleFailed($message->intentId);
+
+            return;
+        }
+
+        if ($refundStatus === 'requires_action') {
+            $this->stripeRefundSettlementService->handleActionRequired($message->intentId);
+
+            return;
+        }
+
+        if ($refundStatus === 'pending') {
+            return;
+        }
+
+        throw new UnexpectedValueException(sprintf(
+            'Unexpected Stripe refund status "%s"',
+            $refundStatus ?? 'null',
+        ));
     }
 }
