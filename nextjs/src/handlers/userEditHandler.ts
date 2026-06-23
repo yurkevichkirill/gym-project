@@ -1,5 +1,6 @@
 import {notify} from "@/lib/notify";
 import {update} from "@/api/client/client.api";
+import {getErrorMessage} from "@/lib/getErrorMessage";
 
 export const handleEditUser = async (phone: string) => {
     const toastId = notify.loading("Editing user...");
@@ -14,12 +15,11 @@ export const handleEditUser = async (phone: string) => {
             `New phone: ${res.phone}`,
             toastId
         );
-
-    } catch (error: any) {
+    } catch (error: unknown) {
         notify.error(
             "Editing failed",
-            error?.message || "Something went wrong",
+            getErrorMessage(error),
             toastId,
         );
     }
-}
+};
