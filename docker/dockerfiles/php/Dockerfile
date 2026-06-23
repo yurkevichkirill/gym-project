@@ -8,34 +8,37 @@ RUN apk add --no-cache \
     libzip-dev \
     libxml2-dev \
     oniguruma-dev \
-    mysql-client \
     postgresql-dev
 
-ADD https://github.com/mlocati/docker-php-extension-installer/releases/latest/download/install-php-extensions /usr/local/bin/
-RUN chmod +x /usr/local/bin/install-php-extensions \
-    && install-php-extensions \
-        gd \
-        mbstring \
-        mysqli \
-        pdo_mysql \
-        pdo_pgsql \
-        curl \
-        xml \
-        zip \
-        bcmath \
-        intl \
-        opcache \
-        amqp
+COPY --from=ghcr.io/mlocati/php-extension-installer:2.11.12 \
+    /usr/bin/install-php-extensions \
+    /usr/local/bin/install-php-extensions
 
-RUN pecl install xdebug \
-    && docker-php-ext-enable xdebug
+RUN install-php-extensions \
+    gd \
+    mbstring \
+    pdo_pgsql \
+    curl \
+    xml \
+    zip \
+    bcmath \
+    intl \
+    opcache \
+    amqp
 
-RUN echo "xdebug.mode=debug" >> /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini \
-    && echo "xdebug.start_with_request=yes" >> /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini \
-    && echo "xdebug.client_host=host.docker.internal" >> /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini \
-    && echo "xdebug.client_port=9003" >> /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini
+ARG INSTALL_XDEBUG=true
+RUN if [ "$INSTALL_XDEBUG" = "true" ]; then \
+        install-php-extensions xdebug; \
+        printf '%s\n' \
+            'xdebug.start_with_request=trigger' \
+            'xdebug.client_host=host.docker.internal' \
+            'xdebug.client_port=9003' \
+            > /usr/local/etc/php/conf.d/zz-xdebug.ini; \
+    fi
 
-COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+ENV XDEBUG_MODE=off
+
+COPY --from=composer:2.10.1 /usr/bin/composer /usr/bin/composer
 
 WORKDIR /var/www
 
