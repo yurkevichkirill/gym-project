@@ -86,3 +86,13 @@ framework:
 
             # Route your messages to the transports
             # 'App\Message\YourMessage': async
+
+when@test:
+    framework:
+        messenger:
+            transports:
+                client_outbox: 'in-memory://'
+                payment_outbox: 'in-memory://'
+                async: 'in-memory://'
+                analytics: 'in-memory://'
+                failed: 'in-memory://'
