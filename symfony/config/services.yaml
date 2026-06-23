@@ -18,11 +18,10 @@ services:
     App\:
         resource: '../src/'
 
-    App\EventListener\CacheInvalidatorListener:
-        tags:
-            -
-                name: 'doctrine.event_listener'
-                event: 'onFlush'
+    Predis\ClientInterface:
+        class: Predis\Client
+        arguments:
+            - '%env(resolve:REDIS_URL)%'
 
     Gedmo\Mapping\Driver\AttributeReader: ~
 
