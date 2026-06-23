@@ -40,7 +40,7 @@ export const topUpBalance = async ({ amount }: TopupBalanceType): Promise<Paymen
 }
 
 export const activate = async ({ activationToken, password }: ClientActivateType): Promise<ClientType> => {
-    const data = await apiPatch<ApiItemResponse<ClientType>>('/me/activate', {
+    const data = await apiPost<ApiItemResponse<ClientType>>('/clients/activate/', {
         activationToken,
         password,
     });
