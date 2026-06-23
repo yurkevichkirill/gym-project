@@ -11,15 +11,17 @@ This directory contains baseline Grafana and Loki assets for the Symfony booking
 ## Files
 
 - `grafana/booking-payments-dashboard.json`
-  - Starter dashboard for booking, payment, stripe and membership flows.
+  - Starter dashboard for booking, payment, Stripe and membership flows.
 - `grafana/provisioning/`
   - Grafana datasource and dashboard provisioning.
 - `loki/rules/fake/alerts.yaml`
-  - Starter Loki alert rules for booking failures, stripe failures, refund spikes and membership anomalies.
+  - Starter Loki alert rules for booking failures, Stripe failures, refund spikes and membership anomalies.
 - `loki/config.yml`
-  - Minimal local Loki config.
+  - Single-node Loki config with 14-day retention.
 - `alertmanager/config.yml`
-  - Local Alertmanager config for receiving Loki alerts.
+  - Alertmanager template with a mandatory generic webhook receiver.
+- `alertmanager/entrypoint.sh`
+  - Renders the webhook URL from the environment before Alertmanager starts.
 - `promtail/config.yml`
   - Promtail config for scraping Docker container logs.
 - `docker-compose.observability.yml`
@@ -41,21 +43,28 @@ These assets expect the following structured fields in logs:
 - `extra.request_id`
 - `extra.correlation_id`
 
-## Recommended next step
-
-Make sure your log shipper adds at least:
-
-- `service`
-- `env`
-- `container`
-
-as Loki labels, while keeping high-cardinality values like `request_id` and `booking_id` inside the JSON payload only.
+The log shipper should add low-cardinality labels such as `service`, `env` and `container`. Keep high-cardinality values such as `request_id`, `booking_id` and `correlation_id` inside the JSON payload.
 
 ## Local startup
 
-From `observability/` run:
+Create the local environment file and replace every placeholder:
 
 ```bash
+cp .env.example .env
+```
+
+Required values:
+
+- `GRAFANA_ADMIN_PASSWORD`: a non-default local password;
+- `ALERTMANAGER_WEBHOOK_URL`: an HTTP(S) endpoint that accepts Alertmanager webhook payloads;
+- `OBSERVABILITY_BIND_ADDRESS`: keep `127.0.0.1` unless remote access is explicitly protected by a firewall and authentication.
+
+A webhook running on the Docker host can be addressed as `http://host.docker.internal:<port>/<path>`.
+
+Start the stack from `observability/`:
+
+```bash
+docker compose -f docker-compose.observability.yml config --quiet
 docker compose -f docker-compose.observability.yml up -d
 ```
 
@@ -65,15 +74,13 @@ Then open:
 - Loki: `http://localhost:3100`
 - Alertmanager: `http://localhost:9093`
 
-Default Grafana credentials:
-
-- user: `admin`
-- password: `admin`
+Use `GRAFANA_ADMIN_USER` and `GRAFANA_ADMIN_PASSWORD` from the local `.env` file to sign in.
 
 ## Notes
 
 - Promtail uses Docker service discovery and maps `com.docker.compose.service` to the Loki label `service`.
-- The dashboard queries assume your Symfony logs are emitted from Compose services like `php-fpm` or `messenger-worker`.
-- High-cardinality values such as `request_id` and `correlation_id` stay in JSON payload fields and should not become Loki labels.
+- The dashboard queries assume Symfony logs are emitted from Compose services such as `php-fpm` or `messenger-worker`.
 - Alert rules from `loki/rules/fake/alerts.yaml` are loaded by Loki ruler and should appear in Grafana under `Alerting` as data source-managed alerts from the Loki datasource.
+- Loki uses local filesystem storage and deletes data older than 14 days through the compactor.
 - Because `auth_enabled: false` is used in this local setup, Loki runs in single-tenant mode and expects ruler files under the synthetic tenant directory `fake/`.
+- This stack is intended for local validation. Internet-facing deployment requires authentication, TLS and network isolation.

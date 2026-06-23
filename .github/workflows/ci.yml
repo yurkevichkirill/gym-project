@@ -174,3 +174,23 @@ jobs:
 
       - name: Build Next.js application
         run: pnpm build
+
+  infrastructure:
+    name: Infrastructure / Compose config
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Validate application Compose config
+        run: |
+          cp .env.example .env
+          docker compose config --quiet
+
+      - name: Validate observability Compose config
+        working-directory: observability
+        run: |
+          cp .env.example .env
+          docker compose -f docker-compose.observability.yml config --quiet
