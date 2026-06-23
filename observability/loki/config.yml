@@ -24,9 +24,18 @@ schema_config:
         prefix: loki_index_
         period: 24h
 
+compactor:
+  working_directory: /loki/compactor
+  compaction_interval: 10m
+  retention_enabled: true
+  retention_delete_delay: 2h
+  retention_delete_worker_count: 50
+  delete_request_store: filesystem
+
 limits_config:
   allow_structured_metadata: true
   volume_enabled: true
+  retention_period: 336h
 
 ruler:
   enable_api: true
