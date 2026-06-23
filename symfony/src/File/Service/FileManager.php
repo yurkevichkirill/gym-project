@@ -20,7 +20,12 @@ final readonly class FileManager
         string $prefix = 'file'
     ): string {
         $extension = $file->guessExtension() ?? 'jpg';
-        $uniqueName = uniqid($prefix . '_', true) . '.' . $extension;
+        $uniqueName = sprintf(
+            '%s_%s.%s',
+            $prefix,
+            bin2hex(random_bytes(16)),
+            $extension,
+        );
 
         $path = $directory . '/' . $uniqueName;
 
