@@ -52,6 +52,23 @@ final readonly class BalanceService
         $client->setBalance($newBalance);
     }
 
+    public function reverseClientCredit(Client $client, int $amount): void
+    {
+        $this->assertPositiveAmount($amount);
+
+        $newBalance = $client->getBalance() - $amount;
+        $client->setBalance($newBalance);
+
+        if ($newBalance < 0) {
+            $this->paymentLogger->critical('client.balance.negative_after_credit_reversal', [
+                'client_id' => $client->getId(),
+                'reversed_amount' => $amount,
+                'balance' => $newBalance,
+                'action' => 'client_debt_recovery_required',
+            ]);
+        }
+    }
+
     public function depositClient(Client $client, int $amount): void
     {
         $this->assertPositiveAmount($amount);
