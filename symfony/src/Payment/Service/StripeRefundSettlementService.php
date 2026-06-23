@@ -30,13 +30,6 @@ final readonly class StripeRefundSettlementService
         PaymentStatusEnum::FAILED,
     ];
 
-    /** @var list<PaymentStatusEnum> */
-    private const array SETTLED_STATUSES = [
-        PaymentStatusEnum::REFUND_PENDING,
-        PaymentStatusEnum::REFUND_FAILED,
-        PaymentStatusEnum::SUCCEEDED,
-    ];
-
     public function __construct(
         private PaymentSettlementService $paymentSettlementService,
         private PaymentService $paymentService,
@@ -57,6 +50,8 @@ final readonly class StripeRefundSettlementService
                 if (in_array($lockedPayment->getStatus(), [
                     PaymentStatusEnum::SUCCEEDED,
                     PaymentStatusEnum::REFUND_FAILED,
+                    PaymentStatusEnum::CANCELED,
+                    PaymentStatusEnum::FAILED,
                 ], true)) {
                     $this->paymentLifecycleService->transitionTo(
                         $lockedPayment,
@@ -138,40 +133,37 @@ final readonly class StripeRefundSettlementService
                     return;
                 }
 
-                if ($lockedPayment->getStatus() === PaymentStatusEnum::REFUND_PENDING) {
-                    $this->paymentLifecycleService->transitionTo(
-                        $lockedPayment,
-                        PaymentStatusEnum::REFUND_FAILED,
-                    );
-
-                    $this->paymentLogger->critical('payment.stripe_refund.failed', [
-                        'intent_id' => $intentId,
-                        'payment_id' => $lockedPayment->getId(),
-                        'current_status' => $lockedPayment->getStatus()->value,
-                        'action' => 'manual_reconciliation_required',
-                    ]);
-
-                    return;
-                }
-
                 if (in_array($lockedPayment->getStatus(), [
+                    PaymentStatusEnum::SUCCEEDED,
                     PaymentStatusEnum::CANCELED,
                     PaymentStatusEnum::FAILED,
                 ], true)) {
-                    $this->paymentLogger->critical('payment.stripe_refund.reconciliation_failed', [
+                    $this->paymentLifecycleService->transitionTo(
+                        $lockedPayment,
+                        PaymentStatusEnum::REFUND_PENDING,
+                    );
+                }
+
+                if ($lockedPayment->getStatus() !== PaymentStatusEnum::REFUND_PENDING) {
+                    $this->paymentLogger->warning('payment.stripe_refund.failure_ignored', [
                         'intent_id' => $intentId,
                         'payment_id' => $lockedPayment->getId(),
                         'current_status' => $lockedPayment->getStatus()->value,
-                        'action' => 'manual_reconciliation_required',
                     ]);
 
                     return;
                 }
 
-                $this->paymentLogger->warning('payment.stripe_refund.failure_ignored', [
+                $this->paymentLifecycleService->transitionTo(
+                    $lockedPayment,
+                    PaymentStatusEnum::REFUND_FAILED,
+                );
+
+                $this->paymentLogger->critical('payment.stripe_refund.failed', [
                     'intent_id' => $intentId,
                     'payment_id' => $lockedPayment->getId(),
                     'current_status' => $lockedPayment->getStatus()->value,
+                    'action' => 'manual_reconciliation_required',
                 ]);
             },
         );
@@ -179,6 +171,7 @@ final readonly class StripeRefundSettlementService
 
     public function handleActionRequired(string $intentId): void
     {
+        $this->markPending($intentId);
         $payment = $this->findPayment($intentId);
 
         if ($payment->getStatus() === PaymentStatusEnum::REFUNDED) {
@@ -247,7 +240,7 @@ final readonly class StripeRefundSettlementService
             return;
         }
 
-        if (in_array($payment->getStatus(), self::SETTLED_STATUSES, true)) {
+        if ($this->wasSettledLocally($payment)) {
             $this->reverseSettledPaymentEffects($payment, $alreadyRefundedAmount);
         }
 
@@ -296,7 +289,7 @@ final readonly class StripeRefundSettlementService
 
         if (
             $payment->getCategory() === PaymentCategoryEnum::BALANCE_TOP_UP
-            && in_array($payment->getStatus(), self::SETTLED_STATUSES, true)
+            && $this->wasSettledLocally($payment)
         ) {
             $this->reverseTopUpCredit($payment, $refundDelta);
             $clientCreditReversed = true;
@@ -427,6 +420,11 @@ final readonly class StripeRefundSettlementService
         $refundPayment->setExpiresAt(null);
 
         $this->paymentLifecycleService->transitionTo($refundPayment, PaymentStatusEnum::SUCCEEDED);
+    }
+
+    private function wasSettledLocally(Payment $payment): bool
+    {
+        return $payment->getPaidAt() !== null;
     }
 
     private function findPayment(string $intentId): Payment
