@@ -42,7 +42,8 @@ The Symfony application currently stores only `symfony/.env.example`, so a base 
 
 For local development, update at least the following values:
 
-- in `.env`, replace all `REPLACE_WITH_*` placeholders;
+- in `.env`, replace every `REPLACE_WITH_*` placeholder, including PostgreSQL, PgAdmin, RabbitMQ, ClickHouse and MinIO credentials;
+- keep `BIND_ADDRESS=127.0.0.1` unless remote access is intentionally protected by a firewall and authentication;
 - in `symfony/.env`, set `APP_ENV=dev`, generate a strong `APP_SECRET`, set `DEFAULT_URI=https://api.evogym.local`, set `CLIENT_ACTIVATION_URL=https://evogym.local/activate/`, and replace all placeholders;
 - in `nextjs/.env.local`, set the Stripe publishable key when payment flows are needed.
 
@@ -107,6 +108,7 @@ The JWT key pair is generated in `symfony/config/jwt/` and is ignored by Git. Th
 ### 6. Start the stack and migrate the database
 
 ```bash
+docker compose config --quiet
 docker compose up -d
 docker compose ps
 docker compose exec php-fpm php bin/console doctrine:migrations:migrate --no-interaction
@@ -132,12 +134,12 @@ docker compose exec php-fpm php bin/console doctrine:fixtures:load --no-interact
 | MinIO API | `http://localhost:9005` |
 | ClickHouse HTTP API | `http://localhost:8123` |
 
-Ports can be changed in the root `.env` file. Keep host ports unique.
+Ports can be changed in the root `.env` file. By default all published ports bind only to `127.0.0.1`; container-to-container communication still uses the private Compose network.
 
 ## Validation commands
 
 ```bash
-docker compose config
+docker compose config --quiet
 docker compose exec php-fpm php bin/phpunit
 docker compose exec php-fpm vendor/bin/phpstan analyse
 docker compose exec frontend pnpm lint
@@ -181,6 +183,20 @@ docker compose up -d --build frontend
 ### Browser reports an untrusted certificate
 
 Use the `mkcert` workflow above, or import the self-signed OpenSSL certificate into the local trust store.
+
+## Observability
+
+The logging stack has its own environment file and mandatory alert receiver:
+
+```bash
+cd observability
+cp .env.example .env
+# Replace the Grafana password and ALERTMANAGER_WEBHOOK_URL.
+docker compose -f docker-compose.observability.yml config --quiet
+docker compose -f docker-compose.observability.yml up -d
+```
+
+See `observability/README.md` for alert payload, retention and local access details.
 
 ## Stop or reset the project
 
