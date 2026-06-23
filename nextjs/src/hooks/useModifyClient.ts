@@ -2,6 +2,7 @@ import { useState } from "react";
 import { notify } from "@/lib/notify";
 import {useStore} from "@/store/StoreProvider";
 import {useRouter} from "next/navigation";
+import {getErrorMessage} from "@/lib/getErrorMessage";
 
 export const useModifyClient = (initialPhone: string) => {
     const [newPhone, setNewPhone] = useState(initialPhone);
@@ -30,10 +31,10 @@ export const useModifyClient = (initialPhone: string) => {
 
             notify.success("Profile updated", "Phone number changed", toastId);
             setOnEdit(false);
-        } catch (error: any) {
+        } catch (error: unknown) {
             notify.error(
                 "Editing failed",
-                error?.message || "Something went wrong",
+                getErrorMessage(error),
                 toastId,
             );
         } finally {
@@ -56,15 +57,14 @@ export const useModifyClient = (initialPhone: string) => {
                 "Your profile was removed",
                 toastId
             );
-
-        } catch (error: any) {
+        } catch (error: unknown) {
             notify.error(
                 "Deleting failed",
-                error?.message || "Something went wrong",
+                getErrorMessage(error),
                 toastId,
             );
         }
-    }
+    };
 
     return {
         newPhone,
