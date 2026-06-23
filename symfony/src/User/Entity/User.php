@@ -25,6 +25,8 @@ use Symfony\Component\Security\Core\User\UserInterface;
 #[ORM\Table(name: '`user`')]
 #[ORM\UniqueConstraint(name: 'UNIQ_IDENTIFIER_EMAIL', fields: ['email'])]
 #[ORM\UniqueConstraint(name: 'UNIQ_USER_PHONE', fields: ['phone'])]
+#[ORM\Index(name: 'IDX_USER_DELETED_AT', columns: ['deleted_at'])]
+#[ORM\Index(name: 'IDX_USER_TYPE', columns: ['type'])]
 #[ORM\InheritanceType('SINGLE_TABLE')]
 #[ORM\DiscriminatorColumn(name: 'type', type: 'string')]
 #[ORM\DiscriminatorMap([
