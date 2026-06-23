@@ -68,12 +68,11 @@ export const clientStore: ClientStore = {
         });
 
         try {
-            const res = await apiPost<ApiItemResponse<ClientType>>('/me/activate/', data);
+            const res = await apiPost<ApiItemResponse<ClientType>>('/clients/activate/', data);
 
             runInAction(() => {
                 authStore.user = res.data;
             });
-
         } catch (e) {
             console.error(e);
             throw e;
