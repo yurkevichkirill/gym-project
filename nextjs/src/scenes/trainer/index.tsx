@@ -14,13 +14,13 @@ import { useState } from "react";
 import { PaymentMethodEnum } from "@/types/payment/payment-method.enum";
 import { StripeModal } from "../stripe/stripeModal";
 import { createStripeIntent } from "@/api/client/payments.api";
+import { getErrorMessage } from "@/lib/getErrorMessage";
 
 const TrainerPersonal = ({ id }: { id: string }) => {
     const { setSelectedPage } = useNavigation();
     const { booking } = useBooking();
     const { bookingStore } = useStore();
     const { trainer, worktimes, loading, error } = useTrainerData(id);
-    
     const [stripeClientSecret, setStripeClientSecret] = useState<string | null>(null);
 
     const handleBooking = async () => {
@@ -39,28 +39,27 @@ const TrainerPersonal = ({ id }: { id: string }) => {
                 startTime: booking.startTime + ":00",
             });
 
-            const payment = res.payment; 
+            const payment = res.payment;
 
             if (payment && payment.method === PaymentMethodEnum.CARD) {
-                notify.dismiss(toastId); 
-                
+                notify.dismiss(toastId);
                 const clientSecret = await createStripeIntent(payment.id);
                 setStripeClientSecret(clientSecret);
             } else {
                 notify.success(
                     "Training booked",
                     `${res.durationMinutes} min on ${res.date} paid from inner balance.`,
-                    toastId, 
+                    toastId,
                 );
             }
-        } catch (error: any) {
+        } catch (error: unknown) {
             notify.error(
                 "Booking failed",
-                error?.message || "Something went wrong",
+                getErrorMessage(error),
                 toastId,
             );
         }
-    }
+    };
 
     if (loading) return <div>Loading ...</div>;
     if (error) return <div>Error: {error}</div>;
@@ -87,7 +86,7 @@ const TrainerPersonal = ({ id }: { id: string }) => {
                         visible: { opacity: 1, x: 0 },
                     }}
                 >
-                    <p className="text-4xl">{ `${trainer?.firstName} ${trainer?.lastName}` }</p>
+                    <p className="text-4xl">{`${trainer.firstName} ${trainer.lastName}`}</p>
                 </motion.div>
                 <div className="flex flex-col sm:flex-row items-start gap-6 sm:gap-10">
                     <motion.div
@@ -101,9 +100,9 @@ const TrainerPersonal = ({ id }: { id: string }) => {
                             visible: { opacity: 1, y: 0 },
                         }}
                     >
-                        {trainer?.photoUrl &&
-                            <Image src={ trainer?.photoUrl } fill alt="Icon" className="rounded-2xl object-cover"/>
-                        }
+                        {trainer.photoUrl && (
+                            <Image src={trainer.photoUrl} fill alt="Icon" className="rounded-2xl object-cover"/>
+                        )}
                     </motion.div>
                     <motion.div
                         className="flex flex-col flex-1 gap-5 w-full"
@@ -117,7 +116,7 @@ const TrainerPersonal = ({ id }: { id: string }) => {
                         }}
                     >
                         <div className="bg-primary-100 p-2 rounded-2xl text-3xl flex flex-col flex-1 gap-10">
-                            <p><span className="font-bold">Specialization: </span>{trainer?.trainingType.name}</p>
+                            <p><span className="font-bold">Specialization: </span>{trainer.trainingType.name}</p>
                             <p><span className="font-bold">Education: </span>{trainer.education}</p>
                             <p><span className="font-bold">About: </span>{trainer.about}</p>
                             <p><span className="font-bold">Price: </span>{formattedPrice}</p>
@@ -145,15 +144,13 @@ const TrainerPersonal = ({ id }: { id: string }) => {
                 <StripeModal
                     clientSecret={stripeClientSecret}
                     onClose={() => setStripeClientSecret(null)}
-                    onSuccess={() => {
-                        setStripeClientSecret(null);
-                    }}
+                    onSuccess={() => setStripeClientSecret(null)}
                     successTitle="Training Booked!"
                     successDescription="Your personal session has been successfully scheduled."
                 />
             )}
         </section>
     );
-}
+};
 
 export default TrainerPersonal;
