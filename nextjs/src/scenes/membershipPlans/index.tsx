@@ -17,15 +17,16 @@ import { notify } from "@/lib/notify";
 import { PaymentMethodEnum } from "@/types/payment/payment-method.enum";
 import { createStripeIntent } from "@/api/client/payments.api";
 import { StripeModal } from "../stripe/stripeModal";
+import { getErrorMessage } from "@/lib/getErrorMessage";
 
 const Memberships = observer(() => {
     const { setSelectedPage } = useNavigation();
     const { membershipStore } = useStore();
-    
+
     const [membershipPlans, setMembershipPlans] = useState<MembershipPlanType[]>([]);
     const [error, setError] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
-    
+
     const [stripeClientSecret, setStripeClientSecret] = useState<string | null>(null);
     const [activePlanId, setActivePlanId] = useState<number | null>(null);
 
@@ -34,13 +35,13 @@ const Memberships = observer(() => {
             try {
                 const data = await getMembershipPlans();
                 setMembershipPlans(data);
-            } catch (e) {
-                console.error(e);
-                setError(e instanceof Error ? e.message : "Something went wrong");
+            } catch (error: unknown) {
+                console.error(error);
+                setError(getErrorMessage(error));
             } finally {
                 setLoading(false);
             }
-        }
+        };
         void fetchData();
     }, []);
 
@@ -54,7 +55,7 @@ const Memberships = observer(() => {
 
             if (payment && payment.method === PaymentMethodEnum.CARD) {
                 notify.dismiss(toastId);
-                
+
                 const clientSecret = await createStripeIntent(payment.id);
                 setStripeClientSecret(clientSecret);
             } else {
@@ -64,10 +65,10 @@ const Memberships = observer(() => {
                     toastId
                 );
             }
-        } catch (err: any) {
+        } catch (error: unknown) {
             notify.error(
                 "Purchase failed",
-                err?.message || "Could not process membership purchase",
+                getErrorMessage(error, "Could not process membership purchase"),
                 toastId
             );
         } finally {
