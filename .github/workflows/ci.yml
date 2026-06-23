@@ -1,0 +1,199 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend / PHP 8.4
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    defaults:
+      run:
+        working-directory: symfony
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: gym_ci
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d gym_ci"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:8.6-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      rabbitmq:
+        image: rabbitmq:4.0-management-alpine
+        env:
+          RABBITMQ_DEFAULT_USER: user
+          RABBITMQ_DEFAULT_PASS: password
+        ports:
+          - 5672:5672
+        options: >-
+          --health-cmd "rabbitmq-diagnostics -q ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      APP_ENV: test
+      APP_DEBUG: '0'
+      APP_SECRET: ci-secret-not-for-production
+      APP_SHARE_DIR: /tmp/gym-share
+      DEFAULT_URI: http://localhost
+
+      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/gym_ci?serverVersion=16&charset=utf8
+      MESSENGER_TRANSPORT_DSN: amqp://user:password@127.0.0.1:5672/%2f/messages
+      MAILER_DSN: null://null
+
+      JWT_SECRET_KEY: ${{ github.workspace }}/symfony/config/jwt/private.pem
+      JWT_PUBLIC_KEY: ${{ github.workspace }}/symfony/config/jwt/public.pem
+      JWT_PASSPHRASE: ci-passphrase
+
+      STRIPE_SECRET_KEY: sk_test_ci
+      STRIPE_PUBLIC_KEY: pk_test_ci
+      STRIPE_WEBHOOK_SECRET: whsec_ci
+
+      CLICKHOUSE_HOST: http://127.0.0.1:8123/
+      CLICKHOUSE_DB: analytics
+      CLICKHOUSE_USER: analytics
+      CLICKHOUSE_PASSWORD: ci-password
+
+      MINIO_ACCESS_KEY: ci-access-key
+      MINIO_SECRET_KEY: ci-secret-key
+      MINIO_BUCKET: evogym-bucket
+      MINIO_ENDPOINT: http://127.0.0.1:9000
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: amqp, bcmath, curl, dom, gd, intl, mbstring, pdo_pgsql, xml, zip
+          coverage: none
+          tools: composer:v2
+
+      - name: Configure service hostnames
+        run: |
+          echo "127.0.0.1 redis" | sudo tee -a /etc/hosts
+
+      - name: Install Composer dependencies
+        run: >
+          composer install
+          --prefer-dist
+          --no-progress
+          --no-interaction
+          --no-scripts
+
+      - name: Generate temporary JWT keys
+        run: |
+          mkdir -p config/jwt
+
+          openssl genpkey \
+            -algorithm RSA \
+            -aes-256-cbc \
+            -pass pass:ci-passphrase \
+            -pkeyopt rsa_keygen_bits:2048 \
+            -out config/jwt/private.pem
+
+          openssl pkey \
+            -in config/jwt/private.pem \
+            -passin pass:ci-passphrase \
+            -pubout \
+            -out config/jwt/public.pem
+
+      - name: Run Composer auto-scripts
+        run: composer run-script --no-interaction post-install-cmd
+
+      - name: Prepare test database
+        run: |
+          php bin/console doctrine:database:create \
+            --if-not-exists \
+            --env=test
+
+          php bin/console doctrine:migrations:migrate \
+            --no-interaction \
+            --env=test
+
+      - name: Build Symfony dev container for PHPStan
+        env:
+          APP_ENV: dev
+          APP_DEBUG: '1'
+        run: php bin/console cache:clear --env=dev --no-interaction
+
+      - name: Run PHPStan
+        run: vendor/bin/phpstan analyse --no-progress
+
+      - name: Run PHPUnit
+        run: php bin/phpunit
+
+  frontend:
+    name: Frontend / Node 22
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    defaults:
+      run:
+        working-directory: nextjs
+
+    env:
+      NEXT_TELEMETRY_DISABLED: '1'
+      NEXT_PUBLIC_API_URL: http://localhost
+      NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: pk_test_ci
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: pnpm
+          cache-dependency-path: nextjs/pnpm-lock.yaml
+
+      - name: Install frontend dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run ESLint
+        run: pnpm lint
+
+      - name: Build Next.js application
+        run: pnpm build
