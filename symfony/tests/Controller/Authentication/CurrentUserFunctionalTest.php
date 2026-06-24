@@ -148,7 +148,11 @@ final class CurrentUserFunctionalTest extends WebTestCase
 
     private function requestWithToken(string $token): void
     {
-        $this->browser->getCookieJar()->set(new Cookie('access_token', $token));
+        $this->browser->getCookieJar()->set(new Cookie(
+            name: 'access_token',
+            value: $token,
+            domain: 'localhost',
+        ));
         $this->browser->jsonRequest('GET', '/api/auth/me/');
     }
 
