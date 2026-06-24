@@ -10,7 +10,3 @@ export default interface TrainerData {
     about: string | null,
     photoPath: string | null,
 }
-
-export interface TrainerDetailsData extends TrainerData {
-    photoUrl: string;
-}

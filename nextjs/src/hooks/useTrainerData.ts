@@ -1,12 +1,12 @@
 import {useEffect, useState} from "react";
-import type {TrainerDetailsData} from "@/types/trainer/public/trainer.type";
+import type TrainerData from "@/types/trainer/public/trainer.type";
 import type WorktimeData from "@/types/trainer/public/worktime.type";
 import {getTrainer} from "@/api/public/trainers.api";
 import {getWorktimes} from "@/api/public/worktime.api";
 import {getErrorMessage} from "@/lib/getErrorMessage";
 
 export const useTrainerData = (id: string) => {
-    const [trainer, setTrainer] = useState<TrainerDetailsData>();
+    const [trainer, setTrainer] = useState<TrainerData>();
     const [worktimes, setWorktimes] = useState<WorktimeData[]>([]);
     const [error, setError] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);

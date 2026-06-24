@@ -15,6 +15,7 @@ import { PaymentMethodEnum } from "@/types/payment/payment-method.enum";
 import { StripeModal } from "../stripe/stripeModal";
 import { createStripeIntent } from "@/api/client/payments.api";
 import { getErrorMessage } from "@/lib/getErrorMessage";
+import { resolveStorageUrl } from "@/lib/resolveStorageUrl";
 
 const TrainerPersonal = ({ id }: { id: string }) => {
     const { setSelectedPage } = useNavigation();
@@ -69,6 +70,9 @@ const TrainerPersonal = ({ id }: { id: string }) => {
         style: 'currency',
         currency: 'USD',
     }).format(trainer.pricePerHour / 100);
+    const trainerPhotoUrl = trainer.photoPath
+        ? resolveStorageUrl(trainer.photoPath, "")
+        : null;
 
     return (
         <section className="min-w-[300px] mt-30">
@@ -90,7 +94,7 @@ const TrainerPersonal = ({ id }: { id: string }) => {
                 </motion.div>
                 <div className="flex flex-col sm:flex-row items-start gap-6 sm:gap-10">
                     <motion.div
-                        className="border w-full sm:w-[90%] md:w-[400px] rounded-2xl relative aspect-[3/4]"
+                        className="border w-full sm:w-[90%] md:w-[400px] rounded-2xl relative aspect-[3/4] overflow-hidden bg-gray-100"
                         initial="hidden"
                         whileInView="visible"
                         viewport={{ once: true, amount: 0.5 }}
@@ -100,8 +104,19 @@ const TrainerPersonal = ({ id }: { id: string }) => {
                             visible: { opacity: 1, y: 0 },
                         }}
                     >
-                        {trainer.photoUrl && (
-                            <Image src={trainer.photoUrl} fill alt="Icon" className="rounded-2xl object-cover"/>
+                        {trainerPhotoUrl ? (
+                            <Image
+                                src={trainerPhotoUrl}
+                                fill
+                                alt={`Photo of ${trainer.firstName} ${trainer.lastName}`}
+                                sizes="(max-width: 768px) 90vw, 400px"
+                                className="rounded-2xl object-cover"
+                                unoptimized
+                            />
+                        ) : (
+                            <div className="flex h-full items-center justify-center text-gray-400">
+                                No image available
+                            </div>
                         )}
                     </motion.div>
                     <motion.div
