@@ -9,6 +9,8 @@ type InitTask = {
     promise: Promise<void>;
 };
 
+type PaymentStorePrivateKey = "generation" | "initTask";
+
 class PaymentStore {
     public payments: PaymentType[] = [];
     public isLoading = false;
@@ -18,7 +20,7 @@ class PaymentStore {
     private initTask: InitTask | null = null;
 
     public constructor() {
-        makeAutoObservable(this, {
+        makeAutoObservable<this, PaymentStorePrivateKey>(this, {
             generation: false,
             initTask: false,
         }, {autoBind: true});
@@ -36,7 +38,7 @@ class PaymentStore {
         }
 
         const promise = this.load(generation).finally(() => {
-            if (this.initTask?.promise === promise) {
+            if (this.initTask?.generation === generation) {
                 this.initTask = null;
             }
         });
