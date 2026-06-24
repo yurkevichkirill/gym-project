@@ -77,8 +77,6 @@ final readonly class ExceptionListener
         $isDev = $this->kernel->getEnvironment() === 'dev';
         if ($isUniqueConstraintViolation) {
             $errorMessage = 'A resource with the same unique value already exists';
-        } elseif ($validationException !== null) {
-            $errorMessage = 'Validation failed';
         } else {
             $errorMessage = ($statusCode >= 500 && !$isDev)
                 ? 'Internal Server Error'
