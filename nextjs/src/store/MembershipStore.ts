@@ -22,6 +22,8 @@ type InitTask = {
     promise: Promise<void>;
 };
 
+type MembershipStorePrivateKey = "generation" | "initTask";
+
 class MembershipStore {
     public memberships: MembershipType[] = [];
     public isLoading = false;
@@ -31,7 +33,7 @@ class MembershipStore {
     private initTask: InitTask | null = null;
 
     public constructor() {
-        makeAutoObservable(this, {
+        makeAutoObservable<this, MembershipStorePrivateKey>(this, {
             generation: false,
             initTask: false,
         }, {autoBind: true});
@@ -49,7 +51,7 @@ class MembershipStore {
         }
 
         const promise = this.load(generation).finally(() => {
-            if (this.initTask?.promise === promise) {
+            if (this.initTask?.generation === generation) {
                 this.initTask = null;
             }
         });
