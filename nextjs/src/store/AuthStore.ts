@@ -9,6 +9,7 @@ export interface AuthStore {
     user: User | null;
     isAuth: boolean;
     isLoading: boolean;
+    isInitialized: boolean;
 
     login: (payload: LoginRequest) => Promise<LoginResponse>;
     register: (payload: ClientRegisterRequest) => Promise<ApiItemResponse<ClientType>>;
@@ -20,6 +21,7 @@ export const authStore: AuthStore = {
     user: null,
     isAuth: false,
     isLoading: false,
+    isInitialized: false,
 
     login: async (payload) => {
         authStore.isLoading = true;
@@ -78,6 +80,7 @@ export const authStore: AuthStore = {
         } finally {
             runInAction(() => {
                 authStore.isLoading = false;
+                authStore.isInitialized = true;
             });
         }
     },
