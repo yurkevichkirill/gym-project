@@ -25,6 +25,9 @@ final readonly class ExceptionListener
         private KernelInterface $kernel,
     ) {}
 
+    /**
+     * @throws SuspiciousOperationException
+     */
     #[AsEventListener(event: KernelEvents::EXCEPTION)]
     public function __invoke(ExceptionEvent $event): void
     {
@@ -47,7 +50,10 @@ final readonly class ExceptionListener
 
             if (count($attributes) > 0) {
                 $attributeInstance = $attributes[0]->newInstance();
-                $statusCode = $attributeInstance->statusCode;
+
+                if ($attributeInstance instanceof WithHttpStatus) {
+                    $statusCode = $attributeInstance->statusCode;
+                }
             }
         }
 
