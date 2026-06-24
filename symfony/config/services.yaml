@@ -94,6 +94,15 @@ services:
         arguments:
             $secret: '%kernel.secret%'
 
+    App\Contact\Security\ContactRateLimiter:
+        arguments:
+            $secret: '%kernel.secret%'
+
+    App\Contact\Service\ContactMessageService:
+        arguments:
+            $recipientEmail: '%env(resolve:CONTACT_RECIPIENT_EMAIL)%'
+            $senderEmail: '%env(resolve:CONTACT_SENDER_EMAIL)%'
+
     App\ImportJob\Service\ActivationEmailService:
         arguments:
             $clientActivationUrl: '%env(resolve:CLIENT_ACTIVATION_URL)%'
