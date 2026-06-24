@@ -57,7 +57,7 @@ final class CurrentUserFunctionalTest extends WebTestCase
             'POST',
             '/api/login/',
             server: [
-                'REMOTE_ADDR' => '198.51.100.10',
+                'REMOTE_ADDR' => '192.0.2.201',
                 'CONTENT_TYPE' => 'application/json',
                 'HTTP_ACCEPT' => 'application/json',
             ],
