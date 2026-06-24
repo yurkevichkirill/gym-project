@@ -10,7 +10,7 @@ import { notify } from "@/lib/notify";
 import { useStore } from "@/store/StoreProvider";
 import { useBooking } from "@/context/booking.context";
 import { useTrainerData } from "@/hooks/useTrainerData";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { PaymentMethodEnum } from "@/types/payment/payment-method.enum";
 import { StripeModal } from "../stripe/stripeModal";
 import { createStripeIntent } from "@/api/client/payments.api";
@@ -23,13 +23,21 @@ const TrainerPersonal = ({ id }: { id: string }) => {
     const { bookingStore } = useStore();
     const { trainer, worktimes, loading, error } = useTrainerData(id);
     const [stripeClientSecret, setStripeClientSecret] = useState<string | null>(null);
+    const [isBooking, setIsBooking] = useState(false);
+    const bookingRequestInFlight = useRef(false);
 
     const handleBooking = async () => {
+        if (bookingRequestInFlight.current) {
+            return;
+        }
+
         if (!id || !booking.date || !booking.durationMinutes || !booking.startTime) {
             notify.error("Missing data", "Please select date and time");
             return;
         }
 
+        bookingRequestInFlight.current = true;
+        setIsBooking(true);
         const toastId = notify.loading("Creating booking...");
 
         try {
@@ -59,6 +67,9 @@ const TrainerPersonal = ({ id }: { id: string }) => {
                 getErrorMessage(error),
                 toastId,
             );
+        } finally {
+            bookingRequestInFlight.current = false;
+            setIsBooking(false);
         }
     };
 
@@ -146,10 +157,14 @@ const TrainerPersonal = ({ id }: { id: string }) => {
                             ))}
                         </ul>
                         <button
-                            className="rounded-md bg-secondary-500 px-10 py-2 hover:bg-primary-500 hover:text-white self-start cursor-pointer"
+                            className={`rounded-md px-10 py-2 self-start ${isBooking
+                                ? "cursor-not-allowed bg-gray-300 text-gray-500"
+                                : "cursor-pointer bg-secondary-500 hover:bg-primary-500 hover:text-white"
+                            }`}
                             onClick={handleBooking}
+                            disabled={isBooking}
                         >
-                            Book Training
+                            {isBooking ? "Booking..." : "Book Training"}
                         </button>
                     </motion.div>
                 </div>
