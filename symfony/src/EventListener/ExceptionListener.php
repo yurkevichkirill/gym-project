@@ -15,6 +15,8 @@ use Symfony\Component\HttpKernel\Event\ExceptionEvent;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 use Symfony\Component\HttpKernel\KernelEvents;
 use Symfony\Component\HttpKernel\KernelInterface;
+use Symfony\Component\Validator\Exception\ValidationFailedException;
+use Throwable;
 
 final readonly class ExceptionListener
 {
@@ -32,6 +34,7 @@ final readonly class ExceptionListener
         $exception = $event->getThrowable();
         $request = $event->getRequest();
         $isUniqueConstraintViolation = $exception instanceof UniqueConstraintViolationException;
+        $validationException = $this->findValidationException($exception);
 
         $statusCode = 500;
         $headers = [];
@@ -80,14 +83,38 @@ final readonly class ExceptionListener
                 : $exception->getMessage();
         }
 
-        $event->setResponse(
-            new JsonResponse(
-                data: [
-                    'message' => $errorMessage,
-                ],
-                status: $statusCode,
-                headers: $headers
-            )
-        );
+        $responseData = ['message' => $errorMessage];
+
+        if ($validationException !== null) {
+            $violations = [];
+
+            foreach ($validationException->getViolations() as $violation) {
+                $violations[] = [
+                    'propertyPath' => $violation->getPropertyPath(),
+                    'message' => (string) $violation->getMessage(),
+                ];
+            }
+
+            $responseData['violations'] = $violations;
+        }
+
+        $event->setResponse(new JsonResponse(
+            data: $responseData,
+            status: $statusCode,
+            headers: $headers,
+        ));
+    }
+
+    private function findValidationException(Throwable $exception): ?ValidationFailedException
+    {
+        do {
+            if ($exception instanceof ValidationFailedException) {
+                return $exception;
+            }
+
+            $exception = $exception->getPrevious();
+        } while ($exception !== null);
+
+        return null;
     }
 }
