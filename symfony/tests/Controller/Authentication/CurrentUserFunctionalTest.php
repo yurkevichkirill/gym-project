@@ -4,30 +4,71 @@ declare(strict_types=1);
 
 namespace App\Tests\Controller\Authentication;
 
-use Lexik\Bundle\JWTAuthenticationBundle\Services\JWTTokenManagerInterface;
+use App\Client\Entity\Client;
+use Doctrine\ORM\EntityManagerInterface;
 use OpenSSLAsymmetricKey;
+use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\Component\BrowserKit\Cookie;
+use Symfony\Component\HttpFoundation\Response;
 
 final class CurrentUserFunctionalTest extends WebTestCase
 {
-    public function testManuallySignedJwtCanBeParsedByLexik(): void
+    private KernelBrowser $browser;
+    private EntityManagerInterface $entityManager;
+    private ?int $createdUserId = null;
+
+    protected function setUp(): void
     {
-        self::createClient();
-
-        $jwtManager = self::getContainer()->get('lexik_jwt_authentication.jwt_manager');
-        self::assertInstanceOf(JWTTokenManagerInterface::class, $jwtManager);
-
-        $token = $this->createAccessToken('current_user@example.com', ['ROLE_CLIENT', 'ROLE_USER']);
-        $payload = $jwtManager->parse($token);
-
-        self::assertSame('current_user@example.com', $payload['username'] ?? null);
-        self::assertSame(['ROLE_CLIENT', 'ROLE_USER'], $payload['roles'] ?? null);
+        $this->browser = self::createClient();
+        $this->browser->disableReboot();
+        $this->entityManager = self::getContainer()->get(EntityManagerInterface::class);
     }
 
-    /**
-     * @param list<string> $roles
-     */
-    private function createAccessToken(string $email, array $roles): string
+    protected function tearDown(): void
+    {
+        if ($this->createdUserId !== null) {
+            $this->entityManager->getConnection()->executeStatement(
+                'DELETE FROM "user" WHERE id = :userId',
+                ['userId' => $this->createdUserId],
+            );
+        }
+
+        $this->entityManager->close();
+
+        parent::tearDown();
+    }
+
+    public function testCommittedClientCanGetCurrentUserWithSignedJwtCookie(): void
+    {
+        $client = new Client();
+        $client->setFirstName('Functional');
+        $client->setLastName('Client');
+        $client->setEmail('current_client_' . bin2hex(random_bytes(8)) . '@example.com');
+        $client->setPhone('+37529' . random_int(1_000_000, 9_999_999));
+        $client->setPassword('not-used-in-test');
+        $client->setIsActive(true);
+        $client->setAge(30);
+
+        $this->entityManager->persist($client);
+        $this->entityManager->flush();
+
+        $userId = $client->getId();
+        self::assertIsInt($userId);
+        $this->createdUserId = $userId;
+
+        $this->browser->getCookieJar()->set(new Cookie(
+            name: 'access_token',
+            value: $this->createAccessToken($client),
+            domain: 'localhost',
+        ));
+        $this->browser->jsonRequest('GET', '/api/auth/me/');
+
+        $response = $this->browser->getResponse();
+        self::assertSame(Response::HTTP_OK, $response->getStatusCode(), (string) $response->getContent());
+    }
+
+    private function createAccessToken(Client $client): string
     {
         $projectDir = self::getContainer()->getParameter('kernel.project_dir');
         self::assertIsString($projectDir);
@@ -49,8 +90,8 @@ final class CurrentUserFunctionalTest extends WebTestCase
         $payload = $this->base64UrlEncode(json_encode([
             'iat' => $now,
             'exp' => $now + 3600,
-            'roles' => $roles,
-            'username' => $email,
+            'roles' => $client->getRoles(),
+            'username' => $client->getUserIdentifier(),
         ], JSON_THROW_ON_ERROR));
         $signingInput = $header . '.' . $payload;
         $signature = '';
