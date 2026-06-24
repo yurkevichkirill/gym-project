@@ -4,6 +4,7 @@ import {useEffect} from "react";
 import {usePathname, useRouter, useSearchParams} from "next/navigation";
 import {notify} from "@/lib/notify";
 import {useStore} from "@/store/StoreProvider";
+import {isClient} from "@/lib/utils/user.types.utils";
 
 const STRIPE_RETURN_PARAMS = [
     "payment_intent",
@@ -15,7 +16,7 @@ export const PaymentReturnSync = () => {
     const pathname = usePathname();
     const router = useRouter();
     const searchParams = useSearchParams();
-    const {clientStore, bookingStore, membershipStore, paymentStore} = useStore();
+    const {authStore, clientStore, bookingStore, membershipStore, paymentStore} = useStore();
 
     useEffect(() => {
         const clientSecret = searchParams.get("payment_intent_client_secret");
@@ -26,13 +27,16 @@ export const PaymentReturnSync = () => {
 
         const syncPaymentReturn = async () => {
             const redirectStatus = searchParams.get("redirect_status");
+            const user = await authStore.checkAuth();
 
-            await Promise.all([
-                clientStore.init(),
-                bookingStore.init(),
-                membershipStore.init(),
-                paymentStore.init(),
-            ]);
+            if (user !== null && isClient(user)) {
+                await Promise.all([
+                    clientStore.init(),
+                    bookingStore.init(),
+                    membershipStore.init(),
+                    paymentStore.init(),
+                ]);
+            }
 
             if (redirectStatus === "succeeded") {
                 notify.success(
@@ -60,6 +64,7 @@ export const PaymentReturnSync = () => {
 
         void syncPaymentReturn();
     }, [
+        authStore,
         bookingStore,
         clientStore,
         membershipStore,
