@@ -11,6 +11,8 @@ type InitTask = {
     promise: Promise<void>;
 };
 
+type BookingStorePrivateKey = "generation" | "initTask";
+
 class BookingStore {
     public bookings: BookingType[] = [];
     public isLoading = false;
@@ -20,7 +22,7 @@ class BookingStore {
     private initTask: InitTask | null = null;
 
     public constructor() {
-        makeAutoObservable(this, {
+        makeAutoObservable<this, BookingStorePrivateKey>(this, {
             generation: false,
             initTask: false,
         }, {autoBind: true});
@@ -38,7 +40,7 @@ class BookingStore {
         }
 
         const promise = this.load(generation).finally(() => {
-            if (this.initTask?.promise === promise) {
+            if (this.initTask?.generation === generation) {
                 this.initTask = null;
             }
         });
