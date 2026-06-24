@@ -33,6 +33,11 @@ class ClientStore {
     }
 
     public init(): Promise<void> {
+        if (!authStore.isAuth) {
+            this.reset();
+            return Promise.resolve();
+        }
+
         const generation = this.generation;
         if (this.initTask?.generation === generation) {
             return this.initTask.promise;
@@ -60,7 +65,7 @@ class ClientStore {
         try {
             const client = await updateCurrentClient(payload);
 
-            if (generation !== this.generation) {
+            if (generation !== this.generation || !authStore.isAuth) {
                 return;
             }
 
@@ -68,7 +73,7 @@ class ClientStore {
                 this.client = client;
             });
         } catch (error: unknown) {
-            if (generation === this.generation) {
+            if (generation === this.generation && authStore.isAuth) {
                 runInAction(() => {
                     this.error = getErrorMessage(error, "Failed to update the profile.");
                 });
@@ -99,7 +104,7 @@ class ClientStore {
                 await authStore.logout();
             }
         } catch (error: unknown) {
-            if (generation === this.generation) {
+            if (generation === this.generation && authStore.isAuth) {
                 runInAction(() => {
                     this.error = getErrorMessage(error, "Failed to delete the profile.");
                 });
@@ -169,7 +174,7 @@ class ClientStore {
         try {
             const client = await getCurrentClient();
 
-            if (generation !== this.generation) {
+            if (generation !== this.generation || !authStore.isAuth) {
                 return;
             }
 
@@ -177,7 +182,7 @@ class ClientStore {
                 this.client = client;
             });
         } catch (error: unknown) {
-            if (generation === this.generation) {
+            if (generation === this.generation && authStore.isAuth) {
                 runInAction(() => {
                     this.client = null;
                     this.error = getErrorMessage(error, "Failed to load the profile.");
