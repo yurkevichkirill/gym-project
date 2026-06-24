@@ -6,6 +6,7 @@ import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/solid";
 import { useState } from "react";
+import { observer } from "mobx-react-lite";
 import { notify } from "@/lib/notify";
 import { getErrorMessage } from "@/lib/getErrorMessage";
 
@@ -14,7 +15,7 @@ interface FormData {
     password: string;
 }
 
-const LoginModal = ({
+const LoginModal = observer(({
     isOpen,
     onClose,
 }: {
@@ -26,7 +27,7 @@ const LoginModal = ({
     const {
         register,
         handleSubmit,
-        formState: { errors },
+        formState: { errors, isSubmitting },
     } = useForm<FormData>({
         mode: "onChange",
     });
@@ -53,6 +54,9 @@ const LoginModal = ({
     };
 
     const [passVisible, setPassVisible] = useState(false);
+    const isSubmitDisabled = isSubmitting
+        || authStore.isLoading
+        || Object.keys(errors).length > 0;
 
     return createPortal(
         <AnimatePresence>
@@ -134,10 +138,13 @@ const LoginModal = ({
                         )}
                         <button
                             type="submit"
-                            className={`rounded-md px-10 py-2 cursor-pointer ${Object.keys(errors).length > 0 ? "text-gray-400" : "bg-secondary-500  hover:bg-primary-500 hover:text-white"}`}
-                            disabled={authStore.isLoading}
+                            className={`rounded-md px-10 py-2 ${isSubmitDisabled
+                                ? "cursor-not-allowed text-gray-400"
+                                : "cursor-pointer bg-secondary-500 hover:bg-primary-500 hover:text-white"
+                            }`}
+                            disabled={isSubmitDisabled}
                         >
-                            {authStore.isLoading ? "Loading..." : "Login"}
+                            {isSubmitting || authStore.isLoading ? "Loading..." : "Login"}
                         </button>
                     </form>
                 </motion.div>
@@ -146,6 +153,6 @@ const LoginModal = ({
         </AnimatePresence>,
         document.body
     );
-};
+});
 
 export default LoginModal;

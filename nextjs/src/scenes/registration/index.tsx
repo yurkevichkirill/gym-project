@@ -6,6 +6,7 @@ import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/solid";
 import { useState } from "react";
+import { observer } from "mobx-react-lite";
 import { notify } from "@/lib/notify";
 import { ApiClientError } from "@/lib/apiClient";
 import { getErrorMessage } from "@/lib/getErrorMessage";
@@ -39,14 +40,14 @@ const isRegisterField = (value: unknown): value is keyof RegisterFormData => {
         && registerFieldNames.has(value as keyof RegisterFormData);
 };
 
-const RegisterModal = ({ isOpen, onClose, onSwitchToLogin }: RegisterModalProps) => {
+const RegisterModal = observer(({ isOpen, onClose, onSwitchToLogin }: RegisterModalProps) => {
     const { authStore } = useStore();
     const [passVisible, setPassVisible] = useState(false);
 
     const {
         register,
         handleSubmit,
-        formState: { errors },
+        formState: { errors, isSubmitting },
         reset,
         setError
     } = useForm<RegisterFormData>({
@@ -97,6 +98,10 @@ const RegisterModal = ({ isOpen, onClose, onSwitchToLogin }: RegisterModalProps)
             );
         }
     };
+
+    const isSubmitDisabled = isSubmitting
+        || authStore.isLoading
+        || Object.keys(errors).length > 0;
 
     return createPortal(
         <AnimatePresence>
@@ -234,14 +239,13 @@ const RegisterModal = ({ isOpen, onClose, onSwitchToLogin }: RegisterModalProps)
 
                             <button
                                 type="submit"
-                                className={`rounded-md px-10 py-2 cursor-pointer ${
-                                    Object.keys(errors).length > 0
-                                        ? "text-gray-400"
-                                        : "bg-secondary-500 hover:bg-primary-500 hover:text-white"
+                                className={`rounded-md px-10 py-2 ${isSubmitDisabled
+                                    ? "cursor-not-allowed text-gray-400"
+                                    : "cursor-pointer bg-secondary-500 hover:bg-primary-500 hover:text-white"
                                 }`}
-                                disabled={authStore.isLoading}
+                                disabled={isSubmitDisabled}
                             >
-                                {authStore.isLoading ? "Loading..." : "Become a Member"}
+                                {isSubmitting || authStore.isLoading ? "Loading..." : "Become a Member"}
                             </button>
                         </form>
                     </motion.div>
@@ -250,6 +254,6 @@ const RegisterModal = ({ isOpen, onClose, onSwitchToLogin }: RegisterModalProps)
         </AnimatePresence>,
         document.body
     );
-};
+});
 
 export default RegisterModal;
