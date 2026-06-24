@@ -2,5 +2,5 @@ export default interface TrainingTypeData {
     id: number,
     name: string,
     description: string,
-    photoUrl: string,
+    photoPath: string | null,
 }
