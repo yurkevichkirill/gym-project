@@ -3,10 +3,12 @@ import BookingType from "@/types/booking/booking.type";
 import {createBooking, cancelBooking, getMyBookings} from "@/api/client/bookings.api";
 import {authStore} from "@/store/AuthStore";
 import BookingCreateType from "@/types/booking/booking-create.type";
+import {getErrorMessage} from "@/lib/getErrorMessage";
 
 export interface BookingStore {
     bookings: BookingType[];
     isLoading: boolean;
+    error: string | null;
 
     init: () => Promise<void>;
     book: (payload: BookingCreateType) => Promise<BookingType>
@@ -16,10 +18,12 @@ export interface BookingStore {
 export const bookingStore: BookingStore = {
     bookings: [],
     isLoading: false,
+    error: null,
 
     init: async () => {
         runInAction(() => {
             bookingStore.isLoading = true;
+            bookingStore.error = null;
         });
 
         try {
@@ -28,8 +32,10 @@ export const bookingStore: BookingStore = {
             runInAction(() => {
                 bookingStore.bookings = bookings;
             });
-        } catch (e) {
-            console.log(e);
+        } catch (error: unknown) {
+            runInAction(() => {
+                bookingStore.error = getErrorMessage(error, "Failed to load bookings.");
+            });
         } finally {
             runInAction(() => {
                 bookingStore.isLoading = false;
