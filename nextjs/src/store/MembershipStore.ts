@@ -4,7 +4,7 @@ import {
     buyMembership,
     freezeMembership,
     getAllMemberships,
-    renewMembership,
+    renewMembership, 
     terminateMembership,
     unfreezeMembership
 } from "@/api/client/memberships.api";
@@ -39,21 +39,15 @@ export const membershipStore: MembershipStore = {
             membershipStore.isLoading = true;
             membershipStore.error = null;
         });
-
         try {
             const memberships = await getAllMemberships();
-
-            runInAction(() => {
-                membershipStore.memberships = memberships;
-            });
+            runInAction(() => { membershipStore.memberships = memberships; });
         } catch (error: unknown) {
             runInAction(() => {
                 membershipStore.error = getErrorMessage(error, "Failed to load memberships.");
             });
         } finally {
-            runInAction(() => {
-                membershipStore.isLoading = false;
-            });
+            runInAction(() => { membershipStore.isLoading = false; });
         }
     },
 
@@ -68,41 +62,43 @@ export const membershipStore: MembershipStore = {
 
     freeze: async (payload: MembershipFreezeType) => {
         const updated = await freezeMembership(payload);
-
+        
         runInAction(() => {
-            membershipStore.memberships = membershipStore.memberships.map(m =>
+            membershipStore.memberships = membershipStore.memberships.map(m => 
                 m.id === updated.id ? updated : m
             );
         });
-
+        
         return updated;
     },
 
     unfreeze: async (payload: MembershipUnfreezeType) => {
         const updated = await unfreezeMembership(payload);
-
+        
         runInAction(() => {
-            membershipStore.memberships = membershipStore.memberships.map(m =>
+            membershipStore.memberships = membershipStore.memberships.map(m => 
                 m.id === updated.id ? updated : m
             );
         });
-
+        
         return updated;
     },
 
     renew: async (payload: MembershipRenewType) => {
-        return renewMembership(payload);
+        const res = await renewMembership(payload);
+        
+        return res;
     },
 
     terminate: async (payload: MembershipTerminateType) => {
         const updated = await terminateMembership(payload);
-
+        
         runInAction(() => {
-            membershipStore.memberships = membershipStore.memberships.map(m =>
+            membershipStore.memberships = membershipStore.memberships.map(m => 
                 m.id === updated.id ? updated : m
             );
         });
-
+        
         return updated;
     },
 };
