@@ -1,15 +1,14 @@
 export interface User {
-    id: number,
-    email: string,
-    roles: string[],
-    type: UserTypes,
-    firstName: string,
-    lastName: string,
-    phone: string,
-    createdAt: string,
-    blockedAt: string | null,
-    deletedAt: string | null,
-    isActive: boolean,
+    id: number;
+    email: string;
+    type: UserTypes;
+    firstName: string;
+    lastName: string;
+    phone: string;
+    createdAt: string;
+    blockedAt: string | null;
+    deletedAt: string | null;
+    isActive: boolean;
 }
 
 export const UserTypes = {
@@ -26,10 +25,16 @@ export const Roles = {
     CLIENT: "ROLE_CLIENT",
     TRAINER: "ROLE_TRAINER",
     ADMIN: "ROLE_ADMIN",
-    MANAGER: "ROLE_MANAGER",
 } as const;
 
 export type Role = typeof Roles[keyof typeof Roles];
+export type AccountRole = typeof Roles.CLIENT | typeof Roles.TRAINER | typeof Roles.ADMIN;
+
+export interface CurrentUser {
+    id: number;
+    email: string;
+    roles: Role[];
+}
 
 export interface LoginRequest {
     email: string;
@@ -42,9 +47,11 @@ export interface LoginResponse {
     };
 }
 
-export interface MeResponse {
-    data: User;
+export interface CurrentUserResponse {
+    data: CurrentUser;
 }
+
+export type MeResponse = CurrentUserResponse;
 
 export interface ApiError {
     message: string;
