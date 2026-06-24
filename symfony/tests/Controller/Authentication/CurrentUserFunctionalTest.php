@@ -4,7 +4,13 @@ declare(strict_types=1);
 
 namespace App\Tests\Controller\Authentication;
 
+use App\Admin\Entity\Admin;
 use App\Client\Entity\Client;
+use App\Trainer\Entity\Trainer;
+use App\User\Entity\User;
+use App\User\Enum\UserRolesEnum;
+use DateTime;
+use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
@@ -14,21 +20,41 @@ final class CurrentUserFunctionalTest extends WebTestCase
 {
     private const string PASSWORD = 'Functional-password-123';
 
+    private static int $ipCounter = 201;
+
     private KernelBrowser $browser;
     private EntityManagerInterface $entityManager;
+    private ?string $accessToken = null;
+    private string $remoteAddress;
+
+    /** @var list<int> */
+    private array $createdUserIds = [];
 
     protected function setUp(): void
     {
         $this->browser = self::createClient();
         $this->browser->disableReboot();
         $this->entityManager = self::getContainer()->get(EntityManagerInterface::class);
-        $this->entityManager->getConnection()->beginTransaction();
+        $this->remoteAddress = '192.0.2.' . self::$ipCounter++;
     }
 
     protected function tearDown(): void
     {
-        if ($this->entityManager->getConnection()->isTransactionActive()) {
-            $this->entityManager->getConnection()->rollBack();
+        $connection = $this->entityManager->getConnection();
+
+        if ($connection->isTransactionActive()) {
+            $connection->rollBack();
+        }
+
+        foreach ($this->createdUserIds as $userId) {
+            $connection->executeStatement(
+                'DELETE FROM refresh_token WHERE user_id = :userId',
+                ['userId' => $userId],
+            );
+            $connection->executeStatement(
+                'DELETE FROM "user" WHERE id = :userId',
+                ['userId' => $userId],
+            );
         }
 
         $this->entityManager->close();
@@ -36,33 +62,136 @@ final class CurrentUserFunctionalTest extends WebTestCase
         parent::tearDown();
     }
 
-    public function testClientCanLoginAndReceiveAccessTokenCookie(): void
+    public function testClientCanGetCurrentUser(): void
     {
-        $client = new Client();
-        $client->setFirstName('Functional');
-        $client->setLastName('Client');
-        $client->setEmail('current_client_' . bin2hex(random_bytes(8)) . '@example.com');
-        $client->setPhone('+37529' . random_int(1_000_000, 9_999_999));
-        $client->setIsActive(true);
-        $client->setAge(30);
+        $this->assertUserCanGetCurrentIdentity(
+            $this->createClientUser(),
+            UserRolesEnum::ROLE_CLIENT->value,
+        );
+    }
 
-        $passwordHash = password_hash(self::PASSWORD, PASSWORD_BCRYPT, ['cost' => 4]);
-        self::assertIsString($passwordHash);
-        $client->setPassword($passwordHash);
+    public function testTrainerCanGetCurrentUser(): void
+    {
+        $this->assertUserCanGetCurrentIdentity(
+            $this->createTrainerUser(),
+            UserRolesEnum::ROLE_TRAINER->value,
+        );
+    }
 
-        $this->entityManager->persist($client);
+    public function testAdminCanGetCurrentUser(): void
+    {
+        $this->assertUserCanGetCurrentIdentity(
+            $this->createAdminUser(),
+            UserRolesEnum::ROLE_ADMIN->value,
+        );
+    }
+
+    public function testUnauthenticatedRequestReturnsUnauthorized(): void
+    {
+        $this->requestCurrentUser();
+
+        self::assertSame(
+            Response::HTTP_UNAUTHORIZED,
+            $this->browser->getResponse()->getStatusCode(),
+            (string) $this->browser->getResponse()->getContent(),
+        );
+    }
+
+    public function testResponseContainsOnlySafeIdentityFields(): void
+    {
+        $client = $this->createClientUser();
+        $client->setActivationToken('activation-token-that-must-not-leak');
         $this->entityManager->flush();
 
+        $passwordHash = $client->getPassword();
+        self::assertIsString($passwordHash);
+
+        $this->authenticate($client);
+        $this->requestCurrentUser();
+
+        $response = $this->browser->getResponse();
+        self::assertSame(Response::HTTP_OK, $response->getStatusCode(), (string) $response->getContent());
+
+        $payload = $this->decodeResponse();
+        $data = $payload['data'] ?? null;
+        self::assertIsArray($data);
+        self::assertSame(['id', 'email', 'roles'], array_keys($data));
+
+        $content = $response->getContent();
+        self::assertIsString($content);
+        self::assertStringNotContainsString($passwordHash, $content);
+        self::assertStringNotContainsString('activation-token-that-must-not-leak', $content);
+    }
+
+    public function testBlockedUserIsRejectedBySecurity(): void
+    {
+        $admin = $this->createAdminUser();
+        $this->authenticate($admin);
+
+        $admin->setBlockedAt(new DateTimeImmutable());
+        $this->entityManager->flush();
+        $this->entityManager->clear();
+
+        $this->requestCurrentUser();
+
+        $this->assertUnavailableUserRejected();
+    }
+
+    public function testDeletedUserIsRejectedBySecurity(): void
+    {
+        $client = $this->createClientUser();
+        $this->authenticate($client);
+
+        $client->setDeletedAt(new DateTime());
+        $this->entityManager->flush();
+        $this->entityManager->clear();
+
+        $this->requestCurrentUser();
+
+        $this->assertUnavailableUserRejected();
+    }
+
+    private function assertUserCanGetCurrentIdentity(User $user, string $expectedRole): void
+    {
+        $this->authenticate($user);
+        $this->requestCurrentUser();
+
+        $response = $this->browser->getResponse();
+        self::assertSame(Response::HTTP_OK, $response->getStatusCode(), (string) $response->getContent());
+
+        $payload = $this->decodeResponse();
+        $data = $payload['data'] ?? null;
+        self::assertIsArray($data);
+
+        $id = $user->getId();
+        self::assertIsInt($id);
+        self::assertSame($id, $data['id'] ?? null);
+        self::assertSame($user->getEmail(), $data['email'] ?? null);
+
+        $roles = $data['roles'] ?? null;
+        self::assertIsArray($roles);
+        self::assertContains($expectedRole, $roles);
+        self::assertContains(UserRolesEnum::ROLE_USER->value, $roles);
+    }
+
+    private function assertUnavailableUserRejected(): void
+    {
+        $response = $this->browser->getResponse();
+        self::assertContains(
+            $response->getStatusCode(),
+            [Response::HTTP_UNAUTHORIZED, Response::HTTP_FORBIDDEN],
+            (string) $response->getContent(),
+        );
+    }
+
+    private function authenticate(User $user): void
+    {
         $this->browser->request(
             'POST',
             '/api/login/',
-            server: [
-                'REMOTE_ADDR' => '192.0.2.201',
-                'CONTENT_TYPE' => 'application/json',
-                'HTTP_ACCEPT' => 'application/json',
-            ],
+            server: $this->requestServer(),
             content: json_encode([
-                'email' => $client->getEmail(),
+                'email' => $user->getEmail(),
                 'password' => self::PASSWORD,
             ], JSON_THROW_ON_ERROR),
         );
@@ -70,25 +199,103 @@ final class CurrentUserFunctionalTest extends WebTestCase
         $response = $this->browser->getResponse();
         self::assertSame(Response::HTTP_OK, $response->getStatusCode(), (string) $response->getContent());
 
-        $accessTokenCookieFound = false;
         foreach ($response->headers->getCookies() as $cookie) {
-            if ($cookie->getName() === 'access_token' && $cookie->getValue() !== '') {
-                $accessTokenCookieFound = true;
+            if ($cookie->getName() === 'access_token') {
+                $this->accessToken = $cookie->getValue();
                 break;
             }
         }
 
-        self::assertTrue($accessTokenCookieFound, 'Login response must set a non-empty access_token cookie.');
+        self::assertNotNull($this->accessToken, 'Login response must set the access_token cookie.');
     }
 
-    public function testUnauthenticatedRequestReturnsUnauthorized(): void
+    private function requestCurrentUser(): void
     {
-        $this->browser->jsonRequest('GET', '/api/auth/me/');
-
-        self::assertSame(
-            Response::HTTP_UNAUTHORIZED,
-            $this->browser->getResponse()->getStatusCode(),
-            (string) $this->browser->getResponse()->getContent(),
+        $this->browser->request(
+            'GET',
+            '/api/auth/me/',
+            server: $this->requestServer(),
         );
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function requestServer(): array
+    {
+        $server = [
+            'HTTP_HOST' => 'api.evogym.local',
+            'HTTPS' => 'on',
+            'REMOTE_ADDR' => $this->remoteAddress,
+            'CONTENT_TYPE' => 'application/json',
+            'HTTP_ACCEPT' => 'application/json',
+        ];
+
+        if ($this->accessToken !== null) {
+            $server['HTTP_COOKIE'] = 'access_token=' . $this->accessToken;
+        }
+
+        return $server;
+    }
+
+    private function createClientUser(): Client
+    {
+        $client = new Client();
+        $client->setAge(30);
+        $this->persistUser($client);
+
+        return $client;
+    }
+
+    private function createTrainerUser(): Trainer
+    {
+        $trainer = new Trainer();
+        $trainer->setPricePerHour(1_000);
+        $this->persistUser($trainer);
+
+        return $trainer;
+    }
+
+    private function createAdminUser(): Admin
+    {
+        $admin = new Admin();
+        $this->persistUser($admin);
+
+        return $admin;
+    }
+
+    private function persistUser(User $user): void
+    {
+        $suffix = bin2hex(random_bytes(8));
+        $passwordHash = password_hash(self::PASSWORD, PASSWORD_BCRYPT, ['cost' => 4]);
+        self::assertIsString($passwordHash);
+
+        $user->setFirstName('Functional');
+        $user->setLastName('User');
+        $user->setEmail("current_user_{$suffix}@example.com");
+        $user->setPhone('+37529' . random_int(1_000_000, 9_999_999));
+        $user->setIsActive(true);
+        $user->setPassword($passwordHash);
+
+        $this->entityManager->persist($user);
+        $this->entityManager->flush();
+
+        $userId = $user->getId();
+        self::assertIsInt($userId);
+        $this->createdUserIds[] = $userId;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function decodeResponse(): array
+    {
+        $content = $this->browser->getResponse()->getContent();
+        self::assertIsString($content);
+
+        $payload = json_decode($content, true, flags: JSON_THROW_ON_ERROR);
+        self::assertIsArray($payload);
+
+        return $payload;
     }
 }
