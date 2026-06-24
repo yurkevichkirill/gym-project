@@ -7,7 +7,9 @@ import HText from "@/shared/HText";
 import ContactUsPageGraphic from "@/assets/ContactUsPageGraphic.png";
 import Image from "next/image";
 import {useNavigation} from "@/context/navigation-context";
-import type {FormEvent} from "react";
+import {apiPost} from "@/lib/apiClient";
+import {notify} from "@/lib/notify";
+import {getErrorMessage} from "@/lib/getErrorMessage";
 
 interface ContactFormData {
     name: string;
@@ -21,16 +23,28 @@ const ContactUs = () => {
 
     const {
         register,
-        trigger,
-        formState: { errors }
+        handleSubmit,
+        reset,
+        formState: { errors, isSubmitting }
     } = useForm<ContactFormData>();
 
-    const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
-        const form = event.currentTarget;
-        event.preventDefault();
+    const onSubmit = async (data: ContactFormData) => {
+        const toastId = notify.loading("Sending your message...");
 
-        if (await trigger()) {
-            form.submit();
+        try {
+            await apiPost<null, ContactFormData>('/contact/', data);
+            reset();
+            notify.success(
+                "Message sent",
+                "Thank you. We will get back to you soon.",
+                toastId,
+            );
+        } catch (error: unknown) {
+            notify.error(
+                "Message was not sent",
+                getErrorMessage(error),
+                toastId,
+            );
         }
     };
 
@@ -72,12 +86,7 @@ const ContactUs = () => {
                         visible: { opacity: 1, y: 0 },
                     }}
                 >
-                    <form
-                        target="_blank"
-                        onSubmit={onSubmit}
-                        action="https://formsubmit.co/kirill.iurkievich@mail.ru"
-                        method="POST"
-                    >
+                    <form onSubmit={handleSubmit(onSubmit)}>
                         <input
                             className={inputStyles}
                             type="text"
@@ -96,16 +105,18 @@ const ContactUs = () => {
 
                         <input
                             className={inputStyles}
-                            type="text"
+                            type="email"
                             placeholder="EMAIL"
                             {...register("email", {
                                 required: true,
+                                maxLength: 254,
                                 pattern: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
                             })}
                         />
                         {errors.email && (
                             <p className="mt-1 text-primary-500">
                                 {errors.email.type === "required" && "This field is required."}
+                                {errors.email.type === "maxLength" && "Max length is 254 char."}
                                 {errors.email.type === "pattern" && "Invalid email address."}
                             </p>
                         )}
@@ -129,11 +140,11 @@ const ContactUs = () => {
 
                         <button
                             type="submit"
-                            className="mt-5 rounded-lg bg-secondary-500 px-20 py-3 transition duration-500 hover:text-white"
+                            disabled={isSubmitting}
+                            className="mt-5 rounded-lg bg-secondary-500 px-20 py-3 transition duration-500 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
                         >
-                            SUBMIT
+                            {isSubmitting ? "SENDING..." : "SUBMIT"}
                         </button>
-
                     </form>
                 </motion.div>
                 <motion.div
