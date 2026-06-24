@@ -19,7 +19,7 @@ final class CurrentUserFunctionalTest extends WebTestCase
         self::createClient();
         $this->entityManager = self::getContainer()->get(EntityManagerInterface::class);
 
-        $jwtManager = self::getContainer()->get('test.jwt_manager');
+        $jwtManager = self::getContainer()->get('lexik_jwt_authentication.jwt_manager');
         self::assertInstanceOf(JWTTokenManagerInterface::class, $jwtManager);
         $this->jwtManager = $jwtManager;
 
