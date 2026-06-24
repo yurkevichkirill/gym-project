@@ -17,6 +17,8 @@ type InitTask = {
     promise: Promise<void>;
 };
 
+type ClientStorePrivateKey = "generation" | "initTask";
+
 class ClientStore {
     public client: ClientType | null = null;
     public isLoading = false;
@@ -26,7 +28,7 @@ class ClientStore {
     private initTask: InitTask | null = null;
 
     public constructor() {
-        makeAutoObservable(this, {
+        makeAutoObservable<this, ClientStorePrivateKey>(this, {
             generation: false,
             initTask: false,
         }, {autoBind: true});
@@ -44,7 +46,7 @@ class ClientStore {
         }
 
         const promise = this.load(generation).finally(() => {
-            if (this.initTask?.promise === promise) {
+            if (this.initTask?.generation === generation) {
                 this.initTask = null;
             }
         });
