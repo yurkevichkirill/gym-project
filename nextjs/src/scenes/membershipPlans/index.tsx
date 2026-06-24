@@ -7,9 +7,8 @@ import ActionButton from "@/shared/ActionButton";
 import BenefitsPageGraphic from "@/assets/BenefitsPageGraphic.png";
 import { useNavigation } from "@/context/navigation-context";
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { MembershipPlanType } from "@/types/membership/membership-plan.type";
-import { getMembershipPlans } from "@/api/public/membership-plans.api";
 import MembershipPlan from "./MembershipPlan";
 import { useStore } from "@/store/StoreProvider";
 import { observer } from "mobx-react-lite";
@@ -19,31 +18,16 @@ import { createStripeIntent } from "@/api/client/payments.api";
 import { StripeModal } from "../stripe/stripeModal";
 import { getErrorMessage } from "@/lib/getErrorMessage";
 
-const Memberships = observer(() => {
+type Props = {
+    membershipPlans: MembershipPlanType[];
+    error?: string | null;
+};
+
+const Memberships = observer(({ membershipPlans, error = null }: Props) => {
     const { setSelectedPage } = useNavigation();
-    const { membershipStore } = useStore();
-
-    const [membershipPlans, setMembershipPlans] = useState<MembershipPlanType[]>([]);
-    const [error, setError] = useState<string | null>(null);
-    const [loading, setLoading] = useState(true);
-
+    const { authStore, membershipStore, paymentStore } = useStore();
     const [stripeClientSecret, setStripeClientSecret] = useState<string | null>(null);
     const [activePlanId, setActivePlanId] = useState<number | null>(null);
-
-    useEffect(() => {
-        const fetchData = async () => {
-            try {
-                const data = await getMembershipPlans();
-                setMembershipPlans(data);
-            } catch (error: unknown) {
-                console.error(error);
-                setError(getErrorMessage(error));
-            } finally {
-                setLoading(false);
-            }
-        };
-        void fetchData();
-    }, []);
 
     const handleBuyPlan = async (planId: number) => {
         setActivePlanId(planId);
@@ -52,6 +36,7 @@ const Memberships = observer(() => {
         try {
             const res = await membershipStore.buy({ membershipPlanId: planId });
             const payment = res.payment;
+            await paymentStore.init();
 
             if (payment && payment.method === PaymentMethodEnum.CARD) {
                 notify.dismiss(toastId);
@@ -62,27 +47,23 @@ const Memberships = observer(() => {
                 notify.success(
                     "Success!",
                     `Membership "${res.name}" successfully activated via your balance.`,
-                    toastId
+                    toastId,
                 );
             }
-        } catch (error: unknown) {
+        } catch (caughtError: unknown) {
             notify.error(
                 "Purchase failed",
-                getErrorMessage(error, "Could not process membership purchase"),
-                toastId
+                getErrorMessage(caughtError, "Could not process membership purchase"),
+                toastId,
             );
         } finally {
             setActivePlanId(null);
         }
     };
 
-    if (loading) return <div>Loading ...</div>;
-    if (error) return <div>Error: {error}</div>;
-
     return (
         <section id="memberships" className="mx-auto min-h-full w-full py-20">
             <motion.div onViewportEnter={() => setSelectedPage(SelectedPage.Memberships)}>
-                {/* HEADER */}
                 <motion.div
                     className="mx-auto w-5/6"
                     initial="hidden"
@@ -102,27 +83,31 @@ const Memberships = observer(() => {
                     </p>
                 </motion.div>
 
-                {/* MEMBERSHIPS LIST */}
                 <div>
                     <div className="mt-10 h-[353px] w-full overflow-x-auto overflow-y-hidden">
-                        <ul className="flex justify-center gap-20 whitespace-nowrap px-4">
-                            {membershipPlans.map((membership: MembershipPlanType) => (
-                                <MembershipPlan
-                                    key={membership.id}
-                                    id={membership.id}
-                                    name={membership.name}
-                                    durationDays={membership.durationDays}
-                                    sessionLimit={membership.sessionLimit}
-                                    price={membership.price}
-                                    onBuy={handleBuyPlan}
-                                    isLoading={activePlanId === membership.id}
-                                />
-                            ))}
-                        </ul>
+                        {error ? (
+                            <p role="alert" className="mx-auto w-5/6 rounded-xl bg-red-50 p-4 text-red-700">
+                                {error}
+                            </p>
+                        ) : (
+                            <ul className="flex justify-center gap-20 whitespace-nowrap px-4">
+                                {membershipPlans.map((membership) => (
+                                    <MembershipPlan
+                                        key={membership.id}
+                                        id={membership.id}
+                                        name={membership.name}
+                                        durationDays={membership.durationDays}
+                                        sessionLimit={membership.sessionLimit}
+                                        price={membership.price}
+                                        onBuy={handleBuyPlan}
+                                        isLoading={activePlanId === membership.id}
+                                    />
+                                ))}
+                            </ul>
+                        )}
                     </div>
                 </div>
 
-                {/* GRAPHICS AND DESCRIPTION */}
                 <div className="mt-16 items-center justify-between gap-20 md:mt-28 md:flex mx-auto w-5/6">
                     <Image className="mx-auto" alt="benefits-page-graphic" src={BenefitsPageGraphic} />
                     <div>
@@ -186,7 +171,11 @@ const Memberships = observer(() => {
                     onClose={() => setStripeClientSecret(null)}
                     onSuccess={() => {
                         setStripeClientSecret(null);
-                        void membershipStore.init();
+                        void Promise.all([
+                            authStore.checkAuth(),
+                            membershipStore.init(),
+                            paymentStore.init(),
+                        ]);
                     }}
                     successTitle="Membership Activated!"
                     successDescription="Welcome to the legion. Your plan is now active!"

@@ -9,6 +9,7 @@ import { observer } from "mobx-react-lite";
 import { PaymentMethodEnum } from "@/types/payment/payment-method.enum";
 import { createStripeIntent } from "@/api/client/payments.api";
 import { StripeModal } from "@/scenes/stripe/stripeModal";
+import { getErrorMessage } from "@/lib/getErrorMessage";
 
 const statusColorMap: Record<string, string> = {
     active: "bg-green-100 text-green-800",
@@ -18,13 +19,13 @@ const statusColorMap: Record<string, string> = {
     canceled: "bg-gray-100 text-gray-800",
 };
 
-type ActionType = 'freeze' | 'unfreeze' | 'terminate' | 'renew';
+type ActionType = "freeze" | "unfreeze" | "terminate" | "renew";
 
 type ButtonConfig = {
     label: string;
     action: ActionType;
     className: string;
-}
+};
 
 const ALLOWED_ACTIONS: Record<string, ButtonConfig[]> = {
     [MembershipStatusEnum.ACTIVE]: [
@@ -41,32 +42,38 @@ const ALLOWED_ACTIONS: Record<string, ButtonConfig[]> = {
 };
 
 type Props = {
-    id: number,
-    membershipPlan: MembershipPlanType,
-    startDate: string,
-    endDate: string,
-    status: MembershipStatusEnum,
-    visits: number,
-    createdAt: string,
-}
+    id: number;
+    membershipPlan: MembershipPlanType;
+    startDate: string;
+    endDate: string;
+    status: MembershipStatusEnum;
+    visits: number;
+    createdAt: string;
+};
 
 const PersonalMembership = observer(({
-     id,
-     membershipPlan,
-     startDate,
-     endDate,
-     status,
-     visits,
+    id,
+    membershipPlan,
+    startDate,
+    endDate,
+    status,
+    visits,
 }: Props) => {
-    const { membershipStore } = useStore();
+    const { authStore, membershipStore, paymentStore } = useStore();
     const [isLoading, setIsLoading] = useState(false);
-    
     const [stripeClientSecret, setStripeClientSecret] = useState<string | null>(null);
 
     const normalizedStatus = String(status).toLowerCase();
     const badgeColors = statusColorMap[normalizedStatus] || "bg-gray-100 text-gray-800";
-
     const currentActions = ALLOWED_ACTIONS[status] || [];
+
+    const refreshAccountData = async () => {
+        await Promise.all([
+            authStore.checkAuth(),
+            membershipStore.init(),
+            paymentStore.init(),
+        ]);
+    };
 
     const handleAction = async (action: ActionType) => {
         setIsLoading(true);
@@ -75,25 +82,29 @@ const PersonalMembership = observer(({
         try {
             const res = await membershipStore[action]({ id });
 
-            if (action === 'renew') {
+            if (action === "renew") {
                 const payment = res?.payment;
 
                 if (payment && payment.method === PaymentMethodEnum.CARD) {
+                    await paymentStore.init();
                     notify.dismiss(toastId);
 
                     const clientSecret = await createStripeIntent(payment.id);
                     setStripeClientSecret(clientSecret);
-                    return; 
-                } else {
-                    notify.success("Success", `Membership successfully renewed via inner balance!`, toastId);
+
+                    return;
                 }
-            } else {
-                notify.success("Success", `Membership successfully updated!`, toastId);
+
+                await refreshAccountData();
+                notify.success("Success", "Membership successfully renewed via inner balance!", toastId);
+
+                return;
             }
+
+            await refreshAccountData();
+            notify.success("Success", "Membership successfully updated!", toastId);
         } catch (error: unknown) {
-            let errorMessage = "Something went wrong";
-            if (error instanceof Error) errorMessage = error.message;
-            notify.error("Action failed", errorMessage, toastId);
+            notify.error("Action failed", getErrorMessage(error), toastId);
         } finally {
             setIsLoading(false);
         }
@@ -105,10 +116,10 @@ const PersonalMembership = observer(({
                 <div className="flex justify-between items-start mb-2 gap-2">
                     <p className="font-semibold">{membershipPlan.name}</p>
                     <span className={`text-sm px-3 py-1 rounded-full ${badgeColors}`}>
-                        {String(status).replace(/_/g, ' ')}
+                        {String(status).replace(/_/g, " ")}
                     </span>
                 </div>
-                
+
                 <div className="mt-2 text-sm">
                     <p>{startDate} — {endDate}</p>
                     <p className="mt-1">Visits left: <span className="font-semibold">{visits}</span></p>
@@ -117,14 +128,14 @@ const PersonalMembership = observer(({
 
             {currentActions.length > 0 && (
                 <div className="flex flex-wrap gap-2 mt-auto border-t pt-3">
-                    {currentActions.map((btn) => (
+                    {currentActions.map((button) => (
                         <button
-                            key={btn.action}
-                            onClick={() => handleAction(btn.action)}
+                            key={button.action}
+                            onClick={() => handleAction(button.action)}
                             disabled={isLoading}
-                            className={`text-xs px-3 py-1.5 rounded disabled:opacity-50 cursor-pointer transition-colors ${btn.className}`}
+                            className={`text-xs px-3 py-1.5 rounded disabled:opacity-50 cursor-pointer transition-colors ${button.className}`}
                         >
-                            {btn.label}
+                            {button.label}
                         </button>
                     ))}
                 </div>
@@ -134,31 +145,12 @@ const PersonalMembership = observer(({
                 <StripeModal
                     clientSecret={stripeClientSecret}
                     onClose={() => setStripeClientSecret(null)}
-                    onSuccess={async () => {
+                    onSuccess={() => {
                         setStripeClientSecret(null);
-                        
-                        let attempts = 0;
-                        const maxAttempts = 4;
-
-                        const pollStore = async () => {
-                            attempts++;
-                            await membershipStore.init();
-
-                            const hasActive = membershipStore.memberships.some(
-                                (m) => m.status === MembershipStatusEnum.ACTIVE
-                            );
-
-                            if (hasActive) return;
-
-                            if (attempts < maxAttempts) {
-                                setTimeout(pollStore, 1500);
-                            }
-                        };
-
-                        void pollStore();
+                        void refreshAccountData();
                     }}
                     successTitle="Membership Renewed!"
-                    successDescription="Processing your payment. Your profile will update in a few seconds!"
+                    successDescription="The payment succeeded. Your membership data is being refreshed."
                 />
             )}
         </div>

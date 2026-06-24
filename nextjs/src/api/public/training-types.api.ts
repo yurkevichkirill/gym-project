@@ -1,12 +1,9 @@
 import TrainingTypeData from "@/types/training-type.type";
-import {ApiCollectionResponse} from "@/types/api-collection-response";
+import { ApiCollectionResponse } from "@/types/api-collection-response";
+import { publicApiGet } from "@/lib/publicApiClient";
 
 export const getTrainingTypes = async (): Promise<TrainingTypeData[]> => {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/training/types/`);
-    if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
-    }
-    const obj: ApiCollectionResponse<TrainingTypeData[]> = await response.json();
+    const response = await publicApiGet<ApiCollectionResponse<TrainingTypeData[]>>('/training/types/');
 
-    return obj.data;
-}
+    return response.data;
+};

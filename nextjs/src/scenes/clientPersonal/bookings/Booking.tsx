@@ -1,9 +1,9 @@
 import { motion } from "framer-motion";
-import {useStore} from "@/store/StoreProvider";
-import {observer} from "mobx-react-lite";
-import {notify} from "@/lib/notify";
+import { useStore } from "@/store/StoreProvider";
+import { observer } from "mobx-react-lite";
+import { notify } from "@/lib/notify";
 import { BookingStatusEnum } from "@/types/booking/bookings-status.enum";
-import {getErrorMessage} from "@/lib/getErrorMessage";
+import { getErrorMessage } from "@/lib/getErrorMessage";
 
 const statusColorMap: Record<string, string> = {
     scheduled: "bg-blue-100 text-blue-800",
@@ -16,20 +16,22 @@ const statusColorMap: Record<string, string> = {
 };
 
 type Props = {
-    id: number,
-    trainerId: number,
-    bookedAt: string,
-    date: string,
-    durationMinutes: number,
-    startTime: string,
-    status: BookingStatusEnum,
-}
+    id: number;
+    trainerId: number;
+    bookedAt: string;
+    date: string;
+    durationMinutes: number;
+    startTime: string;
+    status: BookingStatusEnum;
+};
 
 const Booking = observer(({ id, date, durationMinutes, startTime, status }: Props) => {
     const { bookingStore } = useStore();
 
     const handleDelete = async () => {
-        if (!confirm("Cancel this training?")) return;
+        if (!confirm("Cancel this training?")) {
+            return;
+        }
 
         const toastId = notify.loading("Cancelling booking...");
 
@@ -39,7 +41,7 @@ const Booking = observer(({ id, date, durationMinutes, startTime, status }: Prop
             notify.success(
                 "Booking cancelled",
                 "Your training has been removed",
-                toastId
+                toastId,
             );
         } catch (error: unknown) {
             notify.error(
@@ -51,8 +53,7 @@ const Booking = observer(({ id, date, durationMinutes, startTime, status }: Prop
     };
 
     const badgeColors = statusColorMap[status] || "bg-gray-100 text-gray-800";
-
-    const isScheduled = status === 'scheduled';
+    const isScheduled = status === BookingStatusEnum.SCHEDULED;
 
     return (
         <motion.div
@@ -60,7 +61,7 @@ const Booking = observer(({ id, date, durationMinutes, startTime, status }: Prop
             className="flex flex-col"
         >
             <motion.div
-                className={`border border-gray-50 p-4 flex justify-between items-center ${isScheduled ? 'rounded-t-xl' : 'rounded-xl'}`}
+                className={`border border-gray-50 p-4 flex justify-between items-center ${isScheduled ? "rounded-t-xl" : "rounded-xl"}`}
             >
                 <div>
                     <p className="font-semibold">{date}</p>
@@ -70,7 +71,7 @@ const Booking = observer(({ id, date, durationMinutes, startTime, status }: Prop
                 </div>
 
                 <span className={`text-sm px-3 py-1 rounded-full ${badgeColors}`}>
-                    {status.replace(/_/g, ' ')}
+                    {status.replace(/_/g, " ")}
                 </span>
             </motion.div>
 
