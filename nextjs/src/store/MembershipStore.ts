@@ -15,6 +15,7 @@ import {MembershipRenewType} from "@/types/membership/membership-renew.type";
 import {MembershipTerminateType} from "@/types/membership/membership-terminate.type";
 import {getErrorMessage} from "@/lib/getErrorMessage";
 import {clientStore} from "@/store/ClientStore";
+import {authStore} from "@/store/AuthStore";
 
 type InitTask = {
     generation: number;
@@ -37,6 +38,11 @@ class MembershipStore {
     }
 
     public init(): Promise<void> {
+        if (!authStore.isAuth) {
+            this.reset();
+            return Promise.resolve();
+        }
+
         const generation = this.generation;
         if (this.initTask?.generation === generation) {
             return this.initTask.promise;
@@ -57,7 +63,7 @@ class MembershipStore {
         const generation = this.generation;
         const membership = await buyMembership(payload);
 
-        if (generation === this.generation) {
+        if (generation === this.generation && authStore.isAuth) {
             await Promise.all([
                 this.init(),
                 clientStore.init(),
@@ -71,7 +77,7 @@ class MembershipStore {
         const generation = this.generation;
         const updated = await freezeMembership(payload);
 
-        if (generation === this.generation) {
+        if (generation === this.generation && authStore.isAuth) {
             runInAction(() => {
                 this.memberships = this.memberships.map((membership) => (
                     membership.id === updated.id ? updated : membership
@@ -86,7 +92,7 @@ class MembershipStore {
         const generation = this.generation;
         const updated = await unfreezeMembership(payload);
 
-        if (generation === this.generation) {
+        if (generation === this.generation && authStore.isAuth) {
             runInAction(() => {
                 this.memberships = this.memberships.map((membership) => (
                     membership.id === updated.id ? updated : membership
@@ -105,7 +111,7 @@ class MembershipStore {
         const generation = this.generation;
         const updated = await terminateMembership(payload);
 
-        if (generation === this.generation) {
+        if (generation === this.generation && authStore.isAuth) {
             runInAction(() => {
                 this.memberships = this.memberships.map((membership) => (
                     membership.id === updated.id ? updated : membership
@@ -133,13 +139,13 @@ class MembershipStore {
         try {
             const memberships = await getAllMemberships();
 
-            if (generation === this.generation) {
+            if (generation === this.generation && authStore.isAuth) {
                 runInAction(() => {
                     this.memberships = memberships;
                 });
             }
         } catch (error: unknown) {
-            if (generation === this.generation) {
+            if (generation === this.generation && authStore.isAuth) {
                 runInAction(() => {
                     this.error = getErrorMessage(error, "Failed to load memberships.");
                 });
