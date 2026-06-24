@@ -19,13 +19,21 @@ export class ApiClientError extends Error {
     }
 }
 
-const refreshToken = async () => {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/refresh/`, {
-        method: 'POST',
-        credentials: "include",
-    });
+let refreshPromise: Promise<boolean> | null = null;
 
-    return res.ok;
+const refreshToken = (): Promise<boolean> => {
+    if (refreshPromise === null) {
+        refreshPromise = fetch(`${process.env.NEXT_PUBLIC_API_URL}/refresh/`, {
+            method: 'POST',
+            credentials: "include",
+        })
+            .then((response) => response.ok)
+            .finally(() => {
+                refreshPromise = null;
+            });
+    }
+
+    return refreshPromise;
 };
 
 const parseErrorPayload = async (response: Response): Promise<ApiErrorPayload> => {
