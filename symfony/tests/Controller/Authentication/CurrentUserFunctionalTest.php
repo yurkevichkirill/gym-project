@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\Controller\Authentication;
 
 use App\Client\Entity\Client;
+use App\RefreshToken\Service\RefreshTokenManager;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
@@ -14,12 +15,14 @@ final class CurrentUserFunctionalTest extends WebTestCase
 {
     private KernelBrowser $browser;
     private EntityManagerInterface $entityManager;
+    private RefreshTokenManager $refreshTokenManager;
 
     protected function setUp(): void
     {
         $this->browser = self::createClient();
         $this->browser->disableReboot();
         $this->entityManager = self::getContainer()->get(EntityManagerInterface::class);
+        $this->refreshTokenManager = self::getContainer()->get(RefreshTokenManager::class);
         $this->entityManager->getConnection()->beginTransaction();
     }
 
@@ -34,7 +37,7 @@ final class CurrentUserFunctionalTest extends WebTestCase
         parent::tearDown();
     }
 
-    public function testClientFixtureCanBePersisted(): void
+    public function testClientAccessTokenCanBeGenerated(): void
     {
         $client = new Client();
         $client->setFirstName('Functional');
@@ -48,7 +51,9 @@ final class CurrentUserFunctionalTest extends WebTestCase
         $this->entityManager->persist($client);
         $this->entityManager->flush();
 
-        self::assertIsInt($client->getId());
+        $token = $this->refreshTokenManager->generateAccessToken($client);
+
+        self::assertNotSame('', $token);
     }
 
     public function testUnauthenticatedRequestReturnsUnauthorized(): void
