@@ -11,10 +11,7 @@ import { TopUpSection } from "./TopUpSection";
 const Client = observer(() => {
     const { authStore } = useStore();
     const user = authStore.user;
-
-    if (!user || !isClient(user)) return null;
-
-    const client = user as ClientType;
+    const client = user && isClient(user) ? user as ClientType : null;
 
     const {
         newPhone,
@@ -24,7 +21,9 @@ const Client = observer(() => {
         loading,
         handleEdit,
         handleDelete,
-    } = useModifyClient(client.phone);
+    } = useModifyClient(client?.phone ?? "");
+
+    if (!client) return null;
 
     const formattedAmount = new Intl.NumberFormat('en-US', {
         style: 'currency',
