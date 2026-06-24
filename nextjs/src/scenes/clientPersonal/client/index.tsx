@@ -7,20 +7,30 @@ import Payments from "@/scenes/clientPersonal/payment";
 import {useStore} from "@/store/StoreProvider";
 import {observer} from "mobx-react-lite";
 import {isClient} from "@/lib/utils/user.types.utils";
+import {useRouter} from "next/navigation";
+import {useEffect} from "react";
 
 const MyPersonalClient = observer(() => {
     const { authStore } = useStore();
+    const router = useRouter();
+    const shouldRedirect = authStore.isInitialized && !authStore.user;
 
-    if (authStore.isLoading) {
+    useEffect(() => {
+        if (shouldRedirect) {
+            router.replace("/?login=required");
+        }
+    }, [router, shouldRedirect]);
+
+    if (!authStore.isInitialized || authStore.isLoading) {
         return <div>Loading...</div>;
     }
 
     if (!authStore.user) {
-        return <div>Not authorized</div>;
+        return <div>Redirecting...</div>;
     }
 
     if (!isClient(authStore.user)) {
-        return <div>Access denied</div>
+        return <div>Access denied</div>;
     }
 
     return (
