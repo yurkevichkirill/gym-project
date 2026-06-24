@@ -41,3 +41,9 @@ framework:
             limiters:
                 - auth_registration_burst
                 - auth_registration_hourly
+
+        contact_form_ip:
+            policy: sliding_window
+            limit: 5
+            interval: '15 minutes'
+            cache_pool: cache.contact_rate_limiter
