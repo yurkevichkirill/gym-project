@@ -1,68 +1,112 @@
 import {makeAutoObservable, runInAction} from "mobx";
 import BookingType from "@/types/booking/booking.type";
-import {createBooking, cancelBooking, getMyBookings} from "@/api/client/bookings.api";
-import {authStore} from "@/store/AuthStore";
+import {cancelBooking, createBooking, getMyBookings} from "@/api/client/bookings.api";
 import BookingCreateType from "@/types/booking/booking-create.type";
 import {getErrorMessage} from "@/lib/getErrorMessage";
+import {clientStore} from "@/store/ClientStore";
 
-export interface BookingStore {
-    bookings: BookingType[];
-    isLoading: boolean;
-    error: string | null;
+type InitTask = {
+    generation: number;
+    promise: Promise<void>;
+};
 
-    init: () => Promise<void>;
-    book: (payload: BookingCreateType) => Promise<BookingType>
-    cancel: (id: number) => Promise<void>;
-}
+class BookingStore {
+    public bookings: BookingType[] = [];
+    public isLoading = false;
+    public error: string | null = null;
 
-export const bookingStore: BookingStore = {
-    bookings: [],
-    isLoading: false,
-    error: null,
+    private generation = 0;
+    private initTask: InitTask | null = null;
 
-    init: async () => {
+    public constructor() {
+        makeAutoObservable(this, {
+            generation: false,
+            initTask: false,
+        }, {autoBind: true});
+    }
+
+    public init(): Promise<void> {
+        const generation = this.generation;
+        if (this.initTask?.generation === generation) {
+            return this.initTask.promise;
+        }
+
+        const promise = this.load(generation).finally(() => {
+            if (this.initTask?.promise === promise) {
+                this.initTask = null;
+            }
+        });
+
+        this.initTask = {generation, promise};
+
+        return promise;
+    }
+
+    public async book(payload: BookingCreateType): Promise<BookingType> {
+        const generation = this.generation;
+        const booking = await createBooking(payload);
+
+        if (generation === this.generation) {
+            await Promise.all([
+                this.init(),
+                clientStore.init(),
+            ]);
+        }
+
+        return booking;
+    }
+
+    public async cancel(id: number): Promise<void> {
+        const generation = this.generation;
+        await cancelBooking(id);
+
+        if (generation !== this.generation) {
+            return;
+        }
+
         runInAction(() => {
-            bookingStore.isLoading = true;
-            bookingStore.error = null;
+            this.bookings = this.bookings.filter((booking) => booking.id !== id);
+        });
+
+        await clientStore.init();
+    }
+
+    public reset(): void {
+        this.generation += 1;
+        this.initTask = null;
+        this.bookings = [];
+        this.isLoading = false;
+        this.error = null;
+    }
+
+    private async load(generation: number): Promise<void> {
+        runInAction(() => {
+            this.isLoading = true;
+            this.error = null;
         });
 
         try {
             const bookings = await getMyBookings();
 
-            runInAction(() => {
-                bookingStore.bookings = bookings;
-            });
+            if (generation === this.generation) {
+                runInAction(() => {
+                    this.bookings = bookings;
+                });
+            }
         } catch (error: unknown) {
-            runInAction(() => {
-                bookingStore.error = getErrorMessage(error, "Failed to load bookings.");
-            });
+            if (generation === this.generation) {
+                runInAction(() => {
+                    this.error = getErrorMessage(error, "Failed to load bookings.");
+                });
+            }
         } finally {
-            runInAction(() => {
-                bookingStore.isLoading = false;
-            });
+            if (generation === this.generation) {
+                runInAction(() => {
+                    this.isLoading = false;
+                });
+            }
         }
-    },
+    }
+}
 
-    book: async (payload: BookingCreateType): Promise<BookingType> => {
-        const res = await createBooking(payload);
-
-        await Promise.all([
-            bookingStore.init(),
-            authStore.checkAuth(),
-        ]);
-
-        return res;
-    },
-
-    cancel: async (id: number) => {
-        await cancelBooking(id);
-
-        runInAction(() => {
-            bookingStore.bookings = bookingStore.bookings.filter((booking) => booking.id !== id);
-        });
-
-        await authStore.checkAuth();
-    },
-};
-
-makeAutoObservable(bookingStore);
+export const bookingStore = new BookingStore();
