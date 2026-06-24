@@ -4,6 +4,7 @@ import {cancelBooking, createBooking, getMyBookings} from "@/api/client/bookings
 import BookingCreateType from "@/types/booking/booking-create.type";
 import {getErrorMessage} from "@/lib/getErrorMessage";
 import {clientStore} from "@/store/ClientStore";
+import {authStore} from "@/store/AuthStore";
 
 type InitTask = {
     generation: number;
@@ -26,6 +27,11 @@ class BookingStore {
     }
 
     public init(): Promise<void> {
+        if (!authStore.isAuth) {
+            this.reset();
+            return Promise.resolve();
+        }
+
         const generation = this.generation;
         if (this.initTask?.generation === generation) {
             return this.initTask.promise;
@@ -46,7 +52,7 @@ class BookingStore {
         const generation = this.generation;
         const booking = await createBooking(payload);
 
-        if (generation === this.generation) {
+        if (generation === this.generation && authStore.isAuth) {
             await Promise.all([
                 this.init(),
                 clientStore.init(),
@@ -60,7 +66,7 @@ class BookingStore {
         const generation = this.generation;
         await cancelBooking(id);
 
-        if (generation !== this.generation) {
+        if (generation !== this.generation || !authStore.isAuth) {
             return;
         }
 
@@ -88,13 +94,13 @@ class BookingStore {
         try {
             const bookings = await getMyBookings();
 
-            if (generation === this.generation) {
+            if (generation === this.generation && authStore.isAuth) {
                 runInAction(() => {
                     this.bookings = bookings;
                 });
             }
         } catch (error: unknown) {
-            if (generation === this.generation) {
+            if (generation === this.generation && authStore.isAuth) {
                 runInAction(() => {
                     this.error = getErrorMessage(error, "Failed to load bookings.");
                 });
