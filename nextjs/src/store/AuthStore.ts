@@ -29,6 +29,12 @@ type CheckAuthTask = {
     promise: Promise<CurrentUser | null>;
 };
 
+type AuthStorePrivateKey =
+    | "operationGeneration"
+    | "checkAuthTask"
+    | "isLoggingOut"
+    | "resetUserStores";
+
 class AuthStore {
     public user: CurrentUser | null = null;
     public status: AuthStatus = AuthStatus.INITIAL;
@@ -41,7 +47,7 @@ class AuthStore {
     private resetUserStores: () => void = () => undefined;
 
     public constructor() {
-        makeAutoObservable(this, {
+        makeAutoObservable<this, AuthStorePrivateKey>(this, {
             operationGeneration: false,
             checkAuthTask: false,
             isLoggingOut: false,
@@ -143,7 +149,7 @@ class AuthStore {
         }
 
         const promise = this.loadCurrentUser(generation).finally(() => {
-            if (this.checkAuthTask?.promise === promise) {
+            if (this.checkAuthTask?.generation === generation) {
                 this.checkAuthTask = null;
             }
         });
