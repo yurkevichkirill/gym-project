@@ -1,12 +1,18 @@
 'use client'
 
-import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js";
+import { Elements, PaymentElement, useElements, useStripe } from "@stripe/react-stripe-js";
 import { loadStripe } from "@stripe/stripe-js";
-import { useState, FormEvent } from "react";
+import { FormEvent, useState } from "react";
 import { notify } from "@/lib/notify";
 import { getErrorMessage } from "@/lib/getErrorMessage";
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || "");
+
+const STRIPE_RETURN_PARAMS = [
+    "payment_intent",
+    "payment_intent_client_secret",
+    "redirect_status",
+] as const;
 
 type ModalProps = {
     clientSecret: string;
@@ -14,7 +20,7 @@ type ModalProps = {
     onSuccess: () => void;
     successTitle?: string;
     successDescription?: string;
-}
+};
 
 const CheckoutForm = ({ onClose, onSuccess, successTitle, successDescription }: {
     onClose: () => void;
@@ -26,22 +32,30 @@ const CheckoutForm = ({ onClose, onSuccess, successTitle, successDescription }: 
     const elements = useElements();
     const [isProcessing, setIsProcessing] = useState(false);
 
-    const handleSubmit = async (e: FormEvent) => {
-        e.preventDefault();
-        if (!stripe || !elements) return;
+    const handleSubmit = async (event: FormEvent) => {
+        event.preventDefault();
+
+        if (!stripe || !elements) {
+            return;
+        }
 
         setIsProcessing(true);
         const toastId = notify.loading("Processing payment...");
 
         try {
+            const returnUrl = new URL(window.location.href);
+            STRIPE_RETURN_PARAMS.forEach((param) => returnUrl.searchParams.delete(param));
+
             const { error, paymentIntent } = await stripe.confirmPayment({
                 elements,
+                confirmParams: {
+                    return_url: returnUrl.toString(),
+                },
                 redirect: "if_required",
             });
 
             if (error) {
                 notify.error("Payment failed", error.message || "An error occurred", toastId);
-                setIsProcessing(false);
 
                 return;
             }
@@ -52,14 +66,12 @@ const CheckoutForm = ({ onClose, onSuccess, successTitle, successDescription }: 
                     "Stripe did not return a payment status. Please check your payments before trying again.",
                     toastId,
                 );
-                setIsProcessing(false);
 
                 return;
             }
 
             if (paymentIntent.status === "succeeded") {
                 notify.success(successTitle, successDescription, toastId);
-                setIsProcessing(false);
                 onSuccess();
 
                 return;
@@ -69,9 +81,8 @@ const CheckoutForm = ({ onClose, onSuccess, successTitle, successDescription }: 
                 notify.dismiss(toastId);
                 notify.info(
                     "Payment processing",
-                    "Stripe is still processing this payment. Its final status will update automatically.",
+                    "Stripe is still processing this payment. Its final status will update after Stripe redirects back.",
                 );
-                setIsProcessing(false);
                 onClose();
 
                 return;
@@ -79,12 +90,12 @@ const CheckoutForm = ({ onClose, onSuccess, successTitle, successDescription }: 
 
             notify.error(
                 "Payment incomplete",
-                `Stripe returned status: ${paymentIntent.status.replaceAll('_', ' ')}. The payment was not marked as successful.`,
+                `Stripe returned status: ${paymentIntent.status.replaceAll("_", " ")}. The payment was not marked as successful.`,
                 toastId,
             );
-            setIsProcessing(false);
         } catch (error: unknown) {
             notify.error("Payment failed", getErrorMessage(error), toastId);
+        } finally {
             setIsProcessing(false);
         }
     };
