@@ -1,16 +1,30 @@
-import {NavigationProvider} from "@/context/navigation-context";
+import "@/app/globals.css";
+import type { Metadata } from "next";
+import React, { Suspense } from "react";
+import { NavigationProvider } from "@/context/navigation-context";
 import Navbar from "@/scenes/navbar";
 import Footer from "@/scenes/footer";
-import React from "react";
-import {StoreProvider} from "@/store/StoreProvider";
-import {Toaster} from "sonner";
+import { PaymentReturnSync } from "@/scenes/stripe/PaymentReturnSync";
+import { StoreProvider } from "@/store/StoreProvider";
+import { Toaster } from "sonner";
 
-const Layout = ({ children }: {children: React.ReactNode}) => {
+export const metadata: Metadata = {
+    title: {
+        default: "EvoGym",
+        template: "%s | EvoGym",
+    },
+    description: "Gym memberships, personal trainers, and individual training sessions.",
+};
+
+const Layout = ({ children }: Readonly<{ children: React.ReactNode }>) => {
     return (
-        <html className="scroll-smooth">
+        <html lang="en" className="scroll-smooth">
             <body className="bg-gray-20">
                 <div className="app">
                     <StoreProvider>
+                        <Suspense fallback={null}>
+                            <PaymentReturnSync />
+                        </Suspense>
                         <NavigationProvider>
                             <Navbar />
                             {children}
@@ -27,6 +41,6 @@ const Layout = ({ children }: {children: React.ReactNode}) => {
             </body>
         </html>
     );
-}
+};
 
 export default Layout;
