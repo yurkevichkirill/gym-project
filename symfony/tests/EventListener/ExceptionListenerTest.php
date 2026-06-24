@@ -55,6 +55,9 @@ final class ExceptionListenerTest extends TestCase
         $response = $event->getResponse();
         self::assertNotNull($response);
         self::assertSame(422, $response->getStatusCode());
+
+        $content = $response->getContent();
+        self::assertIsString($content);
         self::assertSame(
             [
                 'message' => 'Validation failed',
@@ -65,7 +68,7 @@ final class ExceptionListenerTest extends TestCase
                     ],
                 ],
             ],
-            json_decode($response->getContent(), true, flags: JSON_THROW_ON_ERROR),
+            json_decode($content, true, flags: JSON_THROW_ON_ERROR),
         );
     }
 }
