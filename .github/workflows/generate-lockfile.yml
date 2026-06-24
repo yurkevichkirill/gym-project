@@ -5,13 +5,17 @@ on:
     branches: [main]
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   generate:
+    if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.head_ref }}
+          fetch-depth: 0
       - uses: pnpm/action-setup@v6
         with:
           version: 10
@@ -20,7 +24,10 @@ jobs:
           node-version: '22'
       - run: pnpm install --lockfile-only --no-frozen-lockfile
         working-directory: nextjs
-      - uses: actions/upload-artifact@v4
-        with:
-          name: frontend-lockfile
-          path: nextjs/pnpm-lock.yaml
+      - name: Commit lockfile
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add nextjs/pnpm-lock.yaml
+          git diff --cached --quiet || git commit -m "Sync frontend lockfile"
+          git push origin HEAD:${{ github.head_ref }}
