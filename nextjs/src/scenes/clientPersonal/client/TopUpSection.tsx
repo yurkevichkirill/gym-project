@@ -9,18 +9,17 @@ import { StripeModal } from "@/scenes/stripe/stripeModal";
 import { getErrorMessage } from "@/lib/getErrorMessage";
 
 export const TopUpSection = () => {
-    const { authStore } = useStore();
-
+    const { authStore, paymentStore } = useStore();
     const [isOpen, setIsOpen] = useState(false);
     const [amount, setAmount] = useState<string>("20");
     const [isLoading, setIsLoading] = useState(false);
     const [stripeClientSecret, setStripeClientSecret] = useState<string | null>(null);
 
-    const handleInitTopUp = async (e: React.FormEvent) => {
-        e.preventDefault();
-        const dollarAmount = parseFloat(amount);
+    const handleInitTopUp = async (event: React.FormEvent) => {
+        event.preventDefault();
+        const dollarAmount = Number.parseFloat(amount);
 
-        if (isNaN(dollarAmount) || dollarAmount <= 0) {
+        if (Number.isNaN(dollarAmount) || dollarAmount <= 0) {
             notify.error("Invalid amount", "Please enter a valid sum to top up.");
             return;
         }
@@ -31,6 +30,7 @@ export const TopUpSection = () => {
         try {
             const cents = Math.round(dollarAmount * 100);
             const payment = await topUpBalance({ amount: cents });
+            await paymentStore.init();
             const clientSecret = await createStripeIntent(payment.id);
 
             setStripeClientSecret(clientSecret);
@@ -92,7 +92,7 @@ export const TopUpSection = () => {
                                     min="1"
                                     step="any"
                                     value={amount}
-                                    onChange={(e) => setAmount(e.target.value)}
+                                    onChange={(event) => setAmount(event.target.value)}
                                     placeholder="Custom amount"
                                     className="w-full pl-8 pr-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 font-semibold text-gray-900"
                                     required
@@ -126,13 +126,13 @@ export const TopUpSection = () => {
                     onClose={() => setStripeClientSecret(null)}
                     onSuccess={() => {
                         setStripeClientSecret(null);
-
-                        setTimeout(() => {
-                            void authStore.checkAuth();
-                        }, 1500);
+                        void Promise.all([
+                            authStore.checkAuth(),
+                            paymentStore.init(),
+                        ]);
                     }}
                     successTitle="Balance Topped Up!"
-                    successDescription="Transaction successful! Your balance will automatically update in a few seconds."
+                    successDescription="Transaction successful. Your balance and payment history are being refreshed."
                 />
             )}
         </>
