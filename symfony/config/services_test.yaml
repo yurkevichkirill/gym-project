@@ -1,0 +1,4 @@
+services:
+    test.jwt_manager:
+        alias: lexik_jwt_authentication.jwt_manager
+        public: true
