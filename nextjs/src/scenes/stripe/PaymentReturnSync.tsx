@@ -1,9 +1,9 @@
 'use client'
 
-import { useEffect } from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { notify } from "@/lib/notify";
-import { useStore } from "@/store/StoreProvider";
+import {useEffect} from "react";
+import {usePathname, useRouter, useSearchParams} from "next/navigation";
+import {notify} from "@/lib/notify";
+import {useStore} from "@/store/StoreProvider";
 
 const STRIPE_RETURN_PARAMS = [
     "payment_intent",
@@ -15,7 +15,7 @@ export const PaymentReturnSync = () => {
     const pathname = usePathname();
     const router = useRouter();
     const searchParams = useSearchParams();
-    const { authStore, bookingStore, membershipStore, paymentStore } = useStore();
+    const {clientStore, bookingStore, membershipStore, paymentStore} = useStore();
 
     useEffect(() => {
         const clientSecret = searchParams.get("payment_intent_client_secret");
@@ -28,7 +28,7 @@ export const PaymentReturnSync = () => {
             const redirectStatus = searchParams.get("redirect_status");
 
             await Promise.all([
-                authStore.checkAuth(),
+                clientStore.init(),
                 bookingStore.init(),
                 membershipStore.init(),
                 paymentStore.init(),
@@ -55,13 +55,13 @@ export const PaymentReturnSync = () => {
             STRIPE_RETURN_PARAMS.forEach((param) => nextSearchParams.delete(param));
             const query = nextSearchParams.toString();
 
-            router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+            router.replace(query ? `${pathname}?${query}` : pathname, {scroll: false});
         };
 
         void syncPaymentReturn();
     }, [
-        authStore,
         bookingStore,
+        clientStore,
         membershipStore,
         pathname,
         paymentStore,
