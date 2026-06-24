@@ -24,6 +24,7 @@ final class CurrentUserFunctionalTest extends WebTestCase
     private KernelBrowser $browser;
     private EntityManagerInterface $entityManager;
     private UserPasswordHasherInterface $passwordHasher;
+    private ?string $accessToken = null;
 
     protected function setUp(): void
     {
@@ -171,6 +172,15 @@ final class CurrentUserFunctionalTest extends WebTestCase
 
         $response = $this->browser->getResponse();
         self::assertSame(Response::HTTP_OK, $response->getStatusCode(), (string) $response->getContent());
+
+        foreach ($response->headers->getCookies() as $cookie) {
+            if ($cookie->getName() === 'access_token') {
+                $this->accessToken = $cookie->getValue();
+                break;
+            }
+        }
+
+        self::assertNotNull($this->accessToken, 'Login response must set the access_token cookie.');
     }
 
     private function requestCurrentUser(): void
@@ -187,13 +197,19 @@ final class CurrentUserFunctionalTest extends WebTestCase
      */
     private function requestServer(): array
     {
-        return [
+        $server = [
             'HTTP_HOST' => 'api.evogym.local',
             'HTTPS' => 'on',
             'REMOTE_ADDR' => '198.51.100.10',
             'CONTENT_TYPE' => 'application/json',
             'HTTP_ACCEPT' => 'application/json',
         ];
+
+        if ($this->accessToken !== null) {
+            $server['HTTP_COOKIE'] = 'access_token=' . $this->accessToken;
+        }
+
+        return $server;
     }
 
     private function createClientUser(): Client
