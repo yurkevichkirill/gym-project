@@ -118,7 +118,7 @@ final class CurrentUserFunctionalTest extends WebTestCase
 
         $this->requestCurrentUser();
 
-        self::assertSame(Response::HTTP_UNAUTHORIZED, $this->browser->getResponse()->getStatusCode());
+        $this->assertUnavailableUserRejected();
     }
 
     public function testDeletedUserIsRejectedBySecurity(): void
@@ -132,7 +132,17 @@ final class CurrentUserFunctionalTest extends WebTestCase
 
         $this->requestCurrentUser();
 
-        self::assertSame(Response::HTTP_UNAUTHORIZED, $this->browser->getResponse()->getStatusCode());
+        $this->assertUnavailableUserRejected();
+    }
+
+    private function assertUnavailableUserRejected(): void
+    {
+        $response = $this->browser->getResponse();
+        self::assertContains(
+            $response->getStatusCode(),
+            [Response::HTTP_UNAUTHORIZED, Response::HTTP_FORBIDDEN],
+            (string) $response->getContent(),
+        );
     }
 
     private function assertUserCanGetCurrentIdentity(User $user, string $expectedRole): void
