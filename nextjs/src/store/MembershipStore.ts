@@ -14,10 +14,12 @@ import { MembershipUnfreezeType } from "@/types/membership/membership-unfreeze.t
 import { MembershipRenewType } from "@/types/membership/membership-renew.type";
 import { MembershipTerminateType } from "@/types/membership/membership-terminate.type";
 import { authStore } from "@/store/AuthStore";
+import { getErrorMessage } from "@/lib/getErrorMessage";
 
 export interface MembershipStore {
     memberships: MembershipType[];
     isLoading: boolean;
+    error: string | null;
 
     init: () => Promise<void>;
     buy: (payload: MembershipBuyType) => Promise<MembershipType>;
@@ -30,14 +32,20 @@ export interface MembershipStore {
 export const membershipStore: MembershipStore = {
     memberships: [],
     isLoading: false,
+    error: null,
 
     init: async () => {
-        runInAction(() => { membershipStore.isLoading = true; });
+        runInAction(() => {
+            membershipStore.isLoading = true;
+            membershipStore.error = null;
+        });
         try {
             const memberships = await getAllMemberships();
             runInAction(() => { membershipStore.memberships = memberships; });
-        } catch (e) {
-            console.error(e);
+        } catch (error: unknown) {
+            runInAction(() => {
+                membershipStore.error = getErrorMessage(error, "Failed to load memberships.");
+            });
         } finally {
             runInAction(() => { membershipStore.isLoading = false; });
         }
