@@ -1,4 +1,4 @@
-import type TrainingTypeData from "../../training-type.type.ts";
+import type TrainingTypeData from "../../training-type.type";
 
 export default interface TrainerData {
     id: number,
