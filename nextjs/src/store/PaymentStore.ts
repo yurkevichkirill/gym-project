@@ -2,6 +2,7 @@ import {makeAutoObservable, runInAction} from "mobx";
 import PaymentType from "@/types/payment/payment.type";
 import {getMyPayments} from "@/api/client/payments.api";
 import {getErrorMessage} from "@/lib/getErrorMessage";
+import {authStore} from "@/store/AuthStore";
 
 type InitTask = {
     generation: number;
@@ -24,6 +25,11 @@ class PaymentStore {
     }
 
     public init(): Promise<void> {
+        if (!authStore.isAuth) {
+            this.reset();
+            return Promise.resolve();
+        }
+
         const generation = this.generation;
         if (this.initTask?.generation === generation) {
             return this.initTask.promise;
@@ -57,13 +63,13 @@ class PaymentStore {
         try {
             const payments = await getMyPayments();
 
-            if (generation === this.generation) {
+            if (generation === this.generation && authStore.isAuth) {
                 runInAction(() => {
                     this.payments = payments;
                 });
             }
         } catch (error: unknown) {
-            if (generation === this.generation) {
+            if (generation === this.generation && authStore.isAuth) {
                 runInAction(() => {
                     this.error = getErrorMessage(error, "Failed to load payments.");
                 });
