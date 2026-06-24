@@ -66,6 +66,20 @@ const Navbar = observer(() => {
         };
     }, [isLoginOpen, isRegisterOpen]);
 
+    useEffect(() => {
+        if (path !== "/") return;
+
+        const searchParams = new URLSearchParams(window.location.search);
+
+        if (searchParams.get("login") !== "required") return;
+
+        setIsLoginOpen(true);
+        searchParams.delete("login");
+
+        const query = searchParams.toString();
+        router.replace(query ? `/?${query}` : "/", { scroll: false });
+    }, [path, router]);
+
     return (
     <nav>
         <div className={`${navbarBackground} ${flexBetween} fixed top-0 z-30 w-full py-6`}>
@@ -205,4 +219,4 @@ const Navbar = observer(() => {
     );
 });
 
-export default Navbar
+export default Navbar;
