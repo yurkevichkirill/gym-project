@@ -6,13 +6,13 @@ namespace App\Tests\Controller\Authentication;
 
 use App\Admin\Entity\Admin;
 use App\Client\Entity\Client;
+use App\RefreshToken\Service\RefreshTokenManager;
 use App\Trainer\Entity\Trainer;
 use App\User\Entity\User;
 use App\User\Enum\UserRolesEnum;
 use DateTime;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
-use Lexik\Bundle\JWTAuthenticationBundle\Services\JWTTokenManagerInterface;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\BrowserKit\Cookie;
@@ -22,14 +22,14 @@ final class CurrentUserFunctionalTest extends WebTestCase
 {
     private KernelBrowser $browser;
     private EntityManagerInterface $entityManager;
-    private JWTTokenManagerInterface $jwtManager;
+    private RefreshTokenManager $refreshTokenManager;
 
     protected function setUp(): void
     {
         $this->browser = self::createClient();
         $this->browser->disableReboot();
         $this->entityManager = self::getContainer()->get(EntityManagerInterface::class);
-        $this->jwtManager = self::getContainer()->get(JWTTokenManagerInterface::class);
+        $this->refreshTokenManager = self::getContainer()->get(RefreshTokenManager::class);
         $this->entityManager->getConnection()->beginTransaction();
     }
 
@@ -82,7 +82,7 @@ final class CurrentUserFunctionalTest extends WebTestCase
         $client->setActivationToken('activation-token-that-must-not-leak');
         $this->entityManager->flush();
 
-        $this->requestWithToken($this->jwtManager->create($client));
+        $this->requestWithToken($this->refreshTokenManager->generateAccessToken($client));
 
         $response = $this->browser->getResponse();
         self::assertSame(Response::HTTP_OK, $response->getStatusCode(), (string) $response->getContent());
@@ -101,7 +101,7 @@ final class CurrentUserFunctionalTest extends WebTestCase
     public function testBlockedUserIsRejectedBySecurity(): void
     {
         $admin = $this->createAdminUser();
-        $token = $this->jwtManager->create($admin);
+        $token = $this->refreshTokenManager->generateAccessToken($admin);
         $admin->setBlockedAt(new DateTimeImmutable());
         $this->entityManager->flush();
         $this->entityManager->clear();
@@ -114,7 +114,7 @@ final class CurrentUserFunctionalTest extends WebTestCase
     public function testDeletedUserIsRejectedBySecurity(): void
     {
         $client = $this->createClientUser();
-        $token = $this->jwtManager->create($client);
+        $token = $this->refreshTokenManager->generateAccessToken($client);
         $client->setDeletedAt(new DateTime());
         $this->entityManager->flush();
         $this->entityManager->clear();
@@ -126,7 +126,7 @@ final class CurrentUserFunctionalTest extends WebTestCase
 
     private function assertUserCanGetCurrentIdentity(User $user, string $expectedRole): void
     {
-        $this->requestWithToken($this->jwtManager->create($user));
+        $this->requestWithToken($this->refreshTokenManager->generateAccessToken($user));
 
         $response = $this->browser->getResponse();
         self::assertSame(Response::HTTP_OK, $response->getStatusCode(), (string) $response->getContent());
