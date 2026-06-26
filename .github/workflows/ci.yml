@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - ci/cache-invalidator-reset
   pull_request:
     branches:
       - main
