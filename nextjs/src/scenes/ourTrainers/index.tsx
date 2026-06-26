@@ -54,6 +54,16 @@ type TrainerFiltersForm = {
     limit: string;
 };
 
+type TrainersResponseState = {
+    requestToken: string;
+    response: TrainersListResponse;
+};
+
+type TrainersErrorState = {
+    requestToken: string;
+    message: string;
+};
+
 const toFormValues = (params: TrainersListParams): TrainerFiltersForm => ({
     minPricePerHour: params.minPricePerHour?.toString() ?? "",
     maxPricePerHour: params.maxPricePerHour?.toString() ?? "",
@@ -84,11 +94,11 @@ const OurTrainers = ({ trainingTypes }: Props) => {
         [requestParams],
     );
     const formValues = useMemo(() => toFormValues(requestParams), [requestParams]);
-    const [response, setResponse] = useState<TrainersListResponse | null>(null);
-    const [error, setError] = useState<string | null>(null);
-    const [isFetching, setIsFetching] = useState(true);
+    const [responseState, setResponseState] = useState<TrainersResponseState | null>(null);
+    const [errorState, setErrorState] = useState<TrainersErrorState | null>(null);
     const [retryVersion, setRetryVersion] = useState(0);
     const requestSequence = useRef(0);
+    const requestToken = `${requestKey}:${retryVersion}`;
 
     const {
         register,
@@ -109,34 +119,32 @@ const OurTrainers = ({ trainingTypes }: Props) => {
         const requestId = ++requestSequence.current;
         const params = parseTrainersListParams(new URLSearchParams(requestKey));
 
-        setIsFetching(true);
-        setError(null);
-
         void getTrainers(params, { signal: controller.signal })
             .then((nextResponse) => {
                 if (requestId !== requestSequence.current) {
                     return;
                 }
 
-                setResponse(nextResponse);
+                setResponseState({
+                    requestToken,
+                    response: nextResponse,
+                });
             })
             .catch((requestError: unknown) => {
                 if (isAbortError(requestError) || requestId !== requestSequence.current) {
                     return;
                 }
 
-                setError(getErrorMessage(requestError, "Unable to load trainers."));
-            })
-            .finally(() => {
-                if (requestId === requestSequence.current) {
-                    setIsFetching(false);
-                }
+                setErrorState({
+                    requestToken,
+                    message: getErrorMessage(requestError, "Unable to load trainers."),
+                });
             });
 
         return () => {
             controller.abort();
         };
-    }, [requestKey, retryVersion]);
+    }, [requestKey, requestToken]);
 
     const updateUrl = (nextSearchParams: URLSearchParams) => {
         const queryString = nextSearchParams.toString();
@@ -203,6 +211,10 @@ const OurTrainers = ({ trainingTypes }: Props) => {
     };
 
     const hasCustomSort = !SORT_OPTIONS.some((option) => option.value === formValues.sort);
+    const response = responseState?.response ?? null;
+    const error = errorState?.requestToken === requestToken ? errorState.message : null;
+    const isFetching = responseState?.requestToken !== requestToken
+        && errorState?.requestToken !== requestToken;
     const trainers = response?.data ?? [];
     const pagination = response?.meta.pagination;
     const hasActiveFilters = FILTER_QUERY_KEYS.some((key) => searchParams.has(key));
