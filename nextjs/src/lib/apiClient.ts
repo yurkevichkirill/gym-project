@@ -9,6 +9,10 @@ export interface ApiErrorPayload {
     violations?: ApiViolation[];
 }
 
+export interface ApiRequestOptions {
+    skipAuthRefresh?: boolean;
+}
+
 export class ApiClientError extends Error {
     public constructor(
         public readonly status: number,
@@ -20,20 +24,52 @@ export class ApiClientError extends Error {
 }
 
 let refreshPromise: Promise<boolean> | null = null;
+let authSessionGeneration = 0;
+let logoutInProgress = false;
 
-const refreshToken = (): Promise<boolean> => {
+const refreshToken = (requestGeneration: number): Promise<boolean> => {
+    if (logoutInProgress || requestGeneration !== authSessionGeneration) {
+        return Promise.resolve(false);
+    }
+
     if (refreshPromise === null) {
+        const refreshGeneration = authSessionGeneration;
+
         refreshPromise = fetch(`${process.env.NEXT_PUBLIC_API_URL}/refresh/`, {
-            method: 'POST',
+            method: "POST",
             credentials: "include",
         })
-            .then((response) => response.ok)
+            .then((response) => (
+                response.ok
+                && refreshGeneration === authSessionGeneration
+                && !logoutInProgress
+            ))
+            .catch(() => false)
             .finally(() => {
                 refreshPromise = null;
             });
     }
 
-    return refreshPromise;
+    return refreshPromise.then((refreshed) => (
+        refreshed
+        && requestGeneration === authSessionGeneration
+        && !logoutInProgress
+    ));
+};
+
+export const beginAuthLogout = async (): Promise<void> => {
+    logoutInProgress = true;
+    authSessionGeneration += 1;
+
+    const pendingRefresh = refreshPromise;
+    if (pendingRefresh !== null) {
+        await pendingRefresh.catch(() => false);
+    }
+};
+
+export const finishAuthLogout = (): void => {
+    authSessionGeneration += 1;
+    logoutInProgress = false;
 };
 
 const parseErrorPayload = async (response: Response): Promise<ApiErrorPayload> => {
@@ -47,25 +83,31 @@ const parseErrorPayload = async (response: Response): Promise<ApiErrorPayload> =
 const request = async <T>(
     url: string,
     init?: RequestInit,
-    isRetry = false
-) => {
+    options: ApiRequestOptions = {},
+    isRetry = false,
+    requestGeneration = authSessionGeneration,
+): Promise<T> => {
     const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}${url}`, {
         ...init,
         credentials: "include",
         headers: {
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
             ...(init?.headers ?? {}),
         },
     });
 
-    if (res.status === 401 && !isRetry) {
-        const refreshed = await refreshToken();
+    if (
+        res.status === 401
+        && !isRetry
+        && !options.skipAuthRefresh
+        && !logoutInProgress
+        && requestGeneration === authSessionGeneration
+    ) {
+        const refreshed = await refreshToken(requestGeneration);
 
         if (refreshed) {
-            return request<T>(url, init, true);
+            return request<T>(url, init, options, true, requestGeneration);
         }
-
-        throw new ApiClientError(res.status, {message: "Unauthorized"});
     }
 
     if (!res.ok) {
@@ -80,30 +122,38 @@ const request = async <T>(
     return await res.json() as Promise<T>;
 };
 
-export const apiGet = <T>(url: string) => {
-    return request<T>(url, { method: 'GET' });
+export const apiGet = <T>(
+    url: string,
+    options?: ApiRequestOptions,
+): Promise<T> => {
+    return request<T>(url, {method: "GET"}, options);
 };
 
 export const apiPost = <T, B = unknown>(
     url: string,
-    body?: B
+    body?: B,
+    options?: ApiRequestOptions,
 ): Promise<T> => {
     return request<T>(url, {
-        method: 'POST',
+        method: "POST",
         body: JSON.stringify(body),
-    });
+    }, options);
 };
 
 export const apiPatch = <T, B = unknown>(
     url: string,
-    body: B
+    body: B,
+    options?: ApiRequestOptions,
 ): Promise<T> => {
     return request<T>(url, {
-        method: 'PATCH',
+        method: "PATCH",
         body: JSON.stringify(body),
-    });
+    }, options);
 };
 
-export const apiDelete = <T>(url: string) => {
-    return request<T>(url, { method: 'DELETE' });
+export const apiDelete = <T>(
+    url: string,
+    options?: ApiRequestOptions,
+): Promise<T> => {
+    return request<T>(url, {method: "DELETE"}, options);
 };

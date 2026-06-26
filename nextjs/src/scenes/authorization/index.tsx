@@ -1,14 +1,15 @@
 'use client';
 
-import { useForm } from "react-hook-form";
-import { useStore } from "@/store/StoreProvider";
-import { createPortal } from "react-dom";
-import { AnimatePresence, motion } from "framer-motion";
-import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/solid";
-import { useState } from "react";
-import { observer } from "mobx-react-lite";
-import { notify } from "@/lib/notify";
-import { getErrorMessage } from "@/lib/getErrorMessage";
+import {useForm} from "react-hook-form";
+import {useStore} from "@/store/StoreProvider";
+import {createPortal} from "react-dom";
+import {AnimatePresence, motion} from "framer-motion";
+import {EyeIcon, EyeSlashIcon} from "@heroicons/react/24/solid";
+import {useState} from "react";
+import {observer} from "mobx-react-lite";
+import {notify} from "@/lib/notify";
+import {getErrorMessage} from "@/lib/getErrorMessage";
+import {useRouter} from "next/navigation";
 
 interface FormData {
     email: string;
@@ -22,12 +23,13 @@ const LoginModal = observer(({
     isOpen: boolean;
     onClose: () => void;
 }) => {
-    const { authStore } = useStore();
+    const {authStore} = useStore();
+    const router = useRouter();
 
     const {
         register,
         handleSubmit,
-        formState: { errors, isSubmitting },
+        formState: {errors, isSubmitting},
     } = useForm<FormData>({
         mode: "onChange",
     });
@@ -36,12 +38,13 @@ const LoginModal = observer(({
         const toastId = notify.loading("Logging in...");
 
         try {
-            const res = await authStore.login(data);
+            const user = await authStore.login(data);
             onClose();
+            router.replace("/me");
 
             notify.success(
                 "Logged in successfully",
-                `User ${res.data.user} signed in`,
+                `User ${user.email} signed in`,
                 toastId,
             );
         } catch (error: unknown) {
@@ -60,22 +63,23 @@ const LoginModal = observer(({
 
     return createPortal(
         <AnimatePresence>
-            { isOpen && (
+            {isOpen && (
             <motion.div
                 className="fixed inset-0 bg-black/50 flex justify-center items-center z-50"
                 onClick={onClose}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
+                initial={{opacity: 0}}
+                animate={{opacity: 1}}
+                exit={{opacity: 0}}
             >
                 <motion.div
                     className="bg-white p-6 rounded-xl w-[300px] relative"
-                    onClick={(e) => e.stopPropagation()}
-                    initial={{ opacity: 0, y: 50 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay:0.2, duration: 0.5 }}
+                    onClick={(event) => event.stopPropagation()}
+                    initial={{opacity: 0, y: 50}}
+                    animate={{opacity: 1, y: 0}}
+                    transition={{delay: 0.2, duration: 0.5}}
                 >
                     <button
+                        type="button"
                         onClick={onClose}
                         className="absolute top-2 right-2 text-gray-500 cursor-pointer"
                     >
@@ -124,9 +128,9 @@ const LoginModal = observer(({
                                 className="align-middle"
                                 type="button"
                             >
-                                {passVisible ?
-                                    <EyeIcon className="h-5 w-5 opacity-70"/> :
-                                    <EyeSlashIcon className="h-5 w-5 opacity-70"/>
+                                {passVisible
+                                    ? <EyeIcon className="h-5 w-5 opacity-70"/>
+                                    : <EyeSlashIcon className="h-5 w-5 opacity-70"/>
                                 }
                             </button>
                         </div>
@@ -151,7 +155,7 @@ const LoginModal = observer(({
             </motion.div>
             )}
         </AnimatePresence>,
-        document.body
+        document.body,
     );
 });
 

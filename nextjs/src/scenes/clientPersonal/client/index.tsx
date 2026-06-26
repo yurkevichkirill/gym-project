@@ -6,31 +6,43 @@ import PersonalMemberships from "@/scenes/clientPersonal/membership";
 import Payments from "@/scenes/clientPersonal/payment";
 import {useStore} from "@/store/StoreProvider";
 import {observer} from "mobx-react-lite";
-import {isClient} from "@/lib/utils/user.types.utils";
-import {useRouter} from "next/navigation";
 import {useEffect} from "react";
 
 const MyPersonalClient = observer(() => {
-    const { authStore } = useStore();
-    const router = useRouter();
-    const shouldRedirect = authStore.isInitialized && !authStore.user;
+    const {clientStore} = useStore();
 
     useEffect(() => {
-        if (shouldRedirect) {
-            router.replace("/?login=required");
+        if (
+            clientStore.client === null
+            && !clientStore.isLoading
+            && clientStore.error === null
+        ) {
+            void clientStore.init();
         }
-    }, [router, shouldRedirect]);
+    }, [clientStore]);
 
-    if (!authStore.isInitialized || authStore.isLoading) {
-        return <div>Loading...</div>;
+    if (clientStore.isLoading && clientStore.client === null) {
+        return <div className="pt-32 text-center">Loading profile...</div>;
     }
 
-    if (!authStore.user) {
-        return <div>Redirecting...</div>;
+    if (clientStore.error !== null && clientStore.client === null) {
+        return (
+            <div className="pt-32 text-center">
+                <p role="alert">{clientStore.error}</p>
+                <button
+                    type="button"
+                    className="mt-4 rounded-md bg-secondary-500 px-5 py-2 disabled:opacity-50"
+                    disabled={clientStore.isLoading}
+                    onClick={() => void clientStore.init()}
+                >
+                    Retry
+                </button>
+            </div>
+        );
     }
 
-    if (!isClient(authStore.user)) {
-        return <div>Access denied</div>;
+    if (clientStore.client === null) {
+        return null;
     }
 
     return (

@@ -1,15 +1,15 @@
 'use client'
 
-import { MembershipPlanType } from "@/types/membership/membership-plan.type";
-import { MembershipStatusEnum } from "@/types/membership/membership-status.enum";
-import { useStore } from "@/store/StoreProvider";
-import { notify } from "@/lib/notify";
-import { useState } from "react";
-import { observer } from "mobx-react-lite";
-import { PaymentMethodEnum } from "@/types/payment/payment-method.enum";
-import { createStripeIntent } from "@/api/client/payments.api";
-import { StripeModal } from "@/scenes/stripe/stripeModal";
-import { getErrorMessage } from "@/lib/getErrorMessage";
+import {MembershipPlanType} from "@/types/membership/membership-plan.type";
+import {MembershipStatusEnum} from "@/types/membership/membership-status.enum";
+import {useStore} from "@/store/StoreProvider";
+import {notify} from "@/lib/notify";
+import {useState} from "react";
+import {observer} from "mobx-react-lite";
+import {PaymentMethodEnum} from "@/types/payment/payment-method.enum";
+import {createStripeIntent} from "@/api/client/payments.api";
+import {StripeModal} from "@/scenes/stripe/stripeModal";
+import {getErrorMessage} from "@/lib/getErrorMessage";
 
 const statusColorMap: Record<string, string> = {
     active: "bg-green-100 text-green-800",
@@ -29,15 +29,15 @@ type ButtonConfig = {
 
 const ALLOWED_ACTIONS: Record<string, ButtonConfig[]> = {
     [MembershipStatusEnum.ACTIVE]: [
-        { label: "Freeze", action: "freeze", className: "bg-blue-50 text-blue-600 hover:bg-blue-100" },
-        { label: "Terminate", action: "terminate", className: "bg-red-50 text-red-600 hover:bg-red-100" },
+        {label: "Freeze", action: "freeze", className: "bg-blue-50 text-blue-600 hover:bg-blue-100"},
+        {label: "Terminate", action: "terminate", className: "bg-red-50 text-red-600 hover:bg-red-100"},
     ],
     [MembershipStatusEnum.FROZEN]: [
-        { label: "Unfreeze", action: "unfreeze", className: "bg-green-50 text-green-600 hover:bg-green-100" },
-        { label: "Terminate", action: "terminate", className: "bg-red-50 text-red-600 hover:bg-red-100" },
+        {label: "Unfreeze", action: "unfreeze", className: "bg-green-50 text-green-600 hover:bg-green-100"},
+        {label: "Terminate", action: "terminate", className: "bg-red-50 text-red-600 hover:bg-red-100"},
     ],
     [MembershipStatusEnum.EXPIRED]: [
-        { label: "Renew", action: "renew", className: "bg-primary-50 text-primary-600 hover:bg-primary-100" },
+        {label: "Renew", action: "renew", className: "bg-primary-50 text-primary-600 hover:bg-primary-100"},
     ],
 };
 
@@ -59,7 +59,7 @@ const PersonalMembership = observer(({
     status,
     visits,
 }: Props) => {
-    const { authStore, membershipStore, paymentStore } = useStore();
+    const {clientStore, membershipStore, paymentStore} = useStore();
     const [isLoading, setIsLoading] = useState(false);
     const [stripeClientSecret, setStripeClientSecret] = useState<string | null>(null);
 
@@ -69,7 +69,7 @@ const PersonalMembership = observer(({
 
     const refreshAccountData = async () => {
         await Promise.all([
-            authStore.checkAuth(),
+            clientStore.init(),
             membershipStore.init(),
             paymentStore.init(),
         ]);
@@ -80,7 +80,7 @@ const PersonalMembership = observer(({
         const toastId = notify.loading(`Processing ${action}...`);
 
         try {
-            const res = await membershipStore[action]({ id });
+            const res = await membershipStore[action]({id});
 
             if (action === "renew") {
                 const payment = res?.payment;
@@ -130,6 +130,7 @@ const PersonalMembership = observer(({
                 <div className="flex flex-wrap gap-2 mt-auto border-t pt-3">
                     {currentActions.map((button) => (
                         <button
+                            type="button"
                             key={button.action}
                             onClick={() => handleAction(button.action)}
                             disabled={isLoading}

@@ -2,42 +2,88 @@ import {makeAutoObservable, runInAction} from "mobx";
 import PaymentType from "@/types/payment/payment.type";
 import {getMyPayments} from "@/api/client/payments.api";
 import {getErrorMessage} from "@/lib/getErrorMessage";
+import {authStore} from "@/store/AuthStore";
 
-export interface PaymentStore {
-    payments: PaymentType[];
-    isLoading: boolean;
-    error: string | null;
+type InitTask = {
+    generation: number;
+    promise: Promise<void>;
+};
 
-    init: () => Promise<void>;
-}
+type PaymentStorePrivateKey = "generation" | "initTask";
 
-export const paymentStore: PaymentStore = {
-    payments: [],
-    isLoading: false,
-    error: null,
+class PaymentStore {
+    public payments: PaymentType[] = [];
+    public isLoading = false;
+    public error: string | null = null;
 
-    init: async () => {
+    private generation = 0;
+    private initTask: InitTask | null = null;
+
+    public constructor() {
+        makeAutoObservable<this, PaymentStorePrivateKey>(this, {
+            generation: false,
+            initTask: false,
+        }, {autoBind: true});
+    }
+
+    public init(): Promise<void> {
+        if (!authStore.isAuth) {
+            this.reset();
+            return Promise.resolve();
+        }
+
+        const generation = this.generation;
+        if (this.initTask?.generation === generation) {
+            return this.initTask.promise;
+        }
+
+        const promise = this.load(generation).finally(() => {
+            if (this.initTask?.generation === generation) {
+                this.initTask = null;
+            }
+        });
+
+        this.initTask = {generation, promise};
+
+        return promise;
+    }
+
+    public reset(): void {
+        this.generation += 1;
+        this.initTask = null;
+        this.payments = [];
+        this.isLoading = false;
+        this.error = null;
+    }
+
+    private async load(generation: number): Promise<void> {
         runInAction(() => {
-            paymentStore.isLoading = true;
-            paymentStore.error = null;
+            this.isLoading = true;
+            this.error = null;
         });
 
         try {
             const payments = await getMyPayments();
 
-            runInAction(() => {
-                paymentStore.payments = payments;
-            });
+            if (generation === this.generation && authStore.isAuth) {
+                runInAction(() => {
+                    this.payments = payments;
+                });
+            }
         } catch (error: unknown) {
-            runInAction(() => {
-                paymentStore.error = getErrorMessage(error, "Failed to load payments.");
-            });
+            if (generation === this.generation && authStore.isAuth) {
+                runInAction(() => {
+                    this.error = getErrorMessage(error, "Failed to load payments.");
+                });
+            }
         } finally {
-            runInAction(() => {
-                paymentStore.isLoading = false;
-            });
+            if (generation === this.generation) {
+                runInAction(() => {
+                    this.isLoading = false;
+                });
+            }
         }
-    },
-};
+    }
+}
 
-makeAutoObservable(paymentStore);
+export const paymentStore = new PaymentStore();

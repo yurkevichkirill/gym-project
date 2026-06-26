@@ -1,17 +1,14 @@
 'use client'
 
-import { motion } from "framer-motion";
-import { useModifyClient } from "@/hooks/useModifyClient";
-import { observer } from "mobx-react-lite";
-import { useStore } from "@/store/StoreProvider";
-import { isClient } from "@/lib/utils/user.types.utils";
-import ClientType from "@/types/client/client.type";
-import { TopUpSection } from "./TopUpSection";
+import {motion} from "framer-motion";
+import {useModifyClient} from "@/hooks/useModifyClient";
+import {observer} from "mobx-react-lite";
+import {useStore} from "@/store/StoreProvider";
+import {TopUpSection} from "./TopUpSection";
 
 const Client = observer(() => {
-    const { authStore } = useStore();
-    const user = authStore.user;
-    const client = user && isClient(user) ? user as ClientType : null;
+    const {clientStore} = useStore();
+    const client = clientStore.client;
 
     const {
         newPhone,
@@ -35,8 +32,8 @@ const Client = observer(() => {
     return (
         <motion.div className="flex flex-col rounded-2xl shadow-md ">
             <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
+                initial={{opacity: 0, y: 20}}
+                animate={{opacity: 1, y: 0}}
                 className="p-6 flex flex-col md:flex-row md:items-center md:justify-between gap-6"
             >
                 <div className="flex flex-col gap-2">
@@ -66,6 +63,7 @@ const Client = observer(() => {
                 <TopUpSection />
 
                 <button
+                    type="button"
                     className="flex-1 cursor-pointer bg-secondary-500 px-10 hover:bg-primary-500 hover:text-white transition-colors"
                     onClick={handleEdit}
                 >
@@ -74,6 +72,7 @@ const Client = observer(() => {
 
                 {onEdit && (
                     <button
+                        type="button"
                         className="flex-1 cursor-pointer bg-gray-100 px-10 hover:bg-primary-500 hover:text-white transition-colors"
                         onClick={() => {
                             setOnEdit(false);
@@ -85,6 +84,7 @@ const Client = observer(() => {
                 )}
 
                 <button
+                    type="button"
                     className="flex-1 rounded-br-2xl cursor-pointer bg-primary-300 px-10 hover:bg-primary-500 hover:text-white transition-colors"
                     onClick={handleDelete}
                 >
