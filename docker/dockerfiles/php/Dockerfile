@@ -1,20 +1,13 @@
-FROM php:8.4-fpm-alpine
+# syntax=docker/dockerfile:1.7
 
-RUN apk add --no-cache \
-    $PHPIZE_DEPS \
-    linux-headers \
-    libpq-dev \
-    curl-dev \
-    libzip-dev \
-    libxml2-dev \
-    oniguruma-dev \
-    postgresql-dev
+FROM php:8.4-fpm-alpine AS base
 
 COPY --from=ghcr.io/mlocati/php-extension-installer:2.11.12 \
     /usr/bin/install-php-extensions \
     /usr/local/bin/install-php-extensions
 
-RUN install-php-extensions \
+RUN apk add --no-cache su-exec && \
+    install-php-extensions \
     gd \
     mbstring \
     pdo_pgsql \
@@ -25,6 +18,48 @@ RUN install-php-extensions \
     intl \
     opcache \
     amqp
+
+WORKDIR /var/www
+
+EXPOSE 9000
+
+CMD ["php-fpm"]
+
+FROM base AS prod-build
+
+COPY --from=composer:2.10.1 /usr/bin/composer /usr/bin/composer
+
+COPY symfony/composer.json symfony/composer.lock symfony/symfony.lock ./
+
+RUN composer install \
+    --no-dev \
+    --prefer-dist \
+    --no-progress \
+    --no-interaction \
+    --no-scripts
+
+COPY symfony/ ./
+
+RUN composer dump-autoload \
+        --no-dev \
+        --classmap-authoritative \
+        --no-interaction && \
+    mkdir -p var/cache var/log && \
+    chown -R www-data:www-data var
+
+FROM base AS prod
+
+ENV APP_ENV=prod \
+    APP_DEBUG=0
+
+COPY --from=prod-build --chown=www-data:www-data /var/www /var/www
+COPY docker/dockerfiles/php/entrypoint.sh /usr/local/bin/app-entrypoint
+
+RUN chmod 0755 /usr/local/bin/app-entrypoint
+
+ENTRYPOINT ["app-entrypoint"]
+
+FROM base AS dev
 
 ARG INSTALL_XDEBUG=true
 RUN if [ "$INSTALL_XDEBUG" = "true" ]; then \
@@ -39,9 +74,3 @@ RUN if [ "$INSTALL_XDEBUG" = "true" ]; then \
 ENV XDEBUG_MODE=off
 
 COPY --from=composer:2.10.1 /usr/bin/composer /usr/bin/composer
-
-WORKDIR /var/www
-
-EXPOSE 9000
-
-CMD ["php-fpm"]

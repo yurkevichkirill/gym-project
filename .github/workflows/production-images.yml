@@ -1,0 +1,76 @@
+name: Production images
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  production:
+    name: Production / Docker
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Validate production configuration
+        run: |
+          sh -n docker/dockerfiles/php/entrypoint.sh
+          sh -n docker/dockerfiles/nginx/entrypoint.sh
+          sh -n docker/postgres/backup.sh
+          sh -n docker/postgres/restore.sh
+          cp .env.prod.example .env
+          docker compose --env-file .env -f docker-compose.prod.yml config --quiet
+
+      - name: Build PHP production image
+        run: docker build --target prod --tag evogym-php:ci --file docker/dockerfiles/php/Dockerfile .
+
+      - name: Verify PHP production image
+        run: |
+          docker run --rm --entrypoint test evogym-php:ci -f /var/www/vendor/autoload.php
+          if docker run --rm --entrypoint php evogym-php:ci -m | grep -qi '^xdebug$'; then
+            echo 'Xdebug must not be installed in the production image.' >&2
+            exit 1
+          fi
+
+      - name: Build Nginx production image
+        run: docker build --target prod --tag evogym-nginx:ci --file docker/dockerfiles/nginx/Dockerfile .
+
+      - name: Validate Nginx production configuration
+        run: |
+          mkdir -p .ci/tls
+          openssl req -x509 -nodes -newkey rsa:2048 -days 1 \
+            -keyout .ci/tls/privkey.pem \
+            -out .ci/tls/fullchain.pem \
+            -subj '/CN=example.com' \
+            -addext 'subjectAltName=DNS:example.com,DNS:api.example.com'
+          docker run --rm \
+            --env API_HOST=api.example.com \
+            --env FRONTEND_HOST=example.com \
+            --add-host php-fpm:127.0.0.1 \
+            --add-host frontend:127.0.0.1 \
+            --volume "$PWD/.ci/tls:/etc/nginx/certs:ro" \
+            evogym-nginx:ci openresty -t
+
+      - name: Build frontend production image
+        run: |
+          docker build \
+            --target prod \
+            --tag evogym-frontend:ci \
+            --build-arg INTERNAL_API_URL=http://nginx:8080/api \
+            --build-arg NEXT_PUBLIC_API_URL=https://api.example.com/api \
+            --build-arg NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_ci \
+            --file docker/dockerfiles/node/Dockerfile \
+            nextjs
+
+      - name: Verify frontend production image
+        run: docker run --rm --entrypoint test evogym-frontend:ci -f /app/server.js
