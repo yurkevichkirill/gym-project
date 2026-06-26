@@ -45,6 +45,20 @@ jobs:
       - name: Build Nginx production image
         run: docker build --target prod --tag evogym-nginx:ci --file docker/dockerfiles/nginx/Dockerfile .
 
+      - name: Validate Nginx production configuration
+        run: |
+          mkdir -p .ci/tls
+          openssl req -x509 -nodes -newkey rsa:2048 -days 1 \
+            -keyout .ci/tls/privkey.pem \
+            -out .ci/tls/fullchain.pem \
+            -subj '/CN=example.com' \
+            -addext 'subjectAltName=DNS:example.com,DNS:api.example.com'
+          docker run --rm \
+            --env API_HOST=api.example.com \
+            --env FRONTEND_HOST=example.com \
+            --volume "$PWD/.ci/tls:/etc/nginx/certs:ro" \
+            evogym-nginx:ci openresty -t
+
       - name: Build frontend production image
         run: |
           docker build \
