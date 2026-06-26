@@ -1,7 +1,7 @@
-import MyPersonalClient from "@/scenes/clientPersonal/client";
+import PersonalAccount from "@/scenes/personal";
 
 const PersonalPage = () => {
-    return <MyPersonalClient />;
+    return <PersonalAccount />;
 };
 
 export default PersonalPage;

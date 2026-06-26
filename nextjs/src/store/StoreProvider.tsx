@@ -15,6 +15,15 @@ interface StoreContextType {
     paymentStore: typeof paymentStore;
 }
 
+const resetUserStores = (): void => {
+    clientStore.reset();
+    bookingStore.reset();
+    membershipStore.reset();
+    paymentStore.reset();
+};
+
+authStore.configureUserStoresReset(resetUserStores);
+
 const StoreContext = createContext<StoreContextType | null>(null);
 
 export const StoreProvider = ({
@@ -23,19 +32,11 @@ export const StoreProvider = ({
     children: React.ReactNode;
 }) => {
     useEffect(() => {
-        const init = async () => {
-            try {
-                await authStore.checkAuth();
-            } catch (e) {
-                console.error(e);
-            }
-        };
-
-        void init();
+        void authStore.checkAuth();
     }, []);
 
     return (
-        <StoreContext.Provider value={{ authStore, clientStore, bookingStore, membershipStore, paymentStore }}>
+        <StoreContext.Provider value={{authStore, clientStore, bookingStore, membershipStore, paymentStore}}>
             {children}
         </StoreContext.Provider>
     );
@@ -45,8 +46,8 @@ export const useStore = (): StoreContextType => {
     const ctx = useContext(StoreContext);
 
     if (!ctx) {
-        throw new Error('StoreProvider missing');
+        throw new Error("StoreProvider missing");
     }
 
     return ctx;
-}
+};

@@ -1,15 +1,15 @@
 'use client'
 
-import { useState } from "react";
-import { notify } from "@/lib/notify";
-import { createStripeIntent } from "@/api/client/payments.api";
-import { useStore } from "@/store/StoreProvider";
-import { topUpBalance } from "@/api/client/client.api";
-import { StripeModal } from "@/scenes/stripe/stripeModal";
-import { getErrorMessage } from "@/lib/getErrorMessage";
+import {useState} from "react";
+import {notify} from "@/lib/notify";
+import {createStripeIntent} from "@/api/client/payments.api";
+import {useStore} from "@/store/StoreProvider";
+import {topUpBalance} from "@/api/client/client.api";
+import {StripeModal} from "@/scenes/stripe/stripeModal";
+import {getErrorMessage} from "@/lib/getErrorMessage";
 
 export const TopUpSection = () => {
-    const { authStore, paymentStore } = useStore();
+    const {clientStore, paymentStore} = useStore();
     const [isOpen, setIsOpen] = useState(false);
     const [amount, setAmount] = useState<string>("20");
     const [isLoading, setIsLoading] = useState(false);
@@ -29,7 +29,7 @@ export const TopUpSection = () => {
 
         try {
             const cents = Math.round(dollarAmount * 100);
-            const payment = await topUpBalance({ amount: cents });
+            const payment = await topUpBalance({amount: cents});
             await paymentStore.init();
             const clientSecret = await createStripeIntent(payment.id);
 
@@ -46,6 +46,7 @@ export const TopUpSection = () => {
     return (
         <>
             <button
+                type="button"
                 onClick={() => setIsOpen(true)}
                 className="
                     flex-1
@@ -127,7 +128,7 @@ export const TopUpSection = () => {
                     onSuccess={() => {
                         setStripeClientSecret(null);
                         void Promise.all([
-                            authStore.checkAuth(),
+                            clientStore.init(),
                             paymentStore.init(),
                         ]);
                     }}
