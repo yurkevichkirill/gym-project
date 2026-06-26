@@ -10,7 +10,7 @@ use Symfony\Component\HttpKernel\Attribute\WithHttpStatus;
 use Throwable;
 
 #[WithHttpStatus(Response::HTTP_CONFLICT)]
-final class WorktimeHasActiveTrainingsException extends DomainException
+final class WorktimeHasTrainingHistoryException extends DomainException
 {
     public function __construct(
         string $message = 'Trainer worktime has associated training history',
