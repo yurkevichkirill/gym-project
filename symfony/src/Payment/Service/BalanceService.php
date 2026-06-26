@@ -20,23 +20,41 @@ final readonly class BalanceService
     {
         $this->assertPositiveAmount($amount);
 
-        $newBalance = $trainer->getBalance() - $amount;
-        $trainer->setBalance($newBalance);
+        $recoveredFromBalance = min($trainer->getBalance(), $amount);
+        $debtIncrease = $amount - $recoveredFromBalance;
 
-        if ($newBalance < 0) {
-            $this->paymentLogger->critical('trainer.balance.negative', [
-                'trainer_id' => $trainer->getId(),
-                'charged_amount' => $amount,
-                'balance' => $newBalance,
-                'action' => 'company_compensation_required',
-            ]);
+        $trainer->setBalance($trainer->getBalance() - $recoveredFromBalance);
+
+        if ($debtIncrease === 0) {
+            return;
         }
+
+        $trainer->setDebt($trainer->getDebt() + $debtIncrease);
+
+        $this->paymentLogger->critical('trainer.debt.created', [
+            'trainer_id' => $trainer->getId(),
+            'charged_amount' => $amount,
+            'recovered_from_balance' => $recoveredFromBalance,
+            'debt_increase' => $debtIncrease,
+            'debt' => $trainer->getDebt(),
+            'balance' => $trainer->getBalance(),
+            'action' => 'trainer_debt_recovery_required',
+        ]);
     }
 
     public function depositTrainer(Trainer $trainer, int $amount): void
     {
         $this->assertPositiveAmount($amount);
-        $trainer->setBalance($trainer->getBalance() + $amount);
+
+        $repaidDebt = min($trainer->getDebt(), $amount);
+        if ($repaidDebt > 0) {
+            $trainer->setDebt($trainer->getDebt() - $repaidDebt);
+        }
+
+        $remainingAmount = $amount - $repaidDebt;
+        if ($remainingAmount > 0) {
+            $trainer->setBalance($trainer->getBalance() + $remainingAmount);
+        }
     }
 
     public function chargeClient(Client $client, int $amount): void
