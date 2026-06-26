@@ -20,10 +20,11 @@ use Doctrine\ORM\Events;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\Transport\Sender\SenderInterface;
+use Symfony\Contracts\Service\ResetInterface;
 
 #[AsDoctrineListener(event: Events::onFlush)]
 #[AsDoctrineListener(event: Events::postFlush)]
-final class CacheInvalidatorListener
+final class CacheInvalidatorListener implements ResetInterface
 {
     /** @var list<string> */
     private array $tagsToInvalidate = [];
@@ -116,11 +117,16 @@ final class CacheInvalidatorListener
         /** @var list<string> $groups */
         $groups = array_values(array_unique($this->groupsToBump));
 
-        $this->tagsToInvalidate = [];
-        $this->groupsToBump = [];
+        $this->reset();
 
         $this->cacheOutbox->send(new Envelope(
             new InvalidateCacheMessage($tags, $groups),
         ));
+    }
+
+    public function reset(): void
+    {
+        $this->tagsToInvalidate = [];
+        $this->groupsToBump = [];
     }
 }
