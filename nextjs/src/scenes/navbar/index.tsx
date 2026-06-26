@@ -14,6 +14,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { notify } from "@/lib/notify";
 import dynamic from "next/dynamic";
 import { getErrorMessage } from "@/lib/getErrorMessage";
+import { getAccountPath } from "@/lib/utils/user.types.utils";
 
 const LoginModal = dynamic(() => import("@/scenes/authorization"), {
     ssr: false
@@ -37,6 +38,7 @@ const Navbar = observer(() => {
     const [isRegisterOpen, setIsRegisterOpen] = useState(false);
 
     const { authStore } = useStore();
+    const accountPath = authStore.user ? getAccountPath(authStore.user) : null;
 
     const handleLogout = async () => {
         if (!confirm("Log out from your profile?")) return;
@@ -106,12 +108,14 @@ const Navbar = observer(() => {
                             {authStore.isAuth ?
                                 <div className={`${flexBetween} gap-8`}>
                                     <p>{authStore.user?.email}</p>
-                                    <Link
-                                        className="rounded-md cursor-pointer bg-secondary-500 px-10 py-2 hover:bg-primary-500 hover:text-white"
-                                        href={"/me"}
-                                    >
-                                        My Profile
-                                    </Link>
+                                    {accountPath ? (
+                                        <Link
+                                            className="rounded-md cursor-pointer bg-secondary-500 px-10 py-2 hover:bg-primary-500 hover:text-white"
+                                            href={accountPath}
+                                        >
+                                            My Cabinet
+                                        </Link>
+                                    ) : null}
                                     <button
                                         className="hover:text-primary-500 cursor-pointer"
                                         type="button" onClick={handleLogout}
@@ -167,13 +171,15 @@ const Navbar = observer(() => {
                                 <p className="text-[16px]">{authStore.user?.email}</p>
                                 <div className="bg-gray-500 h-[2px] w-3/4"></div>
                             </div>
-                            <Link
-                                className="cursor-pointer text-left transition duration-500 hover:text-primary-300"
-                                href={"/me"}
-                                onClick={() => setIsMenuToggled(false)}
-                            >
-                                My Profile
-                            </Link>
+                            {accountPath ? (
+                                <Link
+                                    className="cursor-pointer text-left transition duration-500 hover:text-primary-300"
+                                    href={accountPath}
+                                    onClick={() => setIsMenuToggled(false)}
+                                >
+                                    My Cabinet
+                                </Link>
+                            ) : null}
                             <button
                                 className="cursor-pointer text-left transition duration-500 hover:text-primary-300"
                                 type="button"
