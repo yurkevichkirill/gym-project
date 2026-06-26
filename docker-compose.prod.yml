@@ -20,6 +20,7 @@ x-php-build: &php-build
 x-php-environment: &php-environment
   APP_ENV: prod
   APP_DEBUG: "0"
+  APP_RUNTIME_OPTIONS: '{"disable_dotenv":true}'
   APP_TIMEZONE: ${APP_TIMEZONE:-UTC}
   APP_SECRET: ${APP_SECRET:?APP_SECRET is required}
   APP_SHARE_DIR: /var/www
@@ -83,6 +84,7 @@ services:
 
   php-fpm:
     <<: [*service-defaults, *php-service]
+    command: [php-fpm]
     depends_on:
       postgres:
         condition: service_healthy
@@ -267,6 +269,8 @@ services:
   minio:
     <<: *service-defaults
     image: minio/minio:RELEASE.2024-03-07T00-43-48Z
+    ports:
+      - "127.0.0.1:9005:9000"
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:?MINIO_ROOT_USER is required}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD is required}
@@ -296,8 +300,8 @@ services:
       - -ec
       - |
         /usr/bin/mc alias set local http://minio:9000 "$${MINIO_ROOT_USER}" "$${MINIO_ROOT_PASSWORD}"
-        /usr/bin/mc mb --ignore-existing -p "local/$${MINIO_BUCKET}"
-        /usr/bin/mc anonymous set none "local/$${MINIO_BUCKET}"
+        /usr/bin/mc mb --ignore-existing "local/$${MINIO_BUCKET}"
+        /usr/bin/mc anonymous set download "local/$${MINIO_BUCKET}"
     networks: [app-network]
 
 networks:

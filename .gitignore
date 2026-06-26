@@ -57,6 +57,7 @@
 
 .env
 .env.local
+.env.prod
 .env.*.local
 **/.env
 **/.env.local
@@ -77,3 +78,5 @@ url
 data/
 config/sts/
 **/.minio.sys/
+
+.local-prod/
