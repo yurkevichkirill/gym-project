@@ -11,7 +11,7 @@ use App\TrainerWorkTime\DTO\UpdateWorkTimeRequestDTO;
 use App\TrainerWorkTime\Entity\TrainerWorkTime;
 use App\TrainerWorkTime\Exception\EndTimeBeforeStartException;
 use App\TrainerWorkTime\Exception\PastWorktimeDateException;
-use App\TrainerWorkTime\Exception\WorktimeHasActiveTrainingsException;
+use App\TrainerWorkTime\Exception\WorktimeHasTrainingHistoryException;
 use App\TrainerWorkTime\Exception\WorktimeNotFoundException;
 use App\TrainerWorkTime\Repository\TrainerWorkTimeRepository;
 use App\Training\Repository\TrainingRepository;
@@ -247,7 +247,7 @@ final readonly class WorkTimeManager
                     }
 
                     if ($this->trainingRepo->existsForWorktime($lockedWorktime)) {
-                        throw new WorktimeHasActiveTrainingsException();
+                        throw new WorktimeHasTrainingHistoryException();
                     }
 
                     $this->worktimeRepo->remove($lockedWorktime);
