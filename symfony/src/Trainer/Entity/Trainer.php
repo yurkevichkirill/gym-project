@@ -14,6 +14,7 @@ use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Gedmo\Mapping\Annotation as Gedmo;
+use InvalidArgumentException;
 
 #[ORM\Entity(repositoryClass: TrainerRepository::class)]
 #[Gedmo\SoftDeleteable]
@@ -37,6 +38,9 @@ final class Trainer extends User
 
     #[ORM\Column]
     private int $balance = 0;
+
+    #[ORM\Column(name: 'trainer_debt')]
+    private int $debt = 0;
 
     /** @var Collection<int, TrainerWorkTime> */
     #[ORM\OneToMany(targetEntity: TrainerWorkTime::class, mappedBy: 'trainer')]
@@ -130,7 +134,27 @@ final class Trainer extends User
 
     public function setBalance(int $balance): static
     {
+        if ($balance < 0) {
+            throw new InvalidArgumentException('Trainer balance cannot be negative.');
+        }
+
         $this->balance = $balance;
+
+        return $this;
+    }
+
+    public function getDebt(): int
+    {
+        return $this->debt;
+    }
+
+    public function setDebt(int $debt): static
+    {
+        if ($debt < 0) {
+            throw new InvalidArgumentException('Trainer debt cannot be negative.');
+        }
+
+        $this->debt = $debt;
 
         return $this;
     }

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Trainer\Repository;
 
 use App\Trainer\Entity\Trainer;
+use App\Trainer\Exception\CannotDeleteTrainerException;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\DBAL\LockMode;
 use Doctrine\ORM\Exception\ORMException;
@@ -28,6 +29,12 @@ class TrainerRepository extends ServiceEntityRepository
 
     public function remove(Trainer $trainer): void
     {
+        if ($trainer->getDebt() !== 0) {
+            throw new CannotDeleteTrainerException(
+                'Cannot delete trainer while debt is not zero'
+            );
+        }
+
         $this->getEntityManager()->remove($trainer);
     }
 
