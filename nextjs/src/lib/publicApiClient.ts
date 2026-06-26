@@ -21,9 +21,17 @@ const getApiBaseUrl = (): string => {
     return apiBaseUrl.replace(/\/$/, "");
 };
 
-export const publicApiGet = async <T>(path: string): Promise<T> => {
+type PublicApiGetOptions = {
+    signal?: AbortSignal;
+};
+
+export const publicApiGet = async <T>(
+    path: string,
+    options: PublicApiGetOptions = {},
+): Promise<T> => {
     const response = await fetch(`${getApiBaseUrl()}${path}`, {
         cache: "no-store",
+        signal: options.signal,
     });
 
     if (!response.ok) {
