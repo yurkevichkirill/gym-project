@@ -6,9 +6,13 @@ namespace App\Tests\Cache;
 
 use App\Cache\Message\InvalidateCacheMessage;
 use App\Client\Entity\Client;
+use App\EventListener\CacheInvalidatorListener;
 use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\Event\OnFlushEventArgs;
+use Doctrine\ORM\UnitOfWork;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Messenger\Transport\InMemory\InMemoryTransport;
+use Symfony\Component\Messenger\Transport\Sender\SenderInterface;
 
 final class CacheInvalidatorListenerTest extends KernelTestCase
 {
@@ -71,5 +75,25 @@ final class CacheInvalidatorListenerTest extends KernelTestCase
         self::assertInstanceOf(InvalidateCacheMessage::class, $message);
         self::assertSame(['clients_list'], $message->tags);
         self::assertSame([], $message->groups);
+    }
+
+    public function testResetDiscardsInvalidationsCollectedBeforeFailedFlush(): void
+    {
+        $cacheOutbox = $this->createMock(SenderInterface::class);
+        $cacheOutbox->expects(self::never())->method('send');
+
+        $unitOfWork = $this->createMock(UnitOfWork::class);
+        $unitOfWork->method('getScheduledEntityInsertions')->willReturn([new Client()]);
+        $unitOfWork->method('getScheduledEntityUpdates')->willReturn([]);
+        $unitOfWork->method('getScheduledEntityDeletions')->willReturn([]);
+
+        $entityManager = $this->createMock(EntityManagerInterface::class);
+        $entityManager->method('getUnitOfWork')->willReturn($unitOfWork);
+
+        $listener = new CacheInvalidatorListener($cacheOutbox);
+        $listener->onFlush(new OnFlushEventArgs($entityManager));
+
+        $listener->reset();
+        $listener->postFlush();
     }
 }
