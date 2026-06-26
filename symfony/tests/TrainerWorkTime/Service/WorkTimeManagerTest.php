@@ -8,7 +8,7 @@ use App\Booking\Exception\DateTimeAlreadyTakenException;
 use App\Trainer\Entity\Trainer;
 use App\TrainerWorkTime\DTO\UpdateWorkTimeRequestDTO;
 use App\TrainerWorkTime\Entity\TrainerWorkTime;
-use App\TrainerWorkTime\Exception\WorktimeHasActiveTrainingsException;
+use App\TrainerWorkTime\Exception\WorktimeHasTrainingHistoryException;
 use App\TrainerWorkTime\Service\WorkTimeManager;
 use App\Training\Entity\Training;
 use DateTimeImmutable;
@@ -124,7 +124,7 @@ final class WorkTimeManagerTest extends KernelTestCase
         $worktime = $this->persistWorktime();
         $this->persistTraining($worktime, "10:00:00", 60, $isBusy);
 
-        $this->expectException(WorktimeHasActiveTrainingsException::class);
+        $this->expectException(WorktimeHasTrainingHistoryException::class);
 
         $this->manager->remove($worktime);
     }
@@ -150,9 +150,9 @@ final class WorkTimeManagerTest extends KernelTestCase
         self::assertNull($this->entityManager->find(TrainerWorkTime::class, $worktimeId));
     }
 
-    public function testWorktimeHasActiveTrainingsExceptionMapsToHttp409(): void
+    public function testWorktimeHasTrainingHistoryExceptionMapsToHttp409(): void
     {
-        $reflection = new \ReflectionClass(WorktimeHasActiveTrainingsException::class);
+        $reflection = new \ReflectionClass(WorktimeHasTrainingHistoryException::class);
         $attributes = $reflection->getAttributes(WithHttpStatus::class);
 
         self::assertCount(1, $attributes);
