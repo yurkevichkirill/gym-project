@@ -56,6 +56,8 @@ jobs:
           docker run --rm \
             --env API_HOST=api.example.com \
             --env FRONTEND_HOST=example.com \
+            --add-host php-fpm:127.0.0.1 \
+            --add-host frontend:127.0.0.1 \
             --volume "$PWD/.ci/tls:/etc/nginx/certs:ro" \
             evogym-nginx:ci openresty -t
 
