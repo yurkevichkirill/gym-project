@@ -5,9 +5,16 @@ import { ApiItemResponse } from "@/types/api-item-response.type";
 import { PaymentStatusEnum } from "@/types/payment/payment-status.enum";
 import { PaymentsGetQueryParams } from "@/types/payment/payments-get.type";
 
+export const PaymentScope = {
+    CLIENT: "client",
+    TRAINER: "trainer",
+} as const;
+
+export type PaymentScope = typeof PaymentScope[keyof typeof PaymentScope];
+
 export const DEFAULT_PAYMENTS_SORT = "createdAt:DESC";
 
-export const PAYMENT_QUERY_KEYS = [
+export const CLIENT_PAYMENT_QUERY_KEYS = [
     "trainerId",
     "minAmount",
     "maxAmount",
@@ -19,6 +26,21 @@ export const PAYMENT_QUERY_KEYS = [
     "page",
     "limit",
 ] as const satisfies readonly (keyof PaymentsGetQueryParams)[];
+
+export const TRAINER_PAYMENT_QUERY_KEYS = [
+    "clientId",
+    "minAmount",
+    "maxAmount",
+    "isRefund",
+    "status",
+    "minCreatedAt",
+    "maxCreatedAt",
+    "sort",
+    "page",
+    "limit",
+] as const satisfies readonly (keyof PaymentsGetQueryParams)[];
+
+export const PAYMENT_QUERY_KEYS = CLIENT_PAYMENT_QUERY_KEYS;
 
 const PAYMENT_SORT_FIELDS = new Set([
     "amount",
@@ -101,14 +123,25 @@ const isValidSort = (value: string): boolean => {
     });
 };
 
+export const getPaymentQueryKeys = (
+    scope: PaymentScope,
+): readonly (keyof PaymentsGetQueryParams)[] => {
+    return scope === PaymentScope.TRAINER
+        ? TRAINER_PAYMENT_QUERY_KEYS
+        : CLIENT_PAYMENT_QUERY_KEYS;
+};
+
 export const parsePaymentsListParams = (
     searchParams: SearchParamsReader,
+    scope: PaymentScope = PaymentScope.CLIENT,
 ): PaymentsGetQueryParams => {
     const status = searchParams.get("status");
     const sort = searchParams.get("sort");
 
     return {
-        trainerId: readInteger(searchParams.get("trainerId"), 1),
+        ...(scope === PaymentScope.TRAINER
+            ? { clientId: readInteger(searchParams.get("clientId"), 1) }
+            : { trainerId: readInteger(searchParams.get("trainerId"), 1) }),
         minAmount: readInteger(searchParams.get("minAmount"), 1),
         maxAmount: readInteger(searchParams.get("maxAmount"), 1),
         isRefund: readBoolean(searchParams.get("isRefund")),
@@ -125,10 +158,11 @@ export const parsePaymentsListParams = (
 
 const createPaymentsSearchParams = (
     params: PaymentsGetQueryParams,
+    scope: PaymentScope,
 ): URLSearchParams => {
     const searchParams = new URLSearchParams();
 
-    PAYMENT_QUERY_KEYS.forEach((key) => {
+    getPaymentQueryKeys(scope).forEach((key) => {
         const value = params[key];
 
         if (value !== undefined && value !== null && value !== "") {
@@ -141,24 +175,45 @@ const createPaymentsSearchParams = (
 
 export const getPaymentsRequestKey = (
     params: PaymentsGetQueryParams,
+    scope: PaymentScope = PaymentScope.CLIENT,
 ): string => {
-    return createPaymentsSearchParams(params).toString();
+    return `${scope}:${createPaymentsSearchParams(params, scope).toString()}`;
+};
+
+export const getPaymentsForScope = async (
+    params: PaymentsGetQueryParams = {},
+    scope: PaymentScope = PaymentScope.CLIENT,
+): Promise<PaymentsListResponse> => {
+    const queryString = createPaymentsSearchParams(params, scope).toString();
+    const endpoint = scope === PaymentScope.TRAINER
+        ? "/trainer/payments/"
+        : "/me/payments/";
+
+    return await apiGet<PaymentsListResponse>(
+        `${endpoint}${queryString ? `?${queryString}` : ""}`,
+    );
+};
+
+export const getPaymentForScope = async (
+    id: number,
+    scope: PaymentScope = PaymentScope.CLIENT,
+): Promise<PaymentType> => {
+    const endpoint = scope === PaymentScope.TRAINER
+        ? `/trainer/payments/${id}/`
+        : `/me/payments/${id}/`;
+    const response = await apiGet<ApiItemResponse<PaymentType>>(endpoint);
+
+    return response.data;
 };
 
 export const getMyPayments = async (
     params: PaymentsGetQueryParams = {},
 ): Promise<PaymentsListResponse> => {
-    const queryString = getPaymentsRequestKey(params);
-
-    return await apiGet<PaymentsListResponse>(
-        `/me/payments/${queryString ? `?${queryString}` : ""}`,
-    );
+    return await getPaymentsForScope(params, PaymentScope.CLIENT);
 };
 
 export const getMyPayment = async (id: number): Promise<PaymentType> => {
-    const response = await apiGet<ApiItemResponse<PaymentType>>(`/me/payments/${id}/`);
-
-    return response.data;
+    return await getPaymentForScope(id, PaymentScope.CLIENT);
 };
 
 export const createStripeIntent = async (paymentId: number): Promise<string> => {
