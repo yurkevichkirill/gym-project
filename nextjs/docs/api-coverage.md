@@ -2,6 +2,15 @@
 
 Inventory date: 2026-06-27. Source of truth: Symfony controllers, DTOs, resolvers, queries, mappers, voters, and security attributes under `symfony/src`. Frontend scope is limited to `nextjs/`.
 
+Global contract notes:
+
+- All listed Symfony routes include the trailing slash shown in the URL.
+- Authenticated browser calls use HttpOnly cookies through `apiClient`; public catalog calls use `publicApiClient`.
+- Collection endpoints commonly support `page`, `itemsPerPage`, `sort`, and domain filters through request DTO resolvers/query DTOs. Frontend wrappers must omit empty or undefined query values.
+- Date/time fields are serialized by Symfony DTO mappers as strings from PHP `DateTimeInterface` values; frontend must treat them as backend timezone data and avoid client-only timezone reinterpretation for mutations.
+- Money values are numeric decimal values in response/request DTOs; Stripe intent creation returns a client secret and must never call the Stripe webhook from the browser.
+- Upload endpoints use multipart `file` fields; frontend must not set `Content-Type` manually and must enforce backend-compatible mime/size checks before submit.
+
 Coverage statuses:
 
 - COMPLETE: endpoint is available through UI and typed frontend integration.
@@ -10,52 +19,73 @@ Coverage statuses:
 - NOT_FOR_FRONTEND: browser must not call this endpoint.
 - BLOCKED_BY_API: safe frontend implementation needs an API contract change.
 
-## Current PR Domain: Trainer Payments
+## Authentication
 
 | Endpoint | Contract | Frontend coverage | Status |
 | --- | --- | --- | --- |
-| `GET /api/trainer/payments/` | `ROLE_TRAINER`; query `clientId`, `minAmount`, `maxAmount`, `isRefund`, `status`, `minCreatedAt`, `maxCreatedAt`, `sort`, `page`, `limit`; response `CollectionResponse<PaymentResponseDTO>`; errors `400`, `401`, `403`, `404` | `/me/trainer-payments` -> `PaymentsCatalog forcedScope=TRAINER` -> `PaymentStore` -> `getPaymentsForScope(..., TRAINER)` | COMPLETE |
-| `GET /api/trainer/payments/{id}/` | `ROLE_TRAINER`; path `id`; `PaymentVoter::VIEW_OWN`; response `ItemResponse<PaymentResponseDTO>`; errors `401`, `403`, `404` | `/me/trainer-payments/[id]` -> `PaymentDetails forcedScope=TRAINER` -> `PaymentStore.loadPayment(..., TRAINER)` -> `getPaymentForScope(..., TRAINER)` | COMPLETE |
+| `POST /api/login/` | `LoginUserRequestDTO` -> `LoginUserResponseDTO`; sets auth cookies; 400/401/422/429/500 possible | `nextjs/src/api/auth/auth.api.ts`, `AuthStore`, authorization scene | COMPLETE |
+| `POST /api/refresh/` | cookie refresh; no request body | `apiClient` automatic refresh | COMPLETE |
+| `POST /api/logout/` | clears auth cookies | `AuthStore` | COMPLETE |
+| `POST /api/client/registration/` | `CreateClientRequestDTO`; creates inactive client | registration scene | COMPLETE |
+| `POST /api/clients/activate/` | `ClientActivateRequestDTO` | activate route/form | COMPLETE |
+| `GET /api/auth/me/` | `CurrentUserResponseDTO`; `ROLE_USER` | auth store/session UX | COMPLETE |
 
-Frontend chain covered in this PR:
+## Public
 
-`nextjs/src/app/me/trainer-payments/page.tsx` -> `RoleGuard(ROLE_TRAINER)` -> `PaymentsCatalog` -> `PaymentsFilters` / `PaymentCatalogCard` -> `PaymentStore` -> `getPaymentsForScope` -> `apiClient` -> `Trainer\PaymentController::getAll()` -> `ResolvedPaymentsRequestDTO` -> `PaymentResponseDTO`.
+| Endpoint | Contract | Frontend coverage | Status |
+| --- | --- | --- | --- |
+| `GET /api/trainers/` | public trainer collection; `GetTrainersRequestDTO`, sort/filter/pagination | public trainers catalog and home sections | COMPLETE |
+| `GET /api/trainers/{id}/` | `TrainerResponseDTO` | trainer details page | COMPLETE |
+| `GET /api/membership/plans/` | `GetMembershipPlansRequestDTO`, sort/filter/pagination | membership plan catalog/home | COMPLETE |
+| `GET /api/membership/plans/{id}/` | `MembershipPlanResponseDTO` | membership plan details | COMPLETE |
+| `GET /api/training/types/` | `GetTrainingTypesRequestDTO`, sort/filter/pagination | training types catalog/home | COMPLETE |
+| `GET /api/training/types/{id}/` | `TrainingTypeResponseDTO` | training type details | COMPLETE |
+| `GET /api/worktime/` | `GetWorktimesRequestDTO`, sort/filter/pagination | worktime catalog and booking form | COMPLETE |
+| `GET /api/worktime/{id}/` | `WorkTimeResponseDTO` | worktime details | COMPLETE |
 
-`nextjs/src/app/me/trainer-payments/[id]/page.tsx` -> `RoleGuard(ROLE_TRAINER)` -> `PaymentDetails` -> `PaymentStore.loadPayment` -> `getPaymentForScope` -> `apiClient` -> `Trainer\PaymentController::get()` -> `PaymentVoter::VIEW_OWN` -> `PaymentResponseDTO`.
+## Contact
 
-Contract notes:
+| Endpoint | Contract | Frontend coverage | Status |
+| --- | --- | --- | --- |
+| `POST /api/contact/` | `ContactRequestDTO`: `name` required max 100, `email` required email max 254, `message` required max 2000; response `204`; errors `422`, `429`, `503` | `nextjs/src/api/contact/contact.api.ts`, `nextjs/src/scenes/contactUs/index.tsx` | COMPLETE |
 
-- URLs keep the Symfony trailing slash through `apiClient` calls: `/trainer/payments/` and `/trainer/payments/{id}/`.
-- Query state is kept in the browser URL and empty values are omitted.
-- `isRefund` is serialized as `true` or `false`; date filters use `YYYY-MM-DD` as required by `Assert\Date`.
-- `limit` is capped to `100` in frontend parsing and form validation, matching the Symfony DTO range.
-- Trainer payment views are read-only. Stripe intent creation remains client-only through `POST /api/payments/{id}/intent/` and is not exposed in trainer payment UI.
-- `PaymentResponseDTO` contains `trainer` but not `client`; for trainer-owned payment views, client identity cannot be displayed safely without a backend contract change. The UI shows a clear placeholder and keeps client filtering by ID available.
+Contact chain covered in this PR:
 
-## Full API Inventory Summary
+`nextjs/src/app/page.tsx` -> `nextjs/src/scenes/contactUs/index.tsx` -> React Hook Form -> `submitContactRequest` -> `apiClient` -> `POST /api/contact/` -> `ContactController::submit()` -> `ContactRequestDTO`.
 
-| Domain | Endpoints | Coverage status |
-| --- | --- | --- |
-| Authentication | login, refresh, logout, registration, activation, current user | COMPLETE |
-| Public | trainers, trainer details, membership plans, training types, worktimes | COMPLETE |
-| Contact | `POST /api/contact/` | PARTIAL in `main`; typed wrapper/documentation is handled by PR #32 |
-| Client profile | `GET/PATCH/DELETE /api/me/`, visit, top-up | PARTIAL |
-| Client bookings | list/detail/create/cancel | COMPLETE |
-| Client memberships | list/detail/create/cancel/freeze/unfreeze/renew/terminate | COMPLETE |
-| Client payments | list/detail/Stripe intent | COMPLETE |
-| Trainer profile | get/update/photo/delete | COMPLETE |
-| Trainer worktimes | list/create/update/delete | COMPLETE |
-| Trainer trainings | list/detail/update/cancel/complete | COMPLETE |
-| Trainer payments | list/detail | COMPLETE in this PR |
-| Admin clients | CRUD, restore, block, unblock, visit, import | MISSING |
-| Admin trainers | list/detail/create/update/photo/delete/restore/block/unblock | MISSING |
-| Admin bookings | list/detail/create-for-client/cancel; `/api/coffee/` admin/debug route | MISSING |
-| Admin memberships | list/detail/create-for-client/cancel/freeze/unfreeze/renew/terminate | MISSING |
-| Admin membership plans | create/update/delete | MISSING |
-| Admin payments | list/detail | MISSING |
-| Admin training types | create/update/photo/delete | MISSING |
-| Admin trainings | list/update/cancel/complete | MISSING |
-| Admin worktimes | create/update/delete | MISSING |
+## Client
+
+| Endpoint group | Routes | Frontend coverage | Status |
+| --- | --- | --- | --- |
+| Profile | `GET/PATCH/DELETE /api/me/`, `POST /api/me/visit/`, `POST /api/me/topup/` | client profile scenes/stores; top-up initiates payment | PARTIAL |
+| Bookings | `GET/POST /api/me/bookings/`, `GET /api/me/bookings/{id}/`, `POST /api/me/bookings/{id}/cancel/` | bookings list/details/create/cancel | COMPLETE |
+| Memberships | `GET /api/me/memberships/`, `GET /api/me/memberships/{id}/`, `POST /api/me/membership/`, cancel/freeze/unfreeze/renew/terminate actions | membership list/details/actions | COMPLETE |
+| Payments | `GET /api/me/payments/`, `GET /api/me/payments/{id}/`, `POST /api/payments/{id}/intent/` | payments catalog/details and Stripe intent flow | COMPLETE |
+
+## Trainer
+
+| Endpoint group | Routes | Frontend coverage | Status |
+| --- | --- | --- | --- |
+| Profile | `GET/PATCH/DELETE /api/trainer/me/`, `POST /api/trainer/me/photo/` | trainer personal profile forms | COMPLETE |
+| Worktimes | `GET/POST /api/trainer/me/worktime/`, `PATCH/DELETE /api/worktime/{id}/` | trainer worktime UI/store | COMPLETE |
+| Trainings | `GET /api/me/trainings/`, `GET/PATCH /api/trainings/{id}/`, `POST /api/trainings/{id}/cancel/`, `POST /api/trainings/{id}/complete/` | trainer trainings catalog/details/actions | COMPLETE |
+| Payments | `GET /api/trainer/payments/`, `GET /api/trainer/payments/{id}/` | no trainer payment route found in `nextjs/src/app`; profile links to `/me/payments` which is client payment UI | MISSING |
+
+## Admin
+
+Admin routes require `ROLE_ADMIN`; only an `admin` route shell exists in frontend. These are independent domains and should be implemented in separate PRs.
+
+| Endpoint group | Routes | Frontend coverage | Status |
+| --- | --- | --- | --- |
+| Clients | `GET/POST /api/clients/`, `GET/PATCH/DELETE /api/clients/{id}/`, restore/block/unblock/visit, `POST /api/import/clients/` | no admin clients UI/wrapper | MISSING |
+| Trainers | `GET /api/admin/trainers/`, `GET /api/admin/trainers/{id}/`, `POST /api/trainers/`, `PATCH/DELETE /api/trainers/{id}/`, photo/restore/block/unblock | no admin trainers UI/wrapper | MISSING |
+| Bookings | `GET /api/bookings/`, `GET /api/bookings/{id}/`, `POST /api/clients/{id}/bookings/`, cancel; `GET/POST /api/coffee/` debug/admin-only route | no admin bookings UI/wrapper | MISSING |
+| Memberships | `GET /api/memberships/`, `GET /api/memberships/{id}/`, `POST /api/clients/{id}/membership/`, cancel/freeze/unfreeze/renew/terminate | no admin memberships UI/wrapper | MISSING |
+| Membership plans | `POST /api/membership/plans/`, `PATCH/DELETE /api/membership/plans/{id}/` | public read UI only; no admin mutation UI | MISSING |
+| Payments | `GET /api/payments/`, `GET /api/payments/{id}/` | no admin payments UI/wrapper | MISSING |
+| Training types | `POST /api/training/types/`, `PATCH/DELETE /api/training/types/{id}/`, `POST /api/training/types/{id}/photo/` | public read UI only; no admin mutation UI | MISSING |
+| Trainings | `GET /api/admin/trainings/`, `PATCH /api/admin/trainings/{id}/`, cancel/complete | no admin trainings UI/wrapper | MISSING |
+| Worktimes | `POST /api/trainers/{id}/worktime/`, `PATCH/DELETE /api/admin/worktime/{id}/` | no admin worktime UI/wrapper | MISSING |
 
 ## Not For Frontend
 
@@ -68,4 +98,4 @@ Contract notes:
 
 ## Next Recommended Domain
 
-Admin clients: this is the largest high-value missing admin area and should be handled in its own focused PR because it includes list/detail/mutations, account state transitions, visit write-off, and import flow.
+`Trainer payments` is the next smallest user-facing gap: Symfony exposes `GET /api/trainer/payments/` and `GET /api/trainer/payments/{id}/`, but the frontend currently has no dedicated trainer payments route/wrapper/store.
