@@ -7,15 +7,32 @@ import HText from "@/shared/HText";
 import ContactUsPageGraphic from "@/assets/ContactUsPageGraphic.png";
 import Image from "next/image";
 import {useNavigation} from "@/context/navigation-context";
-import {apiPost} from "@/lib/apiClient";
 import {notify} from "@/lib/notify";
-import {getErrorMessage} from "@/lib/getErrorMessage";
+import { ApiClientError } from "@/lib/apiClient";
+import { submitContactRequest } from "@/api/contact/contact.api";
+import type { ContactRequest } from "@/types/contact/contact-request.type";
 
-interface ContactFormData {
-    name: string;
-    email: string;
-    message: string;
-}
+type ContactFormData = ContactRequest;
+
+const getContactErrorMessage = (error: unknown): string => {
+    if (!(error instanceof ApiClientError)) {
+        return "We could not send your message. Please try again.";
+    }
+
+    if (error.status === 422 || error.status === 400) {
+        return "Please check the highlighted fields and try again.";
+    }
+
+    if (error.status === 429) {
+        return "Too many contact requests. Please wait and try again later.";
+    }
+
+    if (error.status === 503 || error.status === 500) {
+        return "Contact delivery is temporarily unavailable. Please try again later.";
+    }
+
+    return "We could not send your message. Please try again.";
+};
 
 const ContactUs = () => {
     const { setSelectedPage } = useNavigation();
@@ -32,7 +49,7 @@ const ContactUs = () => {
         const toastId = notify.loading("Sending your message...");
 
         try {
-            await apiPost<null, ContactFormData>('/contact/', data);
+            await submitContactRequest(data);
             reset();
             notify.success(
                 "Message sent",
@@ -42,7 +59,7 @@ const ContactUs = () => {
         } catch (error: unknown) {
             notify.error(
                 "Message was not sent",
-                getErrorMessage(error),
+                getContactErrorMessage(error),
                 toastId,
             );
         }

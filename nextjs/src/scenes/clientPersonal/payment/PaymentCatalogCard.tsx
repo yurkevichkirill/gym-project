@@ -14,11 +14,13 @@ import {
 type PaymentCatalogCardProps = {
     payment: PaymentType;
     scope: PaymentScope;
+    detailsBasePath: string;
 };
 
 const PaymentCatalogCard = ({
     payment,
     scope,
+    detailsBasePath,
 }: PaymentCatalogCardProps) => {
     const isTrainerScope = scope === PaymentScope.TRAINER;
     const incoming = !isTrainerScope
@@ -82,7 +84,7 @@ const PaymentCatalogCard = ({
             </dl>
 
             <Link
-                href={`/me/payments/${payment.id}`}
+                href={`${detailsBasePath}/${payment.id}`}
                 className="mt-6 rounded-md border border-gray-300 px-4 py-2 text-center font-semibold transition hover:border-secondary-500"
             >
                 View details

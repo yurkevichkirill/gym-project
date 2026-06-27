@@ -55,7 +55,7 @@ const TrainerProfile = ({
                         </p>
                     </div>
                     <Link
-                        href="/me/payments"
+                        href="/me/trainer-payments"
                         className="inline-flex self-start justify-center rounded-md bg-secondary-500 px-5 py-2 font-semibold transition hover:bg-primary-500 hover:text-white"
                     >
                         View payments
