@@ -5,6 +5,7 @@ import TrainerProfileOverview from "@/scenes/trainerPersonal/TrainerProfileOverv
 import TrainerWorktimes from "@/scenes/trainerPersonal/worktime/TrainerWorktimes";
 import LoadingState from "@/shared/ui/LoadingState";
 import { TrainerPersonalType } from "@/types/trainer/private/trainer.personal.type";
+import Link from "next/link";
 import { Suspense } from "react";
 
 const TrainerProfile = ({
@@ -23,6 +24,24 @@ const TrainerProfile = ({
                     <DeleteTrainerAccount />
                 </div>
             </div>
+
+            <section className="flex flex-col gap-4 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:p-8">
+                <div>
+                    <p className="text-sm font-semibold uppercase tracking-wider text-secondary-500">
+                        Trainer-owned bookings
+                    </p>
+                    <h2 className="mt-2 text-2xl font-bold">Trainings</h2>
+                    <p className="mt-2 max-w-2xl text-gray-600">
+                        Review, reschedule, cancel and complete trainings assigned to your account.
+                    </p>
+                </div>
+                <Link
+                    href="/me/trainings"
+                    className="inline-flex shrink-0 justify-center rounded-md bg-secondary-500 px-5 py-2 font-semibold transition hover:bg-primary-500 hover:text-white"
+                >
+                    Manage trainings
+                </Link>
+            </section>
 
             <Suspense
                 fallback={(
