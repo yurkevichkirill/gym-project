@@ -30,6 +30,7 @@ const STRIPE_RETURN_PARAMS = [
 
 type PaymentDetailsProps = {
     paymentId: number;
+    forcedScope?: PaymentScope;
 };
 
 const DetailRow = ({ label, value }: { label: string; value: string }) => (
@@ -39,16 +40,17 @@ const DetailRow = ({ label, value }: { label: string; value: string }) => (
     </div>
 );
 
-const PaymentDetails = observer(({ paymentId }: PaymentDetailsProps) => {
+const PaymentDetails = observer(({ paymentId, forcedScope }: PaymentDetailsProps) => {
     const { authStore, paymentStore } = useStore();
     const pathname = usePathname();
     const searchParams = useSearchParams();
     const searchParamsString = searchParams.toString();
     const handledStripeReturn = useRef<string | null>(null);
-    const scope = authStore.user?.roles.includes(Roles.TRAINER)
+    const scope = forcedScope ?? (authStore.user?.roles.includes(Roles.TRAINER)
         ? PaymentScope.TRAINER
-        : PaymentScope.CLIENT;
+        : PaymentScope.CLIENT);
     const isTrainerScope = scope === PaymentScope.TRAINER;
+    const paymentsBasePath = isTrainerScope ? "/me/trainer-payments" : "/me/payments";
     const payment = paymentStore.selectedPayment?.id === paymentId
         && paymentStore.selectedPaymentScope === scope
         ? paymentStore.selectedPayment
@@ -97,7 +99,7 @@ const PaymentDetails = observer(({ paymentId }: PaymentDetailsProps) => {
                 title="Payment not found"
                 description="This payment does not exist or is no longer available."
                 action={(
-                    <Link href="/me/payments" className="rounded-md bg-secondary-500 px-5 py-2 font-semibold">
+                    <Link href={paymentsBasePath} className="rounded-md bg-secondary-500 px-5 py-2 font-semibold">
                         Back to payments
                     </Link>
                 )}
@@ -113,7 +115,7 @@ const PaymentDetails = observer(({ paymentId }: PaymentDetailsProps) => {
                     ? "You cannot view a payment that belongs to another trainer."
                     : "You cannot view a payment that belongs to another client."}
                 action={(
-                    <Link href="/me/payments" className="rounded-md bg-secondary-500 px-5 py-2 font-semibold">
+                    <Link href={paymentsBasePath} className="rounded-md bg-secondary-500 px-5 py-2 font-semibold">
                         Back to payments
                     </Link>
                 )}
@@ -145,7 +147,7 @@ const PaymentDetails = observer(({ paymentId }: PaymentDetailsProps) => {
         <section className="mx-auto w-full max-w-5xl" aria-busy={paymentStore.isDetailLoading}>
             <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
                 <Link
-                    href="/me/payments"
+                    href={paymentsBasePath}
                     className="rounded-md border border-gray-300 bg-white px-4 py-2 font-semibold transition hover:border-secondary-500"
                 >
                     Back to payments
@@ -264,7 +266,7 @@ const PaymentDetails = observer(({ paymentId }: PaymentDetailsProps) => {
                         </dl>
                         {payment.originalPayment ? (
                             <Link
-                                href={`/me/payments/${payment.originalPayment.id}`}
+                                href={`${paymentsBasePath}/${payment.originalPayment.id}`}
                                 className="mt-4 inline-flex rounded-md border border-gray-300 px-4 py-2 font-semibold transition hover:border-secondary-500"
                             >
                                 Open original payment
