@@ -7,6 +7,7 @@ import { useStore } from "@/store/StoreProvider";
 import EmptyState from "@/shared/ui/EmptyState";
 import ErrorState from "@/shared/ui/ErrorState";
 import LoadingState from "@/shared/ui/LoadingState";
+import CancelBookingButton from "@/scenes/clientPersonal/bookings/CancelBookingButton";
 import {
     formatDateTime,
     formatMoney,
@@ -21,7 +22,7 @@ type BookingDetailsProps = {
 const DetailRow = ({ label, value }: { label: string; value: string }) => (
     <div className="flex flex-col gap-1 border-b border-gray-100 py-3 last:border-b-0 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
         <dt className="text-sm text-gray-500">{label}</dt>
-        <dd className="font-semibold sm:text-right">{value}</dd>
+        <dd className="font-semibold capitalize sm:text-right">{value}</dd>
     </div>
 );
 
@@ -129,6 +130,13 @@ const BookingDetails = observer(({ bookingId }: BookingDetailsProps) => {
                     <span className={`rounded-full px-4 py-2 text-sm font-semibold ${getBookingStatusClassName(booking.status)}`}>
                         {getBookingStatusLabel(booking.status)}
                     </span>
+                </div>
+
+                <div className="mt-5">
+                    <CancelBookingButton
+                        bookingId={booking.id}
+                        status={booking.status}
+                    />
                 </div>
 
                 <div className="mt-8 grid gap-6 lg:grid-cols-2">

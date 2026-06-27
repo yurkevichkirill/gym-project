@@ -16,6 +16,7 @@ import ErrorState from "@/shared/ui/ErrorState";
 import LoadingState from "@/shared/ui/LoadingState";
 import PaginationControls from "@/shared/ui/PaginationControls";
 import BookingCatalogCard from "@/scenes/clientPersonal/bookings/BookingCatalogCard";
+import BookingCreateForm from "@/scenes/clientPersonal/bookings/BookingCreateForm";
 import BookingsFilters, {
     type BookingsFiltersForm,
     toBookingsFilterValues,
@@ -84,10 +85,12 @@ const BookingsCatalog = observer(() => {
                 <div className="max-w-3xl">
                     <p className="text-sm font-semibold uppercase tracking-wider text-secondary-500">Client cabinet</p>
                     <h1 className="mt-2 text-3xl font-bold sm:text-4xl">My bookings</h1>
-                    <p className="mt-4 text-gray-600">Filter and review your complete booking history. Results are sorted and paginated by the server.</p>
+                    <p className="mt-4 text-gray-600">Create a booking, then filter and review your complete booking history. Results are sorted and paginated by the server.</p>
                 </div>
                 <Link href="/me" className="rounded-md border border-gray-300 bg-white px-4 py-2 font-semibold transition hover:border-secondary-500">Back to cabinet</Link>
             </div>
+
+            <BookingCreateForm />
 
             <BookingsFilters values={formValues} onApply={applyFilters} onReset={resetView} />
 

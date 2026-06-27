@@ -182,6 +182,10 @@ export const createBooking = async ({
     return response.data;
 };
 
-export const cancelBooking = async (id: number) => {
-    return apiPost<null>(`/me/bookings/${id}/cancel/`);
+export const cancelBooking = async (id: number): Promise<BookingType> => {
+    const response = await apiPost<ApiItemResponse<BookingType>>(
+        `/me/bookings/${id}/cancel/`,
+    );
+
+    return response.data;
 };

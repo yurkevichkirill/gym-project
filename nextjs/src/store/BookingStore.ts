@@ -10,6 +10,8 @@ import {
 import BookingCreateType from "@/types/booking/booking-create.type";
 import { getErrorMessage } from "@/lib/getErrorMessage";
 import { clientStore } from "@/store/ClientStore";
+import { membershipStore } from "@/store/MembershipStore";
+import { paymentStore } from "@/store/PaymentStore";
 import { authStore } from "@/store/AuthStore";
 import { ApiClientError } from "@/lib/apiClient";
 import { ApiCollectionResponse } from "@/types/api-collection-response";
@@ -38,7 +40,8 @@ type BookingStorePrivateKey =
     | "currentParams"
     | "currentRequestKey"
     | "initTask"
-    | "detailTask";
+    | "detailTask"
+    | "cancelTasks";
 
 const getErrorStatus = (error: unknown): number | null => {
     return error instanceof ApiClientError ? error.status : null;
@@ -59,6 +62,10 @@ class BookingStore {
     public detailError: string | null = null;
     public detailErrorStatus: number | null = null;
 
+    public isCreating = false;
+    public cancelingBookingIds: number[] = [];
+    public availabilityRevision = 0;
+
     private generation = 0;
     private listRequestId = 0;
     private detailRequestId = 0;
@@ -66,6 +73,7 @@ class BookingStore {
     private currentRequestKey = "";
     private initTask: InitTask | null = null;
     private detailTask: DetailTask | null = null;
+    private cancelTasks = new Map<number, Promise<BookingType>>();
 
     public constructor() {
         makeAutoObservable<this, BookingStorePrivateKey>(this, {
@@ -76,6 +84,7 @@ class BookingStore {
             currentRequestKey: false,
             initTask: false,
             detailTask: false,
+            cancelTasks: false,
         }, { autoBind: true });
     }
 
@@ -139,33 +148,74 @@ class BookingStore {
         return promise;
     }
 
-    public async book(payload: BookingCreateType): Promise<BookingType> {
-        const generation = this.generation;
-        const booking = await createBooking(payload);
-
-        if (generation === this.generation && authStore.isAuth) {
-            await Promise.all([
-                this.init(this.currentParams),
-                clientStore.init(),
-            ]);
-        }
-
-        return booking;
+    public isCanceling(bookingId: number): boolean {
+        return this.cancelingBookingIds.includes(bookingId);
     }
 
-    public async cancel(id: number): Promise<void> {
-        const generation = this.generation;
-        await cancelBooking(id);
+    public async book(payload: BookingCreateType): Promise<BookingType> {
+        if (this.isCreating) {
+            throw new Error("A booking request is already in progress.");
+        }
 
-        if (generation !== this.generation || !authStore.isAuth) {
-            return;
+        const generation = this.generation;
+
+        runInAction(() => {
+            this.isCreating = true;
+        });
+
+        try {
+            const booking = await createBooking(payload);
+
+            if (generation === this.generation && authStore.isAuth) {
+                runInAction(() => {
+                    this.availabilityRevision += 1;
+                });
+
+                await this.syncAfterMutation();
+            }
+
+            return booking;
+        } finally {
+            if (generation === this.generation) {
+                runInAction(() => {
+                    this.isCreating = false;
+                });
+            }
+        }
+    }
+
+    public cancel(id: number): Promise<BookingType> {
+        const existingTask = this.cancelTasks.get(id);
+
+        if (existingTask) {
+            return existingTask;
         }
 
         runInAction(() => {
-            this.bookings = this.bookings.filter((booking) => booking.id !== id);
+            this.cancelingBookingIds = [...this.cancelingBookingIds, id];
         });
 
-        await clientStore.init();
+        const task = this.cancelInternal(id).finally(() => {
+            this.cancelTasks.delete(id);
+
+            runInAction(() => {
+                this.cancelingBookingIds = this.cancelingBookingIds.filter(
+                    (bookingId) => bookingId !== id,
+                );
+            });
+        });
+
+        this.cancelTasks.set(id, task);
+
+        return task;
+    }
+
+    public async refreshAfterPayment(bookingId: number): Promise<void> {
+        if (!authStore.isAuth) {
+            return;
+        }
+
+        await this.syncAfterMutation(bookingId);
     }
 
     public reset(): void {
@@ -174,6 +224,7 @@ class BookingStore {
         this.detailRequestId += 1;
         this.initTask = null;
         this.detailTask = null;
+        this.cancelTasks.clear();
         this.currentParams = {};
         this.currentRequestKey = "";
         this.bookings = [];
@@ -184,7 +235,69 @@ class BookingStore {
         this.isRefreshing = false;
         this.error = null;
         this.errorStatus = null;
+        this.isCreating = false;
+        this.cancelingBookingIds = [];
+        this.availabilityRevision = 0;
         this.resetDetail();
+    }
+
+    private async cancelInternal(id: number): Promise<BookingType> {
+        const generation = this.generation;
+
+        try {
+            const booking = await cancelBooking(id);
+
+            if (generation === this.generation && authStore.isAuth) {
+                runInAction(() => {
+                    this.availabilityRevision += 1;
+                });
+
+                await this.syncAfterMutation(id);
+            }
+
+            return booking;
+        } catch (error: unknown) {
+            if (
+                generation === this.generation
+                && authStore.isAuth
+                && error instanceof ApiClientError
+                && (error.status === 409 || error.status === 422)
+            ) {
+                await this.syncAfterMutation(id);
+            }
+
+            throw error;
+        }
+    }
+
+    private async syncAfterMutation(bookingId?: number): Promise<void> {
+        const detailId = bookingId !== undefined && this.selectedBooking?.id === bookingId
+            ? bookingId
+            : null;
+        const tasks: Promise<void>[] = [
+            this.refreshList(),
+            clientStore.init(),
+            membershipStore.init(),
+            paymentStore.init(),
+        ];
+
+        if (detailId !== null) {
+            tasks.push(this.refreshDetail(detailId));
+        }
+
+        await Promise.all(tasks);
+    }
+
+    private refreshList(): Promise<void> {
+        this.initTask = null;
+
+        return this.init(this.currentParams);
+    }
+
+    private refreshDetail(bookingId: number): Promise<void> {
+        this.detailTask = null;
+
+        return this.loadBooking(bookingId);
     }
 
     private resetDetail(): void {

@@ -5,6 +5,7 @@ import {
     getBookingStatusClassName,
     getBookingStatusLabel,
 } from "@/scenes/clientPersonal/bookings/booking-display";
+import CancelBookingButton from "@/scenes/clientPersonal/bookings/CancelBookingButton";
 
 type BookingCatalogCardProps = {
     booking: BookingType;
@@ -52,12 +53,18 @@ const BookingCatalogCard = ({ booking }: BookingCatalogCardProps) => {
                 </div>
             </dl>
 
-            <Link
-                href={`/me/bookings/${booking.id}`}
-                className="mt-6 inline-flex justify-center rounded-md bg-secondary-500 px-4 py-2 font-semibold transition hover:bg-primary-500 hover:text-white"
-            >
-                View details
-            </Link>
+            <div className="mt-auto grid gap-3 pt-6">
+                <Link
+                    href={`/me/bookings/${booking.id}`}
+                    className="inline-flex justify-center rounded-md bg-secondary-500 px-4 py-2 font-semibold transition hover:bg-primary-500 hover:text-white"
+                >
+                    View details
+                </Link>
+                <CancelBookingButton
+                    bookingId={booking.id}
+                    status={booking.status}
+                />
+            </div>
         </article>
     );
 };

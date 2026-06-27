@@ -1,19 +1,11 @@
 import { motion } from "framer-motion";
-import { useStore } from "@/store/StoreProvider";
-import { observer } from "mobx-react-lite";
-import { notify } from "@/lib/notify";
+import Link from "next/link";
 import { BookingStatusEnum } from "@/types/booking/bookings-status.enum";
-import { getErrorMessage } from "@/lib/getErrorMessage";
-
-const statusColorMap: Record<string, string> = {
-    scheduled: "bg-blue-100 text-blue-800",
-    pending: "bg-yellow-100 text-yellow-800",
-    completed: "bg-green-100 text-green-800",
-    canceled_by_client: "bg-red-100 text-red-800",
-    canceled_by_trainer: "bg-red-100 text-red-800",
-    canceled_by_system: "bg-gray-100 text-gray-800",
-    canceled_payment_failed: "bg-red-200 text-red-900",
-};
+import {
+    getBookingStatusClassName,
+    getBookingStatusLabel,
+} from "@/scenes/clientPersonal/bookings/booking-display";
+import CancelBookingButton from "@/scenes/clientPersonal/bookings/CancelBookingButton";
 
 type Props = {
     id: number;
@@ -25,66 +17,40 @@ type Props = {
     status: BookingStatusEnum;
 };
 
-const Booking = observer(({ id, date, durationMinutes, startTime, status }: Props) => {
-    const { bookingStore } = useStore();
-
-    const handleDelete = async () => {
-        if (!confirm("Cancel this training?")) {
-            return;
-        }
-
-        const toastId = notify.loading("Cancelling booking...");
-
-        try {
-            await bookingStore.cancel(id);
-
-            notify.success(
-                "Booking cancelled",
-                "Your training has been removed",
-                toastId,
-            );
-        } catch (error: unknown) {
-            notify.error(
-                "Cancellation failed",
-                getErrorMessage(error),
-                toastId,
-            );
-        }
-    };
-
-    const badgeColors = statusColorMap[status] || "bg-gray-100 text-gray-800";
-    const isScheduled = status === BookingStatusEnum.SCHEDULED;
-
+const Booking = ({ id, date, durationMinutes, startTime, status }: Props) => {
     return (
-        <motion.div
-            whileHover={{ scale: 1.02 }}
-            className="flex flex-col"
+        <motion.article
+            whileHover={{ scale: 1.01 }}
+            className="rounded-xl border border-gray-100 bg-white p-4"
         >
-            <motion.div
-                className={`border border-gray-50 p-4 flex justify-between items-center ${isScheduled ? "rounded-t-xl" : "rounded-xl"}`}
-            >
+            <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
                     <p className="font-semibold">{date}</p>
-                    <p className="text-sm">
-                        {startTime} • {durationMinutes} min
+                    <p className="text-sm text-gray-600">
+                        {startTime.slice(0, 5)} · {durationMinutes} min
                     </p>
                 </div>
 
-                <span className={`text-sm px-3 py-1 rounded-full ${badgeColors}`}>
-                    {status.replace(/_/g, " ")}
+                <span className={`rounded-full px-3 py-1 text-sm ${getBookingStatusClassName(status)}`}>
+                    {getBookingStatusLabel(status)}
                 </span>
-            </motion.div>
+            </div>
 
-            {isScheduled && (
-                <button
-                    className="rounded-b-2xl cursor-pointer bg-primary-300 px-10 hover:bg-primary-500 hover:text-white"
-                    onClick={handleDelete}
+            <div className="mt-4 flex flex-wrap gap-3">
+                <Link
+                    href={`/me/bookings/${id}`}
+                    className="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-semibold transition hover:border-secondary-500"
                 >
-                    Cancel
-                </button>
-            )}
-        </motion.div>
+                    View details
+                </Link>
+                <CancelBookingButton
+                    bookingId={id}
+                    status={status}
+                    className="text-sm"
+                />
+            </div>
+        </motion.article>
     );
-});
+};
 
 export default Booking;
