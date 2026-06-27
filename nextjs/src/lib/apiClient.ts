@@ -87,13 +87,18 @@ const request = async <T>(
     isRetry = false,
     requestGeneration = authSessionGeneration,
 ): Promise<T> => {
+    const isFormDataBody = typeof FormData !== "undefined"
+        && init?.body instanceof FormData;
+
     const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}${url}`, {
         ...init,
         credentials: "include",
-        headers: {
-            "Content-Type": "application/json",
-            ...(init?.headers ?? {}),
-        },
+        headers: isFormDataBody
+            ? init?.headers
+            : {
+                "Content-Type": "application/json",
+                ...(init?.headers ?? {}),
+            },
     });
 
     if (
@@ -137,6 +142,17 @@ export const apiPost = <T, B = unknown>(
     return request<T>(url, {
         method: "POST",
         body: JSON.stringify(body),
+    }, options);
+};
+
+export const apiPostFormData = <T>(
+    url: string,
+    body: FormData,
+    options?: ApiRequestOptions,
+): Promise<T> => {
+    return request<T>(url, {
+        method: "POST",
+        body,
     }, options);
 };
 
