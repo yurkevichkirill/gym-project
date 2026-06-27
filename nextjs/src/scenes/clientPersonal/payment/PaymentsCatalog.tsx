@@ -25,14 +25,18 @@ import { Roles } from "@/types/auth.type";
 
 const normalizeInteger = (value: string): string => value === "" ? "" : Number(value).toString();
 
-const PaymentsCatalog = observer(() => {
+type PaymentsCatalogProps = {
+    forcedScope?: PaymentScope;
+};
+
+const PaymentsCatalog = observer(({ forcedScope }: PaymentsCatalogProps) => {
     const { authStore, paymentStore } = useStore();
     const pathname = usePathname();
     const searchParams = useSearchParams();
     const searchParamsString = searchParams.toString();
-    const scope = authStore.user?.roles.includes(Roles.TRAINER)
+    const scope = forcedScope ?? (authStore.user?.roles.includes(Roles.TRAINER)
         ? PaymentScope.TRAINER
-        : PaymentScope.CLIENT;
+        : PaymentScope.CLIENT);
     const queryKeys = getPaymentQueryKeys(scope);
     const requestParams = useMemo(
         () => parsePaymentsListParams(new URLSearchParams(searchParamsString), scope),
@@ -49,6 +53,7 @@ const PaymentsCatalog = observer(() => {
     const isTrainerScope = scope === PaymentScope.TRAINER;
     const relatedUserLabel = isTrainerScope ? "client" : "trainer";
     const relatedUserTitle = isTrainerScope ? "Client" : "Trainer";
+    const paymentsBasePath = isTrainerScope ? "/me/trainer-payments" : "/me/payments";
 
     useEffect(() => {
         void paymentStore.init(requestParams, scope);
@@ -92,7 +97,11 @@ const PaymentsCatalog = observer(() => {
 
     const changePage = (page: number) => {
         const next = new URLSearchParams(searchParamsString);
-        page <= 1 ? next.delete("page") : next.set("page", page.toString());
+        if (page <= 1) {
+            next.delete("page");
+        } else {
+            next.set("page", page.toString());
+        }
         updateUrl(next);
     };
 
@@ -252,6 +261,7 @@ const PaymentsCatalog = observer(() => {
                                         key={payment.id}
                                         payment={payment}
                                         scope={scope}
+                                        detailsBasePath={paymentsBasePath}
                                     />
                                 ))}
                             </div>
