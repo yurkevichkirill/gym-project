@@ -2,11 +2,11 @@ import type {ReactNode} from "react";
 import RoleGuard from "@/shared/auth/RoleGuard";
 import {Roles} from "@/types/auth.type";
 
-const CLIENT_ROLES = [Roles.CLIENT] as const;
+const ME_ROLES = [Roles.CLIENT, Roles.TRAINER] as const;
 
 const MeLayout = ({children}: Readonly<{children: ReactNode}>) => {
     return (
-        <RoleGuard allowedRoles={CLIENT_ROLES}>
+        <RoleGuard allowedRoles={ME_ROLES}>
             {children}
         </RoleGuard>
     );
