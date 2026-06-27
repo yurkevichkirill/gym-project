@@ -4,6 +4,7 @@ import {observer} from "mobx-react-lite";
 import {useEffect} from "react";
 import {useRouter} from "next/navigation";
 import MyPersonalClient from "@/scenes/clientPersonal/client";
+import MyPersonalTrainer from "@/scenes/trainerPersonal";
 import {AuthStatus} from "@/store/AuthStore";
 import {useStore} from "@/store/StoreProvider";
 import {getAccountRole} from "@/lib/utils/user.types.utils";
@@ -83,7 +84,7 @@ const PersonalAccount = observer(() => {
     }
 
     if (accountRole === Roles.TRAINER) {
-        return <RoleCabinet title="Trainer cabinet" user={authStore.user} />;
+        return <MyPersonalTrainer />;
     }
 
     if (accountRole === Roles.ADMIN) {

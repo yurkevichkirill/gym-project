@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { observer } from "mobx-react-lite";
+import { PaymentScope } from "@/api/client/payments.api";
 import { useStore } from "@/store/StoreProvider";
 import EmptyState from "@/shared/ui/EmptyState";
 import ErrorState from "@/shared/ui/ErrorState";
@@ -11,6 +12,7 @@ import LoadingState from "@/shared/ui/LoadingState";
 import PayPendingPaymentButton from "@/scenes/clientPersonal/payment/PayPendingPaymentButton";
 import { PaymentMethodEnum } from "@/types/payment/payment-method.enum";
 import { PaymentStatusEnum } from "@/types/payment/payment-status.enum";
+import { Roles } from "@/types/auth.type";
 import {
     formatPaymentDateTime,
     formatPaymentMoney,
@@ -38,20 +40,29 @@ const DetailRow = ({ label, value }: { label: string; value: string }) => (
 );
 
 const PaymentDetails = observer(({ paymentId }: PaymentDetailsProps) => {
-    const { paymentStore } = useStore();
+    const { authStore, paymentStore } = useStore();
     const pathname = usePathname();
     const searchParams = useSearchParams();
     const searchParamsString = searchParams.toString();
     const handledStripeReturn = useRef<string | null>(null);
+    const scope = authStore.user?.roles.includes(Roles.TRAINER)
+        ? PaymentScope.TRAINER
+        : PaymentScope.CLIENT;
+    const isTrainerScope = scope === PaymentScope.TRAINER;
     const payment = paymentStore.selectedPayment?.id === paymentId
+        && paymentStore.selectedPaymentScope === scope
         ? paymentStore.selectedPayment
         : null;
 
     useEffect(() => {
-        void paymentStore.loadPayment(paymentId);
-    }, [paymentId, paymentStore]);
+        void paymentStore.loadPayment(paymentId, scope);
+    }, [paymentId, paymentStore, scope]);
 
     useEffect(() => {
+        if (isTrainerScope) {
+            return;
+        }
+
         const params = new URLSearchParams(searchParamsString);
         const hasStripeReturn = STRIPE_RETURN_PARAMS.some((key) => params.has(key));
 
@@ -69,7 +80,7 @@ const PaymentDetails = observer(({ paymentId }: PaymentDetailsProps) => {
                 `${pathname}${queryString ? `?${queryString}` : ""}`,
             );
         });
-    }, [pathname, paymentId, paymentStore, searchParamsString]);
+    }, [isTrainerScope, pathname, paymentId, paymentStore, searchParamsString]);
 
     if (payment === null && paymentStore.isDetailLoading) {
         return (
@@ -98,7 +109,9 @@ const PaymentDetails = observer(({ paymentId }: PaymentDetailsProps) => {
         return (
             <EmptyState
                 title="Access denied"
-                description="You cannot view a payment that belongs to another client."
+                description={isTrainerScope
+                    ? "You cannot view a payment that belongs to another trainer."
+                    : "You cannot view a payment that belongs to another client."}
                 action={(
                     <Link href="/me/payments" className="rounded-md bg-secondary-500 px-5 py-2 font-semibold">
                         Back to payments
@@ -114,7 +127,7 @@ const PaymentDetails = observer(({ paymentId }: PaymentDetailsProps) => {
                 title="Unable to load payment"
                 message={paymentStore.detailError}
                 isRetrying={paymentStore.isDetailLoading}
-                onRetry={() => void paymentStore.loadPayment(paymentId)}
+                onRetry={() => void paymentStore.loadPayment(paymentId, scope)}
             />
         );
     }
@@ -123,7 +136,8 @@ const PaymentDetails = observer(({ paymentId }: PaymentDetailsProps) => {
         return <LoadingState title="Loading payment..." />;
     }
 
-    const canPayByCard = payment.method === PaymentMethodEnum.CARD
+    const canPayByCard = !isTrainerScope
+        && payment.method === PaymentMethodEnum.CARD
         && payment.status === PaymentStatusEnum.PENDING
         && !payment.isRefund;
 
@@ -153,10 +167,19 @@ const PaymentDetails = observer(({ paymentId }: PaymentDetailsProps) => {
                         type="button"
                         className="self-start rounded-md border border-red-300 bg-white px-4 py-2 font-semibold disabled:cursor-not-allowed disabled:opacity-50 sm:self-auto"
                         disabled={paymentStore.isDetailLoading}
-                        onClick={() => void paymentStore.loadPayment(paymentId)}
+                        onClick={() => void paymentStore.loadPayment(paymentId, scope)}
                     >
                         {paymentStore.isDetailLoading ? "Retrying..." : "Retry"}
                     </button>
+                </div>
+            ) : null}
+
+            {isTrainerScope ? (
+                <div
+                    role="note"
+                    className="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900"
+                >
+                    Client identity is not included in the trainer PaymentResponseDTO, so this read-only view cannot display it without a backend contract change.
                 </div>
             ) : null}
 
@@ -202,30 +225,36 @@ const PaymentDetails = observer(({ paymentId }: PaymentDetailsProps) => {
                         </dl>
                     </section>
 
-                    <section className="rounded-xl border border-gray-100 p-5">
-                        <h2 className="text-xl font-bold">Stripe</h2>
-                        <dl className="mt-3">
-                            <DetailRow
-                                label="Payment intent"
-                                value={payment.stripePaymentIntentId ?? "Not created"}
-                            />
-                        </dl>
-                        {payment.stripePaymentIntentId ? (
-                            <p className="mt-4 text-sm text-gray-500">
-                                The existing backend payment record remains the source of truth. Continuing payment reuses Stripe idempotency for this payment ID.
-                            </p>
-                        ) : null}
-                    </section>
+                    {!isTrainerScope ? (
+                        <section className="rounded-xl border border-gray-100 p-5">
+                            <h2 className="text-xl font-bold">Stripe</h2>
+                            <dl className="mt-3">
+                                <DetailRow
+                                    label="Payment intent"
+                                    value={payment.stripePaymentIntentId ?? "Not created"}
+                                />
+                            </dl>
+                            {payment.stripePaymentIntentId ? (
+                                <p className="mt-4 text-sm text-gray-500">
+                                    The existing backend payment record remains the source of truth. Continuing payment reuses Stripe idempotency for this payment ID.
+                                </p>
+                            ) : null}
+                        </section>
+                    ) : null}
 
                     <section className="rounded-xl border border-gray-100 p-5">
                         <h2 className="text-xl font-bold">Related data</h2>
                         <dl className="mt-3">
-                            <DetailRow
-                                label="Trainer"
-                                value={payment.trainer
-                                    ? `${payment.trainer.firstName} ${payment.trainer.lastName} (#${payment.trainer.id})`
-                                    : "Not linked"}
-                            />
+                            {isTrainerScope ? (
+                                <DetailRow label="Client" value="Not exposed by trainer payment API" />
+                            ) : (
+                                <DetailRow
+                                    label="Trainer"
+                                    value={payment.trainer
+                                        ? `${payment.trainer.firstName} ${payment.trainer.lastName} (#${payment.trainer.id})`
+                                        : "Not linked"}
+                                />
+                            )}
                             <DetailRow
                                 label="Original payment"
                                 value={payment.originalPayment

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { PaymentScope } from "@/api/client/payments.api";
 import PaymentType from "@/types/payment/payment.type";
 import {
     formatPaymentDateTime,
@@ -12,10 +13,17 @@ import {
 
 type PaymentCatalogCardProps = {
     payment: PaymentType;
+    scope: PaymentScope;
 };
 
-const PaymentCatalogCard = ({ payment }: PaymentCatalogCardProps) => {
-    const incoming = isIncomingPayment(payment.category, payment.isRefund);
+const PaymentCatalogCard = ({
+    payment,
+    scope,
+}: PaymentCatalogCardProps) => {
+    const isTrainerScope = scope === PaymentScope.TRAINER;
+    const incoming = !isTrainerScope
+        && isIncomingPayment(payment.category, payment.isRefund);
+    const amountPrefix = isTrainerScope ? "" : incoming ? "+ " : "− ";
 
     return (
         <article className="flex h-full flex-col rounded-2xl bg-white p-5 shadow-sm">
@@ -37,8 +45,12 @@ const PaymentCatalogCard = ({ payment }: PaymentCatalogCardProps) => {
                 <div className="flex items-center justify-between gap-4">
                     <dt className="text-gray-500">Amount</dt>
                     <dd className={`font-bold ${incoming ? "text-emerald-700" : ""}`}>
-                        {incoming ? "+" : "−"} {formatPaymentMoney(payment.amount, payment.currency)}
+                        {amountPrefix}{formatPaymentMoney(payment.amount, payment.currency)}
                     </dd>
+                </div>
+                <div className="flex items-center justify-between gap-4">
+                    <dt className="text-gray-500">Currency</dt>
+                    <dd className="font-semibold">{payment.currency.toUpperCase()}</dd>
                 </div>
                 <div className="flex items-center justify-between gap-4">
                     <dt className="text-gray-500">Method</dt>
@@ -54,7 +66,12 @@ const PaymentCatalogCard = ({ payment }: PaymentCatalogCardProps) => {
                         {formatPaymentDateTime(payment.createdAt)}
                     </dd>
                 </div>
-                {payment.trainer ? (
+                {isTrainerScope ? (
+                    <div className="flex items-center justify-between gap-4">
+                        <dt className="text-gray-500">Client</dt>
+                        <dd className="text-right font-semibold">Not exposed by API</dd>
+                    </div>
+                ) : payment.trainer ? (
                     <div className="flex items-center justify-between gap-4">
                         <dt className="text-gray-500">Trainer</dt>
                         <dd className="text-right font-semibold">

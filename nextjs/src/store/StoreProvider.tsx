@@ -6,10 +6,16 @@ import {clientStore} from "@/store/ClientStore";
 import {bookingStore} from "@/store/BookingStore";
 import {membershipStore} from "@/store/MembershipStore";
 import {paymentStore} from "@/store/PaymentStore";
+import {trainerStore} from "@/store/TrainerStore";
+import {trainerWorktimeStore} from "@/store/TrainerWorktimeStore";
+import {trainerTrainingStore} from "@/store/TrainerTrainingStore";
 
 interface StoreContextType {
     authStore: typeof authStore;
     clientStore: typeof clientStore;
+    trainerStore: typeof trainerStore;
+    trainerWorktimeStore: typeof trainerWorktimeStore;
+    trainerTrainingStore: typeof trainerTrainingStore;
     bookingStore: typeof bookingStore;
     membershipStore: typeof membershipStore;
     paymentStore: typeof paymentStore;
@@ -17,6 +23,9 @@ interface StoreContextType {
 
 const resetUserStores = (): void => {
     clientStore.reset();
+    trainerStore.reset();
+    trainerWorktimeStore.reset();
+    trainerTrainingStore.reset();
     bookingStore.reset();
     membershipStore.reset();
     paymentStore.reset();
@@ -36,7 +45,16 @@ export const StoreProvider = ({
     }, []);
 
     return (
-        <StoreContext.Provider value={{authStore, clientStore, bookingStore, membershipStore, paymentStore}}>
+        <StoreContext.Provider value={{
+            authStore,
+            clientStore,
+            trainerStore,
+            trainerWorktimeStore,
+            trainerTrainingStore,
+            bookingStore,
+            membershipStore,
+            paymentStore,
+        }}>
             {children}
         </StoreContext.Provider>
     );

@@ -6,9 +6,10 @@ import { usePathname, useSearchParams } from "next/navigation";
 import { observer } from "mobx-react-lite";
 import {
     DEFAULT_PAYMENTS_SORT,
+    getPaymentQueryKeys,
     getPaymentsRequestKey,
     parsePaymentsListParams,
-    PAYMENT_QUERY_KEYS,
+    PaymentScope,
 } from "@/api/client/payments.api";
 import { useStore } from "@/store/StoreProvider";
 import EmptyState from "@/shared/ui/EmptyState";
@@ -20,32 +21,38 @@ import PaymentsFilters, {
     type PaymentsFiltersForm,
     toPaymentsFilterValues,
 } from "@/scenes/clientPersonal/payment/PaymentsFilters";
+import { Roles } from "@/types/auth.type";
 
 const normalizeInteger = (value: string): string => value === "" ? "" : Number(value).toString();
 
 const PaymentsCatalog = observer(() => {
-    const { paymentStore } = useStore();
+    const { authStore, paymentStore } = useStore();
     const pathname = usePathname();
     const searchParams = useSearchParams();
     const searchParamsString = searchParams.toString();
+    const scope = authStore.user?.roles.includes(Roles.TRAINER)
+        ? PaymentScope.TRAINER
+        : PaymentScope.CLIENT;
+    const queryKeys = getPaymentQueryKeys(scope);
     const requestParams = useMemo(
-        () => parsePaymentsListParams(new URLSearchParams(searchParamsString)),
-        [searchParamsString],
+        () => parsePaymentsListParams(new URLSearchParams(searchParamsString), scope),
+        [scope, searchParamsString],
     );
     const requestKey = useMemo(
-        () => getPaymentsRequestKey(requestParams),
-        [requestParams],
+        () => getPaymentsRequestKey(requestParams, scope),
+        [requestParams, scope],
     );
     const formValues = useMemo(
-        () => toPaymentsFilterValues(requestParams),
-        [requestParams],
+        () => toPaymentsFilterValues(requestParams, scope),
+        [requestParams, scope],
     );
+    const isTrainerScope = scope === PaymentScope.TRAINER;
+    const relatedUserLabel = isTrainerScope ? "client" : "trainer";
+    const relatedUserTitle = isTrainerScope ? "Client" : "Trainer";
 
     useEffect(() => {
-        void paymentStore.init(
-            parsePaymentsListParams(new URLSearchParams(requestKey)),
-        );
-    }, [paymentStore, requestKey]);
+        void paymentStore.init(requestParams, scope);
+    }, [paymentStore, requestKey, requestParams, scope]);
 
     const updateUrl = (nextSearchParams: URLSearchParams) => {
         const queryString = nextSearchParams.toString();
@@ -55,11 +62,14 @@ const PaymentsCatalog = observer(() => {
 
     const applyFilters = (values: PaymentsFiltersForm) => {
         const next = new URLSearchParams(searchParamsString);
+        const relatedUserKey = isTrainerScope ? "clientId" : "trainerId";
+        const unrelatedUserKey = isTrainerScope ? "trainerId" : "clientId";
         const set = (key: string, value: string) => value === ""
             ? next.delete(key)
             : next.set(key, value);
 
-        set("trainerId", normalizeInteger(values.trainerId));
+        next.delete(unrelatedUserKey);
+        set(relatedUserKey, normalizeInteger(values.relatedUserId));
         set("minAmount", normalizeInteger(values.minAmount));
         set("maxAmount", normalizeInteger(values.maxAmount));
         set("isRefund", values.isRefund);
@@ -74,7 +84,9 @@ const PaymentsCatalog = observer(() => {
 
     const resetView = () => {
         const next = new URLSearchParams(searchParamsString);
-        PAYMENT_QUERY_KEYS.forEach((key) => next.delete(key));
+        queryKeys.forEach((key) => next.delete(key));
+        next.delete("trainerId");
+        next.delete("clientId");
         updateUrl(next);
     };
 
@@ -88,18 +100,20 @@ const PaymentsCatalog = observer(() => {
     const isFetching = paymentStore.isLoading || paymentStore.isRefreshing;
     const isInitialLoading = !hasResponse && isFetching;
     const pagination = hasResponse ? paymentStore.pagination : null;
-    const hasQueryState = PAYMENT_QUERY_KEYS.some((key) => searchParams.has(key));
+    const hasQueryState = queryKeys.some((key) => searchParams.has(key));
 
     return (
         <section className="mx-auto w-full max-w-6xl">
             <div className="mb-8 flex flex-wrap items-end justify-between gap-5">
                 <div className="max-w-3xl">
                     <p className="text-sm font-semibold uppercase tracking-wider text-secondary-500">
-                        Client cabinet
+                        {isTrainerScope ? "Trainer cabinet" : "Client cabinet"}
                     </p>
-                    <h1 className="mt-2 text-3xl font-bold sm:text-4xl">My payments</h1>
+                    <h1 className="mt-2 text-3xl font-bold sm:text-4xl">
+                        {isTrainerScope ? "Trainer payments" : "My payments"}
+                    </h1>
                     <p className="mt-4 text-gray-600">
-                        Review your complete payment history using server-side filters, sorting, and pagination.
+                        Review {isTrainerScope ? "payments assigned to your trainer account" : "your complete payment history"} using server-side filters, sorting, and pagination.
                     </p>
                 </div>
                 <Link
@@ -110,7 +124,17 @@ const PaymentsCatalog = observer(() => {
                 </Link>
             </div>
 
+            {isTrainerScope ? (
+                <div
+                    role="note"
+                    className="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900"
+                >
+                    The trainer payment API accepts a client ID filter, but its PaymentResponseDTO does not expose client identity on returned payment items. Client values therefore cannot be displayed without a backend contract change.
+                </div>
+            ) : null}
+
             <PaymentsFilters
+                scope={scope}
                 values={formValues}
                 onApply={applyFilters}
                 onReset={resetView}
@@ -119,7 +143,7 @@ const PaymentsCatalog = observer(() => {
             {isInitialLoading ? (
                 <LoadingState
                     title="Loading payments..."
-                    description="We are fetching your payment history."
+                    description={`We are fetching ${isTrainerScope ? "trainer" : "your"} payment history.`}
                 />
             ) : null}
 
@@ -135,14 +159,34 @@ const PaymentsCatalog = observer(() => {
                 />
             ) : null}
 
-            {!isInitialLoading && !hasResponse && paymentStore.error && paymentStore.errorStatus !== 403 ? (
-                <ErrorState
-                    title="Unable to load payments"
-                    message={paymentStore.error}
-                    isRetrying={isFetching}
-                    onRetry={() => void paymentStore.init(requestParams)}
+            {!isInitialLoading && !hasResponse && paymentStore.errorStatus === 404 ? (
+                <EmptyState
+                    title={`${relatedUserTitle} not found`}
+                    description={`The requested ${relatedUserLabel} ID does not exist. Change the filter and try again.`}
+                    action={(
+                        <button
+                            type="button"
+                            className="rounded-md bg-secondary-500 px-5 py-2 font-semibold"
+                            onClick={resetView}
+                        >
+                            Reset view
+                        </button>
+                    )}
                 />
             ) : null}
+
+            {!isInitialLoading
+                && !hasResponse
+                && paymentStore.error
+                && paymentStore.errorStatus !== 403
+                && paymentStore.errorStatus !== 404 ? (
+                    <ErrorState
+                        title="Unable to load payments"
+                        message={paymentStore.error}
+                        isRetrying={isFetching}
+                        onRetry={() => void paymentStore.init(requestParams, scope)}
+                    />
+                ) : null}
 
             {hasResponse ? (
                 <div aria-busy={isFetching}>
@@ -171,13 +215,15 @@ const PaymentsCatalog = observer(() => {
                             <p>
                                 {paymentStore.errorStatus === 403
                                     ? "Access to the requested payment list was denied."
-                                    : paymentStore.error}
+                                    : paymentStore.errorStatus === 404
+                                        ? `The requested ${relatedUserLabel} no longer exists.`
+                                        : paymentStore.error}
                             </p>
                             <button
                                 type="button"
                                 className="self-start rounded-md border border-red-300 bg-white px-4 py-2 font-semibold disabled:opacity-50 sm:self-auto"
                                 disabled={isFetching}
-                                onClick={() => void paymentStore.init(requestParams)}
+                                onClick={() => void paymentStore.init(requestParams, scope)}
                             >
                                 {isFetching ? "Retrying..." : "Retry"}
                             </button>
@@ -187,7 +233,7 @@ const PaymentsCatalog = observer(() => {
                     {paymentStore.payments.length === 0 ? (
                         <EmptyState
                             title="No payments found"
-                            description="Try changing the filters or return to your complete payment history."
+                            description="Try changing the filters or return to the complete payment history."
                             action={hasQueryState ? (
                                 <button
                                     type="button"
@@ -202,7 +248,11 @@ const PaymentsCatalog = observer(() => {
                         <div className={isFetching ? "opacity-60 transition-opacity" : "transition-opacity"}>
                             <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
                                 {paymentStore.payments.map((payment) => (
-                                    <PaymentCatalogCard key={payment.id} payment={payment} />
+                                    <PaymentCatalogCard
+                                        key={payment.id}
+                                        payment={payment}
+                                        scope={scope}
+                                    />
                                 ))}
                             </div>
                         </div>

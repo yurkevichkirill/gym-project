@@ -2,9 +2,13 @@
 
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
-import { DEFAULT_PAYMENTS_SORT } from "@/api/client/payments.api";
+import {
+    DEFAULT_PAYMENTS_SORT,
+    PaymentScope,
+} from "@/api/client/payments.api";
 import { PaymentStatusEnum } from "@/types/payment/payment-status.enum";
 import { getPaymentStatusLabel } from "@/scenes/clientPersonal/payment/payment-display";
+import { PaymentsGetQueryParams } from "@/types/payment/payments-get.type";
 
 const SORT_OPTIONS = [
     { value: "createdAt:DESC", label: "Created date (latest first)" },
@@ -22,7 +26,7 @@ const SORT_OPTIONS = [
 ] as const;
 
 export type PaymentsFiltersForm = {
-    trainerId: string;
+    relatedUserId: string;
     minAmount: string;
     maxAmount: string;
     isRefund: string;
@@ -34,6 +38,7 @@ export type PaymentsFiltersForm = {
 };
 
 type PaymentsFiltersProps = {
+    scope: PaymentScope;
     values: PaymentsFiltersForm;
     onApply: (values: PaymentsFiltersForm) => void;
     onReset: () => void;
@@ -42,7 +47,12 @@ type PaymentsFiltersProps = {
 const inputClassName = "rounded-md border border-gray-300 px-3 py-2 font-normal focus:border-secondary-500 focus:outline-none";
 const labelClassName = "flex flex-col gap-2 text-sm font-semibold";
 
-const PaymentsFilters = ({ values, onApply, onReset }: PaymentsFiltersProps) => {
+const PaymentsFilters = ({
+    scope,
+    values,
+    onApply,
+    onReset,
+}: PaymentsFiltersProps) => {
     const {
         register,
         handleSubmit,
@@ -64,6 +74,7 @@ const PaymentsFilters = ({ values, onApply, onReset }: PaymentsFiltersProps) => 
     const minAmount = watch("minAmount");
     const minCreatedAt = watch("minCreatedAt");
     const hasCustomSort = !SORT_OPTIONS.some((option) => option.value === values.sort);
+    const relatedUserLabel = scope === PaymentScope.TRAINER ? "Client ID" : "Trainer ID";
 
     return (
         <form
@@ -73,17 +84,17 @@ const PaymentsFilters = ({ values, onApply, onReset }: PaymentsFiltersProps) => 
         >
             <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
                 <label className={labelClassName}>
-                    Trainer ID
+                    {relatedUserLabel}
                     <input
                         type="number"
                         min="1"
                         step="1"
                         inputMode="numeric"
                         className={inputClassName}
-                        {...register("trainerId", { validate: positiveInteger })}
+                        {...register("relatedUserId", { validate: positiveInteger })}
                     />
-                    {errors.trainerId ? (
-                        <span className="font-normal text-red-600">{errors.trainerId.message}</span>
+                    {errors.relatedUserId ? (
+                        <span className="font-normal text-red-600">{errors.relatedUserId.message}</span>
                     ) : null}
                 </label>
 
@@ -222,18 +233,13 @@ const PaymentsFilters = ({ values, onApply, onReset }: PaymentsFiltersProps) => 
     );
 };
 
-export const toPaymentsFilterValues = (params: {
-    trainerId?: number;
-    minAmount?: number;
-    maxAmount?: number;
-    isRefund?: boolean;
-    status?: PaymentStatusEnum;
-    minCreatedAt?: string;
-    maxCreatedAt?: string;
-    sort?: string;
-    limit?: number;
-}): PaymentsFiltersForm => ({
-    trainerId: params.trainerId?.toString() ?? "",
+export const toPaymentsFilterValues = (
+    params: PaymentsGetQueryParams,
+    scope: PaymentScope,
+): PaymentsFiltersForm => ({
+    relatedUserId: scope === PaymentScope.TRAINER
+        ? params.clientId?.toString() ?? ""
+        : params.trainerId?.toString() ?? "",
     minAmount: params.minAmount?.toString() ?? "",
     maxAmount: params.maxAmount?.toString() ?? "",
     isRefund: params.isRefund === undefined ? "" : params.isRefund.toString(),
