@@ -1,15 +1,16 @@
 'use client'
 
 import Client from "@/scenes/clientPersonal/client/Client";
+import VisitSection from "@/scenes/clientPersonal/client/VisitSection";
 import Bookings from "@/scenes/clientPersonal/bookings";
 import PersonalMemberships from "@/scenes/clientPersonal/membership";
 import Payments from "@/scenes/clientPersonal/payment";
-import {useStore} from "@/store/StoreProvider";
-import {observer} from "mobx-react-lite";
-import {useEffect} from "react";
+import { useStore } from "@/store/StoreProvider";
+import { observer } from "mobx-react-lite";
+import { useEffect } from "react";
 
 const MyPersonalClient = observer(() => {
-    const {clientStore} = useStore();
+    const { clientStore } = useStore();
 
     useEffect(() => {
         if (
@@ -47,8 +48,9 @@ const MyPersonalClient = observer(() => {
 
     return (
         <div className="pt-32 pb-20">
-            <div className="mx-auto w-5/6 max-w-5xl flex flex-col gap-10">
+            <div className="mx-auto flex w-5/6 max-w-5xl flex-col gap-10">
                 <Client />
+                <VisitSection />
                 <Bookings />
                 <PersonalMemberships />
                 <Payments />

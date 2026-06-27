@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { BoltIcon, ClockIcon } from "@heroicons/react/16/solid";
 import type { MembershipPlanType } from "@/types/membership/membership-plan.type";
+import PurchaseMembershipButton from "@/scenes/membershipPlans/PurchaseMembershipButton";
 
 type Props = {
     membershipPlan: MembershipPlanType;
@@ -51,12 +52,18 @@ const PublicMembershipPlanCard = ({ membershipPlan }: Props) => {
                 </div>
             </dl>
 
-            <Link
-                href={`/membership-plans/${membershipPlan.id}`}
-                className="mt-8 rounded-md bg-secondary-500 px-5 py-2 text-center font-semibold transition hover:bg-primary-500 hover:text-white"
-            >
-                View details
-            </Link>
+            <div className="mt-auto grid gap-3 pt-8">
+                <Link
+                    href={`/membership-plans/${membershipPlan.id}`}
+                    className="rounded-md border border-gray-300 bg-white px-5 py-2 text-center font-semibold transition hover:border-secondary-500"
+                >
+                    View details
+                </Link>
+                <PurchaseMembershipButton
+                    membershipPlanId={membershipPlan.id}
+                    membershipPlanName={membershipPlan.name}
+                />
+            </div>
         </article>
     );
 };

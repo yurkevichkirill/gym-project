@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { ClockIcon, BoltIcon } from "@heroicons/react/16/solid";
+import PurchaseMembershipButton from "@/scenes/membershipPlans/PurchaseMembershipButton";
 
 type Props = {
     id: number;
@@ -9,11 +10,9 @@ type Props = {
     durationDays: number;
     sessionLimit: number | null;
     price: number;
-    onBuy: (id: number) => Promise<void>;
-    isLoading: boolean;
 };
 
-const MembershipPlan = ({ id, name, durationDays, sessionLimit, price, onBuy, isLoading }: Props) => {
+const MembershipPlan = ({ id, name, durationDays, sessionLimit, price }: Props) => {
     const isUnlimited = sessionLimit === null;
     const formattedPrice = new Intl.NumberFormat("en-US", {
         style: "currency",
@@ -22,14 +21,10 @@ const MembershipPlan = ({ id, name, durationDays, sessionLimit, price, onBuy, is
 
     return (
         <li
-            className="
-                group rounded-2xl border border-gray-200 bg-primary-100 p-6 flex-shrink-0 w-[220px]
-                flex flex-col justify-between gap-4 shadow-sm hover:shadow-xl hover:-translate-y-1
-                transition-all duration-300
-            "
+            className="group flex w-[220px] flex-shrink-0 flex-col justify-between gap-4 rounded-2xl border border-gray-200 bg-primary-100 p-6 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl"
         >
             <div className="flex justify-center">
-                <div className="rounded-full border border-gray-200 bg-primary-100 p-4 shadow-sm group-hover:scale-110 transition">
+                <div className="rounded-full border border-gray-200 bg-primary-100 p-4 shadow-sm transition group-hover:scale-110">
                     {isUnlimited
                         ? <BoltIcon className="h-6 w-6 text-primary-500" />
                         : <ClockIcon className="h-6 w-6 text-primary-500" />
@@ -56,17 +51,11 @@ const MembershipPlan = ({ id, name, durationDays, sessionLimit, price, onBuy, is
                 >
                     View details
                 </Link>
-                <button
-                    type="button"
-                    disabled={isLoading}
-                    className="
-                        inline-block rounded-md text-center px-4 py-2 bg-secondary-500
-                        transition hover:bg-primary-500 hover:text-white cursor-pointer disabled:opacity-50
-                    "
-                    onClick={() => onBuy(id)}
-                >
-                    {isLoading ? "Processing..." : "Buy plan"}
-                </button>
+                <PurchaseMembershipButton
+                    membershipPlanId={id}
+                    membershipPlanName={name}
+                    className="text-sm"
+                />
             </div>
         </li>
     );

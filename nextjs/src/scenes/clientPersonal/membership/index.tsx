@@ -1,11 +1,12 @@
 'use client'
 
+import Link from "next/link";
 import MembershipType from "@/types/membership/membership.type";
 import PersonalMembership from "@/scenes/clientPersonal/membership/Membership";
 import Section from "@/shared/Section";
 import { useStore } from "@/store/StoreProvider";
 import { observer } from "mobx-react-lite";
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ChevronDownIcon } from "@heroicons/react/24/outline";
 import { MembershipStatusEnum } from "@/types/membership/membership-status.enum";
 
@@ -42,6 +43,15 @@ export const PersonalMemberships = observer(() => {
     return (
         <Section title="My Memberships">
             <div className="flex flex-col gap-4">
+                <div className="flex justify-end">
+                    <Link
+                        href="/me/memberships"
+                        className="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-semibold transition hover:border-secondary-500"
+                    >
+                        View membership history
+                    </Link>
+                </div>
+
                 {membershipStore.isLoading && !hasMemberships && (
                     <p className="text-sm text-gray-500">Loading memberships...</p>
                 )}
@@ -53,34 +63,38 @@ export const PersonalMemberships = observer(() => {
                         <button
                             type="button"
                             onClick={() => void membershipStore.init()}
-                            disabled={membershipStore.isLoading}
-                            className="mt-3 rounded-md bg-secondary-500 px-4 py-2 text-sm cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
+                            disabled={membershipStore.isLoading || membershipStore.isRefreshing}
+                            className="mt-3 cursor-pointer rounded-md bg-secondary-500 px-4 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-50"
                         >
-                            {membershipStore.isLoading ? "Retrying..." : "Retry"}
+                            {membershipStore.isLoading || membershipStore.isRefreshing ? "Retrying..." : "Retry"}
                         </button>
                     </div>
                 )}
 
-                {!membershipStore.isLoading && !membershipStore.error && !hasMemberships && (
+                {!membershipStore.isLoading
+                    && !membershipStore.isRefreshing
+                    && !membershipStore.error
+                    && !hasMemberships && (
                     <p className="text-sm text-gray-500">You have no memberships yet.</p>
                 )}
 
-                <div className="grid md:grid-cols-2 gap-4">
+                <div className="grid gap-4 md:grid-cols-2">
                     {visibleMemberships.map((membership: MembershipType) => (
                         <PersonalMembership
                             key={membership.id}
                             id={membership.id}
+                            name={membership.name}
+                            sessionLimit={membership.sessionLimit}
                             membershipPlan={membership.membershipPlan}
                             startDate={membership.startDate}
                             endDate={membership.endDate}
                             status={membership.status}
                             visits={membership.visits}
-                            createdAt={membership.createdAt}
                         />
                     ))}
                 </div>
 
-                {membershipStore.isLoading && hasMemberships && (
+                {membershipStore.isRefreshing && hasMemberships && (
                     <p className="text-sm text-gray-500">Refreshing memberships...</p>
                 )}
 
@@ -88,12 +102,12 @@ export const PersonalMemberships = observer(() => {
                     <button
                         type="button"
                         onClick={() => setIsExpanded(!isExpanded)}
-                        className="flex items-center justify-center w-full gap-2 text-sm text-gray-500 hover:text-primary-500 py-2 mt-4 transition-colors cursor-pointer"
+                        className="mt-4 flex w-full cursor-pointer items-center justify-center gap-2 py-2 text-sm text-gray-500 transition-colors hover:text-primary-500"
                     >
                         {isExpanded ? "Show less" : `Show all (${sortedMemberships.length})`}
 
                         <ChevronDownIcon
-                            className={`w-4 h-4 transition-transform duration-300 ${
+                            className={`h-4 w-4 transition-transform duration-300 ${
                                 isExpanded ? "rotate-180" : ""
                             }`}
                         />
