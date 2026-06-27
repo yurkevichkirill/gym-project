@@ -1,15 +1,6 @@
 # API Coverage
 
-Inventory date: 2026-06-27. Source of truth: Symfony controllers, DTOs, resolvers, queries, mappers, voters, and security attributes under `symfony/src`. Frontend scope is limited to `nextjs/`.
-
-Global contract notes:
-
-- All listed Symfony routes include the trailing slash shown in the URL.
-- Authenticated browser calls use HttpOnly cookies through `apiClient`; public catalog calls use `publicApiClient`.
-- Collection endpoints commonly support `page`, `itemsPerPage`, `sort`, and domain filters through request DTO resolvers/query DTOs. Frontend wrappers must omit empty or undefined query values.
-- Date/time fields are serialized by Symfony DTO mappers as strings from PHP `DateTimeInterface` values; frontend must treat them as backend timezone data and avoid client-only timezone reinterpretation for mutations.
-- Money values are numeric decimal values in response/request DTOs; Stripe intent creation returns a client secret and must never call the Stripe webhook from the browser.
-- Upload endpoints use multipart `file` fields; frontend must not set `Content-Type` manually and must enforce backend-compatible mime/size checks before submit.
+Inventory date: 2026-06-27. Source of truth: Symfony controllers, DTOs, query classes, mappers, voters, and security attributes under `symfony/src`. Frontend scope is limited to `nextjs/`.
 
 Coverage statuses:
 
@@ -19,73 +10,64 @@ Coverage statuses:
 - NOT_FOR_FRONTEND: browser must not call this endpoint.
 - BLOCKED_BY_API: safe frontend implementation needs an API contract change.
 
-## Authentication
+## Current PR Domain: Admin Clients
 
 | Endpoint | Contract | Frontend coverage | Status |
 | --- | --- | --- | --- |
-| `POST /api/login/` | `LoginUserRequestDTO` -> `LoginUserResponseDTO`; sets auth cookies; 400/401/422/429/500 possible | `nextjs/src/api/auth/auth.api.ts`, `AuthStore`, authorization scene | COMPLETE |
-| `POST /api/refresh/` | cookie refresh; no request body | `apiClient` automatic refresh | COMPLETE |
-| `POST /api/logout/` | clears auth cookies | `AuthStore` | COMPLETE |
-| `POST /api/client/registration/` | `CreateClientRequestDTO`; creates inactive client | registration scene | COMPLETE |
-| `POST /api/clients/activate/` | `ClientActivateRequestDTO` | activate route/form | COMPLETE |
-| `GET /api/auth/me/` | `CurrentUserResponseDTO`; `ROLE_USER` | auth store/session UX | COMPLETE |
+| `GET /api/clients/` | `ROLE_ADMIN`; `GetClientsRequestDTO`; filters `minAge`, `maxAge`, `minBalance`, `maxBalance`, `isDeleted`; sort fields `firstName`, `lastName`, `balance`, `age`, `createdAt`, `updatedAt`, `deletedAt`; pagination `page`, `limit <= 100`; response `CollectionResponse<ClientResponseDTO>` | `/admin/clients` -> `AdminClientsPage` -> `AdminClientsStore` -> `getAdminClients` | COMPLETE |
+| `GET /api/clients/{id}/` | `ROLE_ADMIN`; response `ItemResponse<ClientResponseDTO>`; errors `401`, `403`, `404` | `/admin/clients/[id]` -> `AdminClientDetailsPage` -> `loadClient` -> `getAdminClient` | COMPLETE |
+| `POST /api/clients/` | `CreateClientRequestDTO`: `age`, `firstName`, `lastName`, `email`, `phone`, `password`; response `201 ItemResponse<ClientResponseDTO>`; errors `400`, `401`, `403`, `422` | create form on `/admin/clients` -> `createAdminClient` | COMPLETE |
+| `PATCH /api/clients/{id}/` | `AdminUpdateClientRequestDTO`: optional `age`, `firstName`, `lastName`, `email`, `phone`, `password`; response `ItemResponse<ClientResponseDTO>` | edit form on `/admin/clients/[id]` -> `updateAdminClient` | COMPLETE |
+| `DELETE /api/clients/{id}/` | soft delete; `204`; conflict if already deleted | confirmed action on details page -> `deleteAdminClient` | COMPLETE |
+| `POST /api/clients/{id}/restore/` | restore soft-deleted client; response `ItemResponse<ClientResponseDTO>`; conflict if not deleted | confirmed action on details page -> `restoreAdminClient` | COMPLETE |
+| `POST /api/clients/{id}/block/` | block account; response `ItemResponse<ClientResponseDTO>`; conflict if already blocked | confirmed action on details page -> `blockAdminClient` | COMPLETE |
+| `POST /api/clients/{id}/unblock/` | unblock account; response `ItemResponse<ClientResponseDTO>`; conflict if not blocked | confirmed action on details page -> `unblockAdminClient` | COMPLETE |
+| `POST /api/clients/{id}/visit/` | register visit/write-off; response `ItemResponse<MembershipResponseDTO>`; errors `400`, `403`, `404` | confirmed action on details page -> `registerAdminClientVisit` | COMPLETE |
+| `POST /api/import/clients/` | `CreateClientImportBatch` JSON `{ clients: CreateClientImport[] }`; response `202 ItemResponse<ClientImportResponseDTO>` | import rows form on `/admin/clients` -> `importAdminClients` | PARTIAL |
 
-## Public
+Frontend chain covered in this PR:
 
-| Endpoint | Contract | Frontend coverage | Status |
-| --- | --- | --- | --- |
-| `GET /api/trainers/` | public trainer collection; `GetTrainersRequestDTO`, sort/filter/pagination | public trainers catalog and home sections | COMPLETE |
-| `GET /api/trainers/{id}/` | `TrainerResponseDTO` | trainer details page | COMPLETE |
-| `GET /api/membership/plans/` | `GetMembershipPlansRequestDTO`, sort/filter/pagination | membership plan catalog/home | COMPLETE |
-| `GET /api/membership/plans/{id}/` | `MembershipPlanResponseDTO` | membership plan details | COMPLETE |
-| `GET /api/training/types/` | `GetTrainingTypesRequestDTO`, sort/filter/pagination | training types catalog/home | COMPLETE |
-| `GET /api/training/types/{id}/` | `TrainingTypeResponseDTO` | training type details | COMPLETE |
-| `GET /api/worktime/` | `GetWorktimesRequestDTO`, sort/filter/pagination | worktime catalog and booking form | COMPLETE |
-| `GET /api/worktime/{id}/` | `WorkTimeResponseDTO` | worktime details | COMPLETE |
+`nextjs/src/app/admin/clients/page.tsx` -> `AdminClientsPage` -> `AdminClientsFilters` / `AdminClientCreateForm` / `AdminClientsImportForm` -> `AdminClientsStore` -> `nextjs/src/api/admin/clients.api.ts` -> `apiClient` -> `Admin\ClientController`.
 
-## Contact
+`nextjs/src/app/admin/clients/[id]/page.tsx` -> `AdminClientDetailsPage` -> edit form / `ConfirmDialog` actions -> `AdminClientsStore` -> `nextjs/src/api/admin/clients.api.ts` -> `Admin\ClientController`.
 
-| Endpoint | Contract | Frontend coverage | Status |
-| --- | --- | --- | --- |
-| `POST /api/contact/` | `ContactRequestDTO`: `name` required max 100, `email` required email max 254, `message` required max 2000; response `204`; errors `422`, `429`, `503` | `nextjs/src/api/contact/contact.api.ts`, `nextjs/src/scenes/contactUs/index.tsx` | COMPLETE |
+Contract notes:
 
-Contact chain covered in this PR:
+- All URLs preserve Symfony trailing slashes.
+- Empty filters are omitted from query strings and API requests.
+- `isDeleted` is serialized as `true` or `false` only when selected.
+- Dangerous actions `delete`, `restore`, `block`, `unblock`, and `visit` require confirmation.
+- Visit registration is intentionally non-optimistic and does not fake membership state.
+- Import is JSON batch entry, not multipart upload. The frontend queues rows and reports `jobId`, `status`, and `count` from the API response.
 
-`nextjs/src/app/page.tsx` -> `nextjs/src/scenes/contactUs/index.tsx` -> React Hook Form -> `submitContactRequest` -> `apiClient` -> `POST /api/contact/` -> `ContactController::submit()` -> `ContactRequestDTO`.
+Blocker:
 
-## Client
+- Import job progress cannot be followed safely after `POST /api/import/clients/`; no user-facing endpoint for import job status/result was found. The form therefore only reports the queued job response and does not invent polling or local processing state.
 
-| Endpoint group | Routes | Frontend coverage | Status |
-| --- | --- | --- | --- |
-| Profile | `GET/PATCH/DELETE /api/me/`, `POST /api/me/visit/`, `POST /api/me/topup/` | client profile scenes/stores; top-up initiates payment | PARTIAL |
-| Bookings | `GET/POST /api/me/bookings/`, `GET /api/me/bookings/{id}/`, `POST /api/me/bookings/{id}/cancel/` | bookings list/details/create/cancel | COMPLETE |
-| Memberships | `GET /api/me/memberships/`, `GET /api/me/memberships/{id}/`, `POST /api/me/membership/`, cancel/freeze/unfreeze/renew/terminate actions | membership list/details/actions | COMPLETE |
-| Payments | `GET /api/me/payments/`, `GET /api/me/payments/{id}/`, `POST /api/payments/{id}/intent/` | payments catalog/details and Stripe intent flow | COMPLETE |
+## Full API Inventory Summary
 
-## Trainer
-
-| Endpoint group | Routes | Frontend coverage | Status |
-| --- | --- | --- | --- |
-| Profile | `GET/PATCH/DELETE /api/trainer/me/`, `POST /api/trainer/me/photo/` | trainer personal profile forms | COMPLETE |
-| Worktimes | `GET/POST /api/trainer/me/worktime/`, `PATCH/DELETE /api/worktime/{id}/` | trainer worktime UI/store | COMPLETE |
-| Trainings | `GET /api/me/trainings/`, `GET/PATCH /api/trainings/{id}/`, `POST /api/trainings/{id}/cancel/`, `POST /api/trainings/{id}/complete/` | trainer trainings catalog/details/actions | COMPLETE |
-| Payments | `GET /api/trainer/payments/`, `GET /api/trainer/payments/{id}/` | no trainer payment route found in `nextjs/src/app`; profile links to `/me/payments` which is client payment UI | MISSING |
-
-## Admin
-
-Admin routes require `ROLE_ADMIN`; only an `admin` route shell exists in frontend. These are independent domains and should be implemented in separate PRs.
-
-| Endpoint group | Routes | Frontend coverage | Status |
-| --- | --- | --- | --- |
-| Clients | `GET/POST /api/clients/`, `GET/PATCH/DELETE /api/clients/{id}/`, restore/block/unblock/visit, `POST /api/import/clients/` | no admin clients UI/wrapper | MISSING |
-| Trainers | `GET /api/admin/trainers/`, `GET /api/admin/trainers/{id}/`, `POST /api/trainers/`, `PATCH/DELETE /api/trainers/{id}/`, photo/restore/block/unblock | no admin trainers UI/wrapper | MISSING |
-| Bookings | `GET /api/bookings/`, `GET /api/bookings/{id}/`, `POST /api/clients/{id}/bookings/`, cancel; `GET/POST /api/coffee/` debug/admin-only route | no admin bookings UI/wrapper | MISSING |
-| Memberships | `GET /api/memberships/`, `GET /api/memberships/{id}/`, `POST /api/clients/{id}/membership/`, cancel/freeze/unfreeze/renew/terminate | no admin memberships UI/wrapper | MISSING |
-| Membership plans | `POST /api/membership/plans/`, `PATCH/DELETE /api/membership/plans/{id}/` | public read UI only; no admin mutation UI | MISSING |
-| Payments | `GET /api/payments/`, `GET /api/payments/{id}/` | no admin payments UI/wrapper | MISSING |
-| Training types | `POST /api/training/types/`, `PATCH/DELETE /api/training/types/{id}/`, `POST /api/training/types/{id}/photo/` | public read UI only; no admin mutation UI | MISSING |
-| Trainings | `GET /api/admin/trainings/`, `PATCH /api/admin/trainings/{id}/`, cancel/complete | no admin trainings UI/wrapper | MISSING |
-| Worktimes | `POST /api/trainers/{id}/worktime/`, `PATCH/DELETE /api/admin/worktime/{id}/` | no admin worktime UI/wrapper | MISSING |
+| Domain | Endpoints | Coverage status |
+| --- | --- | --- |
+| Authentication | login, refresh, logout, registration, activation, current user | COMPLETE |
+| Public | trainers, trainer details, membership plans, training types, worktimes | COMPLETE |
+| Contact | `POST /api/contact/` | PARTIAL in `main`; typed wrapper/documentation handled by PR #32 |
+| Client profile | `GET/PATCH/DELETE /api/me/`, visit, top-up | PARTIAL |
+| Client bookings | list/detail/create/cancel | COMPLETE |
+| Client memberships | list/detail/create/cancel/freeze/unfreeze/renew/terminate | COMPLETE |
+| Client payments | list/detail/Stripe intent | COMPLETE |
+| Trainer profile | get/update/photo/delete | COMPLETE |
+| Trainer worktimes | list/create/update/delete | COMPLETE |
+| Trainer trainings | list/detail/update/cancel/complete | COMPLETE |
+| Trainer payments | list/detail | PARTIAL in `main`; dedicated route handled by PR #33 |
+| Admin clients | list/detail/create/update/delete/restore/block/unblock/visit/import | COMPLETE for synchronous client endpoints; import progress BLOCKED_BY_API |
+| Admin trainers | list/detail/create/update/photo/delete/restore/block/unblock | MISSING |
+| Admin bookings | list/detail/create-for-client/cancel; `/api/coffee/` admin/debug route | MISSING |
+| Admin memberships | list/detail/create-for-client/cancel/freeze/unfreeze/renew/terminate | MISSING |
+| Admin membership plans | create/update/delete | MISSING |
+| Admin payments | list/detail | MISSING |
+| Admin training types | create/update/photo/delete | MISSING |
+| Admin trainings | list/update/cancel/complete | MISSING |
+| Admin worktimes | create/update/delete | MISSING |
 
 ## Not For Frontend
 
@@ -94,8 +76,8 @@ Admin routes require `ROLE_ADMIN`; only an `admin` route shell exists in fronten
 | `POST /api/webhooks/stripe/` | Stripe server-to-server webhook; browser must never call it | NOT_FOR_FRONTEND |
 | Messenger handlers under `symfony/src/*/MessageHandler` | async backend processing only | NOT_FOR_FRONTEND |
 | CLI commands under `symfony/src/*/Command` and scheduled cleanup | operational backend tasks only | NOT_FOR_FRONTEND |
-| Import processing internals under `ImportJob*` services/handlers | admin import endpoint may be frontend-facing, but handlers are backend-only | NOT_FOR_FRONTEND |
+| Import processing internals under `ImportJob*` services/handlers | backend-only; only queue endpoint is browser-facing | NOT_FOR_FRONTEND |
 
 ## Next Recommended Domain
 
-`Trainer payments` is the next smallest user-facing gap: Symfony exposes `GET /api/trainer/payments/` and `GET /api/trainer/payments/{id}/`, but the frontend currently has no dedicated trainer payments route/wrapper/store.
+Admin trainers: it mirrors admin client account management and adds trainer photo upload, so it should be handled in a separate PR.

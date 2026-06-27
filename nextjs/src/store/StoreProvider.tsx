@@ -9,6 +9,7 @@ import {paymentStore} from "@/store/PaymentStore";
 import {trainerStore} from "@/store/TrainerStore";
 import {trainerWorktimeStore} from "@/store/TrainerWorktimeStore";
 import {trainerTrainingStore} from "@/store/TrainerTrainingStore";
+import {adminClientsStore} from "@/store/admin/AdminClientsStore";
 
 interface StoreContextType {
     authStore: typeof authStore;
@@ -19,6 +20,7 @@ interface StoreContextType {
     bookingStore: typeof bookingStore;
     membershipStore: typeof membershipStore;
     paymentStore: typeof paymentStore;
+    adminClientsStore: typeof adminClientsStore;
 }
 
 const resetUserStores = (): void => {
@@ -29,6 +31,7 @@ const resetUserStores = (): void => {
     bookingStore.reset();
     membershipStore.reset();
     paymentStore.reset();
+    adminClientsStore.reset();
 };
 
 authStore.configureUserStoresReset(resetUserStores);
@@ -54,6 +57,7 @@ export const StoreProvider = ({
             bookingStore,
             membershipStore,
             paymentStore,
+            adminClientsStore,
         }}>
             {children}
         </StoreContext.Provider>
