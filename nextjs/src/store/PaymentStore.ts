@@ -2,9 +2,10 @@ import { makeAutoObservable, runInAction } from "mobx";
 import PaymentType from "@/types/payment/payment.type";
 import {
     createStripeIntent,
-    getMyPayment,
-    getMyPayments,
+    getPaymentForScope,
+    getPaymentsForScope,
     getPaymentsRequestKey,
+    PaymentScope,
 } from "@/api/client/payments.api";
 import { getErrorMessage } from "@/lib/getErrorMessage";
 import { authStore } from "@/store/AuthStore";
@@ -19,6 +20,7 @@ type InitTask = {
     generation: number;
     requestId: number;
     requestKey: string;
+    scope: PaymentScope;
     promise: Promise<void>;
 };
 
@@ -26,6 +28,7 @@ type DetailTask = {
     generation: number;
     requestId: number;
     paymentId: number;
+    scope: PaymentScope;
     promise: Promise<void>;
 };
 
@@ -34,6 +37,7 @@ type PaymentStorePrivateKey =
     | "listRequestId"
     | "detailRequestId"
     | "currentParams"
+    | "currentScope"
     | "currentRequestKey"
     | "initTask"
     | "detailTask"
@@ -58,6 +62,7 @@ class PaymentStore {
     public errorStatus: number | null = null;
 
     public selectedPayment: PaymentType | null = null;
+    public selectedPaymentScope: PaymentScope | null = null;
     public isDetailLoading = false;
     public detailError: string | null = null;
     public detailErrorStatus: number | null = null;
@@ -68,6 +73,7 @@ class PaymentStore {
     private listRequestId = 0;
     private detailRequestId = 0;
     private currentParams: PaymentsGetQueryParams = {};
+    private currentScope: PaymentScope = PaymentScope.CLIENT;
     private currentRequestKey = "";
     private initTask: InitTask | null = null;
     private detailTask: DetailTask | null = null;
@@ -79,6 +85,7 @@ class PaymentStore {
             listRequestId: false,
             detailRequestId: false,
             currentParams: false,
+            currentScope: false,
             currentRequestKey: false,
             initTask: false,
             detailTask: false,
@@ -86,43 +93,63 @@ class PaymentStore {
         }, { autoBind: true });
     }
 
-    public init(params: PaymentsGetQueryParams = {}): Promise<void> {
+    public init(
+        params: PaymentsGetQueryParams = {},
+        scope: PaymentScope = PaymentScope.CLIENT,
+    ): Promise<void> {
         if (!authStore.isAuth) {
             this.reset();
             return Promise.resolve();
         }
 
         const generation = this.generation;
-        const requestKey = getPaymentsRequestKey(params);
+        const requestKey = getPaymentsRequestKey(params, scope);
 
         this.currentParams = { ...params };
+        this.currentScope = scope;
         this.currentRequestKey = requestKey;
 
         if (
             this.initTask?.generation === generation
             && this.initTask.requestKey === requestKey
+            && this.initTask.scope === scope
         ) {
             return this.initTask.promise;
         }
 
         const requestId = ++this.listRequestId;
-        const promise = this.load(generation, requestId, params, requestKey).finally(() => {
+        const promise = this.load(
+            generation,
+            requestId,
+            params,
+            scope,
+            requestKey,
+        ).finally(() => {
             if (this.initTask?.requestId === requestId) {
                 this.initTask = null;
             }
         });
 
-        this.initTask = { generation, requestId, requestKey, promise };
+        this.initTask = {
+            generation,
+            requestId,
+            requestKey,
+            scope,
+            promise,
+        };
 
         return promise;
     }
 
-    public async loadPayment(paymentId: number): Promise<void> {
+    public loadPayment(
+        paymentId: number,
+        scope: PaymentScope = PaymentScope.CLIENT,
+    ): Promise<void> {
         if (!authStore.isAuth) {
             this.detailRequestId += 1;
             this.detailTask = null;
             this.resetDetail();
-            return;
+            return Promise.resolve();
         }
 
         const generation = this.generation;
@@ -130,18 +157,30 @@ class PaymentStore {
         if (
             this.detailTask?.generation === generation
             && this.detailTask.paymentId === paymentId
+            && this.detailTask.scope === scope
         ) {
             return this.detailTask.promise;
         }
 
         const requestId = ++this.detailRequestId;
-        const promise = this.loadDetail(generation, requestId, paymentId).finally(() => {
+        const promise = this.loadDetail(
+            generation,
+            requestId,
+            paymentId,
+            scope,
+        ).finally(() => {
             if (this.detailTask?.requestId === requestId) {
                 this.detailTask = null;
             }
         });
 
-        this.detailTask = { generation, requestId, paymentId, promise };
+        this.detailTask = {
+            generation,
+            requestId,
+            paymentId,
+            scope,
+            promise,
+        };
 
         return promise;
     }
@@ -181,10 +220,11 @@ class PaymentStore {
     public async refreshAfterStripeReturn(paymentId: number): Promise<void> {
         for (let attempt = 0; attempt < 3; attempt += 1) {
             this.detailTask = null;
-            await this.loadPayment(paymentId);
+            await this.loadPayment(paymentId, PaymentScope.CLIENT);
 
             if (
                 this.selectedPayment?.id !== paymentId
+                || this.selectedPaymentScope !== PaymentScope.CLIENT
                 || this.selectedPayment.status !== PaymentStatusEnum.PENDING
                 || attempt === 2
             ) {
@@ -194,9 +234,12 @@ class PaymentStore {
             await delay(1200);
         }
 
-        if (this.loadedRequestKey !== null) {
+        if (
+            this.loadedRequestKey !== null
+            && this.currentScope === PaymentScope.CLIENT
+        ) {
             this.initTask = null;
-            await this.init(this.currentParams);
+            await this.init(this.currentParams, PaymentScope.CLIENT);
         }
     }
 
@@ -208,6 +251,7 @@ class PaymentStore {
         this.detailTask = null;
         this.intentTasks.clear();
         this.currentParams = {};
+        this.currentScope = PaymentScope.CLIENT;
         this.currentRequestKey = "";
         this.payments = [];
         this.pagination = null;
@@ -223,6 +267,7 @@ class PaymentStore {
 
     private resetDetail(): void {
         this.selectedPayment = null;
+        this.selectedPaymentScope = null;
         this.isDetailLoading = false;
         this.detailError = null;
         this.detailErrorStatus = null;
@@ -232,6 +277,7 @@ class PaymentStore {
         generation: number,
         requestId: number,
         params: PaymentsGetQueryParams,
+        scope: PaymentScope,
         requestKey: string,
     ): Promise<void> {
         const hasExistingResponse = this.loadedRequestKey !== null;
@@ -244,12 +290,13 @@ class PaymentStore {
         });
 
         try {
-            const response = await getMyPayments(params);
+            const response = await getPaymentsForScope(params, scope);
 
             if (
                 generation === this.generation
                 && requestId === this.listRequestId
                 && requestKey === this.currentRequestKey
+                && scope === this.currentScope
                 && authStore.isAuth
             ) {
                 runInAction(() => {
@@ -264,6 +311,7 @@ class PaymentStore {
                 generation === this.generation
                 && requestId === this.listRequestId
                 && requestKey === this.currentRequestKey
+                && scope === this.currentScope
                 && authStore.isAuth
             ) {
                 runInAction(() => {
@@ -276,6 +324,7 @@ class PaymentStore {
                 generation === this.generation
                 && requestId === this.listRequestId
                 && requestKey === this.currentRequestKey
+                && scope === this.currentScope
             ) {
                 runInAction(() => {
                     this.isLoading = false;
@@ -289,10 +338,15 @@ class PaymentStore {
         generation: number,
         requestId: number,
         paymentId: number,
+        scope: PaymentScope,
     ): Promise<void> {
         runInAction(() => {
-            if (this.selectedPayment?.id !== paymentId) {
+            if (
+                this.selectedPayment?.id !== paymentId
+                || this.selectedPaymentScope !== scope
+            ) {
                 this.selectedPayment = null;
+                this.selectedPaymentScope = null;
             }
 
             this.isDetailLoading = true;
@@ -301,7 +355,7 @@ class PaymentStore {
         });
 
         try {
-            const payment = await getMyPayment(paymentId);
+            const payment = await getPaymentForScope(paymentId, scope);
 
             if (
                 generation === this.generation
@@ -310,6 +364,7 @@ class PaymentStore {
             ) {
                 runInAction(() => {
                     this.selectedPayment = payment;
+                    this.selectedPaymentScope = scope;
                 });
             }
         } catch (error: unknown) {
