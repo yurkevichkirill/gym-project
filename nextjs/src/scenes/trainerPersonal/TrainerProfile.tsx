@@ -25,23 +25,43 @@ const TrainerProfile = ({
                 </div>
             </div>
 
-            <section className="flex flex-col gap-4 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:p-8">
-                <div>
-                    <p className="text-sm font-semibold uppercase tracking-wider text-secondary-500">
-                        Trainer-owned bookings
-                    </p>
-                    <h2 className="mt-2 text-2xl font-bold">Trainings</h2>
-                    <p className="mt-2 max-w-2xl text-gray-600">
-                        Review, reschedule, cancel and complete trainings assigned to your account.
-                    </p>
-                </div>
-                <Link
-                    href="/me/trainings"
-                    className="inline-flex shrink-0 justify-center rounded-md bg-secondary-500 px-5 py-2 font-semibold transition hover:bg-primary-500 hover:text-white"
-                >
-                    Manage trainings
-                </Link>
-            </section>
+            <div className="grid gap-6 lg:grid-cols-2">
+                <section className="flex flex-col gap-4 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm sm:p-8">
+                    <div className="flex-1">
+                        <p className="text-sm font-semibold uppercase tracking-wider text-secondary-500">
+                            Trainer-owned bookings
+                        </p>
+                        <h2 className="mt-2 text-2xl font-bold">Trainings</h2>
+                        <p className="mt-2 text-gray-600">
+                            Review, reschedule, cancel and complete trainings assigned to your account.
+                        </p>
+                    </div>
+                    <Link
+                        href="/me/trainings"
+                        className="inline-flex self-start justify-center rounded-md bg-secondary-500 px-5 py-2 font-semibold transition hover:bg-primary-500 hover:text-white"
+                    >
+                        Manage trainings
+                    </Link>
+                </section>
+
+                <section className="flex flex-col gap-4 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm sm:p-8">
+                    <div className="flex-1">
+                        <p className="text-sm font-semibold uppercase tracking-wider text-secondary-500">
+                            Trainer finances
+                        </p>
+                        <h2 className="mt-2 text-2xl font-bold">Payments</h2>
+                        <p className="mt-2 text-gray-600">
+                            Review trainer-owned payments with server-side filters, sorting and pagination.
+                        </p>
+                    </div>
+                    <Link
+                        href="/me/payments"
+                        className="inline-flex self-start justify-center rounded-md bg-secondary-500 px-5 py-2 font-semibold transition hover:bg-primary-500 hover:text-white"
+                    >
+                        View payments
+                    </Link>
+                </section>
+            </div>
 
             <Suspense
                 fallback={(
