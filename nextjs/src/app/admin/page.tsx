@@ -1,4 +1,5 @@
 import type {Metadata} from "next";
+import Link from "next/link";
 
 export const metadata: Metadata = {
     title: "Admin cabinet",
@@ -17,6 +18,14 @@ const AdminPage = () => {
                 <p className="mt-4 max-w-2xl text-gray-600">
                     Your protected workspace for gym administration.
                 </p>
+                <div className="mt-8">
+                    <Link
+                        href="/admin/clients"
+                        className="inline-flex rounded-md bg-secondary-500 px-5 py-2 font-semibold transition hover:bg-primary-500 hover:text-white"
+                    >
+                        Manage clients
+                    </Link>
+                </div>
             </section>
         </main>
     );
