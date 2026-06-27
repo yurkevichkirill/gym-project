@@ -2,6 +2,7 @@ import { makeAutoObservable, runInAction } from "mobx";
 import MembershipType from "@/types/membership/membership.type";
 import {
     buyMembership,
+    cancelMembership,
     freezeMembership,
     getAllMemberships,
     getMembership,
@@ -17,6 +18,7 @@ import { MembershipRenewType } from "@/types/membership/membership-renew.type";
 import { MembershipTerminateType } from "@/types/membership/membership-terminate.type";
 import { getErrorMessage } from "@/lib/getErrorMessage";
 import { clientStore } from "@/store/ClientStore";
+import { paymentStore } from "@/store/PaymentStore";
 import { authStore } from "@/store/AuthStore";
 import { ApiClientError } from "@/lib/apiClient";
 import { ApiCollectionResponse } from "@/types/api-collection-response";
@@ -45,10 +47,17 @@ type MembershipStorePrivateKey =
     | "currentParams"
     | "currentRequestKey"
     | "initTask"
-    | "detailTask";
+    | "detailTask"
+    | "purchaseTask"
+    | "mutationTasks";
 
 const getErrorStatus = (error: unknown): number | null => {
     return error instanceof ApiClientError ? error.status : null;
+};
+
+const shouldResynchronizeAfterError = (error: unknown): boolean => {
+    return error instanceof ApiClientError
+        && (error.status === 409 || error.status === 422);
 };
 
 class MembershipStore {
@@ -66,6 +75,9 @@ class MembershipStore {
     public detailError: string | null = null;
     public detailErrorStatus: number | null = null;
 
+    public purchasingPlanId: number | null = null;
+    public mutatingMembershipIds: number[] = [];
+
     private generation = 0;
     private listRequestId = 0;
     private detailRequestId = 0;
@@ -73,6 +85,8 @@ class MembershipStore {
     private currentRequestKey = "";
     private initTask: InitTask | null = null;
     private detailTask: DetailTask | null = null;
+    private purchaseTask: Promise<MembershipType> | null = null;
+    private mutationTasks = new Map<number, Promise<MembershipType>>();
 
     public constructor() {
         makeAutoObservable<this, MembershipStorePrivateKey>(this, {
@@ -83,7 +97,13 @@ class MembershipStore {
             currentRequestKey: false,
             initTask: false,
             detailTask: false,
+            purchaseTask: false,
+            mutationTasks: false,
         }, { autoBind: true });
+    }
+
+    public get isPurchasing(): boolean {
+        return this.purchasingPlanId !== null;
     }
 
     public init(params: MembershipsGetQueryParams = {}): Promise<void> {
@@ -146,57 +166,60 @@ class MembershipStore {
         return promise;
     }
 
-    public async buy(payload: MembershipBuyType): Promise<MembershipType> {
-        const generation = this.generation;
-        const membership = await buyMembership(payload);
-
-        if (generation === this.generation && authStore.isAuth) {
-            this.initTask = null;
-
-            await Promise.all([
-                this.init(),
-                clientStore.init(),
-            ]);
-        }
-
-        return membership;
+    public isMutating(membershipId: number): boolean {
+        return this.mutatingMembershipIds.includes(membershipId);
     }
 
-    public async freeze(payload: MembershipFreezeType): Promise<MembershipType> {
-        const generation = this.generation;
-        const updated = await freezeMembership(payload);
-
-        if (generation === this.generation && authStore.isAuth) {
-            this.applyMembership(updated);
+    public buy(payload: MembershipBuyType): Promise<MembershipType> {
+        if (this.purchaseTask !== null) {
+            return this.purchaseTask;
         }
 
-        return updated;
+        runInAction(() => {
+            this.purchasingPlanId = payload.membershipPlanId;
+        });
+
+        const task = this.buyInternal(payload).finally(() => {
+            if (this.purchaseTask === task) {
+                this.purchaseTask = null;
+
+                runInAction(() => {
+                    this.purchasingPlanId = null;
+                });
+            }
+        });
+
+        this.purchaseTask = task;
+
+        return task;
     }
 
-    public async unfreeze(payload: MembershipUnfreezeType): Promise<MembershipType> {
-        const generation = this.generation;
-        const updated = await unfreezeMembership(payload);
+    public cancel({ id }: { id: number }): Promise<MembershipType> {
+        return this.mutate(id, () => cancelMembership(id));
+    }
 
-        if (generation === this.generation && authStore.isAuth) {
-            this.applyMembership(updated);
+    public freeze(payload: MembershipFreezeType): Promise<MembershipType> {
+        return this.mutate(payload.id, () => freezeMembership(payload));
+    }
+
+    public unfreeze(payload: MembershipUnfreezeType): Promise<MembershipType> {
+        return this.mutate(payload.id, () => unfreezeMembership(payload));
+    }
+
+    public renew(payload: MembershipRenewType): Promise<MembershipType> {
+        return this.mutate(payload.id, () => renewMembership(payload));
+    }
+
+    public terminate(payload: MembershipTerminateType): Promise<MembershipType> {
+        return this.mutate(payload.id, () => terminateMembership(payload));
+    }
+
+    public async refreshAfterPayment(membershipId?: number): Promise<void> {
+        if (!authStore.isAuth) {
+            return;
         }
 
-        return updated;
-    }
-
-    public async renew(payload: MembershipRenewType): Promise<MembershipType> {
-        return renewMembership(payload);
-    }
-
-    public async terminate(payload: MembershipTerminateType): Promise<MembershipType> {
-        const generation = this.generation;
-        const updated = await terminateMembership(payload);
-
-        if (generation === this.generation && authStore.isAuth) {
-            this.applyMembership(updated);
-        }
-
-        return updated;
+        await this.syncAfterMutation(membershipId);
     }
 
     public reset(): void {
@@ -205,6 +228,8 @@ class MembershipStore {
         this.detailRequestId += 1;
         this.initTask = null;
         this.detailTask = null;
+        this.purchaseTask = null;
+        this.mutationTasks.clear();
         this.currentParams = {};
         this.currentRequestKey = "";
         this.memberships = [];
@@ -215,19 +240,121 @@ class MembershipStore {
         this.isRefreshing = false;
         this.error = null;
         this.errorStatus = null;
+        this.purchasingPlanId = null;
+        this.mutatingMembershipIds = [];
         this.resetDetail();
     }
 
-    private applyMembership(updated: MembershipType): void {
-        runInAction(() => {
-            this.memberships = this.memberships.map((membership) => (
-                membership.id === updated.id ? updated : membership
-            ));
+    private mutate(
+        membershipId: number,
+        request: () => Promise<MembershipType>,
+    ): Promise<MembershipType> {
+        const existingTask = this.mutationTasks.get(membershipId);
 
-            if (this.selectedMembership?.id === updated.id) {
-                this.selectedMembership = updated;
+        if (existingTask !== undefined) {
+            return existingTask;
+        }
+
+        runInAction(() => {
+            this.mutatingMembershipIds = [...this.mutatingMembershipIds, membershipId];
+        });
+
+        const task = this.mutateInternal(membershipId, request).finally(() => {
+            if (this.mutationTasks.get(membershipId) === task) {
+                this.mutationTasks.delete(membershipId);
+
+                runInAction(() => {
+                    this.mutatingMembershipIds = this.mutatingMembershipIds.filter(
+                        (id) => id !== membershipId,
+                    );
+                });
             }
         });
+
+        this.mutationTasks.set(membershipId, task);
+
+        return task;
+    }
+
+    private async buyInternal(payload: MembershipBuyType): Promise<MembershipType> {
+        const generation = this.generation;
+
+        try {
+            const membership = await buyMembership(payload);
+
+            if (generation === this.generation && authStore.isAuth) {
+                await this.syncAfterMutation();
+            }
+
+            return membership;
+        } catch (error: unknown) {
+            if (
+                generation === this.generation
+                && authStore.isAuth
+                && shouldResynchronizeAfterError(error)
+            ) {
+                await this.syncAfterMutation();
+            }
+
+            throw error;
+        }
+    }
+
+    private async mutateInternal(
+        membershipId: number,
+        request: () => Promise<MembershipType>,
+    ): Promise<MembershipType> {
+        const generation = this.generation;
+
+        try {
+            const membership = await request();
+
+            if (generation === this.generation && authStore.isAuth) {
+                await this.syncAfterMutation(membershipId);
+            }
+
+            return membership;
+        } catch (error: unknown) {
+            if (
+                generation === this.generation
+                && authStore.isAuth
+                && shouldResynchronizeAfterError(error)
+            ) {
+                await this.syncAfterMutation(membershipId);
+            }
+
+            throw error;
+        }
+    }
+
+    private async syncAfterMutation(membershipId?: number): Promise<void> {
+        const detailId = membershipId !== undefined
+            && this.selectedMembership?.id === membershipId
+            ? membershipId
+            : null;
+        const tasks: Promise<void>[] = [
+            this.refreshList(),
+            clientStore.init(),
+            paymentStore.init(),
+        ];
+
+        if (detailId !== null) {
+            tasks.push(this.refreshDetail(detailId));
+        }
+
+        await Promise.all(tasks);
+    }
+
+    private refreshList(): Promise<void> {
+        this.initTask = null;
+
+        return this.init(this.currentParams);
+    }
+
+    private refreshDetail(membershipId: number): Promise<void> {
+        this.detailTask = null;
+
+        return this.loadMembership(membershipId);
     }
 
     private resetDetail(): void {

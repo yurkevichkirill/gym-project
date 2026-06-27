@@ -6,6 +6,7 @@ import {
     getMembershipStatusClassName,
     getMembershipStatusLabel,
 } from "@/scenes/clientPersonal/membership/membership-display";
+import MembershipActions from "@/scenes/clientPersonal/membership/MembershipActions";
 
 type MembershipCatalogCardProps = {
     membership: MembershipType;
@@ -50,13 +51,17 @@ const MembershipCatalogCard = ({ membership }: MembershipCatalogCardProps) => {
                 </div>
             </dl>
 
-            <div className="mt-auto pt-6">
+            <div className="mt-auto grid gap-3 pt-6">
                 <Link
                     href={`/me/memberships/${membership.id}`}
                     className="inline-flex w-full justify-center rounded-md bg-secondary-500 px-4 py-2 font-semibold transition hover:bg-primary-500 hover:text-white"
                 >
                     View details
                 </Link>
+                <MembershipActions
+                    membershipId={membership.id}
+                    status={membership.status}
+                />
             </div>
         </article>
     );

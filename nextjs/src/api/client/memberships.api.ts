@@ -143,6 +143,12 @@ export const buyMembership = async ({ membershipPlanId }: MembershipBuyType): Pr
     return response.data;
 };
 
+export const cancelMembership = async (id: number): Promise<MembershipType> => {
+    const response = await apiPost<ApiItemResponse<MembershipType>>(`/me/memberships/${id}/cancel/`);
+
+    return response.data;
+};
+
 export const freezeMembership = async ({ id }: MembershipFreezeType): Promise<MembershipType> => {
     const response = await apiPost<ApiItemResponse<MembershipType>>(`/me/memberships/${id}/freeze/`);
 

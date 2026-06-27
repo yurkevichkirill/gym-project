@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { BoltIcon, ClockIcon } from "@heroicons/react/16/solid";
 import type { MembershipPlanType } from "@/types/membership/membership-plan.type";
+import PurchaseMembershipButton from "@/scenes/membershipPlans/PurchaseMembershipButton";
 
 type Props = {
     membershipPlan: MembershipPlanType;
@@ -59,9 +60,16 @@ const MembershipPlanDetails = ({ membershipPlan }: Props) => {
                     </div>
                 </dl>
 
-                <p className="mt-8 text-sm leading-6 text-gray-600">
-                    Sign in with a client account to purchase or manage memberships. This public page does not start a purchase flow.
-                </p>
+                <div className="mt-8 flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <p className="max-w-2xl text-sm leading-6 text-gray-600">
+                        Purchase is available to authenticated client accounts. The server remains the source of truth for active, frozen, and pending membership conflicts.
+                    </p>
+                    <PurchaseMembershipButton
+                        membershipPlanId={membershipPlan.id}
+                        membershipPlanName={membershipPlan.name}
+                        className="min-w-40"
+                    />
+                </div>
             </article>
         </section>
     );

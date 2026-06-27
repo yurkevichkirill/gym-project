@@ -1,44 +1,15 @@
 'use client'
 
 import Link from "next/link";
-import { useState } from "react";
-import { observer } from "mobx-react-lite";
 import { MembershipPlanType } from "@/types/membership/membership-plan.type";
 import { MembershipStatusEnum } from "@/types/membership/membership-status.enum";
-import { useStore } from "@/store/StoreProvider";
-import { notify } from "@/lib/notify";
-import { PaymentMethodEnum } from "@/types/payment/payment-method.enum";
-import { createStripeIntent } from "@/api/client/payments.api";
-import { StripeModal } from "@/scenes/stripe/stripeModal";
-import { getErrorMessage } from "@/lib/getErrorMessage";
 import {
     formatMembershipDate,
     formatSessionLimit,
     getMembershipStatusClassName,
     getMembershipStatusLabel,
 } from "@/scenes/clientPersonal/membership/membership-display";
-
-type ActionType = "freeze" | "unfreeze" | "terminate" | "renew";
-
-type ButtonConfig = {
-    label: string;
-    action: ActionType;
-    className: string;
-};
-
-const ALLOWED_ACTIONS: Record<string, ButtonConfig[]> = {
-    [MembershipStatusEnum.ACTIVE]: [
-        { label: "Freeze", action: "freeze", className: "bg-blue-50 text-blue-600 hover:bg-blue-100" },
-        { label: "Terminate", action: "terminate", className: "bg-red-50 text-red-600 hover:bg-red-100" },
-    ],
-    [MembershipStatusEnum.FROZEN]: [
-        { label: "Unfreeze", action: "unfreeze", className: "bg-green-50 text-green-600 hover:bg-green-100" },
-        { label: "Terminate", action: "terminate", className: "bg-red-50 text-red-600 hover:bg-red-100" },
-    ],
-    [MembershipStatusEnum.EXPIRED]: [
-        { label: "Renew", action: "renew", className: "bg-primary-50 text-primary-600 hover:bg-primary-100" },
-    ],
-};
+import MembershipActions from "@/scenes/clientPersonal/membership/MembershipActions";
 
 type Props = {
     id: number;
@@ -51,7 +22,7 @@ type Props = {
     visits: number;
 };
 
-const PersonalMembership = observer(({
+const PersonalMembership = ({
     id,
     name,
     sessionLimit,
@@ -61,52 +32,6 @@ const PersonalMembership = observer(({
     status,
     visits,
 }: Props) => {
-    const { clientStore, membershipStore, paymentStore } = useStore();
-    const [isLoading, setIsLoading] = useState(false);
-    const [stripeClientSecret, setStripeClientSecret] = useState<string | null>(null);
-    const currentActions = ALLOWED_ACTIONS[status] || [];
-
-    const refreshAccountData = async () => {
-        await Promise.all([
-            clientStore.init(),
-            membershipStore.init(),
-            paymentStore.init(),
-        ]);
-    };
-
-    const handleAction = async (action: ActionType) => {
-        setIsLoading(true);
-        const toastId = notify.loading(`Processing ${action}...`);
-
-        try {
-            const res = await membershipStore[action]({ id });
-
-            if (action === "renew") {
-                const payment = res?.payment;
-
-                if (payment && payment.method === PaymentMethodEnum.CARD) {
-                    await paymentStore.init();
-                    notify.dismiss(toastId);
-                    const clientSecret = await createStripeIntent(payment.id);
-                    setStripeClientSecret(clientSecret);
-
-                    return;
-                }
-
-                await refreshAccountData();
-                notify.success("Success", "Membership successfully renewed via inner balance!", toastId);
-                return;
-            }
-
-            await refreshAccountData();
-            notify.success("Success", "Membership successfully updated!", toastId);
-        } catch (error: unknown) {
-            notify.error("Action failed", getErrorMessage(error), toastId);
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
     return (
         <article className="flex flex-col gap-4 rounded-xl border border-gray-200 p-4">
             <div>
@@ -142,33 +67,14 @@ const PersonalMembership = observer(({
                 >
                     View details
                 </Link>
-                {currentActions.map((button) => (
-                    <button
-                        type="button"
-                        key={button.action}
-                        onClick={() => handleAction(button.action)}
-                        disabled={isLoading}
-                        className={`cursor-pointer rounded px-3 py-1.5 text-xs transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${button.className}`}
-                    >
-                        {button.label}
-                    </button>
-                ))}
-            </div>
-
-            {stripeClientSecret && (
-                <StripeModal
-                    clientSecret={stripeClientSecret}
-                    onClose={() => setStripeClientSecret(null)}
-                    onSuccess={() => {
-                        setStripeClientSecret(null);
-                        void refreshAccountData();
-                    }}
-                    successTitle="Membership Renewed!"
-                    successDescription="The payment succeeded. Your membership data is being refreshed."
+                <MembershipActions
+                    membershipId={id}
+                    status={status}
+                    compact
                 />
-            )}
+            </div>
         </article>
     );
-});
+};
 
 export default PersonalMembership;

@@ -7,59 +7,16 @@ import ActionButton from "@/shared/ActionButton";
 import BenefitsPageGraphic from "@/assets/BenefitsPageGraphic.png";
 import { useNavigation } from "@/context/navigation-context";
 import Image from "next/image";
-import { useState } from "react";
 import { MembershipPlanType } from "@/types/membership/membership-plan.type";
 import MembershipPlan from "./MembershipPlan";
-import { useStore } from "@/store/StoreProvider";
-import { observer } from "mobx-react-lite";
-import { notify } from "@/lib/notify";
-import { PaymentMethodEnum } from "@/types/payment/payment-method.enum";
-import { createStripeIntent } from "@/api/client/payments.api";
-import { StripeModal } from "../stripe/stripeModal";
-import { getErrorMessage } from "@/lib/getErrorMessage";
 
 type Props = {
     membershipPlans: MembershipPlanType[];
     error?: string | null;
 };
 
-const Memberships = observer(({ membershipPlans, error = null }: Props) => {
+const Memberships = ({ membershipPlans, error = null }: Props) => {
     const { setSelectedPage } = useNavigation();
-    const { authStore, membershipStore, paymentStore } = useStore();
-    const [stripeClientSecret, setStripeClientSecret] = useState<string | null>(null);
-    const [activePlanId, setActivePlanId] = useState<number | null>(null);
-
-    const handleBuyPlan = async (planId: number) => {
-        setActivePlanId(planId);
-        const toastId = notify.loading("Initiating purchase...");
-
-        try {
-            const res = await membershipStore.buy({ membershipPlanId: planId });
-            const payment = res.payment;
-            await paymentStore.init();
-
-            if (payment && payment.method === PaymentMethodEnum.CARD) {
-                notify.dismiss(toastId);
-
-                const clientSecret = await createStripeIntent(payment.id);
-                setStripeClientSecret(clientSecret);
-            } else {
-                notify.success(
-                    "Success!",
-                    `Membership "${res.name}" successfully activated via your balance.`,
-                    toastId,
-                );
-            }
-        } catch (caughtError: unknown) {
-            notify.error(
-                "Purchase failed",
-                getErrorMessage(caughtError, "Could not process membership purchase"),
-                toastId,
-            );
-        } finally {
-            setActivePlanId(null);
-        }
-    };
 
     return (
         <section id="memberships" className="mx-auto min-h-full w-full py-20">
@@ -99,8 +56,6 @@ const Memberships = observer(({ membershipPlans, error = null }: Props) => {
                                         durationDays={membership.durationDays}
                                         sessionLimit={membership.sessionLimit}
                                         price={membership.price}
-                                        onBuy={handleBuyPlan}
-                                        isLoading={activePlanId === membership.id}
                                     />
                                 ))}
                             </ul>
@@ -108,7 +63,7 @@ const Memberships = observer(({ membershipPlans, error = null }: Props) => {
                     </div>
                 </div>
 
-                <div className="mt-16 items-center justify-between gap-20 md:mt-28 md:flex mx-auto w-5/6">
+                <div className="mx-auto mt-16 w-5/6 items-center justify-between gap-20 md:mt-28 md:flex">
                     <Image className="mx-auto" alt="benefits-page-graphic" src={BenefitsPageGraphic} />
                     <div>
                         <div>
@@ -164,25 +119,8 @@ const Memberships = observer(({ membershipPlans, error = null }: Props) => {
                     </div>
                 </div>
             </motion.div>
-
-            {stripeClientSecret && (
-                <StripeModal
-                    clientSecret={stripeClientSecret}
-                    onClose={() => setStripeClientSecret(null)}
-                    onSuccess={() => {
-                        setStripeClientSecret(null);
-                        void Promise.all([
-                            authStore.checkAuth(),
-                            membershipStore.init(),
-                            paymentStore.init(),
-                        ]);
-                    }}
-                    successTitle="Membership Activated!"
-                    successDescription="Welcome to the legion. Your plan is now active!"
-                />
-            )}
         </section>
     );
-});
+};
 
 export default Memberships;

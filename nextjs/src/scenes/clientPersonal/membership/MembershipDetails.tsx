@@ -7,6 +7,7 @@ import { useStore } from "@/store/StoreProvider";
 import EmptyState from "@/shared/ui/EmptyState";
 import ErrorState from "@/shared/ui/ErrorState";
 import LoadingState from "@/shared/ui/LoadingState";
+import MembershipActions from "@/scenes/clientPersonal/membership/MembershipActions";
 import {
     formatEnumLabel,
     formatMembershipDate,
@@ -143,6 +144,12 @@ const MembershipDetails = observer(({ membershipId }: MembershipDetailsProps) =>
                         {getMembershipStatusLabel(membership.status)}
                     </span>
                 </div>
+
+                <MembershipActions
+                    membershipId={membership.id}
+                    status={membership.status}
+                    className="mt-5"
+                />
 
                 <div className="mt-8 grid gap-6 lg:grid-cols-2">
                     <section className="rounded-xl border border-gray-100 p-5">
