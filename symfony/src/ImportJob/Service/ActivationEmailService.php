@@ -16,6 +16,7 @@ final readonly class ActivationEmailService
         private ClientRepository $clientRepo,
         private MailerInterface $mailer,
         private string $clientActivationUrl,
+        private string $senderEmail,
     )
     {}
 
@@ -36,7 +37,7 @@ final readonly class ActivationEmailService
         );
 
         $email = new TemplatedEmail()
-            ->from('noreply@evogym.local')
+            ->from($this->senderEmail)
             ->to($client->getEmail())
             ->subject('Activate your account')
             ->text(
