@@ -1,7 +1,7 @@
 nelmio_cors:
     paths:
         '^/api/':
-            allow_origin: ['https://evogym.local']
+            allow_origin: ['%env(CORS_ALLOW_ORIGIN)%']
             allow_credentials: true
             allow_headers: ['Accept', 'Authorization', 'Content-Type', 'Origin', 'X-Requested-With', 'X-CSRF-Token']
             allow_methods: ['POST', 'PUT', 'GET', 'DELETE', 'OPTIONS', 'PATCH']
