@@ -108,3 +108,4 @@ services:
     App\ImportJob\Service\ActivationEmailService:
         arguments:
             $clientActivationUrl: '%env(resolve:CLIENT_ACTIVATION_URL)%'
+            $senderEmail: '%env(resolve:ACTIVATION_EMAIL_SENDER)%'
