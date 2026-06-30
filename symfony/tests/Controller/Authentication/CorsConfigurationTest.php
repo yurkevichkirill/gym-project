@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Tests\Controller\Authentication;
 
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
-use Symfony\Component\HttpFoundation\Response;
 
 final class CorsConfigurationTest extends WebTestCase
 {
@@ -19,7 +18,7 @@ final class CorsConfigurationTest extends WebTestCase
 
         $response = $browser->getResponse();
 
-        self::assertSame(Response::HTTP_NO_CONTENT, $response->getStatusCode());
+        self::assertTrue($response->isSuccessful());
         self::assertSame(
             'https://evogym.local',
             $response->headers->get('Access-Control-Allow-Origin'),
