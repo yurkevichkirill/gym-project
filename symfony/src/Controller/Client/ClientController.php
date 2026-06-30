@@ -34,6 +34,10 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 final class ClientController extends AbstractController
 {
+    public function __construct(
+        private readonly string $authCookieDomain,
+    ) {}
+
     #[Route('/api/me/', methods: ['GET'], format: 'json')]
     #[OA\Get(
         operationId: 'getCurrentClient',
@@ -183,8 +187,8 @@ final class ClientController extends AbstractController
         $this->container->get('security.token_storage')->setToken(null);
 
         $response = new Response(status: Response::HTTP_NO_CONTENT);
-        $response->headers->clearCookie('access_token', '/', '.evogym.local');
-        $response->headers->clearCookie('refresh_token', '/', '.evogym.local');
+        $response->headers->clearCookie('access_token', '/', $this->authCookieDomain);
+        $response->headers->clearCookie('refresh_token', '/', $this->authCookieDomain);
 
         return $response;
     }

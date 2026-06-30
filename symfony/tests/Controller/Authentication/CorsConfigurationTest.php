@@ -1,0 +1,28 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Tests\Controller\Authentication;
+
+use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+
+final class CorsConfigurationTest extends WebTestCase
+{
+    public function testPreflightAllowsConfiguredOriginWithCredentials(): void
+    {
+        $browser = self::createClient();
+        $browser->request('OPTIONS', '/api/login/', server: [
+            'HTTP_ORIGIN' => 'https://evogym.local',
+            'HTTP_ACCESS_CONTROL_REQUEST_METHOD' => 'POST',
+        ]);
+
+        $response = $browser->getResponse();
+
+        self::assertTrue($response->isSuccessful());
+        self::assertSame(
+            'https://evogym.local',
+            $response->headers->get('Access-Control-Allow-Origin'),
+        );
+        self::assertSame('true', $response->headers->get('Access-Control-Allow-Credentials'));
+    }
+}
