@@ -14,8 +14,8 @@
 ## Configure secrets and host paths
 
 ```bash
-cp .env.prod.example .env
-chmod 600 .env
+cp .env.prod.example .env.prod
+chmod 600 .env.prod
 ```
 
 Replace every `REPLACE_WITH_*` value. Passwords embedded into `DATABASE_URL` or `MESSENGER_TRANSPORT_DSN` must be URL-encoded.
@@ -53,21 +53,21 @@ The PHP entrypoint copies the read-only JWT key pair into each container with ap
 Validate the configuration and build the production targets:
 
 ```bash
-docker compose --env-file .env -f docker-compose.prod.yml config --quiet
-docker compose --env-file .env -f docker-compose.prod.yml build
+docker compose --env-file .env.prod -f docker-compose.prod.yml config --quiet
+docker compose --env-file .env.prod -f docker-compose.prod.yml build
 ```
 
 Apply migrations once as an explicit release step. Migrations are not run independently by every PHP-FPM or worker container, avoiding concurrent migration attempts:
 
 ```bash
-docker compose --env-file .env -f docker-compose.prod.yml \
+docker compose --env-file .env.prod -f docker-compose.prod.yml \
   --profile release run --rm migrate
 ```
 
 Start or update the runtime services:
 
 ```bash
-docker compose --env-file .env -f docker-compose.prod.yml \
+docker compose --env-file .env.prod -f docker-compose.prod.yml \
   up -d --remove-orphans
 ```
 
@@ -76,8 +76,8 @@ The PHP production entrypoint runs `cache:warmup` before PHP-FPM and each worker
 Inspect the deployment:
 
 ```bash
-docker compose --env-file .env -f docker-compose.prod.yml ps
-docker compose --env-file .env -f docker-compose.prod.yml logs --tail=200 php-fpm nginx frontend
+docker compose --env-file .env.prod -f docker-compose.prod.yml ps
+docker compose --env-file .env.prod -f docker-compose.prod.yml logs --tail=200 php-fpm nginx frontend
 ```
 
 For registry-based deployment, set `PHP_IMAGE`, `NGINX_IMAGE`, and `FRONTEND_IMAGE` to immutable tags, build and push them in CI, then deploy those exact tags.
@@ -89,14 +89,14 @@ The backup service creates a compressed custom-format dump, validates it with `p
 Run a backup manually:
 
 ```bash
-docker compose --env-file .env -f docker-compose.prod.yml \
+docker compose --env-file .env.prod -f docker-compose.prod.yml \
   --profile backup run --rm postgres-backup
 ```
 
 Schedule it on the host, for example every day at 02:00 UTC:
 
 ```cron
-0 2 * * * cd /srv/evogym && docker compose --env-file .env -f docker-compose.prod.yml --profile backup run --rm postgres-backup >> /var/log/evogym-postgres-backup.log 2>&1
+0 2 * * * cd /srv/evogym && docker compose --env-file .env.prod -f docker-compose.prod.yml --profile backup run --rm postgres-backup >> /var/log/evogym-postgres-backup.log 2>&1
 ```
 
 The default daily schedule and 14-day retention provide a baseline RPO of up to 24 hours. A directory on the same server is not sufficient protection: copy completed `.dump` and `.sha256` files to encrypted off-host or object storage and alert on failed or missing backups.
@@ -106,7 +106,7 @@ The default daily schedule and 14-day retention provide a baseline RPO of up to 
 Test restore procedures regularly in a non-production environment. Before a production restore, preserve the current database with a new backup and stop services that write to PostgreSQL:
 
 ```bash
-docker compose --env-file .env -f docker-compose.prod.yml stop \
+docker compose --env-file .env.prod -f docker-compose.prod.yml stop \
   nginx php-fpm messenger-worker analytics-worker scheduler-worker payment-worker frontend
 ```
 
@@ -115,16 +115,16 @@ List available backups in `POSTGRES_BACKUP_DIR`, then restore one by filename. T
 ```bash
 BACKUP_FILE=gym_database_20260101T020000Z.dump \
 ALLOW_DATABASE_RESTORE=1 \
-docker compose --env-file .env -f docker-compose.prod.yml \
+docker compose --env-file .env.prod -f docker-compose.prod.yml \
   --profile restore run --rm postgres-restore
 ```
 
 The restore verifies the checksum when present and runs `pg_restore` with `--clean`, `--exit-on-error`, and `--single-transaction`. After restoring an older backup, apply any newer migrations and restart the stack:
 
 ```bash
-docker compose --env-file .env -f docker-compose.prod.yml \
+docker compose --env-file .env.prod -f docker-compose.prod.yml \
   --profile release run --rm migrate
-docker compose --env-file .env -f docker-compose.prod.yml \
+docker compose --env-file .env.prod -f docker-compose.prod.yml \
   up -d --remove-orphans
 ```
 
