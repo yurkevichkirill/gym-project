@@ -469,8 +469,13 @@ final readonly class StripeRefundSettlementService
             }
 
             $client = $this->entityManager->find(Client::class, $clientId);
+            if (!$client instanceof Client) {
+                return null;
+            }
 
-            return $client instanceof Client ? $client : null;
+            $this->entityManager->refresh($client);
+
+            return $client;
         } finally {
             if ($softDeleteEnabled) {
                 $filters->enable('softdeleteable');
@@ -500,8 +505,13 @@ final readonly class StripeRefundSettlementService
             }
 
             $trainer = $this->entityManager->find(Trainer::class, $trainerId);
+            if (!$trainer instanceof Trainer) {
+                return null;
+            }
 
-            return $trainer instanceof Trainer ? $trainer : null;
+            $this->entityManager->refresh($trainer);
+
+            return $trainer;
         } finally {
             if ($softDeleteEnabled) {
                 $filters->enable('softdeleteable');
