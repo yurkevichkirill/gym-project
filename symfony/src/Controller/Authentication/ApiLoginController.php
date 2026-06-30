@@ -31,6 +31,10 @@ use Symfony\Component\Routing\Attribute\Route;
 
 final class ApiLoginController extends AbstractController
 {
+    public function __construct(
+        private readonly string $authCookieDomain,
+    ) {}
+
     /**
      * @throws RandomException
      * @throws UnauthorizedHttpException
@@ -188,8 +192,8 @@ final class ApiLoginController extends AbstractController
 
         $response = new JsonResponse();
 
-        $response->headers->clearCookie('access_token', '/', '.evogym.local');
-        $response->headers->clearCookie('refresh_token', '/', '.evogym.local');
+        $response->headers->clearCookie('access_token', '/', $this->authCookieDomain);
+        $response->headers->clearCookie('refresh_token', '/', $this->authCookieDomain);
 
         return $response;
     }
@@ -197,11 +201,11 @@ final class ApiLoginController extends AbstractController
     private function setAuthCookies(JsonResponse $response, string $accessToken, string $refreshToken): void
     {
         $response->headers->setCookie(Cookie::create(
-            'access_token', $accessToken, time() + 3600, '/', '.evogym.local', true, true, false, Cookie::SAMESITE_LAX
+            'access_token', $accessToken, time() + 3600, '/', $this->authCookieDomain, true, true, false, Cookie::SAMESITE_LAX
         ));
 
         $response->headers->setCookie(Cookie::create(
-            'refresh_token', $refreshToken, time() + 604800, '/', '.evogym.local', true, true, false, Cookie::SAMESITE_LAX
+            'refresh_token', $refreshToken, time() + 604800, '/', $this->authCookieDomain, true, true, false, Cookie::SAMESITE_LAX
         ));
     }
 
