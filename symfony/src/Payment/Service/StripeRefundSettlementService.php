@@ -240,11 +240,22 @@ final readonly class StripeRefundSettlementService
             return;
         }
 
+        $lockedClient = null;
+        $lockedTrainer = null;
+
         if ($this->wasSettledLocally($payment)) {
-            $this->reverseSettledPaymentEffects($payment, $alreadyRefundedAmount);
+            [
+                'client' => $lockedClient,
+                'trainer' => $lockedTrainer,
+            ] = $this->reverseSettledPaymentEffects($payment, $alreadyRefundedAmount);
         }
 
-        $this->upsertRefundPaymentRecord($payment, $payment->getAmount());
+        $this->upsertRefundPaymentRecord(
+            $payment,
+            $payment->getAmount(),
+            $lockedClient,
+            $lockedTrainer,
+        );
         $this->paymentLifecycleService->transitionTo($payment, PaymentStatusEnum::REFUNDED);
     }
 
@@ -286,16 +297,17 @@ final readonly class StripeRefundSettlementService
 
         $refundDelta = $cumulativeRefundAmount - $alreadyRefundedAmount;
         $clientCreditReversed = false;
+        $lockedClient = null;
 
         if (
             $payment->getCategory() === PaymentCategoryEnum::BALANCE_TOP_UP
             && $this->wasSettledLocally($payment)
         ) {
-            $this->reverseTopUpCredit($payment, $refundDelta);
+            $lockedClient = $this->reverseTopUpCredit($payment, $refundDelta);
             $clientCreditReversed = true;
         }
 
-        $this->upsertRefundPaymentRecord($payment, $cumulativeRefundAmount);
+        $this->upsertRefundPaymentRecord($payment, $cumulativeRefundAmount, $lockedClient);
 
         $this->paymentLogger->critical('payment.stripe_refund.partial_recorded', [
             'intent_id' => $intentId,
@@ -309,15 +321,21 @@ final readonly class StripeRefundSettlementService
         ]);
     }
 
-    private function reverseSettledPaymentEffects(Payment $payment, int $alreadyRefundedAmount): void
+    /**
+     * @return array{client: ?Client, trainer: ?Trainer}
+     */
+    private function reverseSettledPaymentEffects(Payment $payment, int $alreadyRefundedAmount): array
     {
+        $lockedClient = null;
+        $lockedTrainer = null;
+
         if ($payment->getCategory() === PaymentCategoryEnum::BALANCE_TOP_UP) {
             $remainingAmount = $payment->getAmount() - $alreadyRefundedAmount;
             if ($remainingAmount > 0) {
-                $this->reverseTopUpCredit($payment, $remainingAmount);
+                $lockedClient = $this->reverseTopUpCredit($payment, $remainingAmount);
             }
         } else {
-            $this->reverseTrainerPayout($payment);
+            $lockedTrainer = $this->reverseTrainerPayout($payment);
         }
 
         $booking = $payment->getBooking();
@@ -345,9 +363,14 @@ final readonly class StripeRefundSettlementService
         ], true)) {
             $membership->cancel(MembershipStatusEnum::CANCELED_BY_SYSTEM);
         }
+
+        return [
+            'client' => $lockedClient,
+            'trainer' => $lockedTrainer,
+        ];
     }
 
-    private function reverseTopUpCredit(Payment $payment, int $amount): void
+    private function reverseTopUpCredit(Payment $payment, int $amount): Client
     {
         $clientId = $payment->getClient()?->getId();
         if ($clientId === null) {
@@ -360,13 +383,15 @@ final readonly class StripeRefundSettlementService
         }
 
         $this->balanceService->reverseClientCredit($client, $amount);
+
+        return $client;
     }
 
-    private function reverseTrainerPayout(Payment $payment): void
+    private function reverseTrainerPayout(Payment $payment): ?Trainer
     {
         $trainerId = $payment->getTrainer()?->getId();
         if ($trainerId === null) {
-            return;
+            return null;
         }
 
         $trainer = $this->findTrainerForUpdate($trainerId);
@@ -375,10 +400,16 @@ final readonly class StripeRefundSettlementService
         }
 
         $this->balanceService->chargeTrainer($trainer, $payment->getAmount());
+
+        return $trainer;
     }
 
-    private function upsertRefundPaymentRecord(Payment $payment, int $refundAmount): void
-    {
+    private function upsertRefundPaymentRecord(
+        Payment $payment,
+        int $refundAmount,
+        ?Client $lockedClient = null,
+        ?Trainer $lockedTrainer = null,
+    ): void {
         $refundPayment = $this->paymentRepository->findRefundForOriginalPayment($payment);
         if ($refundPayment !== null) {
             $refundPayment->setAmount($refundAmount);
@@ -391,14 +422,14 @@ final readonly class StripeRefundSettlementService
             throw new UserNotFoundException('Payment client was not found');
         }
 
-        $client = $this->findClientForUpdate($clientId);
+        $client = $lockedClient ?? $this->findClientForUpdate($clientId);
         if ($client === null) {
             throw new UserNotFoundException('Payment client was not found');
         }
 
-        $trainer = null;
+        $trainer = $lockedTrainer;
         $trainerId = $payment->getTrainer()?->getId();
-        if ($trainerId !== null) {
+        if ($trainerId !== null && $trainer === null) {
             $trainer = $this->findTrainerForUpdate($trainerId);
             if ($trainer === null) {
                 throw new TrainerNotFoundException('Trainer for refunded payment was not found');
