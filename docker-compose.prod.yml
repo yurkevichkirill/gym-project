@@ -26,6 +26,7 @@ x-php-environment: &php-environment
   APP_SHARE_DIR: /var/www
   DEFAULT_URI: ${DEFAULT_URI:?DEFAULT_URI is required}
   CLIENT_ACTIVATION_URL: ${CLIENT_ACTIVATION_URL:?CLIENT_ACTIVATION_URL is required}
+  ACTIVATION_EMAIL_SENDER: ${ACTIVATION_EMAIL_SENDER:?ACTIVATION_EMAIL_SENDER is required}
   AUTH_COOKIE_DOMAIN: ${AUTH_COOKIE_DOMAIN:?AUTH_COOKIE_DOMAIN is required}
   CORS_ALLOW_ORIGIN: ${CORS_ALLOW_ORIGIN:?CORS_ALLOW_ORIGIN is required}
   DATABASE_URL: ${DATABASE_URL:?DATABASE_URL is required}
@@ -302,7 +303,7 @@ services:
       - -ec
       - |
         /usr/bin/mc alias set local http://minio:9000 "$${MINIO_ROOT_USER}" "$${MINIO_ROOT_PASSWORD}"
-        /usr/bin/mc mb --ignore-existing "local/$${MINIO_BUCKET}"
+        /usr/bin/mc mb --ignore-existing "$${MINIO_BUCKET}"
         /usr/bin/mc anonymous set download "local/$${MINIO_BUCKET}"
     networks: [app-network]
 
