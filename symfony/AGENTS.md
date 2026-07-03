@@ -1,31 +1,36 @@
 # Repository Guidelines
 
+## Executing Commands
+
+Run project commands from the PHP-FPM container unless a task specifically targets local tooling:
+`docker compose exec -it php-fpm sh`, then execute the needed command inside the shell.
+
 ## Project Structure & Module Organization
 
-This is a Symfony 8 API application using PHP 8.4. Application code lives in `src/`, organized mostly by domain: `Booking`, `Client`, `Membership`, `Payment`, `Trainer`, and `Training`. Domain modules commonly contain `DTO`, `Entity`, `Enum`, `Exception`, `Mapper`, `Query`, `Repository`, `Resolver`, `Security`, and `Service` classes. Symfony configuration is in `config/`, database migrations are in `migrations/`, Twig templates are in `templates/`, frontend entry files are in `assets/`, public assets and uploads are in `public/`, and test bootstrap files are in `tests/`.
+This gym management system is split into `nextjs/` and `symfony/`. Frontend routes live in `nextjs/src/app`, page sections in `nextjs/src/scenes`, shared UI in `nextjs/src/shared`, API wrappers in `nextjs/src/api`, stores in `nextjs/src/store`, and typed contracts in `nextjs/src/types`. The Symfony backend lives in `symfony/src`, organized by domains such as `Booking`, `Client`, `Membership`, `Payment`, `Trainer`, and `Training`. Docker and infrastructure files are under `docker/`; observability assets are under `observability/`.
 
 ## Build, Test, and Development Commands
 
-- `composer install` installs PHP dependencies and runs Symfony auto-scripts.
-- `symfony server:start` runs the app locally when the Symfony CLI is available.
-- `php -S 127.0.0.1:8000 -t public` is a simple local fallback server.
-- `php bin/console doctrine:migrations:migrate` applies database migrations.
-- `php bin/console cache:clear` clears Symfony cache.
-- `php bin/phpunit` runs the PHPUnit test suite configured by `phpunit.dist.xml`.
-- `vendor/bin/phpstan analyse` runs static analysis using `phpstan.dist.neon`.
+- `docker compose up -d` starts the local stack: Nginx, PHP-FPM, PostgreSQL, Redis, RabbitMQ, workers, ClickHouse, Mailpit, and MinIO.
+- `cd nextjs && pnpm install` installs frontend dependencies.
+- `cd nextjs && pnpm dev` runs the Next.js frontend at `http://localhost:3000`.
+- `cd nextjs && pnpm lint` runs ESLint with Next.js TypeScript and Core Web Vitals rules.
+- `cd symfony && composer install` installs backend dependencies.
+- `cd symfony && php bin/phpunit` runs PHPUnit.
+- `cd symfony && vendor/bin/phpstan analyse` runs strict static analysis.
 
 ## Coding Style & Naming Conventions
 
-Follow PSR-4 autoloading with the `App\` namespace mapped to `src/`. Use 4-space indentation for PHP. Keep domain classes inside matching module directories and use existing suffixes such as `Manager`, `Repository`, `Mapper`, `Resolver`, `Voter`, `DTO`, and `Enum`. Prefer constructor dependency injection and Symfony services. PHPStan runs at `level: max` with strict rules; do not add `dump()` calls because they are explicitly disallowed.
+Use TypeScript and React function components on the frontend. Follow existing folder patterns in `src/scenes`, `src/hooks`, and `src/store`. Component files use PascalCase when exporting a component; Next.js route files use framework names such as `page.tsx` and `layout.tsx`. Backend code uses PHP 8.4, PSR-4 namespaces under `App\`, and 4-space indentation. Keep suffixes consistent: `Controller`, `DTO`, `Entity`, `Enum`, `Repository`, `Resolver`, `Mapper`, `Service`, and `Voter`.
 
 ## Testing Guidelines
 
-PHPUnit 12 loads `tests/bootstrap.php`, uses `APP_ENV=test`, and scans all files under `tests/`. Add tests under `tests/` with names ending in `Test.php`, mirroring the covered domain or service. Focus on business rules, query behavior, validators, message handlers, and controllers touched by a change. Run `php bin/phpunit` before submitting changes, and run `vendor/bin/phpstan analyse` for changes under `src/`, `config/`, or `bin/`.
+Backend tests use PHPUnit 12 and PHPStan at max level. Add tests under `symfony/tests`, mirror the changed domain, and name files with the `Test.php` suffix. For frontend changes, run `pnpm lint` and `pnpm build`; the frontend currently exposes linting and build checks rather than a dedicated test runner.
 
 ## Commit & Pull Request Guidelines
 
-Recent history uses short, imperative-style summaries such as `Added payment cleanup command to scheduler and run docker service` and `Fixed bugs with admin data in admin booking controller`. Keep commits focused and describe the behavior changed. Pull requests should include a concise description, linked issue when applicable, migration notes, new environment variables, and test/static-analysis results. Include API examples when changing public responses.
+Recent commits use short imperative summaries, for example `Added payment cleanup command to scheduler and run docker service` or `Fixed bugs with admin data in admin booking controller`. Keep commits focused on one behavior change. Pull requests should include a concise description, linked issue when relevant, migration or environment notes, screenshots for UI changes, and the validation commands run.
 
 ## Security & Configuration Tips
 
-Do not commit secrets, runtime data, cache files, logs, or uploaded private data. Keep local values in environment-specific files and document required variables for services such as Stripe, JWT authentication, mailer, Redis, S3/Flysystem, Messenger, and ClickHouse.
+Do not commit secrets, runtime data, uploaded files, logs, cache directories, or local database state. Document new environment variables for Stripe, JWT, mailer, Redis, RabbitMQ, S3/MinIO, ClickHouse, and observability changes.

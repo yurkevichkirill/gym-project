@@ -30,6 +30,7 @@ const TrainerPersonal = ({ id, initialTrainer, initialWorktimes }: Props) => {
     const { bookingStore, paymentStore } = useStore();
     const [worktimes, setWorktimes] = useState(initialWorktimes);
     const [stripeClientSecret, setStripeClientSecret] = useState<string | null>(null);
+    const [stripeBookingId, setStripeBookingId] = useState<number | null>(null);
     const [isBooking, setIsBooking] = useState(false);
     const bookingRequestInFlight = useRef(false);
 
@@ -79,6 +80,7 @@ const TrainerPersonal = ({ id, initialTrainer, initialWorktimes }: Props) => {
             if (payment && payment.method === PaymentMethodEnum.CARD) {
                 notify.dismiss(toastId);
                 const clientSecret = await createStripeIntent(payment.id);
+                setStripeBookingId(res.id);
                 setStripeClientSecret(clientSecret);
             } else {
                 notify.success(
@@ -195,14 +197,24 @@ const TrainerPersonal = ({ id, initialTrainer, initialWorktimes }: Props) => {
             {stripeClientSecret && (
                 <StripeModal
                     clientSecret={stripeClientSecret}
-                    onClose={() => setStripeClientSecret(null)}
-                    onSuccess={() => {
+                    onClose={() => {
                         setStripeClientSecret(null);
-                        void Promise.all([
-                            bookingStore.init(),
-                            paymentStore.init(),
-                            refreshWorktimes(),
-                        ]);
+                        setStripeBookingId(null);
+                    }}
+                    onSuccess={async () => {
+                        setStripeClientSecret(null);
+
+                        if (stripeBookingId !== null) {
+                            await bookingStore.refreshAfterPayment(stripeBookingId);
+                        } else {
+                            await Promise.all([
+                                bookingStore.init(),
+                                paymentStore.init(),
+                            ]);
+                        }
+
+                        await refreshWorktimes();
+                        setStripeBookingId(null);
                     }}
                     successTitle="Training Booked!"
                     successDescription="Your personal session has been successfully scheduled."

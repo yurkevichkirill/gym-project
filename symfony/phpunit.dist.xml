@@ -15,6 +15,11 @@
         <ini name="error_reporting" value="-1" />
         <server name="APP_ENV" value="test" force="true" />
         <server name="SHELL_VERBOSITY" value="-1" />
+        <server name="CORS_ALLOW_ORIGIN" value="^https://evogym\.local$" force="true" />
+        <server name="MINIO_ACCESS_KEY" value="test-minio-access-key" force="true" />
+        <server name="MINIO_SECRET_KEY" value="test-minio-secret-key" force="true" />
+        <server name="MINIO_BUCKET" value="test-evogym-bucket" force="true" />
+        <server name="MINIO_ENDPOINT" value="http://minio:9000" force="true" />
         <server name="STRIPE_SECRET_KEY" value="sk_test_functional" force="true" />
         <server name="STRIPE_WEBHOOK_SECRET" value="whsec_functional_test" force="true" />
     </php>

@@ -218,7 +218,7 @@ class PaymentStore {
     }
 
     public async refreshAfterStripeReturn(paymentId: number): Promise<void> {
-        for (let attempt = 0; attempt < 3; attempt += 1) {
+        for (let attempt = 0; attempt < 5; attempt += 1) {
             this.detailTask = null;
             await this.loadPayment(paymentId, PaymentScope.CLIENT);
 
@@ -226,7 +226,7 @@ class PaymentStore {
                 this.selectedPayment?.id !== paymentId
                 || this.selectedPaymentScope !== PaymentScope.CLIENT
                 || this.selectedPayment.status !== PaymentStatusEnum.PENDING
-                || attempt === 2
+                || attempt === 4
             ) {
                 break;
             }

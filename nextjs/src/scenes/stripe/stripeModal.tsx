@@ -6,7 +6,10 @@ import { FormEvent, useState } from "react";
 import { notify } from "@/lib/notify";
 import { getErrorMessage } from "@/lib/getErrorMessage";
 
-const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || "");
+const stripePublishableKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? "";
+const stripePromise = stripePublishableKey.length > 0 && !stripePublishableKey.includes("placeholder")
+    ? loadStripe(stripePublishableKey)
+    : Promise.resolve(null);
 
 const STRIPE_RETURN_PARAMS = [
     "payment_intent",
@@ -17,14 +20,14 @@ const STRIPE_RETURN_PARAMS = [
 type ModalProps = {
     clientSecret: string;
     onClose: () => void;
-    onSuccess: () => void;
+    onSuccess: () => void | Promise<void>;
     successTitle?: string;
     successDescription?: string;
 };
 
 const CheckoutForm = ({ onClose, onSuccess, successTitle, successDescription }: {
     onClose: () => void;
-    onSuccess: () => void;
+    onSuccess: () => void | Promise<void>;
     successTitle: string;
     successDescription: string;
 }) => {
@@ -72,7 +75,7 @@ const CheckoutForm = ({ onClose, onSuccess, successTitle, successDescription }: 
 
             if (paymentIntent.status === "succeeded") {
                 notify.success(successTitle, successDescription, toastId);
-                onSuccess();
+                await onSuccess();
 
                 return;
             }
@@ -124,18 +127,26 @@ const CheckoutForm = ({ onClose, onSuccess, successTitle, successDescription }: 
 };
 
 export const StripeModal = ({ clientSecret, onClose, onSuccess, successTitle, successDescription }: ModalProps) => {
+    const isStripeConfigured = stripePublishableKey.length > 0 && !stripePublishableKey.includes("placeholder");
+
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
             <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl">
                 <h3 className="text-2xl font-bold mb-4 text-gray-800">Secure Payment</h3>
-                <Elements stripe={stripePromise} options={{ clientSecret }}>
-                    <CheckoutForm
-                        onClose={onClose}
-                        onSuccess={onSuccess}
-                        successTitle={successTitle || "Payment successful!"}
-                        successDescription={successDescription || "Your order has been processed."}
-                    />
-                </Elements>
+                {!isStripeConfigured ? (
+                    <div className="rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-700" role="alert">
+                        Stripe is not configured for this frontend build. Set NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY and rebuild the app.
+                    </div>
+                ) : (
+                    <Elements stripe={stripePromise} options={{ clientSecret }}>
+                        <CheckoutForm
+                            onClose={onClose}
+                            onSuccess={onSuccess}
+                            successTitle={successTitle || "Payment successful!"}
+                            successDescription={successDescription || "Your order has been processed."}
+                        />
+                    </Elements>
+                )}
             </div>
         </div>
     );

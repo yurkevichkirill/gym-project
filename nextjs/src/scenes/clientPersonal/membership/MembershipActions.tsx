@@ -93,6 +93,7 @@ const MembershipActions = observer(({
     const { membershipStore } = useStore();
     const [pendingConfirmation, setPendingConfirmation] = useState<MembershipAction | null>(null);
     const [stripeClientSecret, setStripeClientSecret] = useState<string | null>(null);
+    const [stripeMembershipId, setStripeMembershipId] = useState<number | null>(null);
     const actions = getMembershipActions(status);
     const isMutating = membershipStore.isMutating(membershipId);
     const buttonSizeClassName = compact ? "px-3 py-1.5 text-xs" : "px-4 py-2 text-sm";
@@ -136,6 +137,7 @@ const MembershipActions = observer(({
 
             try {
                 const clientSecret = await createStripeIntent(membership.payment.id);
+                setStripeMembershipId(membership.id);
                 setStripeClientSecret(clientSecret);
             } catch (error: unknown) {
                 notify.error(
@@ -176,8 +178,11 @@ const MembershipActions = observer(({
     };
 
     const closeStripe = () => {
+        const membershipIdToRefresh = stripeMembershipId ?? membershipId;
+
         setStripeClientSecret(null);
-        void membershipStore.refreshAfterPayment(membershipId);
+        setStripeMembershipId(null);
+        void membershipStore.refreshAfterPayment(membershipIdToRefresh);
     };
 
     const confirmation = pendingConfirmation === null

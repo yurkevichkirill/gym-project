@@ -16,6 +16,7 @@ import { authStore } from "@/store/AuthStore";
 import { ApiClientError } from "@/lib/apiClient";
 import { ApiCollectionResponse } from "@/types/api-collection-response";
 import { BookingsGetQueryParams } from "@/types/booking/bookings-get.type";
+import { PaymentStatusEnum } from "@/types/payment/payment-status.enum";
 
 type BookingPagination = ApiCollectionResponse<BookingType[]>["meta"]["pagination"];
 
@@ -45,6 +46,10 @@ type BookingStorePrivateKey =
 
 const getErrorStatus = (error: unknown): number | null => {
     return error instanceof ApiClientError ? error.status : null;
+};
+
+const delay = (milliseconds: number): Promise<void> => {
+    return new Promise((resolve) => window.setTimeout(resolve, milliseconds));
 };
 
 class BookingStore {
@@ -213,6 +218,21 @@ class BookingStore {
     public async refreshAfterPayment(bookingId: number): Promise<void> {
         if (!authStore.isAuth) {
             return;
+        }
+
+        for (let attempt = 0; attempt < 5; attempt += 1) {
+            this.detailTask = null;
+            await this.loadBooking(bookingId);
+
+            if (
+                this.selectedBooking?.id !== bookingId
+                || this.selectedBooking.payment.status !== PaymentStatusEnum.PENDING
+                || attempt === 4
+            ) {
+                break;
+            }
+
+            await delay(1200);
         }
 
         await this.syncAfterMutation(bookingId);

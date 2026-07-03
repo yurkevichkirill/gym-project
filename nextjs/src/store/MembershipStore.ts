@@ -23,6 +23,7 @@ import { authStore } from "@/store/AuthStore";
 import { ApiClientError } from "@/lib/apiClient";
 import { ApiCollectionResponse } from "@/types/api-collection-response";
 import { MembershipsGetQueryParams } from "@/types/membership/memberships-get.type";
+import { PaymentStatusEnum } from "@/types/payment/payment-status.enum";
 
 type MembershipPagination = ApiCollectionResponse<MembershipType[]>["meta"]["pagination"];
 
@@ -58,6 +59,10 @@ const getErrorStatus = (error: unknown): number | null => {
 const shouldResynchronizeAfterError = (error: unknown): boolean => {
     return error instanceof ApiClientError
         && (error.status === 409 || error.status === 422);
+};
+
+const delay = (milliseconds: number): Promise<void> => {
+    return new Promise((resolve) => window.setTimeout(resolve, milliseconds));
 };
 
 class MembershipStore {
@@ -217,6 +222,23 @@ class MembershipStore {
     public async refreshAfterPayment(membershipId?: number): Promise<void> {
         if (!authStore.isAuth) {
             return;
+        }
+
+        if (membershipId !== undefined) {
+            for (let attempt = 0; attempt < 5; attempt += 1) {
+                this.detailTask = null;
+                await this.loadMembership(membershipId);
+
+                if (
+                    this.selectedMembership?.id !== membershipId
+                    || this.selectedMembership.payment.status !== PaymentStatusEnum.PENDING
+                    || attempt === 4
+                ) {
+                    break;
+                }
+
+                await delay(1200);
+            }
         }
 
         await this.syncAfterMutation(membershipId);

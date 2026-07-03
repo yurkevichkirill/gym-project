@@ -67,6 +67,8 @@ final readonly class StripeWebhookService
             return;
         }
 
+        $isSucceededPaymentIntent = $event->type === 'payment_intent.succeeded';
+
         try {
             switch ($event->type) {
                 case 'payment_intent.succeeded':
@@ -108,11 +110,19 @@ final readonly class StripeWebhookService
                     break;
             }
         } catch (PaymentNotFoundException $e) {
-            $this->logger->warning('Stripe webhook payment record not found; acknowledging event', [
+            $context = [
                 'type' => $event->type,
                 'intent_id' => $paymentIntentId,
                 'message' => $e->getMessage(),
-            ]);
+            ];
+
+            if ($isSucceededPaymentIntent) {
+                $this->logger->critical('Stripe webhook payment record not found for succeeded payment', $context);
+
+                throw $e;
+            }
+
+            $this->logger->warning('Stripe webhook payment record not found; acknowledging event', $context);
         } catch (Throwable $e) {
             $this->logger->error('Stripe webhook warning', [
                 'type' => $event->type,

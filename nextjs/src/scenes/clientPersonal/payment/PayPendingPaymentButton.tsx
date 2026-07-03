@@ -32,7 +32,7 @@ const PayPendingPaymentButton = observer(({ paymentId }: PayPendingPaymentButton
 
     const closeAndRefresh = () => {
         setClientSecret(null);
-        void paymentStore.loadPayment(paymentId);
+        void paymentStore.refreshAfterStripeReturn(paymentId);
     };
 
     return (

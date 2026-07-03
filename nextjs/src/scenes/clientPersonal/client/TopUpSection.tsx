@@ -14,6 +14,7 @@ export const TopUpSection = () => {
     const [amount, setAmount] = useState<string>("20");
     const [isLoading, setIsLoading] = useState(false);
     const [stripeClientSecret, setStripeClientSecret] = useState<string | null>(null);
+    const [stripePaymentId, setStripePaymentId] = useState<number | null>(null);
 
     const handleInitTopUp = async (event: React.FormEvent) => {
         event.preventDefault();
@@ -33,6 +34,7 @@ export const TopUpSection = () => {
             await paymentStore.init();
             const clientSecret = await createStripeIntent(payment.id);
 
+            setStripePaymentId(payment.id);
             setStripeClientSecret(clientSecret);
             setIsOpen(false);
             notify.dismiss(toastId);
@@ -124,13 +126,19 @@ export const TopUpSection = () => {
             {stripeClientSecret && (
                 <StripeModal
                     clientSecret={stripeClientSecret}
-                    onClose={() => setStripeClientSecret(null)}
-                    onSuccess={() => {
+                    onClose={() => {
                         setStripeClientSecret(null);
-                        void Promise.all([
-                            clientStore.init(),
-                            paymentStore.init(),
-                        ]);
+                        setStripePaymentId(null);
+                    }}
+                    onSuccess={async () => {
+                        setStripeClientSecret(null);
+
+                        if (stripePaymentId !== null) {
+                            await paymentStore.refreshAfterStripeReturn(stripePaymentId);
+                        }
+
+                        await clientStore.init();
+                        setStripePaymentId(null);
                     }}
                     successTitle="Balance Topped Up!"
                     successDescription="Transaction successful. Your balance and payment history are being refreshed."
