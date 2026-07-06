@@ -183,6 +183,12 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
 
+    env:
+      JWT_PASSPHRASE: ci-passphrase
+      STRIPE_SECRET_KEY: sk_test_ci
+      STRIPE_PUBLIC_KEY: pk_test_ci
+      STRIPE_WEBHOOK_SECRET: whsec_ci
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
