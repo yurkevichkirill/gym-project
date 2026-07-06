@@ -9,10 +9,7 @@ use App\Membership\Mapper\MembershipMapperInterface;
 use App\Membership\Repository\MembershipRepository;
 use App\Request\SortParser;
 use Doctrine\ORM\QueryBuilder;
-use Psr\Cache\InvalidArgumentException;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
-use Symfony\Contracts\Cache\ItemInterface;
-use Symfony\Contracts\Cache\TagAwareCacheInterface;
 
 final readonly class MembershipQuery
 {
@@ -23,52 +20,38 @@ final readonly class MembershipQuery
     public function __construct(
         private MembershipRepository $membershipRepo,
         private MembershipMapperInterface $mapper,
-        private TagAwareCacheInterface $cache,
     )
     {}
 
     /**
      * @param array<string, string> $parsedSort
      * @return array{items: list<mixed>, total: int}
-     * @throws InvalidArgumentException
      */
-    public function getCachedData(ResolvedMembershipsRequestDTO $dto, array $parsedSort): array
+    public function getData(ResolvedMembershipsRequestDTO $dto, array $parsedSort): array
     {
-        $cacheKey = $this->generateCacheKey($dto);
+        $qb = $this->createQuery($dto);
 
-        return $this->cache->get($cacheKey, function (ItemInterface $item) use ($dto, $parsedSort): array {
-            $item->expiresAfter(3600);
+        $totalQb = $this->createQuery($dto, true);
+        $total = (int) $totalQb->select('COUNT(m.id)')->getQuery()->getSingleScalarResult();
 
-            if ($dto->client !== null) {
-                $item->tag(['memberships_list_' . $dto->client->getId()]);
-            } else {
-                $item->tag(['memberships_list_all']);
-            }
+        $offset = ($dto->page - 1) * $dto->limit;
 
-            $qb = $this->createQuery($dto);
+        foreach ($parsedSort as $alias => $order) {
+            $field = self::SORT_MAP[$alias] ?? "m.$alias";
+            $qb->addOrderBy($field, $order);
+        }
 
-            $totalQb = $this->createQuery($dto, true);
-            $total = (int) $totalQb->select('COUNT(m.id)')->getQuery()->getSingleScalarResult();
+        $qb->setFirstResult($offset)
+            ->setMaxResults($dto->limit);
 
-            $offset = ($dto->page - 1) * $dto->limit;
+        $memberships = $qb->getQuery()->getResult();
 
-            foreach ($parsedSort as $alias => $order) {
-                $field = self::SORT_MAP[$alias] ?? "m.$alias";
-                $qb->addOrderBy($field, $order);
-            }
+        $items = array_map(fn ($membership) => $this->mapper->map($membership), $memberships);
 
-            $qb->setFirstResult($offset)
-                ->setMaxResults($dto->limit);
-
-            $memberships = $qb->getQuery()->getResult();
-
-            $items = array_map(fn ($membership) => $this->mapper->map($membership), $memberships);
-
-            return [
-                'items' => $items,
-                'total' => $total,
-            ];
-        });
+        return [
+            'items' => $items,
+            'total' => $total,
+        ];
     }
 
     private function createQuery(ResolvedMembershipsRequestDTO $dto, bool $isCount = false): QueryBuilder
@@ -118,21 +101,4 @@ final readonly class MembershipQuery
         return SortParser::parseSort($dto->sort, ResolvedMembershipsRequestDTO::ALLOWED_SORT_FIELDS);
     }
 
-    private function generateCacheKey(ResolvedMembershipsRequestDTO $dto): string
-    {
-        $params = [
-            'sort' => $dto->sort,
-            'page' => $dto->page,
-            'limit' => $dto->limit,
-            'clientId' => $dto->client?->getId(),
-            'membershipPlanId' => $dto->membershipPlan?->getId(),
-            'status' => $dto->status,
-            'minVisits' => $dto->minVisits,
-            'maxVisits' => $dto->maxVisits,
-        ];
-
-        $encoded = json_encode($params);
-
-        return 'memberships_' . hash('sha256', $encoded === false ? '' : $encoded);
-    }
 }

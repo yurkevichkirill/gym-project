@@ -102,13 +102,13 @@ final class MembershipController extends AbstractController
     ): CollectionResponse {
         $parsedSort = $handler->getParsedSort($resolvedDto);
 
-        $cachedData = $handler->getCachedData($resolvedDto, $parsedSort);
+        $data = $handler->getData($resolvedDto, $parsedSort);
 
         return new CollectionResponse(
-            $cachedData['items'],
+            $data['items'],
             $resolvedDto->page,
             $resolvedDto->limit,
-            $cachedData['total'],
+            $data['total'],
             $parsedSort,
             Response::HTTP_OK,
         );
