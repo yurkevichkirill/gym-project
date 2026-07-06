@@ -167,11 +167,13 @@ class BookingStore {
             const booking = await createBooking(payload);
 
             if (generation === this.generation && authStore.isAuth) {
+                this.applyMutationResponse(booking);
+
                 runInAction(() => {
                     this.availabilityRevision += 1;
                 });
 
-                await this.syncAfterMutation();
+                await this.syncAfterMutation(booking.id);
             }
 
             return booking;
@@ -248,6 +250,8 @@ class BookingStore {
             const booking = await cancelBooking(id);
 
             if (generation === this.generation && authStore.isAuth) {
+                this.applyMutationResponse(booking);
+
                 runInAction(() => {
                     this.availabilityRevision += 1;
                 });
@@ -268,6 +272,30 @@ class BookingStore {
 
             throw error;
         }
+    }
+
+    private applyMutationResponse(booking: BookingType): void {
+        this.listRequestId += 1;
+
+        if (this.selectedBooking?.id === booking.id) {
+            this.detailRequestId += 1;
+        }
+
+        runInAction(() => {
+            const index = this.bookings.findIndex((item) => item.id === booking.id);
+
+            if (index === -1) {
+                this.bookings = [booking, ...this.bookings];
+            } else {
+                this.bookings = this.bookings.map((item) => (
+                    item.id === booking.id ? booking : item
+                ));
+            }
+
+            if (this.selectedBooking?.id === booking.id) {
+                this.selectedBooking = booking;
+            }
+        });
     }
 
     private async syncAfterMutation(bookingId?: number): Promise<void> {

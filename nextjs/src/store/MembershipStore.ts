@@ -283,6 +283,7 @@ class MembershipStore {
             const membership = await buyMembership(payload);
 
             if (generation === this.generation && authStore.isAuth) {
+                this.applyMutationResponse(membership);
                 await this.syncAfterMutation();
             }
 
@@ -310,6 +311,7 @@ class MembershipStore {
             const membership = await request();
 
             if (generation === this.generation && authStore.isAuth) {
+                this.applyMutationResponse(membership);
                 await this.syncAfterMutation(membershipId);
             }
 
@@ -325,6 +327,30 @@ class MembershipStore {
 
             throw error;
         }
+    }
+
+    private applyMutationResponse(membership: MembershipType): void {
+        this.listRequestId += 1;
+
+        if (this.selectedMembership?.id === membership.id) {
+            this.detailRequestId += 1;
+        }
+
+        runInAction(() => {
+            const index = this.memberships.findIndex((item) => item.id === membership.id);
+
+            if (index === -1) {
+                this.memberships = [membership, ...this.memberships];
+            } else {
+                this.memberships = this.memberships.map((item) => (
+                    item.id === membership.id ? membership : item
+                ));
+            }
+
+            if (this.selectedMembership?.id === membership.id) {
+                this.selectedMembership = membership;
+            }
+        });
     }
 
     private async syncAfterMutation(membershipId?: number): Promise<void> {
