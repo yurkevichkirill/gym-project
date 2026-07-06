@@ -10,6 +10,14 @@ import {trainerStore} from "@/store/TrainerStore";
 import {trainerWorktimeStore} from "@/store/TrainerWorktimeStore";
 import {trainerTrainingStore} from "@/store/TrainerTrainingStore";
 import {adminClientsStore} from "@/store/admin/AdminClientsStore";
+import {adminTrainersStore} from "@/store/admin/AdminTrainersStore";
+import {adminBookingsStore} from "@/store/admin/AdminBookingsStore";
+import {adminMembershipsStore} from "@/store/admin/AdminMembershipsStore";
+import {adminMembershipPlansStore} from "@/store/admin/AdminMembershipPlansStore";
+import {adminPaymentsStore} from "@/store/admin/AdminPaymentsStore";
+import {adminTrainingTypesStore} from "@/store/admin/AdminTrainingTypesStore";
+import {adminTrainingsStore} from "@/store/admin/AdminTrainingsStore";
+import {adminWorktimesStore} from "@/store/admin/AdminWorktimesStore";
 
 interface StoreContextType {
     authStore: typeof authStore;
@@ -21,6 +29,14 @@ interface StoreContextType {
     membershipStore: typeof membershipStore;
     paymentStore: typeof paymentStore;
     adminClientsStore: typeof adminClientsStore;
+    adminTrainersStore: typeof adminTrainersStore;
+    adminBookingsStore: typeof adminBookingsStore;
+    adminMembershipsStore: typeof adminMembershipsStore;
+    adminMembershipPlansStore: typeof adminMembershipPlansStore;
+    adminPaymentsStore: typeof adminPaymentsStore;
+    adminTrainingTypesStore: typeof adminTrainingTypesStore;
+    adminTrainingsStore: typeof adminTrainingsStore;
+    adminWorktimesStore: typeof adminWorktimesStore;
 }
 
 const resetUserStores = (): void => {
@@ -32,6 +48,14 @@ const resetUserStores = (): void => {
     membershipStore.reset();
     paymentStore.reset();
     adminClientsStore.reset();
+    adminTrainersStore.reset();
+    adminBookingsStore.reset();
+    adminMembershipsStore.reset();
+    adminMembershipPlansStore.reset();
+    adminPaymentsStore.reset();
+    adminTrainingTypesStore.reset();
+    adminTrainingsStore.reset();
+    adminWorktimesStore.reset();
 };
 
 authStore.configureUserStoresReset(resetUserStores);
@@ -58,6 +82,14 @@ export const StoreProvider = ({
             membershipStore,
             paymentStore,
             adminClientsStore,
+            adminTrainersStore,
+            adminBookingsStore,
+            adminMembershipsStore,
+            adminMembershipPlansStore,
+            adminPaymentsStore,
+            adminTrainingTypesStore,
+            adminTrainingsStore,
+            adminWorktimesStore,
         }}>
             {children}
         </StoreContext.Provider>

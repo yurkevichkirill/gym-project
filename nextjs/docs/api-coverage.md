@@ -59,25 +59,81 @@ Blocker:
 | Trainer worktimes | list/create/update/delete | COMPLETE |
 | Trainer trainings | list/detail/update/cancel/complete | COMPLETE |
 | Trainer payments | list/detail | PARTIAL in `main`; dedicated route handled by PR #33 |
-| Admin clients | list/detail/create/update/delete/restore/block/unblock/visit/import | COMPLETE for synchronous client endpoints; import progress BLOCKED_BY_API |
-| Admin trainers | list/detail/create/update/photo/delete/restore/block/unblock | MISSING |
-| Admin bookings | list/detail/create-for-client/cancel; `/api/coffee/` admin/debug route | MISSING |
-| Admin memberships | list/detail/create-for-client/cancel/freeze/unfreeze/renew/terminate | MISSING |
-| Admin membership plans | create/update/delete | MISSING |
-| Admin payments | list/detail | MISSING |
-| Admin training types | create/update/photo/delete | MISSING |
-| Admin trainings | list/update/cancel/complete | MISSING |
-| Admin worktimes | create/update/delete | MISSING |
+| Admin clients | list/detail/create/update/delete/restore/block/unblock/visit/import plus create booking and assign membership on detail | COMPLETE for synchronous client endpoints; import progress BLOCKED_BY_API |
+| Admin trainers | list/detail/create/update/photo/delete/restore/block/unblock | COMPLETE |
+| Admin worktimes | list/create/update/delete scoped to trainer detail | COMPLETE |
+| Admin bookings | list/detail/create-for-client/cancel; `/api/coffee/` admin/debug route | COMPLETE for business endpoints; `/api/coffee/` NOT_FOR_FRONTEND |
+| Admin memberships | list/detail/create-for-client/cancel/freeze/unfreeze/renew/terminate | COMPLETE |
+| Admin membership plans | list/detail/create/update/delete | COMPLETE |
+| Admin payments | list/detail | COMPLETE |
+| Admin training types | list/detail/create/update/photo/delete | COMPLETE |
+| Admin trainings | list/update/cancel/complete | COMPLETE; no detail route because backend has no admin GET by ID |
+
+## Admin Cabinet Coverage
+
+| Endpoint | Symfony controller | Request DTO | Response DTO | Frontend route | Scene/component | Store | API wrapper | Status |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `GET /api/admin/trainers/` | `Admin/TrainerController.php` | `ResolvedTrainersRequestAdminDTO` | `CollectionResponse<TrainerResponsePrivateDTO>` | `/admin/trainers` | `AdminTrainersPage` | `AdminTrainersStore` | `getAdminTrainers` | COMPLETE |
+| `GET /api/admin/trainers/{id}/` | `Admin/TrainerController.php` | route id | `ItemResponse<TrainerResponsePrivateDTO>` | `/admin/trainers/[id]` | `AdminTrainerDetailsPage` | `AdminTrainersStore` | `getAdminTrainer` | COMPLETE |
+| `POST /api/trainers/` | `Admin/TrainerController.php` | `CreateTrainerRequestDTO` | `ItemResponse<TrainerResponsePrivateDTO>` | `/admin/trainers` | `AdminTrainerCreateForm` | `AdminTrainersStore` | `createAdminTrainer` | COMPLETE |
+| `PATCH /api/trainers/{id}/` | `Admin/TrainerController.php` | `AdminUpdateTrainerRequestDTO` | `ItemResponse<TrainerResponsePrivateDTO>` | `/admin/trainers/[id]` | `AdminTrainerDetailsPage` | `AdminTrainersStore` | `updateAdminTrainer` | COMPLETE |
+| `POST /api/trainers/{id}/photo/` | `Admin/TrainerController.php` | multipart `photo` | `ItemResponse<TrainerResponsePrivateDTO>` | `/admin/trainers/[id]` | `AdminTrainerDetailsPage` | `AdminTrainersStore` | `uploadAdminTrainerPhoto` | COMPLETE |
+| `DELETE /api/trainers/{id}/` | `Admin/TrainerController.php` | route id | `204` | `/admin/trainers` | `AdminTrainersPage` | `AdminTrainersStore` | `deleteAdminTrainer` | COMPLETE |
+| `POST /api/trainers/{id}/restore/` | `Admin/TrainerController.php` | route id | `ItemResponse<TrainerResponsePrivateDTO>` | `/admin/trainers` | `AdminTrainersPage` | `AdminTrainersStore` | `restoreAdminTrainer` | COMPLETE |
+| `POST /api/trainers/{id}/block/` | `Admin/TrainerController.php` | route id | `ItemResponse<TrainerResponsePrivateDTO>` | `/admin/trainers` | `AdminTrainersPage` | `AdminTrainersStore` | `blockAdminTrainer` | COMPLETE |
+| `POST /api/trainers/{id}/unblock/` | `Admin/TrainerController.php` | route id | `ItemResponse<TrainerResponsePrivateDTO>` | `/admin/trainers` | `AdminTrainersPage` | `AdminTrainersStore` | `unblockAdminTrainer` | COMPLETE |
+| `GET /api/worktime/` | `Public/TrainerWorkTimeController.php` | `ResolvedWorktimesRequestDTO` | `CollectionResponse<WorkTimeResponseDTO>` | `/admin/trainers/[id]` | `AdminTrainerDetailsPage` | `AdminWorktimesStore` | `getAdminWorktimes` | COMPLETE |
+| `GET /api/worktime/{id}/` | `Public/TrainerWorkTimeController.php` | route id | `ItemResponse<WorkTimeResponseDTO>` | n/a | n/a | n/a | n/a | PARTIAL |
+| `POST /api/trainers/{id}/worktime/` | `Admin/TrainerWorkTimeController.php` | `CreateWorkTimeRequestDTO` | `ItemResponse<WorkTimeResponseDTO>` | `/admin/trainers/[id]` | `AdminTrainerDetailsPage` | `AdminWorktimesStore` | `createAdminTrainerWorktime` | COMPLETE |
+| `PATCH /api/admin/worktime/{id}/` | `Admin/TrainerWorkTimeController.php` | `UpdateWorkTimeRequestDTO` | `ItemResponse<WorkTimeResponseDTO>` | `/admin/trainers/[id]` | `AdminTrainerDetailsPage` | `AdminWorktimesStore` | `updateAdminWorktime` | COMPLETE |
+| `DELETE /api/admin/worktime/{id}/` | `Admin/TrainerWorkTimeController.php` | route id | `204` | `/admin/trainers/[id]` | `AdminTrainerDetailsPage` | `AdminWorktimesStore` | `deleteAdminWorktime` | COMPLETE |
+| `GET /api/bookings/` | `Admin/BookingController.php` | `ResolvedBookingsRequestDTO` | `CollectionResponse<BookingAdminResponseDTO>` | `/admin/bookings` | `AdminBookingsPage` | `AdminBookingsStore` | `getAdminBookings` | COMPLETE |
+| `GET /api/bookings/{id}/` | `Admin/BookingController.php` | route id | `ItemResponse<BookingAdminResponseDTO>` | `/admin/bookings/[id]` | `AdminBookingDetailsPage` | `AdminBookingsStore` | `getAdminBooking` | COMPLETE |
+| `POST /api/clients/{id}/bookings/` | `Admin/BookingController.php` | `BookingRequestDTO` | `ItemResponse<BookingAdminResponseDTO>` | `/admin/clients/[id]` | `AdminClientDetailsPage` | `AdminBookingsStore` | `createAdminClientBooking` | COMPLETE |
+| `POST /api/bookings/{id}/cancel/` | `Admin/BookingController.php` | route id | `ItemResponse<BookingAdminResponseDTO>` | `/admin/bookings`, `/admin/bookings/[id]` | `AdminBookingsPage`, `AdminBookingDetailsPage` | `AdminBookingsStore` | `cancelAdminBooking` | COMPLETE |
+| `GET/POST /api/coffee/` | `Admin/BookingController.php` | n/a | debug response | n/a | n/a | n/a | n/a | NOT_FOR_FRONTEND |
+| `GET /api/memberships/` | `Admin/MembershipController.php` | `ResolvedMembershipsRequestDTO` | `CollectionResponse<MembershipResponseDTO>` | `/admin/memberships` | `AdminMembershipsPage` | `AdminMembershipsStore` | `getAdminMemberships` | COMPLETE |
+| `GET /api/memberships/{id}/` | `Admin/MembershipController.php` | route id | `ItemResponse<MembershipResponseDTO>` | `/admin/memberships/[id]` | `AdminMembershipDetailsPage` | `AdminMembershipsStore` | `getAdminMembership` | COMPLETE |
+| `POST /api/clients/{id}/membership/` | `Admin/MembershipController.php` | `CreateMembershipRequestDTO` | `ItemResponse<MembershipResponseDTO>` | `/admin/clients/[id]` | `AdminClientDetailsPage` | `AdminMembershipsStore` | `createAdminClientMembership` | COMPLETE |
+| `POST /api/memberships/{id}/cancel/` | `Admin/MembershipController.php` | route id | `ItemResponse<MembershipResponseDTO>` | `/admin/memberships`, `/admin/memberships/[id]` | membership pages | `AdminMembershipsStore` | `cancelAdminMembership` | COMPLETE |
+| `POST /api/memberships/{id}/freeze/` | `Admin/MembershipController.php` | route id | `ItemResponse<MembershipResponseDTO>` | `/admin/memberships`, `/admin/memberships/[id]` | membership pages | `AdminMembershipsStore` | `freezeAdminMembership` | COMPLETE |
+| `POST /api/memberships/{id}/unfreeze/` | `Admin/MembershipController.php` | route id | `ItemResponse<MembershipResponseDTO>` | `/admin/memberships`, `/admin/memberships/[id]` | membership pages | `AdminMembershipsStore` | `unfreezeAdminMembership` | COMPLETE |
+| `POST /api/memberships/{id}/renew/` | `Admin/MembershipController.php` | route id | `ItemResponse<MembershipResponseDTO>` | `/admin/memberships`, `/admin/memberships/[id]` | membership pages | `AdminMembershipsStore` | `renewAdminMembership` | COMPLETE |
+| `POST /api/memberships/{id}/terminate/` | `Admin/MembershipController.php` | route id | `ItemResponse<MembershipResponseDTO>` | `/admin/memberships`, `/admin/memberships/[id]` | membership pages | `AdminMembershipsStore` | `terminateAdminMembership` | COMPLETE |
+| `GET /api/membership/plans/` | `Public/MembershipPlanController.php` | `GetMembershipPlansRequestDTO` | `CollectionResponse<MembershipPlanResponseDTO>` | `/admin/membership-plans` | `AdminMembershipPlansPage` | `AdminMembershipPlansStore` | `getAdminMembershipPlans` | COMPLETE |
+| `GET /api/membership/plans/{id}/` | `Public/MembershipPlanController.php` | route id | `ItemResponse<MembershipPlanResponseDTO>` | `/admin/membership-plans/[id]` | `AdminMembershipPlanDetailsPage` | `AdminMembershipPlansStore` | `getAdminMembershipPlan` | COMPLETE |
+| `POST /api/membership/plans/` | `Admin/MembershipPlanController.php` | `CreateMembershipPlanRequestDTO` | `ItemResponse<MembershipPlanResponseDTO>` | `/admin/membership-plans` | `AdminPlanCreateForm` | `AdminMembershipPlansStore` | `createAdminMembershipPlan` | COMPLETE |
+| `PATCH /api/membership/plans/{id}/` | `Admin/MembershipPlanController.php` | `UpdateMembershipPlanRequestDTO` | `ItemResponse<MembershipPlanResponseDTO>` | `/admin/membership-plans/[id]` | `AdminMembershipPlanDetailsPage` | `AdminMembershipPlansStore` | `updateAdminMembershipPlan` | COMPLETE |
+| `DELETE /api/membership/plans/{id}/` | `Admin/MembershipPlanController.php` | route id | `204` | `/admin/membership-plans` | `AdminMembershipPlansPage` | `AdminMembershipPlansStore` | `deleteAdminMembershipPlan` | COMPLETE |
+| `GET /api/payments/` | `Admin/PaymentController.php` | `ResolvedPaymentsRequestDTO` | `CollectionResponse<PaymentResponseDTO>` | `/admin/payments` | `AdminPaymentsPage` | `AdminPaymentsStore` | `getAdminPayments` | COMPLETE |
+| `GET /api/payments/{id}/` | `Admin/PaymentController.php` | route id | `ItemResponse<PaymentResponseDTO>` | `/admin/payments/[id]` | `AdminPaymentDetailsPage` | `AdminPaymentsStore` | `getAdminPayment` | COMPLETE |
+| `GET /api/training/types/` | `Public/TrainingTypeController.php` | `GetTrainingTypesRequestDTO` | `CollectionResponse<TrainingTypeResponseDTO>` | `/admin/training-types` | `AdminTrainingTypesPage` | `AdminTrainingTypesStore` | `getAdminTrainingTypes` | COMPLETE |
+| `GET /api/training/types/{id}/` | `Public/TrainingTypeController.php` | route id | `ItemResponse<TrainingTypeResponseDTO>` | `/admin/training-types/[id]` | `AdminTrainingTypeDetailsPage` | `AdminTrainingTypesStore` | `getAdminTrainingType` | COMPLETE |
+| `POST /api/training/types/` | `Admin/TrainingTypeController.php` | `CreateTrainingTypeRequestDTO` | `ItemResponse<TrainingTypeResponseDTO>` | `/admin/training-types` | `AdminTrainingTypeCreateForm` | `AdminTrainingTypesStore` | `createAdminTrainingType` | COMPLETE |
+| `PATCH /api/training/types/{id}/` | `Admin/TrainingTypeController.php` | `UpdateTrainingTypeRequestDTO` | `ItemResponse<TrainingTypeResponseDTO>` | `/admin/training-types/[id]` | `AdminTrainingTypeDetailsPage` | `AdminTrainingTypesStore` | `updateAdminTrainingType` | COMPLETE |
+| `POST /api/training/types/{id}/photo/` | `Admin/TrainingTypeController.php` | multipart `photo` | `ItemResponse<TrainingTypeResponseDTO>` | `/admin/training-types/[id]` | `AdminTrainingTypeDetailsPage` | `AdminTrainingTypesStore` | `uploadAdminTrainingTypePhoto` | COMPLETE |
+| `DELETE /api/training/types/{id}/` | `Admin/TrainingTypeController.php` | route id | `204` | `/admin/training-types` | `AdminTrainingTypesPage` | `AdminTrainingTypesStore` | `deleteAdminTrainingType` | COMPLETE |
+| `GET /api/admin/trainings/` | `Admin/TrainingController.php` | `ResolvedTrainingsRequestDTO` | `CollectionResponse<TrainingResponseDTO>` | `/admin/trainings` | `AdminTrainingsPage` | `AdminTrainingsStore` | `getAdminTrainings` | COMPLETE |
+| `PATCH /api/admin/trainings/{id}/` | `Admin/TrainingController.php` | `TrainingUpdateRequestDTO` | `ItemResponse<TrainingResponseDTO>` | `/admin/trainings` | `AdminTrainingsPage` | `AdminTrainingsStore` | `updateAdminTraining` | COMPLETE |
+| `POST /api/admin/trainings/{id}/cancel/` | `Admin/TrainingController.php` | route id | `ItemResponse<TrainingResponseDTO>` | `/admin/trainings` | `AdminTrainingsPage` | `AdminTrainingsStore` | `cancelAdminTraining` | COMPLETE |
+| `POST /api/admin/trainings/{id}/complete/` | `Admin/TrainingController.php` | route id | `ItemResponse<TrainingResponseDTO>` | `/admin/trainings` | `AdminTrainingsPage` | `AdminTrainingsStore` | `completeAdminTraining` | COMPLETE |
+
+Contract notes:
+
+- Admin list filters, sorting, page and limit are stored in URL query parameters.
+- Empty query values are omitted before API calls.
+- Boolean filters serialize only as `true` or `false` when selected.
+- Photo/image uploads use multipart field `photo` and do not set `Content-Type` manually.
+- Mutations synchronize from the response or refetch authoritative backend data; critical optimistic updates are not used.
+- Training detail route is intentionally absent because `Admin/TrainingController.php` exposes no admin GET by ID.
+- Import progress remains `BLOCKED_BY_API` because no user-facing import job status endpoint exists.
 
 ## Not For Frontend
 
 | Endpoint or operation | Reason | Status |
 | --- | --- | --- |
 | `POST /api/webhooks/stripe/` | Stripe server-to-server webhook; browser must never call it | NOT_FOR_FRONTEND |
+| `GET/POST /api/coffee/` | debug/easter-egg route, not an administrative business function | NOT_FOR_FRONTEND |
 | Messenger handlers under `symfony/src/*/MessageHandler` | async backend processing only | NOT_FOR_FRONTEND |
 | CLI commands under `symfony/src/*/Command` and scheduled cleanup | operational backend tasks only | NOT_FOR_FRONTEND |
 | Import processing internals under `ImportJob*` services/handlers | backend-only; only queue endpoint is browser-facing | NOT_FOR_FRONTEND |
-
-## Next Recommended Domain
-
-Admin trainers: it mirrors admin client account management and adds trainer photo upload, so it should be handled in a separate PR.
