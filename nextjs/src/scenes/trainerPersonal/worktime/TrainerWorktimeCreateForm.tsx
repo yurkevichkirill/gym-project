@@ -2,6 +2,7 @@
 
 import { ApiClientError } from "@/lib/apiClient";
 import { notify } from "@/lib/notify";
+import { primaryActionClassName, previewCardClassName, secondaryActionClassName } from "@/shared/Section";
 import { getTrainerWorktimeMutationErrorMessage } from "@/scenes/trainerPersonal/worktime/worktime-mutation-error";
 import { useStore } from "@/store/StoreProvider";
 import { TrainerWorktimeCreatePayload } from "@/types/trainer/private/trainer-worktime.type";
@@ -21,6 +22,10 @@ const isCreateField = (
         || propertyPath === "startTime"
         || propertyPath === "endTime";
 };
+
+const inputClassName = "w-full rounded-md border border-gray-100 bg-gray-20 px-3 py-2 font-normal text-gray-500 transition focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20 disabled:cursor-not-allowed disabled:opacity-60";
+const inputErrorClassName = "border-primary-500 focus:border-primary-500 focus:ring-primary-500/20";
+const fieldClassName = "flex flex-col gap-2 text-sm font-semibold text-gray-500";
 
 const TrainerWorktimeCreateForm = observer(() => {
     const { trainerWorktimeStore } = useStore();
@@ -97,9 +102,9 @@ const TrainerWorktimeCreateForm = observer(() => {
     const isBusy = isSubmitting || trainerWorktimeStore.isMutating;
 
     return (
-        <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm sm:p-8">
-            <h3 className="text-2xl font-bold">Create worktime</h3>
-            <p className="mt-2 text-sm text-gray-600">
+        <section className={previewCardClassName}>
+            <h3 className="text-xl font-bold text-gray-500">Create worktime</h3>
+            <p className="mt-2 text-sm text-gray-500">
                 The backend accepts one interval per trainer and date. Times are sent without browser timezone conversion.
             </p>
 
@@ -108,16 +113,13 @@ const TrainerWorktimeCreateForm = observer(() => {
                 onSubmit={handleSubmit(onSubmit)}
                 noValidate
             >
-                <div>
-                    <label htmlFor="trainer-worktime-date" className="mb-1 block font-medium">
-                        Date
-                    </label>
+                <label htmlFor="trainer-worktime-date" className={fieldClassName}>
+                    Date
                     <input
                         id="trainer-worktime-date"
                         type="date"
-                        className={`w-full rounded-md border px-3 py-2 outline-none ${
-                            errors.date ? "border-primary-500" : "border-secondary-500"
-                        }`}
+                        className={`${inputClassName} ${errors.date ? inputErrorClassName : ""}`}
+                        disabled={isBusy}
                         aria-invalid={errors.date ? "true" : "false"}
                         aria-describedby={errors.date ? "trainer-worktime-date-error" : undefined}
                         {...register("date", {
@@ -125,27 +127,24 @@ const TrainerWorktimeCreateForm = observer(() => {
                         })}
                     />
                     {errors.date && (
-                        <p
+                        <span
                             id="trainer-worktime-date-error"
-                            className="mt-1 text-sm text-primary-500"
+                            className="font-normal text-primary-500"
                             role="alert"
                         >
                             {errors.date.message}
-                        </p>
+                        </span>
                     )}
-                </div>
+                </label>
 
-                <div>
-                    <label htmlFor="trainer-worktime-start" className="mb-1 block font-medium">
-                        Start time
-                    </label>
+                <label htmlFor="trainer-worktime-start" className={fieldClassName}>
+                    Start time
                     <input
                         id="trainer-worktime-start"
                         type="time"
                         step={60}
-                        className={`w-full rounded-md border px-3 py-2 outline-none ${
-                            errors.startTime ? "border-primary-500" : "border-secondary-500"
-                        }`}
+                        className={`${inputClassName} ${errors.startTime ? inputErrorClassName : ""}`}
+                        disabled={isBusy}
                         aria-invalid={errors.startTime ? "true" : "false"}
                         aria-describedby={errors.startTime ? "trainer-worktime-start-error" : undefined}
                         {...register("startTime", {
@@ -153,27 +152,24 @@ const TrainerWorktimeCreateForm = observer(() => {
                         })}
                     />
                     {errors.startTime && (
-                        <p
+                        <span
                             id="trainer-worktime-start-error"
-                            className="mt-1 text-sm text-primary-500"
+                            className="font-normal text-primary-500"
                             role="alert"
                         >
                             {errors.startTime.message}
-                        </p>
+                        </span>
                     )}
-                </div>
+                </label>
 
-                <div>
-                    <label htmlFor="trainer-worktime-end" className="mb-1 block font-medium">
-                        End time
-                    </label>
+                <label htmlFor="trainer-worktime-end" className={fieldClassName}>
+                    End time
                     <input
                         id="trainer-worktime-end"
                         type="time"
                         step={60}
-                        className={`w-full rounded-md border px-3 py-2 outline-none ${
-                            errors.endTime ? "border-primary-500" : "border-secondary-500"
-                        }`}
+                        className={`${inputClassName} ${errors.endTime ? inputErrorClassName : ""}`}
+                        disabled={isBusy}
                         aria-invalid={errors.endTime ? "true" : "false"}
                         aria-describedby={errors.endTime ? "trainer-worktime-end-error" : undefined}
                         {...register("endTime", {
@@ -186,15 +182,15 @@ const TrainerWorktimeCreateForm = observer(() => {
                         })}
                     />
                     {errors.endTime && (
-                        <p
+                        <span
                             id="trainer-worktime-end-error"
-                            className="mt-1 text-sm text-primary-500"
+                            className="font-normal text-primary-500"
                             role="alert"
                         >
                             {errors.endTime.message}
-                        </p>
+                        </span>
                     )}
-                </div>
+                </label>
 
                 {errors.root?.server && (
                     <p className="text-sm text-primary-500 md:col-span-3" role="alert">
@@ -206,14 +202,14 @@ const TrainerWorktimeCreateForm = observer(() => {
                     <button
                         type="submit"
                         disabled={isBusy}
-                        className="rounded-md bg-secondary-500 px-5 py-2 font-semibold transition hover:bg-primary-500 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+                        className={primaryActionClassName}
                     >
                         {trainerWorktimeStore.isCreating ? "Creating..." : "Create worktime"}
                     </button>
                     <button
                         type="button"
                         disabled={isBusy}
-                        className="rounded-md border border-gray-300 bg-white px-5 py-2 font-semibold transition hover:border-secondary-500 disabled:cursor-not-allowed disabled:opacity-50"
+                        className={secondaryActionClassName}
                         onClick={() => reset()}
                     >
                         Reset

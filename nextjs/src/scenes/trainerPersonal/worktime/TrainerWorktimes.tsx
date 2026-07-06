@@ -7,6 +7,11 @@ import {
 } from "@/api/trainer/worktime.api";
 import TrainerWorktimeCard from "@/scenes/trainerPersonal/worktime/TrainerWorktimeCard";
 import TrainerWorktimeCreateForm from "@/scenes/trainerPersonal/worktime/TrainerWorktimeCreateForm";
+import Section, {
+    errorStateClassName,
+    primaryActionClassName,
+    secondaryActionClassName,
+} from "@/shared/Section";
 import EmptyState from "@/shared/ui/EmptyState";
 import ErrorState from "@/shared/ui/ErrorState";
 import LoadingState from "@/shared/ui/LoadingState";
@@ -17,6 +22,9 @@ import { observer } from "mobx-react-lite";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useEffect, useMemo } from "react";
 import { useForm } from "react-hook-form";
+
+const inputClassName = "rounded-md border border-gray-100 bg-gray-20 px-3 py-2 font-normal text-gray-500 transition placeholder:text-gray-500/60 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20 disabled:cursor-not-allowed disabled:opacity-60";
+const fieldClassName = "flex flex-col gap-2 text-sm font-semibold text-gray-500";
 
 const SORT_OPTIONS = [
     { value: "date:ASC", label: "Date (earliest first)" },
@@ -141,32 +149,25 @@ const TrainerWorktimes = observer(() => {
     const pagination = trainerWorktimeStore.pagination;
 
     return (
-        <section className="rounded-2xl bg-gray-50 p-5 sm:p-8">
-            <div className="max-w-3xl">
-                <p className="text-sm font-semibold uppercase tracking-wider text-secondary-500">
-                    Trainer-owned schedule
-                </p>
-                <h2 className="mt-2 text-3xl font-bold">Worktimes</h2>
-                <p className="mt-3 text-gray-600">
-                    Create and manage only your own worktimes. Filtering, sorting and pagination are performed by the server.
-                </p>
-            </div>
-
-            <div className="mt-8">
+        <Section
+            title="Worktimes"
+            description="Create and manage only your own worktimes. Filtering, sorting and pagination are performed by the server."
+        >
+            <div>
                 <TrainerWorktimeCreateForm />
             </div>
 
             <form
-                className="mt-8 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6"
+                className="mt-6 rounded-2xl border border-gray-100 bg-white p-5 shadow-sm sm:p-6"
                 onSubmit={handleSubmit(applyFilters)}
                 noValidate
             >
                 <div className="grid gap-5 md:grid-cols-3">
-                    <label className="flex flex-col gap-2 text-sm font-semibold">
+                    <label className={fieldClassName}>
                         Exact date
                         <input
                             type="date"
-                            className="rounded-md border border-gray-300 px-3 py-2 font-normal focus:border-secondary-500 focus:outline-none"
+                            className={inputClassName}
                             {...register("date")}
                         />
                         <span className="font-normal text-gray-500">
@@ -174,10 +175,10 @@ const TrainerWorktimes = observer(() => {
                         </span>
                     </label>
 
-                    <label className="flex flex-col gap-2 text-sm font-semibold">
+                    <label className={fieldClassName}>
                         Sort
                         <select
-                            className="rounded-md border border-gray-300 px-3 py-2 font-normal focus:border-secondary-500 focus:outline-none"
+                            className={inputClassName}
                             {...register("sort")}
                         >
                             {hasCustomSort ? (
@@ -191,7 +192,7 @@ const TrainerWorktimes = observer(() => {
                         </select>
                     </label>
 
-                    <label className="flex flex-col gap-2 text-sm font-semibold">
+                    <label className={fieldClassName}>
                         Results per page
                         <input
                             type="number"
@@ -200,7 +201,7 @@ const TrainerWorktimes = observer(() => {
                             step={1}
                             inputMode="numeric"
                             placeholder="API default"
-                            className="rounded-md border border-gray-300 px-3 py-2 font-normal focus:border-secondary-500 focus:outline-none"
+                            className={inputClassName}
                             {...register("limit", {
                                 validate: (value) => value === ""
                                     || (
@@ -223,14 +224,14 @@ const TrainerWorktimes = observer(() => {
                     <button
                         type="submit"
                         disabled={trainerWorktimeStore.isMutating}
-                        className="rounded-md bg-secondary-500 px-5 py-2 font-semibold transition hover:bg-primary-500 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+                        className={primaryActionClassName}
                     >
                         Apply filters
                     </button>
                     <button
                         type="button"
                         disabled={trainerWorktimeStore.isMutating}
-                        className="rounded-md border border-gray-300 bg-white px-5 py-2 font-semibold transition hover:border-secondary-500 disabled:cursor-not-allowed disabled:opacity-50"
+                        className={secondaryActionClassName}
                         onClick={resetView}
                     >
                         Reset view
@@ -277,13 +278,13 @@ const TrainerWorktimes = observer(() => {
                         {trainerWorktimeStore.error ? (
                             <div
                                 role="alert"
-                                className="mb-6 flex flex-col gap-3 rounded-xl bg-red-50 p-4 text-red-700 sm:flex-row sm:items-center sm:justify-between"
+                                className={`mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between ${errorStateClassName}`}
                             >
                                 <p>{trainerWorktimeStore.error}</p>
                                 <button
                                     type="button"
                                     disabled={isFetching}
-                                    className="self-start rounded-md border border-red-300 bg-white px-4 py-2 font-semibold disabled:cursor-not-allowed disabled:opacity-50 sm:self-auto"
+                                    className={`self-start sm:self-auto ${secondaryActionClassName}`}
                                     onClick={() => void trainerWorktimeStore.init(requestParams)}
                                 >
                                     {isFetching ? "Retrying..." : "Retry"}
@@ -298,7 +299,7 @@ const TrainerWorktimes = observer(() => {
                                 action={hasQueryState ? (
                                     <button
                                         type="button"
-                                        className="rounded-md bg-secondary-500 px-5 py-2 font-semibold transition hover:bg-primary-500 hover:text-white"
+                                        className={primaryActionClassName}
                                         onClick={resetView}
                                     >
                                         Reset view
@@ -307,7 +308,7 @@ const TrainerWorktimes = observer(() => {
                             />
                         ) : (
                             <div className={isFetching ? "opacity-60 transition-opacity" : "transition-opacity"}>
-                                <div className="grid gap-5 xl:grid-cols-2">
+                                <div className="grid gap-5 lg:grid-cols-2">
                                     {trainerWorktimeStore.worktimes.map((worktime) => (
                                         <TrainerWorktimeCard
                                             key={worktime.id}
@@ -331,7 +332,7 @@ const TrainerWorktimes = observer(() => {
                     </div>
                 ) : null}
             </div>
-        </section>
+        </Section>
     );
 });
 

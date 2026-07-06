@@ -3,6 +3,7 @@
 import { ApiClientError } from "@/lib/apiClient";
 import { getErrorMessage } from "@/lib/getErrorMessage";
 import { notify } from "@/lib/notify";
+import Section, { primaryActionClassName } from "@/shared/Section";
 import { useStore } from "@/store/StoreProvider";
 import { observer } from "mobx-react-lite";
 import { useForm } from "react-hook-form";
@@ -21,6 +22,10 @@ interface TrainerPhotoFormValues {
 const getFirstPhoto = (files: FileList | undefined): File | null => {
     return files?.item(0) ?? null;
 };
+
+const inputClassName = "block w-full rounded-md border border-gray-100 bg-gray-20 px-3 py-2 text-sm font-normal text-gray-500 transition file:mr-4 file:rounded-md file:border-0 file:bg-secondary-500 file:px-3 file:py-2 file:text-sm file:font-semibold file:text-gray-500 hover:file:bg-primary-500 hover:file:text-white focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20 disabled:cursor-not-allowed disabled:opacity-60";
+const inputErrorClassName = "border-primary-500 focus:border-primary-500 focus:ring-primary-500/20";
+const fieldClassName = "flex flex-col gap-2 text-sm font-semibold text-gray-500";
 
 const TrainerPhotoForm = observer(() => {
     const { trainerStore } = useStore();
@@ -90,26 +95,24 @@ const TrainerPhotoForm = observer(() => {
     const isBusy = isSubmitting || trainerStore.isMutating;
 
     return (
-        <section className="rounded-2xl bg-white p-6 shadow-md sm:p-8">
-            <h2 className="text-2xl font-bold">Profile photo</h2>
-            <p className="mt-1 text-sm text-gray-500">
-                JPEG, PNG, or WebP. Maximum file size: 2 MB.
-            </p>
-
+        <Section
+            title="Profile photo"
+            description="JPEG, PNG, or WebP. Maximum file size: 2 MB."
+            className="h-full"
+        >
             <form
-                className="mt-6 flex flex-col gap-4"
+                className="flex flex-col gap-4"
                 onSubmit={handleSubmit(onSubmit)}
                 noValidate
             >
-                <div>
-                    <label htmlFor="trainer-photo" className="mb-1 block font-medium">
-                        Photo file
-                    </label>
+                <label htmlFor="trainer-photo" className={fieldClassName}>
+                    Photo file
                     <input
                         id="trainer-photo"
                         type="file"
                         accept="image/jpeg,image/png,image/webp"
-                        className="block w-full rounded-md border border-secondary-500 px-3 py-2 text-sm"
+                        className={`${inputClassName} ${errors.photo ? inputErrorClassName : ""}`}
+                        disabled={isBusy}
                         aria-invalid={errors.photo ? "true" : "false"}
                         aria-describedby={
                             errors.photo
@@ -136,19 +139,19 @@ const TrainerPhotoForm = observer(() => {
                             },
                         })}
                     />
-                    <p id="trainer-photo-help" className="mt-1 text-xs text-gray-500">
+                    <span id="trainer-photo-help" className="font-normal text-gray-500">
                         The backend also validates image dimensions and aspect ratio.
-                    </p>
+                    </span>
                     {errors.photo && (
-                        <p
+                        <span
                             id="trainer-photo-error"
-                            className="mt-1 text-sm text-primary-500"
+                            className="font-normal text-primary-500"
                             role="alert"
                         >
                             {errors.photo.message}
-                        </p>
+                        </span>
                     )}
-                </div>
+                </label>
 
                 {errors.root?.server && (
                     <p className="text-sm text-primary-500" role="alert">
@@ -159,12 +162,12 @@ const TrainerPhotoForm = observer(() => {
                 <button
                     type="submit"
                     disabled={isBusy}
-                    className="self-start rounded-md bg-secondary-500 px-5 py-2 font-medium transition-colors hover:bg-primary-500 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+                    className={`self-start ${primaryActionClassName}`}
                 >
                     {trainerStore.isUploading ? "Uploading..." : "Upload photo"}
                 </button>
             </form>
-        </section>
+        </Section>
     );
 });
 

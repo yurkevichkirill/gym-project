@@ -3,7 +3,11 @@ import TrainerDetailsForm from "@/scenes/trainerPersonal/TrainerDetailsForm";
 import TrainerPhotoForm from "@/scenes/trainerPersonal/TrainerPhotoForm";
 import TrainerProfileOverview from "@/scenes/trainerPersonal/TrainerProfileOverview";
 import TrainerWorktimes from "@/scenes/trainerPersonal/worktime/TrainerWorktimes";
-import LoadingState from "@/shared/ui/LoadingState";
+import {
+    loadingStateClassName,
+    previewCardClassName,
+    primaryActionClassName,
+} from "@/shared/Section";
 import { TrainerPersonalType } from "@/types/trainer/private/trainer.personal.type";
 import Link from "next/link";
 import { Suspense } from "react";
@@ -14,67 +18,64 @@ const TrainerProfile = ({
     trainer: TrainerPersonalType;
 }) => {
     return (
-        <div className="flex flex-col gap-8">
-            <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(320px,0.8fr)]">
-                <TrainerProfileOverview trainer={trainer} />
+        <>
+            <TrainerProfileOverview trainer={trainer} />
 
-                <div className="flex flex-col gap-8">
-                    <TrainerDetailsForm trainer={trainer} />
-                    <TrainerPhotoForm />
-                    <DeleteTrainerAccount />
+            <div className="grid gap-6 md:grid-cols-2">
+                <div className={previewCardClassName}>
+                    <div className="flex min-h-36 flex-col">
+                        <p className="text-xs font-semibold uppercase text-gray-500">
+                            Trainer-owned bookings
+                        </p>
+                        <h2 className="mt-2 text-xl font-bold text-gray-500">Trainings</h2>
+                        <p className="mt-2 text-sm text-gray-500">
+                            Review, reschedule, cancel and complete trainings assigned to your account.
+                        </p>
+                        <Link
+                            href="/me/trainings"
+                            className={`mt-auto self-start ${primaryActionClassName}`}
+                        >
+                            Manage trainings
+                        </Link>
+                    </div>
+                </div>
+
+                <div className={previewCardClassName}>
+                    <div className="flex min-h-36 flex-col">
+                        <p className="text-xs font-semibold uppercase text-gray-500">
+                            Trainer finances
+                        </p>
+                        <h2 className="mt-2 text-xl font-bold text-gray-500">Payments</h2>
+                        <p className="mt-2 text-sm text-gray-500">
+                            Review trainer-owned payments with server-side filters, sorting and pagination.
+                        </p>
+                        <Link
+                            href="/me/trainer-payments"
+                            className={`mt-auto self-start ${primaryActionClassName}`}
+                        >
+                            View payments
+                        </Link>
+                    </div>
                 </div>
             </div>
 
-            <div className="grid gap-6 lg:grid-cols-2">
-                <section className="flex flex-col gap-4 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm sm:p-8">
-                    <div className="flex-1">
-                        <p className="text-sm font-semibold uppercase tracking-wider text-secondary-500">
-                            Trainer-owned bookings
-                        </p>
-                        <h2 className="mt-2 text-2xl font-bold">Trainings</h2>
-                        <p className="mt-2 text-gray-600">
-                            Review, reschedule, cancel and complete trainings assigned to your account.
-                        </p>
-                    </div>
-                    <Link
-                        href="/me/trainings"
-                        className="inline-flex self-start justify-center rounded-md bg-secondary-500 px-5 py-2 font-semibold transition hover:bg-primary-500 hover:text-white"
-                    >
-                        Manage trainings
-                    </Link>
-                </section>
-
-                <section className="flex flex-col gap-4 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm sm:p-8">
-                    <div className="flex-1">
-                        <p className="text-sm font-semibold uppercase tracking-wider text-secondary-500">
-                            Trainer finances
-                        </p>
-                        <h2 className="mt-2 text-2xl font-bold">Payments</h2>
-                        <p className="mt-2 text-gray-600">
-                            Review trainer-owned payments with server-side filters, sorting and pagination.
-                        </p>
-                    </div>
-                    <Link
-                        href="/me/trainer-payments"
-                        className="inline-flex self-start justify-center rounded-md bg-secondary-500 px-5 py-2 font-semibold transition hover:bg-primary-500 hover:text-white"
-                    >
-                        View payments
-                    </Link>
-                </section>
+            <div className="grid gap-6 md:grid-cols-2">
+                <TrainerDetailsForm trainer={trainer} />
+                <TrainerPhotoForm />
             </div>
 
             <Suspense
                 fallback={(
-                    <LoadingState
-                        title="Loading trainer worktimes..."
-                        description="We are preparing the trainer-owned schedule."
-                        className="rounded-2xl bg-gray-50"
-                    />
+                    <div className={loadingStateClassName} role="status" aria-live="polite">
+                        Loading trainer worktimes...
+                    </div>
                 )}
             >
                 <TrainerWorktimes />
             </Suspense>
-        </div>
+
+            <DeleteTrainerAccount />
+        </>
     );
 };
 

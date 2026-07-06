@@ -1,4 +1,5 @@
 import { resolveStorageUrl } from "@/lib/resolveStorageUrl";
+import Section from "@/shared/Section";
 import { TrainerPersonalType } from "@/types/trainer/private/trainer.personal.type";
 import Image from "next/image";
 
@@ -27,85 +28,99 @@ const TrainerProfileOverview = ({
     const photoUrl = trainer.photoPath
         ? resolveStorageUrl(trainer.photoPath, "")
         : null;
+    const fullName = `${trainer.firstName} ${trainer.lastName}`;
 
     return (
-        <section className="rounded-2xl bg-white p-6 shadow-md sm:p-8">
-            <div className="flex flex-col gap-6 sm:flex-row sm:items-start">
-                <div className="relative aspect-[3/4] w-full max-w-56 shrink-0 overflow-hidden rounded-2xl bg-gray-100">
+        <Section title="Trainer profile">
+            <div className="flex flex-col gap-5 md:flex-row md:items-start">
+                <div className="relative aspect-square w-32 shrink-0 overflow-hidden rounded-2xl border border-gray-100 bg-gray-20 sm:w-40">
                     {photoUrl ? (
                         <Image
                             src={photoUrl}
-                            alt={`Photo of ${trainer.firstName} ${trainer.lastName}`}
+                            alt={`Photo of ${fullName}`}
                             fill
-                            sizes="224px"
+                            sizes="(min-width: 768px) 160px, 128px"
                             className="object-cover"
                             unoptimized
                         />
                     ) : (
-                        <div className="flex h-full items-center justify-center px-4 text-center text-gray-400">
+                        <div className="flex h-full items-center justify-center px-4 text-center text-sm text-gray-500">
                             No profile photo
                         </div>
                     )}
                 </div>
 
                 <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium uppercase tracking-wide text-gray-500">
-                        Trainer profile
-                    </p>
-                    <h1 className="mt-1 text-3xl font-bold">
-                        {trainer.firstName} {trainer.lastName}
+                    <h1 className="text-2xl font-bold text-gray-500 sm:text-3xl">
+                        {fullName}
                     </h1>
-                    <p className="mt-2 break-all text-gray-600">{trainer.email}</p>
-
-                    <dl className="mt-6 grid gap-4 sm:grid-cols-2">
-                        <div>
-                            <dt className="text-sm text-gray-500">Specialization</dt>
-                            <dd className="font-semibold">{trainer.trainingType.name}</dd>
+                    <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
+                        <div className="min-w-0">
+                            <dt className="font-semibold text-gray-500">Email</dt>
+                            <dd className="mt-1 break-words text-gray-500">{trainer.email}</dd>
                         </div>
                         <div>
-                            <dt className="text-sm text-gray-500">Current rate</dt>
-                            <dd className="font-semibold">
-                                {formatMoney(trainer.pricePerHour)}
-                            </dd>
+                            <dt className="font-semibold text-gray-500">Phone</dt>
+                            <dd className="mt-1 text-gray-500">{trainer.phone}</dd>
                         </div>
                         <div>
-                            <dt className="text-sm text-gray-500">Balance</dt>
-                            <dd className="font-semibold">{formatMoney(trainer.balance)}</dd>
+                            <dt className="font-semibold text-gray-500">Specialization</dt>
+                            <dd className="mt-1 text-gray-500">{trainer.trainingType.name}</dd>
                         </div>
                         <div>
-                            <dt className="text-sm text-gray-500">Debt</dt>
-                            <dd className="font-semibold">{formatMoney(trainer.debt)}</dd>
-                        </div>
-                        <div>
-                            <dt className="text-sm text-gray-500">Joined</dt>
-                            <dd className="font-semibold">{formatDate(trainer.createdAt)}</dd>
-                        </div>
-                        <div>
-                            <dt className="text-sm text-gray-500">Last updated</dt>
-                            <dd className="font-semibold">{formatDate(trainer.updatedAt)}</dd>
+                            <dt className="font-semibold text-gray-500">Joined</dt>
+                            <dd className="mt-1 text-gray-500">{formatDate(trainer.createdAt)}</dd>
                         </div>
                     </dl>
 
-                    {trainer.education && (
-                        <div className="mt-6">
-                            <h2 className="font-semibold">Education</h2>
-                            <p className="mt-1 whitespace-pre-wrap text-gray-600">
+                    <dl className="mt-5 grid items-stretch gap-4 sm:grid-cols-3">
+                        <div className="flex min-h-28 flex-col rounded-2xl border border-gray-100 bg-gray-20/70 p-4">
+                            <dt className="text-xs font-semibold uppercase text-gray-500">Current rate</dt>
+                            <dd className="mt-2 text-xl font-bold text-gray-500">
+                                {formatMoney(trainer.pricePerHour)}
+                            </dd>
+                            <p className="mt-auto pt-3 text-sm text-gray-500">Per hour</p>
+                        </div>
+                        <div className="flex min-h-28 flex-col rounded-2xl border border-gray-100 bg-gray-20/70 p-4">
+                            <dt className="text-xs font-semibold uppercase text-gray-500">Balance</dt>
+                            <dd className="mt-2 text-xl font-bold text-gray-500">
+                                {formatMoney(trainer.balance)}
+                            </dd>
+                            <p className="mt-auto pt-3 text-sm text-gray-500">Available account value</p>
+                        </div>
+                        <div className="flex min-h-28 flex-col rounded-2xl border border-gray-100 bg-gray-20/70 p-4">
+                            <dt className="text-xs font-semibold uppercase text-gray-500">Debt</dt>
+                            <dd className="mt-2 text-xl font-bold text-gray-500">
+                                {formatMoney(trainer.debt)}
+                            </dd>
+                            <p className="mt-auto pt-3 text-sm text-gray-500">Outstanding amount</p>
+                        </div>
+                    </dl>
+                </div>
+            </div>
+
+            {trainer.education || trainer.about ? (
+                <div className="mt-5 grid gap-4 md:grid-cols-2">
+                    {trainer.education ? (
+                        <div className="rounded-2xl border border-gray-100 bg-white p-4">
+                            <h2 className="font-semibold text-gray-500">Education</h2>
+                            <p className="mt-2 whitespace-pre-wrap text-sm text-gray-500">
                                 {trainer.education}
                             </p>
                         </div>
-                    )}
+                    ) : null}
 
-                    {trainer.about && (
-                        <div className="mt-4">
-                            <h2 className="font-semibold">About</h2>
-                            <p className="mt-1 whitespace-pre-wrap text-gray-600">
+                    {trainer.about ? (
+                        <div className="rounded-2xl border border-gray-100 bg-white p-4">
+                            <h2 className="font-semibold text-gray-500">About</h2>
+                            <p className="mt-2 whitespace-pre-wrap text-sm text-gray-500">
                                 {trainer.about}
                             </p>
                         </div>
-                    )}
+                    ) : null}
                 </div>
-            </div>
-        </section>
+            ) : null}
+        </Section>
     );
 };
 
