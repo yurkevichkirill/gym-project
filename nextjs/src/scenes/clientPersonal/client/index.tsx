@@ -47,8 +47,8 @@ const MyPersonalClient = observer(() => {
     }
 
     return (
-        <div className="pt-32 pb-20">
-            <div className="mx-auto flex w-5/6 max-w-5xl flex-col gap-10">
+        <div className="bg-gray-20 pt-32 pb-20">
+            <div className="mx-auto flex w-11/12 max-w-5xl flex-col gap-6 sm:w-5/6">
                 <Client />
                 <VisitSection />
                 <Bookings />

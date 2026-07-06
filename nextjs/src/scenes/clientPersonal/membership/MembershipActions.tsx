@@ -95,7 +95,7 @@ const MembershipActions = observer(({
     const [stripeClientSecret, setStripeClientSecret] = useState<string | null>(null);
     const actions = getMembershipActions(status);
     const isMutating = membershipStore.isMutating(membershipId);
-    const buttonSizeClassName = compact ? "px-3 py-1.5 text-xs" : "px-4 py-2 text-sm";
+    const buttonSizeClassName = compact ? "min-h-10 px-4 py-2 text-sm" : "min-h-11 px-5 py-2.5 text-sm";
 
     const callAction = (action: MembershipAction): Promise<MembershipType> => {
         switch (action) {
@@ -197,7 +197,7 @@ const MembershipActions = observer(({
                                 key={action}
                                 onClick={() => startAction(action)}
                                 disabled={isMutating}
-                                className={`rounded-md border font-semibold transition disabled:cursor-not-allowed disabled:opacity-50 ${buttonSizeClassName} ${config.className}`}
+                                className={`inline-flex items-center justify-center rounded-xl border font-semibold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-500 disabled:cursor-not-allowed disabled:opacity-50 ${buttonSizeClassName} ${config.className}`}
                             >
                                 {isMutating ? "Processing..." : config.label}
                             </button>

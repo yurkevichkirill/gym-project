@@ -3,7 +3,13 @@
 import Link from "next/link";
 import BookingType from "@/types/booking/booking.type";
 import Booking from "@/scenes/clientPersonal/bookings/Booking";
-import Section from "@/shared/Section";
+import Section, {
+    emptyStateClassName,
+    errorStateClassName,
+    loadingStateClassName,
+    primaryActionClassName,
+    secondaryActionClassName,
+} from "@/shared/Section";
 import { useStore } from "@/store/StoreProvider";
 import { observer } from "mobx-react-lite";
 import { useEffect, useMemo } from "react";
@@ -40,21 +46,34 @@ export const Bookings = observer(() => {
     const isBusy = bookingStore.isLoading || bookingStore.isRefreshing;
 
     return (
-        <Section title="My Bookings">
+        <Section
+            title="My Bookings"
+            titleId="my-bookings-title"
+            action={(
+                <Link
+                    href="/me/bookings"
+                    className={secondaryActionClassName}
+                    aria-label="View all bookings"
+                >
+                    View all bookings
+                    {bookingStore.pagination ? ` (${bookingStore.pagination.total})` : ""}
+                </Link>
+            )}
+        >
             <div className="flex flex-col gap-4">
                 {bookingStore.isLoading && !hasBookings && (
-                    <p className="text-sm text-gray-500">Loading bookings...</p>
+                    <div role="status" aria-live="polite" className={loadingStateClassName}>Loading bookings...</div>
                 )}
 
                 {bookingStore.error && (
-                    <div className="rounded-md border border-primary-500 bg-red-50 p-4" role="alert">
+                    <div className={errorStateClassName} role="alert">
                         <p className="font-semibold">Unable to load bookings.</p>
-                        <p className="mt-1 text-sm text-gray-600">{bookingStore.error}</p>
+                        <p className="mt-1 text-sm">{bookingStore.error}</p>
                         <button
                             type="button"
                             onClick={() => void bookingStore.init()}
                             disabled={isBusy}
-                            className="mt-3 rounded-md bg-secondary-500 px-4 py-2 text-sm cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
+                            className={`${primaryActionClassName} mt-3`}
                         >
                             {isBusy ? "Retrying..." : "Retry"}
                         </button>
@@ -62,7 +81,7 @@ export const Bookings = observer(() => {
                 )}
 
                 {!isBusy && !bookingStore.error && !hasBookings && (
-                    <p className="text-sm text-gray-500">You have no bookings yet.</p>
+                    <div className={emptyStateClassName}>You have no bookings yet.</div>
                 )}
 
                 {visibleBookings.map((booking: BookingType) => (
@@ -79,16 +98,9 @@ export const Bookings = observer(() => {
                 ))}
 
                 {bookingStore.isRefreshing && hasBookings && (
-                    <p className="text-sm text-gray-500" role="status">Refreshing bookings...</p>
+                    <p className="text-sm text-gray-600" role="status" aria-live="polite">Refreshing bookings...</p>
                 )}
 
-                <Link
-                    href="/me/bookings"
-                    className="mt-2 inline-flex self-start rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-semibold transition hover:border-secondary-500"
-                >
-                    View all bookings
-                    {bookingStore.pagination ? ` (${bookingStore.pagination.total})` : ""}
-                </Link>
             </div>
         </Section>
     );

@@ -9,6 +9,7 @@ import {
     getPaymentStatusLabel,
     isIncomingPayment,
 } from "@/scenes/clientPersonal/payment/payment-display";
+import { previewCardClassName } from "@/shared/Section";
 
 type PaymentProps = {
     payment: PaymentType;
@@ -20,9 +21,9 @@ const Payment = ({ payment }: PaymentProps) => {
     return (
         <Link
             href={`/me/payments/${payment.id}`}
-            className="flex flex-col gap-4 rounded-2xl border border-gray-100 p-4 transition hover:border-secondary-500 hover:shadow-sm sm:flex-row sm:items-center sm:justify-between"
+            className={`${previewCardClassName} flex flex-col gap-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-500 sm:flex-row sm:items-center sm:justify-between`}
         >
-            <div>
+            <div className="min-w-0">
                 <p className="font-semibold text-gray-900">
                     {getPaymentCategoryLabel(payment.category)}
                 </p>
@@ -34,11 +35,11 @@ const Payment = ({ payment }: PaymentProps) => {
                 </p>
             </div>
 
-            <div className="flex items-center justify-between gap-4 sm:flex-col sm:items-end sm:gap-2">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-gray-50 pt-4 sm:flex-col sm:items-end sm:border-t-0 sm:pt-0">
                 <p className={`font-bold ${incoming ? "text-emerald-700" : "text-gray-900"}`}>
                     {incoming ? "+" : "−"} {formatPaymentMoney(payment.amount, payment.currency)}
                 </p>
-                <span className={`rounded-full px-3 py-1 text-sm font-semibold ${getPaymentStatusClassName(payment.status)}`}>
+                <span className={getPaymentStatusClassName(payment.status)}>
                     {getPaymentStatusLabel(payment.status)}
                 </span>
             </div>

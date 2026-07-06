@@ -2,7 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { observer } from "mobx-react-lite";
-import Section from "@/shared/Section";
+import Section, {
+    emptyStateClassName,
+    errorStateClassName,
+    loadingStateClassName,
+    primaryActionClassName,
+    successStateClassName,
+} from "@/shared/Section";
 import ConfirmDialog from "@/shared/ui/ConfirmDialog";
 import { useStore } from "@/store/StoreProvider";
 import {
@@ -43,20 +49,21 @@ const VisitSection = observer(() => {
     };
 
     return (
-        <Section title="Gym visit">
-            <div className="rounded-2xl border border-gray-100 p-5">
+        <Section title="Gym visit" titleId="gym-visit-title">
+            <div className="flex flex-col gap-4">
                 {clientStore.isVisitOverviewLoading && membership === null ? (
-                    <p role="status" className="text-sm text-gray-500">
+                    <div role="status" aria-live="polite" className={loadingStateClassName}>
                         Loading active membership...
-                    </p>
+                    </div>
                 ) : null}
 
                 {clientStore.visitOverviewError ? (
-                    <div role="alert" className="rounded-xl bg-red-50 p-4 text-red-700">
-                        <p>{clientStore.visitOverviewError}</p>
+                    <div role="alert" className={errorStateClassName}>
+                        <p className="font-semibold">Unable to load active membership.</p>
+                        <p className="mt-1 text-sm">{clientStore.visitOverviewError}</p>
                         <button
                             type="button"
-                            className="mt-3 rounded-md border border-red-300 bg-white px-4 py-2 font-semibold disabled:opacity-50"
+                            className={`${primaryActionClassName} mt-3`}
                             disabled={clientStore.isVisitOverviewLoading}
                             onClick={() => void clientStore.loadVisitOverview()}
                         >
@@ -68,29 +75,29 @@ const VisitSection = observer(() => {
                 {!clientStore.isVisitOverviewLoading
                 && !clientStore.visitOverviewError
                 && membership === null ? (
-                    <div>
-                        <p className="font-semibold">No active membership</p>
-                        <p className="mt-1 text-sm text-gray-600">
+                    <div className={emptyStateClassName}>
+                        <p className="font-semibold text-gray-900">No active membership</p>
+                        <p className="mt-1">
                             Purchase or renew a membership before registering a gym visit.
                         </p>
                     </div>
                 ) : null}
 
                 {membership ? (
-                    <div className="grid gap-5 sm:grid-cols-2">
-                        <div>
-                            <p className="text-sm text-gray-500">Active membership</p>
-                            <p className="mt-1 text-xl font-bold">{membership.name}</p>
-                            <p className="mt-2 text-sm text-gray-600">
+                    <div className="grid items-stretch gap-4 sm:grid-cols-2">
+                        <div className="flex min-h-32 flex-col rounded-2xl border border-gray-100 bg-gray-20/70 p-4">
+                            <p className="text-xs font-semibold uppercase text-gray-600">Active membership</p>
+                            <p className="mt-2 text-xl font-bold text-gray-900">{membership.name}</p>
+                            <p className="mt-auto pt-3 text-sm text-gray-600">
                                 Ends {formatMembershipDate(membership.endDate)}
                             </p>
                         </div>
-                        <div>
-                            <p className="text-sm text-gray-500">Visits</p>
-                            <p className="mt-1 text-xl font-bold">
-                                {remainingVisits === null ? "Unlimited" : `${remainingVisits} remaining`}
+                        <div className="flex min-h-32 flex-col rounded-2xl border border-gray-100 bg-gray-20/70 p-4">
+                            <p className="text-xs font-semibold uppercase text-gray-600">Visits remaining</p>
+                            <p className="mt-2 text-xl font-bold text-gray-900">
+                                {remainingVisits === null ? "Unlimited" : remainingVisits}
                             </p>
-                            <p className="mt-2 text-sm text-gray-600">
+                            <p className="mt-auto pt-3 text-sm text-gray-600">
                                 {membership.visits} used of {formatSessionLimit(membership.sessionLimit)}
                             </p>
                         </div>
@@ -98,34 +105,38 @@ const VisitSection = observer(() => {
                 ) : null}
 
                 {clientStore.visitError ? (
-                    <p className="mt-4 rounded-xl bg-red-50 p-4 text-red-700" role="alert">
-                        {clientStore.visitError}
-                    </p>
+                    <div className={errorStateClassName} role="alert">
+                        <p className="font-semibold">Unable to register visit.</p>
+                        <p className="mt-1 text-sm">{clientStore.visitError}</p>
+                    </div>
                 ) : null}
 
                 {successMessage ? (
-                    <p className="mt-4 rounded-xl bg-emerald-50 p-4 text-emerald-800" role="status">
-                        {successMessage}
-                    </p>
+                    <div className={successStateClassName} role="status" aria-live="polite">
+                        <p className="font-semibold">Visit registered</p>
+                        <p className="mt-1 text-sm">{successMessage}</p>
+                    </div>
                 ) : null}
 
-                <button
-                    type="button"
-                    className="mt-5 rounded-md bg-secondary-500 px-5 py-2 font-semibold transition hover:bg-primary-500 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
-                    disabled={!canRegisterVisit || clientStore.isVisitOverviewLoading}
-                    onClick={() => {
-                        setSuccessMessage(null);
-                        setIsConfirmOpen(true);
-                    }}
-                >
-                    {clientStore.isVisiting ? "Registering visit..." : "Register visit"}
-                </button>
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                    <button
+                        type="button"
+                        className={primaryActionClassName}
+                        disabled={!canRegisterVisit || clientStore.isVisitOverviewLoading}
+                        onClick={() => {
+                            setSuccessMessage(null);
+                            setIsConfirmOpen(true);
+                        }}
+                    >
+                        {clientStore.isVisiting ? "Registering visit..." : "Register visit"}
+                    </button>
 
-                {membership && remainingVisits === 0 ? (
-                    <p className="mt-3 text-sm text-amber-700">
-                        The session limit has been reached. Refresh the membership or renew it before registering another visit.
-                    </p>
-                ) : null}
+                    {membership && remainingVisits === 0 ? (
+                        <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                            The session limit has been reached. Refresh the membership or renew it before registering another visit.
+                        </p>
+                    ) : null}
+                </div>
             </div>
 
             <ConfirmDialog

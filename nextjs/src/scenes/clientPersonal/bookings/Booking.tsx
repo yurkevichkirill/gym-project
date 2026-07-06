@@ -6,6 +6,7 @@ import {
     getBookingStatusLabel,
 } from "@/scenes/clientPersonal/bookings/booking-display";
 import CancelBookingButton from "@/scenes/clientPersonal/bookings/CancelBookingButton";
+import { previewCardClassName, secondaryActionClassName } from "@/shared/Section";
 
 type Props = {
     id: number;
@@ -21,25 +22,26 @@ const Booking = ({ id, date, durationMinutes, startTime, status }: Props) => {
     return (
         <motion.article
             whileHover={{ scale: 1.01 }}
-            className="rounded-xl border border-gray-100 bg-white p-4"
+            className={previewCardClassName}
         >
             <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                    <p className="font-semibold">{date}</p>
+                    <p className="font-semibold text-gray-900">{date}</p>
                     <p className="text-sm text-gray-600">
                         {startTime.slice(0, 5)} · {durationMinutes} min
                     </p>
                 </div>
 
-                <span className={`rounded-full px-3 py-1 text-sm ${getBookingStatusClassName(status)}`}>
+                <span className={getBookingStatusClassName(status)}>
                     {getBookingStatusLabel(status)}
                 </span>
             </div>
 
-            <div className="mt-4 flex flex-wrap gap-3">
+            <div className="mt-4 flex flex-wrap gap-3 border-t border-gray-50 pt-4">
                 <Link
                     href={`/me/bookings/${id}`}
-                    className="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-semibold transition hover:border-secondary-500"
+                    className={secondaryActionClassName}
+                    aria-label={`View booking ${id} details`}
                 >
                     View details
                 </Link>

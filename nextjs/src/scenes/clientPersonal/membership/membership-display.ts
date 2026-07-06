@@ -1,3 +1,4 @@
+import { statusBadgeClassName } from "@/shared/Section";
 import { MembershipStatusEnum } from "@/types/membership/membership-status.enum";
 
 const statusLabels: Record<MembershipStatusEnum, string> = {
@@ -25,7 +26,7 @@ export const getMembershipStatusLabel = (status: MembershipStatusEnum): string =
 };
 
 export const getMembershipStatusClassName = (status: MembershipStatusEnum): string => {
-    return statusClassNames[status];
+    return `${statusBadgeClassName} ${statusClassNames[status]}`;
 };
 
 export const formatMembershipDate = (
