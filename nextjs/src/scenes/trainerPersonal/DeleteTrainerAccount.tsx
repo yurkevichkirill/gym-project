@@ -2,6 +2,8 @@
 
 import { getErrorMessage } from "@/lib/getErrorMessage";
 import { notify } from "@/lib/notify";
+import Section, { errorStateClassName, primaryActionClassName } from "@/shared/Section";
+import ConfirmDialog from "@/shared/ui/ConfirmDialog";
 import { useStore } from "@/store/StoreProvider";
 import { observer } from "mobx-react-lite";
 import { useRouter } from "next/navigation";
@@ -11,14 +13,9 @@ const DeleteTrainerAccount = observer(() => {
     const { trainerStore } = useStore();
     const router = useRouter();
     const [error, setError] = useState<string | null>(null);
+    const [isConfirmOpen, setIsConfirmOpen] = useState(false);
 
     const handleDelete = async (): Promise<void> => {
-        if (!window.confirm(
-            "Delete your trainer account? This action is unavailable while you have active bookings, unsettled payments, or a non-zero balance.",
-        )) {
-            return;
-        }
-
         setError(null);
         const toastId = notify.loading("Deleting trainer account...");
 
@@ -29,6 +26,7 @@ const DeleteTrainerAccount = observer(() => {
                 "Your trainer account was removed.",
                 toastId,
             );
+            setIsConfirmOpen(false);
             router.replace("/");
         } catch (deleteError: unknown) {
             const message = getErrorMessage(
@@ -37,32 +35,47 @@ const DeleteTrainerAccount = observer(() => {
             );
             setError(message);
             notify.error("Deletion failed", message, toastId);
+            setIsConfirmOpen(false);
         }
     };
 
     return (
-        <section className="rounded-2xl border border-primary-300 bg-white p-6 shadow-md sm:p-8">
-            <h2 className="text-2xl font-bold">Delete account</h2>
-            <p className="mt-2 text-sm text-gray-600">
-                Deletion is permanent and can be rejected by the API while the trainer
-                has active bookings, unsettled payments, or a non-zero balance.
-            </p>
-
-            {error && (
-                <p className="mt-4 text-sm text-primary-500" role="alert">
+        <Section
+            title="Delete account"
+            description="Deletion is permanent and can be rejected by the API while the trainer has active bookings, unsettled payments, or a non-zero balance."
+            className="border-primary-300"
+        >
+            {error ? (
+                <div className={errorStateClassName} role="alert">
                     {error}
-                </p>
-            )}
+                </div>
+            ) : null}
 
             <button
                 type="button"
                 disabled={trainerStore.isMutating}
-                className="mt-5 rounded-md bg-primary-300 px-5 py-2 font-medium transition-colors hover:bg-primary-500 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
-                onClick={() => void handleDelete()}
+                className={`mt-5 ${primaryActionClassName} bg-primary-300`}
+                onClick={() => setIsConfirmOpen(true)}
             >
                 {trainerStore.isDeleting ? "Deleting..." : "Delete trainer account"}
             </button>
-        </section>
+
+            <ConfirmDialog
+                open={isConfirmOpen}
+                title="Delete trainer account?"
+                description="This action is unavailable while you have active bookings, unsettled payments, or a non-zero balance. If the backend accepts it, your trainer account will be removed."
+                confirmLabel="Delete account"
+                cancelLabel="Keep account"
+                isConfirming={trainerStore.isDeleting}
+                tone="danger"
+                onConfirm={() => void handleDelete()}
+                onCancel={() => {
+                    if (!trainerStore.isDeleting) {
+                        setIsConfirmOpen(false);
+                    }
+                }}
+            />
+        </Section>
     );
 });
 

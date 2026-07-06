@@ -3,6 +3,10 @@
 import { ApiClientError } from "@/lib/apiClient";
 import { getErrorMessage } from "@/lib/getErrorMessage";
 import { notify } from "@/lib/notify";
+import Section, {
+    primaryActionClassName,
+    secondaryActionClassName,
+} from "@/shared/Section";
 import { useStore } from "@/store/StoreProvider";
 import TrainerEditType from "@/types/trainer/private/trainer-edit.type";
 import { TrainerPersonalType } from "@/types/trainer/private/trainer.personal.type";
@@ -20,6 +24,10 @@ const isProfileField = (
 ): propertyPath is keyof TrainerProfileFormValues => {
     return propertyPath === "phone" || propertyPath === "pricePerHour";
 };
+
+const inputClassName = "w-full rounded-md border border-gray-100 bg-gray-20 px-3 py-2 font-normal text-gray-500 transition placeholder:text-gray-500/60 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20 disabled:cursor-not-allowed disabled:opacity-60";
+const inputErrorClassName = "border-primary-500 focus:border-primary-500 focus:ring-primary-500/20";
+const fieldClassName = "flex flex-col gap-2 text-sm font-semibold text-gray-500";
 
 const TrainerDetailsForm = observer(({
     trainer,
@@ -118,30 +126,24 @@ const TrainerDetailsForm = observer(({
     const isBusy = isSubmitting || trainerStore.isMutating;
 
     return (
-        <section className="rounded-2xl bg-white p-6 shadow-md sm:p-8">
-            <h2 className="text-2xl font-bold">Edit profile</h2>
-            <p className="mt-1 text-sm text-gray-500">
-                Only fields supported by the trainer update API can be changed.
-            </p>
-
+        <Section
+            title="Edit profile"
+            description="Only fields supported by the trainer update API can be changed."
+            className="h-full"
+        >
             <form
-                className="mt-6 flex flex-col gap-5"
+                className="flex flex-col gap-5"
                 onSubmit={handleSubmit(onSubmit)}
                 noValidate
             >
-                <div>
-                    <label htmlFor="trainer-phone" className="mb-1 block font-medium">
-                        Phone
-                    </label>
+                <label htmlFor="trainer-phone" className={fieldClassName}>
+                    Phone
                     <input
                         id="trainer-phone"
                         type="tel"
                         autoComplete="tel"
-                        className={`w-full rounded-md border px-3 py-2 outline-none ${
-                            errors.phone
-                                ? "border-primary-500"
-                                : "border-secondary-500"
-                        }`}
+                        className={`${inputClassName} ${errors.phone ? inputErrorClassName : ""}`}
+                        disabled={isBusy}
                         aria-invalid={errors.phone ? "true" : "false"}
                         aria-describedby={errors.phone ? "trainer-phone-error" : undefined}
                         {...register("phone", {
@@ -153,34 +155,29 @@ const TrainerDetailsForm = observer(({
                         })}
                     />
                     {errors.phone && (
-                        <p
+                        <span
                             id="trainer-phone-error"
-                            className="mt-1 text-sm text-primary-500"
+                            className="font-normal text-primary-500"
                             role="alert"
                         >
                             {errors.phone.message}
-                        </p>
+                        </span>
                     )}
-                </div>
+                </label>
 
-                <div>
-                    <label
-                        htmlFor="trainer-price-per-hour"
-                        className="mb-1 block font-medium"
-                    >
-                        Price per hour, cents
-                    </label>
+                <label
+                    htmlFor="trainer-price-per-hour"
+                    className={fieldClassName}
+                >
+                    Price per hour, cents
                     <input
                         id="trainer-price-per-hour"
                         type="number"
                         inputMode="numeric"
                         min={1}
                         step={1}
-                        className={`w-full rounded-md border px-3 py-2 outline-none ${
-                            errors.pricePerHour
-                                ? "border-primary-500"
-                                : "border-secondary-500"
-                        }`}
+                        className={`${inputClassName} ${errors.pricePerHour ? inputErrorClassName : ""}`}
+                        disabled={isBusy}
                         aria-invalid={errors.pricePerHour ? "true" : "false"}
                         aria-describedby={
                             errors.pricePerHour
@@ -198,15 +195,15 @@ const TrainerDetailsForm = observer(({
                         })}
                     />
                     {errors.pricePerHour && (
-                        <p
+                        <span
                             id="trainer-price-per-hour-error"
-                            className="mt-1 text-sm text-primary-500"
+                            className="font-normal text-primary-500"
                             role="alert"
                         >
                             {errors.pricePerHour.message}
-                        </p>
+                        </span>
                     )}
-                </div>
+                </label>
 
                 {errors.root?.server && (
                     <p className="text-sm text-primary-500" role="alert">
@@ -218,14 +215,14 @@ const TrainerDetailsForm = observer(({
                     <button
                         type="submit"
                         disabled={isBusy || !isDirty}
-                        className="rounded-md bg-secondary-500 px-5 py-2 font-medium transition-colors hover:bg-primary-500 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+                        className={primaryActionClassName}
                     >
                         {trainerStore.isUpdating ? "Saving..." : "Save changes"}
                     </button>
                     <button
                         type="button"
                         disabled={isBusy || !isDirty}
-                        className="rounded-md bg-gray-100 px-5 py-2 font-medium transition-colors hover:bg-gray-200 disabled:cursor-not-allowed disabled:opacity-50"
+                        className={secondaryActionClassName}
                         onClick={() => reset({
                             phone: trainer.phone,
                             pricePerHour: trainer.pricePerHour,
@@ -235,7 +232,7 @@ const TrainerDetailsForm = observer(({
                     </button>
                 </div>
             </form>
-        </section>
+        </Section>
     );
 });
 
