@@ -1,9 +1,10 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { motion } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
+import { FunnelIcon } from "@heroicons/react/24/outline";
 import { SelectedPage } from "@/shared/types";
 import Trainers from "@/scenes/ourTrainers/Trainers";
 import { useNavigation } from "@/context/navigation-context";
@@ -41,6 +42,8 @@ const FILTER_QUERY_KEYS = [
     "sort",
     "limit",
 ] as const;
+
+const FILTER_PANEL_ID = "trainer-filters-panel";
 
 type Props = {
     trainingTypes: TrainingTypeData[];
@@ -82,6 +85,7 @@ const isAbortError = (error: unknown): boolean => {
 
 const OurTrainers = ({ trainingTypes }: Props) => {
     const { setSelectedPage } = useNavigation();
+    const shouldReduceMotion = useReducedMotion();
     const pathname = usePathname();
     const searchParams = useSearchParams();
     const searchParamsString = searchParams.toString();
@@ -96,6 +100,7 @@ const OurTrainers = ({ trainingTypes }: Props) => {
     const formValues = useMemo(() => toFormValues(requestParams), [requestParams]);
     const [responseState, setResponseState] = useState<TrainersResponseState | null>(null);
     const [errorState, setErrorState] = useState<TrainersErrorState | null>(null);
+    const [isFiltersOpen, setIsFiltersOpen] = useState(false);
     const [retryVersion, setRetryVersion] = useState(0);
     const requestSequence = useRef(0);
     const requestToken = `${requestKey}:${retryVersion}`;
@@ -187,6 +192,7 @@ const OurTrainers = ({ trainingTypes }: Props) => {
 
         nextSearchParams.delete("page");
         updateUrl(nextSearchParams);
+        setIsFiltersOpen(false);
     };
 
     const clearFilters = () => {
@@ -244,132 +250,166 @@ const OurTrainers = ({ trainingTypes }: Props) => {
                 </div>
             </motion.div>
 
-            <form
-                className="mb-10 rounded-2xl bg-white p-5 shadow-sm sm:p-6"
-                onSubmit={handleSubmit(applyFilters)}
-                noValidate
-            >
-                <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-                    <label className="flex flex-col gap-2 text-sm font-semibold">
-                        Minimum hourly price (cents)
-                        <input
-                            type="number"
-                            min="1"
-                            step="1"
-                            inputMode="numeric"
-                            className="rounded-md border border-gray-300 px-3 py-2 font-normal focus:border-secondary-500 focus:outline-none"
-                            {...register("minPricePerHour", {
-                                validate: (value) => value === ""
-                                    || (Number.isInteger(Number(value)) && Number(value) > 0)
-                                    || "Enter a positive whole number.",
-                            })}
-                        />
-                        {errors.minPricePerHour ? (
-                            <span className="font-normal text-red-600">{errors.minPricePerHour.message}</span>
-                        ) : null}
-                    </label>
+            <div className="mb-8 flex flex-wrap items-center justify-between gap-4 border-y border-gray-100 py-4">
+                <p className="text-sm font-semibold text-gray-500">
+                    Refine the trainer catalog
+                </p>
+                <button
+                    type="button"
+                    aria-expanded={isFiltersOpen}
+                    aria-controls={FILTER_PANEL_ID}
+                    className={`flex min-h-11 items-center gap-2 rounded-md border px-4 py-2 text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 focus:ring-offset-gray-20 ${
+                        isFiltersOpen
+                            ? "border-primary-500 bg-primary-100 text-gray-500"
+                            : "border-gray-100 text-gray-500 hover:border-secondary-500"
+                    }`}
+                    onClick={() => setIsFiltersOpen((isOpen) => !isOpen)}
+                >
+                    <FunnelIcon className="h-5 w-5" aria-hidden="true" />
+                    <span>Filters &amp; sorting</span>
+                    {hasActiveFilters ? (
+                        <span className="rounded-full bg-secondary-500 px-2 py-0.5 text-xs font-bold text-gray-500">
+                            Active
+                        </span>
+                    ) : null}
+                </button>
+            </div>
 
-                    <label className="flex flex-col gap-2 text-sm font-semibold">
-                        Maximum hourly price (cents)
-                        <input
-                            type="number"
-                            min="1"
-                            step="1"
-                            inputMode="numeric"
-                            className="rounded-md border border-gray-300 px-3 py-2 font-normal focus:border-secondary-500 focus:outline-none"
-                            {...register("maxPricePerHour", {
-                                validate: {
-                                    positiveInteger: (value) => value === ""
-                                        || (Number.isInteger(Number(value)) && Number(value) > 0)
-                                        || "Enter a positive whole number.",
-                                    range: (value) => {
-                                        const minimum = getValues("minPricePerHour");
-
-                                        return value === ""
-                                            || minimum === ""
-                                            || Number(value) >= Number(minimum)
-                                            || "Maximum price must be at least the minimum price.";
-                                    },
-                                },
-                            })}
-                        />
-                        {errors.maxPricePerHour ? (
-                            <span className="font-normal text-red-600">{errors.maxPricePerHour.message}</span>
-                        ) : null}
-                    </label>
-
-                    <label className="flex flex-col gap-2 text-sm font-semibold">
-                        Training type
-                        <select
-                            className="rounded-md border border-gray-300 px-3 py-2 font-normal focus:border-secondary-500 focus:outline-none"
-                            {...register("trainingTypeId")}
-                        >
-                            <option value="">All training types</option>
-                            {trainingTypes.map((trainingType) => (
-                                <option key={trainingType.id} value={trainingType.id}>
-                                    {trainingType.name}
-                                </option>
-                            ))}
-                        </select>
-                    </label>
-
-                    <label className="flex flex-col gap-2 text-sm font-semibold">
-                        Sort
-                        <select
-                            className="rounded-md border border-gray-300 px-3 py-2 font-normal focus:border-secondary-500 focus:outline-none"
-                            {...register("sort")}
-                        >
-                            {hasCustomSort ? (
-                                <option value={formValues.sort}>Custom: {formValues.sort}</option>
-                            ) : null}
-                            {SORT_OPTIONS.map((option) => (
-                                <option key={option.value} value={option.value}>
-                                    {option.label}
-                                </option>
-                            ))}
-                        </select>
-                    </label>
-
-                    <label className="flex flex-col gap-2 text-sm font-semibold">
-                        Results per page
-                        <input
-                            type="number"
-                            min="1"
-                            max="100"
-                            step="1"
-                            inputMode="numeric"
-                            placeholder="API default"
-                            className="rounded-md border border-gray-300 px-3 py-2 font-normal focus:border-secondary-500 focus:outline-none"
-                            {...register("limit", {
-                                validate: (value) => value === ""
-                                    || (Number.isInteger(Number(value))
-                                        && Number(value) > 0
-                                        && Number(value) <= 100)
-                                    || "Enter a whole number from 1 to 100.",
-                            })}
-                        />
-                        {errors.limit ? (
-                            <span className="font-normal text-red-600">{errors.limit.message}</span>
-                        ) : null}
-                    </label>
-                </div>
-
-                <div className="mt-6 flex flex-wrap gap-3">
-                    <button
-                        type="submit"
-                        className="rounded-md bg-secondary-500 px-5 py-2 font-semibold transition hover:bg-primary-500 hover:text-white"
+            <AnimatePresence initial={false}>
+                {isFiltersOpen ? (
+                    <motion.form
+                        id={FILTER_PANEL_ID}
+                        className="mb-10 border-b border-gray-100 pb-6"
+                        onSubmit={handleSubmit(applyFilters)}
+                        noValidate
+                        initial={shouldReduceMotion ? { opacity: 1 } : { opacity: 0, y: -8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={shouldReduceMotion ? { opacity: 1 } : { opacity: 0, y: -8 }}
+                        transition={{ duration: shouldReduceMotion ? 0 : 0.18, ease: "easeOut" }}
                     >
-                        Apply filters
-                    </button>
-                    <button
-                        type="button"
-                        className="rounded-md border border-gray-300 bg-white px-5 py-2 font-semibold transition hover:border-secondary-500"
-                        onClick={clearFilters}
-                    >
-                        Clear filters
-                    </button>
-                </div>
-            </form>
+                        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                            <label className="flex flex-col gap-2 text-sm font-semibold text-gray-500">
+                                Minimum hourly price (cents)
+                                <input
+                                    type="number"
+                                    min="1"
+                                    step="1"
+                                    inputMode="numeric"
+                                    className="rounded-md border border-gray-100 bg-gray-20 px-3 py-2 font-normal text-gray-500 transition focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20"
+                                    {...register("minPricePerHour", {
+                                        validate: (value) => value === ""
+                                            || (Number.isInteger(Number(value)) && Number(value) > 0)
+                                            || "Enter a positive whole number.",
+                                    })}
+                                />
+                                {errors.minPricePerHour ? (
+                                    <span className="font-normal text-primary-500">{errors.minPricePerHour.message}</span>
+                                ) : null}
+                            </label>
+
+                            <label className="flex flex-col gap-2 text-sm font-semibold text-gray-500">
+                                Maximum hourly price (cents)
+                                <input
+                                    type="number"
+                                    min="1"
+                                    step="1"
+                                    inputMode="numeric"
+                                    className="rounded-md border border-gray-100 bg-gray-20 px-3 py-2 font-normal text-gray-500 transition focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20"
+                                    {...register("maxPricePerHour", {
+                                        validate: {
+                                            positiveInteger: (value) => value === ""
+                                                || (Number.isInteger(Number(value)) && Number(value) > 0)
+                                                || "Enter a positive whole number.",
+                                            range: (value) => {
+                                                const minimum = getValues("minPricePerHour");
+
+                                                return value === ""
+                                                    || minimum === ""
+                                                    || Number(value) >= Number(minimum)
+                                                    || "Maximum price must be at least the minimum price.";
+                                            },
+                                        },
+                                    })}
+                                />
+                                {errors.maxPricePerHour ? (
+                                    <span className="font-normal text-primary-500">{errors.maxPricePerHour.message}</span>
+                                ) : null}
+                            </label>
+
+                            <label className="flex flex-col gap-2 text-sm font-semibold text-gray-500">
+                                Training type
+                                <select
+                                    className="rounded-md border border-gray-100 bg-gray-20 px-3 py-2 font-normal text-gray-500 transition focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20"
+                                    {...register("trainingTypeId")}
+                                >
+                                    <option value="">All training types</option>
+                                    {trainingTypes.map((trainingType) => (
+                                        <option key={trainingType.id} value={trainingType.id}>
+                                            {trainingType.name}
+                                        </option>
+                                    ))}
+                                </select>
+                            </label>
+
+                            <label className="flex flex-col gap-2 text-sm font-semibold text-gray-500">
+                                Sort
+                                <select
+                                    className="rounded-md border border-gray-100 bg-gray-20 px-3 py-2 font-normal text-gray-500 transition focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20"
+                                    {...register("sort")}
+                                >
+                                    {hasCustomSort ? (
+                                        <option value={formValues.sort}>Custom: {formValues.sort}</option>
+                                    ) : null}
+                                    {SORT_OPTIONS.map((option) => (
+                                        <option key={option.value} value={option.value}>
+                                            {option.label}
+                                        </option>
+                                    ))}
+                                </select>
+                            </label>
+
+                            <label className="flex flex-col gap-2 text-sm font-semibold text-gray-500">
+                                Results per page
+                                <input
+                                    type="number"
+                                    min="1"
+                                    max="100"
+                                    step="1"
+                                    inputMode="numeric"
+                                    placeholder="API default"
+                                    className="rounded-md border border-gray-100 bg-gray-20 px-3 py-2 font-normal text-gray-500 transition placeholder:text-gray-500/60 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20"
+                                    {...register("limit", {
+                                        validate: (value) => value === ""
+                                            || (Number.isInteger(Number(value))
+                                                && Number(value) > 0
+                                                && Number(value) <= 100)
+                                            || "Enter a whole number from 1 to 100.",
+                                    })}
+                                />
+                                {errors.limit ? (
+                                    <span className="font-normal text-primary-500">{errors.limit.message}</span>
+                                ) : null}
+                            </label>
+                        </div>
+
+                        <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+                            <button
+                                type="submit"
+                                className="rounded-md bg-secondary-500 px-5 py-2 font-semibold text-gray-500 transition hover:bg-primary-500 hover:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 focus:ring-offset-gray-20"
+                            >
+                                Apply filters
+                            </button>
+                            <button
+                                type="button"
+                                className="rounded-md border border-gray-100 px-5 py-2 font-semibold text-gray-500 transition hover:border-secondary-500 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 focus:ring-offset-gray-20"
+                                onClick={clearFilters}
+                            >
+                                Clear filters
+                            </button>
+                        </div>
+                    </motion.form>
+                ) : null}
+            </AnimatePresence>
 
             <motion.div onViewportEnter={() => setSelectedPage(SelectedPage.OurTrainers)}>
                 {isInitialLoading ? (
