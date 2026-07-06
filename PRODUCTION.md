@@ -1,6 +1,6 @@
 # Production deployment
 
-`docker-compose.yml` remains the local development stack. Production uses immutable application images and the standalone `docker-compose.prod.yml` stack: source directories are not bind-mounted, Xdebug is not installed, Next.js runs the standalone server, and infrastructure ports other than HTTP/HTTPS are not published.
+`docker-compose.yml` remains the local development stack. Production uses immutable application images and the standalone `docker-compose.prod.yml` stack: source directories are not bind-mounted, Xdebug is not installed, and Next.js runs the standalone server. HTTP and HTTPS are the only publicly bound ports; the MinIO API is additionally published on the host loopback interface at `127.0.0.1:9005`.
 
 ## Host prerequisites
 
@@ -77,10 +77,101 @@ Inspect the deployment:
 
 ```bash
 docker compose --env-file .env.prod -f docker-compose.prod.yml ps
-docker compose --env-file .env.prod -f docker-compose.prod.yml logs --tail=200 php-fpm nginx frontend
+docker compose --env-file .env.prod -f docker-compose.prod.yml \
+  logs --tail=200 php-fpm nginx frontend messenger-worker analytics-worker scheduler-worker payment-worker
 ```
 
 For registry-based deployment, set `PHP_IMAGE`, `NGINX_IMAGE`, and `FRONTEND_IMAGE` to immutable tags, build and push them in CI, then deploy those exact tags.
+
+## Redeploy after application changes
+
+Production containers do not mount the application source directories. A plain `docker compose restart` only restarts containers created from the existing images, so it does not deploy changed PHP, Next.js, Nginx, or public asset files.
+
+### Code changes without migrations
+
+From the repository root, validate the resolved configuration, rebuild the images, and recreate services whose image changed:
+
+```bash
+docker compose --env-file .env.prod -f docker-compose.prod.yml config --quiet
+
+docker compose --env-file .env.prod -f docker-compose.prod.yml build
+
+docker compose --env-file .env.prod -f docker-compose.prod.yml \
+  up -d --remove-orphans
+```
+
+The equivalent single deployment command is:
+
+```bash
+docker compose --env-file .env.prod -f docker-compose.prod.yml \
+  up -d --build --remove-orphans
+```
+
+After the update, verify container state and review the application and worker logs:
+
+```bash
+docker compose --env-file .env.prod -f docker-compose.prod.yml ps
+
+docker compose --env-file .env.prod -f docker-compose.prod.yml \
+  logs --tail=200 php-fpm nginx frontend messenger-worker analytics-worker scheduler-worker payment-worker
+```
+
+### Code changes with migrations
+
+Create a backup before applying schema changes, build the new images, run the one-shot migration service, and then update the runtime services:
+
+```bash
+docker compose --env-file .env.prod -f docker-compose.prod.yml \
+  --profile backup run --rm postgres-backup
+
+docker compose --env-file .env.prod -f docker-compose.prod.yml build
+
+docker compose --env-file .env.prod -f docker-compose.prod.yml \
+  --profile release run --rm migrate
+
+docker compose --env-file .env.prod -f docker-compose.prod.yml \
+  up -d --remove-orphans
+```
+
+Do not skip the migration review merely because the command reports that there are no migrations to execute. Confirm that every database-dependent code change has a committed Doctrine migration before deployment.
+
+### Environment-only changes
+
+A plain restart does not apply changed Compose environment values to an existing container. Recreate the services after editing `.env.prod`:
+
+```bash
+docker compose --env-file .env.prod -f docker-compose.prod.yml config --quiet
+
+docker compose --env-file .env.prod -f docker-compose.prod.yml \
+  up -d --force-recreate --remove-orphans
+```
+
+Rebuild as well when a changed value is a frontend build argument such as `NEXT_PUBLIC_API_URL` or `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`:
+
+```bash
+docker compose --env-file .env.prod -f docker-compose.prod.yml \
+  up -d --build --force-recreate --remove-orphans
+```
+
+### Persistent data safety
+
+Rebuilding images and recreating containers with `up -d` does not remove the named volumes declared by `docker-compose.prod.yml`. PostgreSQL, Redis, RabbitMQ, ClickHouse, and MinIO data therefore remain available across normal deployments.
+
+The production Compose project has the fixed name `evogym-prod`. Keep using the same Compose file and project name so that Docker reconnects the existing volumes instead of creating a separate empty set.
+
+Do not use destructive volume commands during a normal deployment:
+
+```bash
+# Deletes the production named volumes.
+docker compose --env-file .env.prod -f docker-compose.prod.yml down -v
+
+# Do not remove evogym-prod data volumes manually.
+docker volume rm evogym-prod_postgres_data
+
+docker system prune --volumes
+```
+
+`docker compose down` without `-v` removes containers and the Compose network but preserves the named volumes. A verified PostgreSQL backup is still recommended before every release that changes persistence or critical business logic.
 
 ## PostgreSQL backups
 
