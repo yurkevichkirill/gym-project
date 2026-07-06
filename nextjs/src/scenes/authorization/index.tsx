@@ -10,6 +10,7 @@ import {observer} from "mobx-react-lite";
 import {notify} from "@/lib/notify";
 import {getErrorMessage} from "@/lib/getErrorMessage";
 import {useRouter} from "next/navigation";
+import {getAccountPath} from "@/lib/utils/user.types.utils";
 
 interface FormData {
     email: string;
@@ -40,7 +41,7 @@ const LoginModal = observer(({
         try {
             const user = await authStore.login(data);
             onClose();
-            router.replace("/me");
+            router.replace(getAccountPath(user) ?? "/me");
 
             notify.success(
                 "Logged in successfully",
