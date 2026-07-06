@@ -1,3 +1,4 @@
+import { action, makeObservable } from "mobx";
 import {
     cancelAdminTraining,
     completeAdminTraining,
@@ -15,6 +16,11 @@ import type {
 class AdminTrainingsStore extends AdminResourceStore<AdminTraining, AdminTrainingsGetQueryParams> {
     public constructor() {
         super(getAdminTrainings, getAdminTrainingsRequestKey);
+        makeObservable(this, {
+            update: action.bound,
+            cancel: action.bound,
+            complete: action.bound,
+        });
     }
 
     public update(id: number, payload: AdminTrainingUpdateRequest): Promise<AdminTraining | void> {

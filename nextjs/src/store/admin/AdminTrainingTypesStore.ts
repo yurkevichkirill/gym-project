@@ -1,4 +1,4 @@
-import { runInAction } from "mobx";
+import { action, makeObservable, observable, runInAction } from "mobx";
 import {
     createAdminTrainingType,
     deleteAdminTrainingType,
@@ -24,6 +24,15 @@ class AdminTrainingTypesStore extends AdminResourceStore<AdminTrainingType, Trai
 
     public constructor() {
         super(getAdminTrainingTypes, getAdminTrainingTypesRequestKey, (id) => getAdminTrainingType(id.toString()));
+        makeObservable(this, {
+            isCreating: observable,
+            isUpdating: observable,
+            isUploadingPhoto: observable,
+            create: action.bound,
+            update: action.bound,
+            uploadPhoto: action.bound,
+            delete: action.bound,
+        });
     }
 
     public async create(payload: AdminTrainingTypeCreateRequest): Promise<AdminTrainingType> {

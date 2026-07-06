@@ -1,4 +1,4 @@
-import { runInAction } from "mobx";
+import { action, makeObservable, observable, runInAction } from "mobx";
 import {
     blockAdminTrainer,
     createAdminTrainer,
@@ -27,6 +27,18 @@ class AdminTrainersStore extends AdminResourceStore<AdminTrainer, AdminTrainersG
 
     public constructor() {
         super(getAdminTrainers, getAdminTrainersRequestKey, getAdminTrainer);
+        makeObservable(this, {
+            isCreating: observable,
+            isUpdating: observable,
+            isUploadingPhoto: observable,
+            create: action.bound,
+            update: action.bound,
+            uploadPhoto: action.bound,
+            delete: action.bound,
+            restore: action.bound,
+            block: action.bound,
+            unblock: action.bound,
+        });
     }
 
     public async create(payload: AdminTrainerCreateRequest): Promise<AdminTrainer> {

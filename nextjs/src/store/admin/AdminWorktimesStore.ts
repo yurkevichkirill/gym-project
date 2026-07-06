@@ -1,4 +1,4 @@
-import { runInAction } from "mobx";
+import { action, makeObservable, observable, runInAction } from "mobx";
 import {
     createAdminTrainerWorktime,
     deleteAdminWorktime,
@@ -21,6 +21,13 @@ class AdminWorktimesStore extends AdminResourceStore<WorktimeData, GetWorktimesT
 
     public constructor() {
         super(getAdminWorktimes, getAdminWorktimesRequestKey);
+        makeObservable(this, {
+            isCreating: observable,
+            isUpdating: observable,
+            createForTrainer: action.bound,
+            update: action.bound,
+            delete: action.bound,
+        });
     }
 
     public async createForTrainer(trainerId: number, payload: AdminWorktimeCreateRequest): Promise<WorktimeData> {

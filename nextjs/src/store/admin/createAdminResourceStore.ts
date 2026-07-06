@@ -1,4 +1,4 @@
-import { makeAutoObservable, runInAction } from "mobx";
+import { action, makeObservable, observable, runInAction } from "mobx";
 import { ApiCollectionResponse } from "@/types/api-collection-response";
 import { getAdminErrorMessage, getApiErrorStatus } from "@/api/admin/admin-api-utils";
 
@@ -15,14 +15,6 @@ type DetailTask = {
     id: number;
     promise: Promise<void>;
 };
-
-type ResourceStorePrivateKey =
-    | "listRequestId"
-    | "detailRequestId"
-    | "currentParams"
-    | "currentRequestKey"
-    | "listTask"
-    | "detailTask";
 
 export class AdminResourceStore<TItem extends { id: number }, TParams extends object> {
     public items: TItem[] = [];
@@ -53,14 +45,35 @@ export class AdminResourceStore<TItem extends { id: number }, TParams extends ob
         private readonly getRequestKey: (params: TParams) => string,
         private readonly getDetail?: (id: number) => Promise<TItem>,
     ) {
-        makeAutoObservable<this, ResourceStorePrivateKey>(this, {
+        makeObservable<this, "listRequestId" | "detailRequestId" | "currentParams" | "currentRequestKey" | "listTask" | "detailTask">(this, {
+            items: observable,
+            pagination: observable,
+            loadedRequestKey: observable,
+            isLoading: observable,
+            isRefreshing: observable,
+            error: observable,
+            errorStatus: observable,
+            selected: observable,
+            isDetailLoading: observable,
+            detailError: observable,
+            detailErrorStatus: observable,
+            mutationError: observable,
+            actionKeys: observable,
             listRequestId: false,
             detailRequestId: false,
             currentParams: false,
             currentRequestKey: false,
             listTask: false,
             detailTask: false,
-        }, { autoBind: true });
+            init: action.bound,
+            loadDetail: action.bound,
+            applyItem: action.bound,
+            removeItem: action.bound,
+            isActionRunning: action.bound,
+            runAction: action.bound,
+            refetch: action.bound,
+            reset: action.bound,
+        });
     }
 
     public init(params: TParams): Promise<void> {

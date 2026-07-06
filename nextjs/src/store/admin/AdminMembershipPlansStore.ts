@@ -1,4 +1,4 @@
-import { runInAction } from "mobx";
+import { action, makeObservable, observable, runInAction } from "mobx";
 import {
     createAdminMembershipPlan,
     deleteAdminMembershipPlan,
@@ -22,6 +22,13 @@ class AdminMembershipPlansStore extends AdminResourceStore<AdminMembershipPlan, 
 
     public constructor() {
         super(getAdminMembershipPlans, getAdminMembershipPlansRequestKey, (id) => getAdminMembershipPlan(id.toString()));
+        makeObservable(this, {
+            isCreating: observable,
+            isUpdating: observable,
+            create: action.bound,
+            update: action.bound,
+            delete: action.bound,
+        });
     }
 
     public async create(payload: AdminMembershipPlanCreateRequest): Promise<AdminMembershipPlan> {

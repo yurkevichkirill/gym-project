@@ -1,4 +1,4 @@
-import { runInAction } from "mobx";
+import { action, makeObservable, observable, runInAction } from "mobx";
 import {
     cancelAdminBooking,
     createAdminClientBooking,
@@ -19,6 +19,11 @@ class AdminBookingsStore extends AdminResourceStore<AdminBooking, AdminBookingsG
 
     public constructor() {
         super(getAdminBookings, getAdminBookingsRequestKey, getAdminBooking);
+        makeObservable(this, {
+            isCreating: observable,
+            createForClient: action.bound,
+            cancel: action.bound,
+        });
     }
 
     public async createForClient(clientId: number, payload: AdminBookingCreateRequest): Promise<AdminBooking> {

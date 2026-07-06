@@ -1,3 +1,4 @@
+import { makeObservable } from "mobx";
 import { getAdminPayment, getAdminPayments, getAdminPaymentsRequestKey } from "@/api/admin/payments.api";
 import { AdminResourceStore } from "@/store/admin/createAdminResourceStore";
 import type { AdminPayment, AdminPaymentsGetQueryParams } from "@/types/admin/admin-payment.type";
@@ -5,6 +6,7 @@ import type { AdminPayment, AdminPaymentsGetQueryParams } from "@/types/admin/ad
 class AdminPaymentsStore extends AdminResourceStore<AdminPayment, AdminPaymentsGetQueryParams> {
     public constructor() {
         super(getAdminPayments, getAdminPaymentsRequestKey, getAdminPayment);
+        makeObservable(this, {});
     }
 }
 
