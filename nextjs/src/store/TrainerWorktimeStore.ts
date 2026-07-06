@@ -130,6 +130,7 @@ class TrainerWorktimeStore {
             const worktime = await createCurrentTrainerWorktime(payload);
 
             if (generation === this.generation && authStore.isAuth) {
+                this.applyMutationResponse(worktime);
                 await this.reload();
             }
 
@@ -227,6 +228,30 @@ class TrainerWorktimeStore {
         this.deletingIds = [];
     }
 
+    private applyMutationResponse(worktime: WorktimeData): void {
+        this.listRequestId += 1;
+
+        runInAction(() => {
+            const index = this.worktimes.findIndex((item) => item.id === worktime.id);
+
+            if (index === -1) {
+                this.worktimes = [worktime, ...this.worktimes];
+            } else {
+                this.worktimes = this.worktimes.map((item) => (
+                    item.id === worktime.id ? worktime : item
+                ));
+            }
+        });
+    }
+
+    private removeMutationResponse(worktimeId: number): void {
+        this.listRequestId += 1;
+
+        runInAction(() => {
+            this.worktimes = this.worktimes.filter((item) => item.id !== worktimeId);
+        });
+    }
+
     private async updateInternal(
         id: number,
         payload: TrainerWorktimeUpdatePayload,
@@ -235,6 +260,7 @@ class TrainerWorktimeStore {
         const worktime = await updateCurrentTrainerWorktime(id, payload);
 
         if (generation === this.generation && authStore.isAuth) {
+            this.applyMutationResponse(worktime);
             await this.reload();
         }
 
@@ -247,6 +273,7 @@ class TrainerWorktimeStore {
         await deleteCurrentTrainerWorktime(id);
 
         if (generation === this.generation && authStore.isAuth) {
+            this.removeMutationResponse(id);
             await this.reload();
         }
     }

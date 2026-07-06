@@ -42,29 +42,47 @@ final readonly class WorkTimeQuery
                 $item->tag(['trainer_worktimes_list_all']);
             }
 
-            $qb = $this->createQuery($dto);
-
-            $totalQb = $this->createQuery($dto, true);
-            $total = (int) $totalQb->select('COUNT(w.id)')->getQuery()->getSingleScalarResult();
-
-            $offset = ($dto->page - 1) * $dto->limit;
-
-            foreach ($parsedSort as $field => $order) {
-                $qb->addOrderBy("w.$field", $order);
-            }
-
-            $qb->setFirstResult($offset)
-                ->setMaxResults($dto->limit);
-
-            $worktimes = $qb->getQuery()->getResult();
-
-            $items = array_map(fn ($worktime) => $this->mapper->map($worktime), $worktimes);
-
-            return [
-                'items' => $items,
-                'total' => $total,
-            ];
+            return $this->loadData($dto, $parsedSort);
         });
+    }
+
+    /**
+     * @param array<string, string> $parsedSort
+     * @return array{items: list<mixed>, total: int}
+     */
+    public function getData(ResolvedWorktimesRequestDTO $dto, array $parsedSort): array
+    {
+        return $this->loadData($dto, $parsedSort);
+    }
+
+    /**
+     * @param array<string, string> $parsedSort
+     * @return array{items: list<mixed>, total: int}
+     */
+    private function loadData(ResolvedWorktimesRequestDTO $dto, array $parsedSort): array
+    {
+        $qb = $this->createQuery($dto);
+
+        $totalQb = $this->createQuery($dto, true);
+        $total = (int) $totalQb->select('COUNT(w.id)')->getQuery()->getSingleScalarResult();
+
+        $offset = ($dto->page - 1) * $dto->limit;
+
+        foreach ($parsedSort as $field => $order) {
+            $qb->addOrderBy("w.$field", $order);
+        }
+
+        $qb->setFirstResult($offset)
+            ->setMaxResults($dto->limit);
+
+        $worktimes = $qb->getQuery()->getResult();
+
+        $items = array_map(fn ($worktime) => $this->mapper->map($worktime), $worktimes);
+
+        return [
+            'items' => $items,
+            'total' => $total,
+        ];
     }
 
     private function createQuery(ResolvedWorktimesRequestDTO $dto, bool $isCount = false): QueryBuilder

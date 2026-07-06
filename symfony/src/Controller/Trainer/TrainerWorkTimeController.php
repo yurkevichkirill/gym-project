@@ -25,7 +25,6 @@ use DateMalformedIntervalStringException;
 use DateMalformedStringException;
 use Nelmio\ApiDocBundle\Attribute\Model;
 use OpenApi\Attributes as OA;
-use Psr\Cache\InvalidArgumentException;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
@@ -38,7 +37,6 @@ use Throwable;
 final class TrainerWorkTimeController extends AbstractController
 {
     /**
-     * @throws InvalidArgumentException
      * @throws BadRequestHttpException
      */
     #[Route('/api/trainer/me/worktime/', methods: ['GET'], format: 'json')]
@@ -95,13 +93,13 @@ final class TrainerWorkTimeController extends AbstractController
     ): CollectionResponse {
         $parsedSort = $handler->getParsedSort($resolvedDto);
 
-        $cachedData = $handler->getCachedData($resolvedDto, $parsedSort);
+        $data = $handler->getData($resolvedDto, $parsedSort);
 
         return new CollectionResponse(
-            $cachedData['items'],
+            $data['items'],
             $resolvedDto->page,
             $resolvedDto->limit,
-            $cachedData['total'],
+            $data['total'],
             $parsedSort,
             Response::HTTP_OK,
         );
