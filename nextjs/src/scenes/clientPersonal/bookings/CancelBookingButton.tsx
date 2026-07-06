@@ -56,7 +56,7 @@ const CancelBookingButton = observer(({
         <>
             <button
                 type="button"
-                className={`rounded-md border border-red-300 bg-white px-4 py-2 font-semibold text-red-700 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50 ${className}`}
+                className={`inline-flex min-h-10 items-center justify-center rounded-xl border border-red-300 bg-white px-4 py-2 text-sm font-semibold text-red-700 transition hover:bg-red-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500 disabled:cursor-not-allowed disabled:opacity-50 ${className}`}
                 disabled={isCanceling}
                 onClick={() => setIsDialogOpen(true)}
             >

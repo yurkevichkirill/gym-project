@@ -3,7 +3,13 @@
 import Link from "next/link";
 import MembershipType from "@/types/membership/membership.type";
 import PersonalMembership from "@/scenes/clientPersonal/membership/Membership";
-import Section from "@/shared/Section";
+import Section, {
+    emptyStateClassName,
+    errorStateClassName,
+    loadingStateClassName,
+    primaryActionClassName,
+    secondaryActionClassName,
+} from "@/shared/Section";
 import { useStore } from "@/store/StoreProvider";
 import { observer } from "mobx-react-lite";
 import { useEffect, useMemo, useState } from "react";
@@ -41,30 +47,34 @@ export const PersonalMemberships = observer(() => {
     const visibleMemberships = isExpanded ? sortedMemberships : sortedMemberships.slice(0, 2);
 
     return (
-        <Section title="My Memberships">
+        <Section
+            title="My Memberships"
+            titleId="my-memberships-title"
+            action={(
+                <Link
+                    href="/me/memberships"
+                    className={secondaryActionClassName}
+                    aria-label="View membership history"
+                >
+                    View membership history
+                </Link>
+            )}
+        >
             <div className="flex flex-col gap-4">
-                <div className="flex justify-end">
-                    <Link
-                        href="/me/memberships"
-                        className="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-semibold transition hover:border-secondary-500"
-                    >
-                        View membership history
-                    </Link>
-                </div>
 
                 {membershipStore.isLoading && !hasMemberships && (
-                    <p className="text-sm text-gray-500">Loading memberships...</p>
+                    <div role="status" aria-live="polite" className={loadingStateClassName}>Loading memberships...</div>
                 )}
 
                 {membershipStore.error && (
-                    <div className="rounded-md border border-primary-500 bg-red-50 p-4" role="alert">
+                    <div className={errorStateClassName} role="alert">
                         <p className="font-semibold">Unable to load memberships.</p>
-                        <p className="mt-1 text-sm text-gray-600">{membershipStore.error}</p>
+                        <p className="mt-1 text-sm">{membershipStore.error}</p>
                         <button
                             type="button"
                             onClick={() => void membershipStore.init()}
                             disabled={membershipStore.isLoading || membershipStore.isRefreshing}
-                            className="mt-3 cursor-pointer rounded-md bg-secondary-500 px-4 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-50"
+                            className={`${primaryActionClassName} mt-3`}
                         >
                             {membershipStore.isLoading || membershipStore.isRefreshing ? "Retrying..." : "Retry"}
                         </button>
@@ -75,7 +85,7 @@ export const PersonalMemberships = observer(() => {
                     && !membershipStore.isRefreshing
                     && !membershipStore.error
                     && !hasMemberships && (
-                    <p className="text-sm text-gray-500">You have no memberships yet.</p>
+                    <div className={emptyStateClassName}>You have no memberships yet.</div>
                 )}
 
                 <div className="grid gap-4 md:grid-cols-2">
@@ -95,14 +105,14 @@ export const PersonalMemberships = observer(() => {
                 </div>
 
                 {membershipStore.isRefreshing && hasMemberships && (
-                    <p className="text-sm text-gray-500">Refreshing memberships...</p>
+                    <p className="text-sm text-gray-600" role="status" aria-live="polite">Refreshing memberships...</p>
                 )}
 
                 {sortedMemberships.length > 2 && (
                     <button
                         type="button"
                         onClick={() => setIsExpanded(!isExpanded)}
-                        className="mt-4 flex w-full cursor-pointer items-center justify-center gap-2 py-2 text-sm text-gray-500 transition-colors hover:text-primary-500"
+                        className="mt-2 flex min-h-10 w-full cursor-pointer items-center justify-center gap-2 rounded-xl border border-gray-100 bg-white px-4 py-2 text-sm font-semibold text-gray-500 transition hover:border-primary-300 hover:bg-primary-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-500"
                     >
                         {isExpanded ? "Show less" : `Show all (${sortedMemberships.length})`}
 

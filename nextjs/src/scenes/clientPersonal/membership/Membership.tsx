@@ -10,6 +10,7 @@ import {
     getMembershipStatusLabel,
 } from "@/scenes/clientPersonal/membership/membership-display";
 import MembershipActions from "@/scenes/clientPersonal/membership/MembershipActions";
+import { previewCardClassName, secondaryActionClassName } from "@/shared/Section";
 
 type Props = {
     id: number;
@@ -33,16 +34,16 @@ const PersonalMembership = ({
     visits,
 }: Props) => {
     return (
-        <article className="flex flex-col gap-4 rounded-xl border border-gray-200 p-4">
+        <article className={`${previewCardClassName} flex h-full flex-col gap-4`}>
             <div>
                 <div className="mb-2 flex items-start justify-between gap-2">
                     <div>
-                        <p className="font-semibold">{name}</p>
+                        <p className="font-semibold text-gray-900">{name}</p>
                         <p className="mt-1 text-xs text-gray-500">
                             {membershipPlan === null ? "Linked plan unavailable" : `Plan #${membershipPlan.id}`}
                         </p>
                     </div>
-                    <span className={`rounded-full px-3 py-1 text-sm ${getMembershipStatusClassName(status)}`}>
+                    <span className={getMembershipStatusClassName(status)}>
                         {getMembershipStatusLabel(status)}
                     </span>
                 </div>
@@ -60,10 +61,11 @@ const PersonalMembership = ({
                 </div>
             </div>
 
-            <div className="mt-auto flex flex-wrap gap-2 border-t pt-3">
+            <div className="mt-auto flex flex-wrap gap-2 border-t border-gray-50 pt-4">
                 <Link
                     href={`/me/memberships/${id}`}
-                    className="rounded border border-gray-300 px-3 py-1.5 text-xs font-semibold transition hover:border-secondary-500"
+                    className={secondaryActionClassName}
+                    aria-label={`View membership ${id} details`}
                 >
                     View details
                 </Link>

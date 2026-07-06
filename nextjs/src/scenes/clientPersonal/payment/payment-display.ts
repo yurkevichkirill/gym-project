@@ -1,3 +1,4 @@
+import { statusBadgeClassName } from "@/shared/Section";
 import { PaymentCategoryEnum } from "@/types/payment/payment-category.enum";
 import { PaymentMethodEnum } from "@/types/payment/payment-method.enum";
 import { PaymentStatusEnum } from "@/types/payment/payment-status.enum";
@@ -38,7 +39,7 @@ export const getPaymentStatusLabel = (status: PaymentStatusEnum): string => {
 };
 
 export const getPaymentStatusClassName = (status: PaymentStatusEnum): string => {
-    return PAYMENT_STATUS_CLASSES[status];
+    return `${statusBadgeClassName} ${PAYMENT_STATUS_CLASSES[status]}`;
 };
 
 export const getPaymentCategoryLabel = (category: PaymentCategoryEnum): string => {

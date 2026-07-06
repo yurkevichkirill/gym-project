@@ -1,3 +1,4 @@
+import { statusBadgeClassName } from "@/shared/Section";
 import { BookingStatusEnum } from "@/types/booking/bookings-status.enum";
 
 const STATUS_LABELS: Record<BookingStatusEnum, string> = {
@@ -25,7 +26,7 @@ export const getBookingStatusLabel = (status: BookingStatusEnum): string => {
 };
 
 export const getBookingStatusClassName = (status: BookingStatusEnum): string => {
-    return STATUS_STYLES[status];
+    return `${statusBadgeClassName} ${STATUS_STYLES[status]}`;
 };
 
 export const formatMoney = (amount: number, currency: string): string => {
