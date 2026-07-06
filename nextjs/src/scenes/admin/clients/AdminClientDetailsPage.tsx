@@ -10,6 +10,8 @@ import ErrorState from "@/shared/ui/ErrorState";
 import LoadingState from "@/shared/ui/LoadingState";
 import ConfirmDialog from "@/shared/ui/ConfirmDialog";
 import type { AdminClientUpdateRequest } from "@/types/admin/admin-client.type";
+import type { AdminBookingCreateRequest } from "@/types/admin/admin-booking.type";
+import type { AdminMembershipCreateRequest } from "@/types/admin/admin-membership.type";
 import { formatAdminClientDate, formatAdminClientMoney, getAdminClientStateClassName, getAdminClientStateLabel } from "@/scenes/admin/clients/admin-client-display";
 
 type AdminClientDetailsPageProps = {
@@ -53,12 +55,14 @@ const getConfirmCopy = (action: ConfirmAction) => {
 };
 
 const AdminClientDetailsPage = observer(({ clientId }: AdminClientDetailsPageProps) => {
-    const { adminClientsStore } = useStore();
+    const { adminClientsStore, adminBookingsStore, adminMembershipsStore } = useStore();
     const [confirmAction, setConfirmAction] = useState<ConfirmAction | null>(null);
     const client = adminClientsStore.selectedClient?.id === clientId ? adminClientsStore.selectedClient : null;
     const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm<FormValues>({
         defaultValues: { age: "", firstName: "", lastName: "", email: "", phone: "", password: "" },
     });
+    const bookingForm = useForm<AdminBookingCreateRequest>();
+    const membershipForm = useForm<AdminMembershipCreateRequest>();
 
     useEffect(() => {
         void adminClientsStore.loadClient(clientId);
@@ -199,6 +203,37 @@ const AdminClientDetailsPage = observer(({ clientId }: AdminClientDetailsPagePro
                     </div>
                 </div>
             </article>
+
+            <div className="mt-6 grid gap-6 lg:grid-cols-2">
+                <section className="rounded-2xl bg-white p-6 shadow-sm sm:p-8">
+                    <h2 className="text-xl font-bold">Create booking</h2>
+                    <form className="mt-4 grid gap-4 sm:grid-cols-2" onSubmit={bookingForm.handleSubmit(async (values) => {
+                        await adminBookingsStore.createForClient(clientId, {
+                            trainerId: Number(values.trainerId),
+                            durationMinutes: Number(values.durationMinutes),
+                            startTime: values.startTime,
+                            date: values.date,
+                        });
+                        bookingForm.reset();
+                    })}>
+                        <label className="flex flex-col gap-1 text-sm font-semibold">Trainer ID<input className={inputClassName} type="number" {...bookingForm.register("trainerId", { required: true })} /></label>
+                        <label className="flex flex-col gap-1 text-sm font-semibold">Date<input className={inputClassName} type="date" {...bookingForm.register("date", { required: true })} /></label>
+                        <label className="flex flex-col gap-1 text-sm font-semibold">Start time<input className={inputClassName} type="time" {...bookingForm.register("startTime", { required: true })} /></label>
+                        <label className="flex flex-col gap-1 text-sm font-semibold">Duration minutes<input className={inputClassName} type="number" {...bookingForm.register("durationMinutes", { required: true })} /></label>
+                        <button type="submit" className="rounded-md bg-secondary-500 px-5 py-2 font-semibold transition hover:bg-primary-500 hover:text-white disabled:opacity-50" disabled={adminBookingsStore.isCreating}>{adminBookingsStore.isCreating ? "Creating..." : "Create booking"}</button>
+                    </form>
+                </section>
+                <section className="rounded-2xl bg-white p-6 shadow-sm sm:p-8">
+                    <h2 className="text-xl font-bold">Assign membership</h2>
+                    <form className="mt-4 grid gap-4" onSubmit={membershipForm.handleSubmit(async (values) => {
+                        await adminMembershipsStore.createForClient(clientId, { membershipPlanId: Number(values.membershipPlanId) });
+                        membershipForm.reset();
+                    })}>
+                        <label className="flex flex-col gap-1 text-sm font-semibold">Membership plan ID<input className={inputClassName} type="number" {...membershipForm.register("membershipPlanId", { required: true })} /></label>
+                        <button type="submit" className="rounded-md bg-secondary-500 px-5 py-2 font-semibold transition hover:bg-primary-500 hover:text-white disabled:opacity-50" disabled={adminMembershipsStore.isCreating}>{adminMembershipsStore.isCreating ? "Assigning..." : "Assign membership"}</button>
+                    </form>
+                </section>
+            </div>
 
             {currentConfirm ? (
                 <ConfirmDialog
