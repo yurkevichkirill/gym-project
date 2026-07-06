@@ -25,6 +25,10 @@ services:
         arguments:
             - '%env(resolve:REDIS_URL)%'
 
+    App\Infrastructure\Doctrine\ApplicationSchemaManagerFactory:
+        arguments:
+            $defaultFactory: '@doctrine.dbal.default_schema_manager_factory'
+
     App\Payment\Service\StripeService:
         arguments:
             $stripeSecretKey: '%env(STRIPE_SECRET_KEY)%'

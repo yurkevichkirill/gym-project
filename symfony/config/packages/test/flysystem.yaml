@@ -1,0 +1,11 @@
+flysystem:
+    storages:
+        trainers.storage:
+            adapter: 'local'
+            options:
+                directory: '%kernel.project_dir%/var/storage/test/trainers'
+
+        training_types.storage:
+            adapter: 'local'
+            options:
+                directory: '%kernel.project_dir%/var/storage/test/training-types'

@@ -189,7 +189,11 @@ final class CurrentUserFunctionalTest extends WebTestCase
         $projectDir = self::getContainer()->getParameter('kernel.project_dir');
         self::assertIsString($projectDir);
 
-        $privateKeyPem = file_get_contents($projectDir . '/config/jwt/private.pem');
+        $privateKeyPath = getenv('JWT_SECRET_KEY');
+        self::assertIsString($privateKeyPath);
+        $privateKeyPath = str_replace('%kernel.project_dir%', $projectDir, $privateKeyPath);
+
+        $privateKeyPem = file_get_contents($privateKeyPath);
         self::assertIsString($privateKeyPem);
 
         $passphrase = getenv('JWT_PASSPHRASE');

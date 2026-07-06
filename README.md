@@ -140,7 +140,11 @@ Ports can be changed in the root `.env` file. By default all published ports bin
 
 ```bash
 docker compose config --quiet
+docker compose up -d postgres redis rabbitmq mailpit php-fpm
+docker compose exec php-fpm php bin/console doctrine:database:create --env=test --if-not-exists
+docker compose exec php-fpm php bin/console doctrine:migrations:migrate --env=test --no-interaction
 docker compose exec php-fpm php bin/phpunit
+docker compose exec php-fpm php bin/console doctrine:schema:validate --env=test
 docker compose exec php-fpm vendor/bin/phpstan analyse
 docker compose exec frontend pnpm lint
 docker compose exec frontend pnpm build
