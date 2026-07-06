@@ -5,7 +5,7 @@ import {
     Roles,
 } from "@/types/auth.type";
 
-export type AccountPath = "/me" | "/trainer" | "/admin";
+export type AccountPath = "/me" | "/admin";
 
 export const hasRole = (user: CurrentUser, role: Role): boolean => {
     return user.roles.includes(role);
@@ -47,7 +47,7 @@ export const getAccountPath = (user: CurrentUser): AccountPath | null => {
     }
 
     if (role === Roles.TRAINER) {
-        return "/trainer";
+        return "/me";
     }
 
     if (role === Roles.CLIENT) {
