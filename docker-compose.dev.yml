@@ -3,6 +3,8 @@ services:
     depends_on:
       mailpit:
         condition: service_started
+    volumes:
+      - stripe_webhook_secret:/run/stripe-webhook:ro
 
   messenger-worker:
     depends_on:
@@ -86,5 +88,37 @@ services:
         /usr/bin/mc anonymous set none "local/$${MINIO_BUCKET}"
         echo 'MinIO is fully configured!'
 
+  stripe-cli:
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    container_name: stripe-cli
+    image: stripe/stripe-cli:v1.43.6
+    entrypoint:
+      - /bin/sh
+      - /usr/local/bin/stripe-listen.sh
+    environment:
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:?STRIPE_SECRET_KEY is required}
+      STRIPE_FORWARD_TO: http://nginx:8080/api/webhooks/stripe/
+      STRIPE_WEBHOOK_SECRET_FILE: /run/stripe-webhook/secret
+    volumes:
+      - ./docker/stripe/listen.sh:/usr/local/bin/stripe-listen.sh:ro
+      - stripe_webhook_secret:/run/stripe-webhook
+    depends_on:
+      nginx:
+        condition: service_started
+    healthcheck:
+      test: [ "CMD-SHELL", "test -s /run/stripe-webhook/secret" ]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 10s
+    networks:
+      - app-network
+
 volumes:
   pgadmin_data:
+  stripe_webhook_secret:
