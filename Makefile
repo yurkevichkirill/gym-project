@@ -1,7 +1,7 @@
 .PHONY: setup up down restart ps logs stripe-logs migrate test phpstan lint typecheck build
 
 setup:
-	bash scripts/dev-setup.sh
+	bash scripts/dev-bootstrap.sh
 
 up:
 	docker compose up -d --remove-orphans
