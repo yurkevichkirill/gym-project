@@ -1,25 +1,26 @@
 # EvoGym
 
-EvoGym is a gym management application with a Next.js frontend and a Symfony API. The local Docker environment includes Nginx/OpenResty, PHP-FPM, PostgreSQL, Redis, RabbitMQ, ClickHouse, Mailpit, MinIO, PgAdmin, the frontend, and Messenger workers.
+EvoGym is a gym management application with a Next.js frontend and a Symfony API. The local Docker environment includes Nginx/OpenResty, PHP-FPM, PostgreSQL, Redis, RabbitMQ, ClickHouse, Mailpit, MinIO, PgAdmin, Stripe CLI, the frontend, and Messenger workers.
 
 ## Requirements
 
 - Git;
 - Docker Engine or Docker Desktop;
 - a recent Docker Compose v2 release;
+- a Stripe sandbox secret key (`sk_test_...`) and publishable key (`pk_test_...`);
 - `mkcert` for trusted local certificates, or OpenSSL as a fallback;
 - permission to add local domains to the system hosts file.
 
-PHP, Composer, Node.js, and pnpm do not need to be installed on the host.
+PHP, Composer, Node.js, pnpm, and Stripe CLI do not need to be installed on the host.
 
 ## First launch on a clean machine
 
-Clone the repository and run the development bootstrap script:
+Clone the repository and run the clean-environment bootstrap:
 
 ```bash
 git clone https://github.com/yurkevichkirill/gym-project.git
 cd gym-project
-bash scripts/dev-setup.sh
+bash scripts/dev-bootstrap.sh
 ```
 
 The equivalent Make target is:
@@ -28,41 +29,70 @@ The equivalent Make target is:
 make setup
 ```
 
-The setup is idempotent and can be run again after an interrupted installation. It:
+When Stripe credentials are not already present in `.env`, the bootstrap securely prompts for the sandbox secret key and then for the publishable key. The secret key input is not echoed to the terminal.
+
+The bootstrap is idempotent and can be run again after an interrupted installation. It:
 
 1. creates `.env`, `symfony/.env`, and `nextjs/.env.local` when they are missing;
-2. generates local application, database, RabbitMQ, ClickHouse, MinIO, PgAdmin, and JWT secrets;
-3. keeps existing non-placeholder secrets unchanged;
-4. selects `docker-compose.dev.yml` automatically through `COMPOSE_FILE`;
-5. generates TLS certificates with `mkcert` or OpenSSL;
-6. builds the PHP and frontend development images;
-7. starts and waits for the infrastructure services;
-8. installs Composer dependencies and generates the JWT key pair;
-9. runs Symfony auto-scripts and Doctrine migrations;
-10. creates the private MinIO bucket and starts the complete stack.
+2. stores and synchronizes the supplied Stripe sandbox credentials;
+3. generates local application, database, RabbitMQ, ClickHouse, MinIO, PgAdmin, and JWT secrets;
+4. keeps existing non-placeholder secrets unchanged;
+5. selects `docker-compose.dev.yml` automatically through `COMPOSE_FILE`;
+6. generates TLS certificates with `mkcert` or OpenSSL;
+7. builds the PHP and frontend development images;
+8. starts and waits for the infrastructure services;
+9. installs Composer dependencies and generates the JWT key pair;
+10. runs Symfony auto-scripts and Doctrine migrations;
+11. creates the private MinIO bucket and starts the complete stack, including Stripe CLI.
 
 ### Local domains
 
-The script does not edit system files. Add this line to `/etc/hosts` on Linux/macOS or to `C:\Windows\System32\drivers\etc\hosts` on Windows:
+The scripts do not edit system files. Add this line to `/etc/hosts` on Linux/macOS or to `C:\Windows\System32\drivers\etc\hosts` on Windows:
 
 ```text
 127.0.0.1 evogym.local api.evogym.local
 ```
 
-When `mkcert` is unavailable, the script creates a self-signed OpenSSL certificate. The browser will display a warning until that certificate is trusted manually.
-
-### Stripe test credentials
-
-A clean setup uses non-secret local Stripe placeholders, so the application can start without a Stripe account. Replace these values before testing card payments or webhooks:
-
-- `STRIPE_SECRET_KEY`, `STRIPE_PUBLIC_KEY`, and `STRIPE_WEBHOOK_SECRET` in `.env`;
-- `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` in `nextjs/.env.local`.
-
-Run the setup script again after changing the root Stripe values to synchronize the Symfony and Next.js environment files, then recreate the affected services:
+On Linux/macOS:
 
 ```bash
-bash scripts/dev-setup.sh
-docker compose up -d --force-recreate php-fpm frontend messenger-worker payment-worker
+echo '127.0.0.1 evogym.local api.evogym.local' \
+  | sudo tee -a /etc/hosts
+```
+
+When `mkcert` is unavailable, the setup creates a self-signed OpenSSL certificate. The browser will display a warning until that certificate is trusted manually.
+
+## Stripe webhook forwarding
+
+The development stack contains a `stripe-cli` service equivalent to running a local listener for:
+
+```text
+/api/webhooks/stripe/
+```
+
+Inside the Compose network it forwards events to:
+
+```text
+http://nginx:8080/api/webhooks/stripe/
+```
+
+This is the container-network equivalent of forwarding from the host to `https://api.evogym.local/api/webhooks/stripe/`. It does not need `--skip-verify` because the internal connection uses HTTP and never leaves the private Compose network.
+
+The listener automatically:
+
+- authenticates with `STRIPE_SECRET_KEY`;
+- subscribes only to Stripe events handled by the application;
+- writes the active session's `whsec_*` signing secret to a private named volume;
+- exposes that volume read-only to PHP-FPM;
+- makes Symfony use the active listener secret in `dev` environment.
+
+Do not copy the signing secret from logs into `.env`. It is refreshed automatically when the Stripe listener session changes.
+
+Check listener status and logs:
+
+```bash
+docker compose ps stripe-cli
+make stripe-logs
 ```
 
 ## Local URLs
@@ -85,20 +115,21 @@ Published ports and credentials are configured in the root `.env`. They bind to 
 ## Daily development commands
 
 ```bash
-make up       # start or reconcile the stack
-make down     # stop containers without deleting data
-make ps       # show service state
-make logs     # follow Nginx, PHP-FPM, and frontend logs
-make migrate  # apply Doctrine migrations
+make up           # start or reconcile the stack
+make down         # stop containers without deleting data
+make ps           # show service state
+make logs         # follow Nginx, PHP-FPM, frontend, and Stripe CLI logs
+make stripe-logs  # follow only Stripe webhook forwarding
+make migrate      # apply Doctrine migrations
 ```
 
 The direct Docker Compose equivalents remain available:
 
 ```bash
-docker compose up -d
+docker compose up -d --remove-orphans
 docker compose down
 docker compose ps
-docker compose logs -f nginx php-fpm frontend
+docker compose logs -f nginx php-fpm frontend stripe-cli
 ```
 
 Run Symfony and Composer commands through the PHP container:
@@ -129,6 +160,23 @@ docker compose exec frontend pnpm build
 
 ## Common startup problems
 
+### Stripe CLI is restarting or unhealthy
+
+Verify that `.env` contains real sandbox credentials rather than generated or example values:
+
+```dotenv
+STRIPE_SECRET_KEY=sk_test_...
+STRIPE_PUBLIC_KEY=pk_test_...
+```
+
+Then synchronize the application files and recreate the affected services:
+
+```bash
+bash scripts/dev-bootstrap.sh
+docker compose up -d --force-recreate stripe-cli php-fpm frontend
+make stripe-logs
+```
+
 ### Compose starts only the base services
 
 The generated root `.env` must contain:
@@ -138,7 +186,7 @@ COMPOSE_FILE=docker-compose.yml:docker-compose.dev.yml
 COMPOSE_PATH_SEPARATOR=:
 ```
 
-Recreate `.env` from `.env.example` or run `bash scripts/dev-setup.sh` again.
+Run `bash scripts/dev-bootstrap.sh` again when these values are missing.
 
 ### Nginx exits immediately
 
@@ -157,7 +205,7 @@ docker compose logs nginx
 
 ### A service cannot connect to another container
 
-Container DSNs must use Compose service names such as `postgres`, `redis`, `rabbitmq`, `clickhouse`, `mailpit`, and `minio`, not `localhost`. Running the setup script synchronizes the generated credentials between the root and Symfony environment files.
+Container DSNs must use Compose service names such as `postgres`, `redis`, `rabbitmq`, `clickhouse`, `mailpit`, `minio`, and `nginx`, not `localhost`.
 
 ### Ports are already in use
 
@@ -202,6 +250,5 @@ A full reset is destructive:
 ```bash
 docker compose down -v
 rm -rf docker/db/data data/redis data/minio
+bash scripts/dev-bootstrap.sh
 ```
-
-After a full reset, run `bash scripts/dev-setup.sh` again.
