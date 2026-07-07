@@ -1,0 +1,7 @@
+parameters:
+    stripe_webhook_secret_fallback: '%env(STRIPE_WEBHOOK_SECRET)%'
+
+services:
+    App\Payment\Service\StripeWebhookService:
+        arguments:
+            $webhookSecret: '%env(default:stripe_webhook_secret_fallback:trim:file:STRIPE_WEBHOOK_SECRET_FILE)%'

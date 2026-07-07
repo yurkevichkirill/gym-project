@@ -1,231 +1,214 @@
-# Development deployment
+# Development environment
 
-The local development environment uses the root `docker-compose.yml`. Symfony and Next.js source directories are bind-mounted into their containers, the PHP image uses the development stage with optional Xdebug, and the frontend runs `pnpm dev` with Next.js Fast Refresh.
+The development environment combines `docker-compose.yml` with `docker-compose.dev.yml`. The generated root `.env` sets `COMPOSE_FILE`, so ordinary `docker compose` commands automatically use both files.
 
-This guide reflects the current Compose stack. It starts Nginx/OpenResty, PHP-FPM, PostgreSQL, Redis, RabbitMQ, four Messenger workers, ClickHouse, MinIO, and the Next.js frontend.
+Symfony and Next.js sources are bind-mounted into their containers. PHP uses the development image with optional Xdebug, the frontend runs `pnpm dev`, and Stripe CLI runs as a dedicated webhook-forwarding service.
 
-## Host prerequisites
-
-- Git;
-- Docker Engine or Docker Desktop with Docker Compose v2;
-- `mkcert` (recommended) or OpenSSL for local TLS certificates;
-- permission to edit the local hosts file;
-- free local ports configured in the root `.env` file.
-
-## Create development environment files
+## Bootstrap a clean environment
 
 From the repository root:
 
 ```bash
-cp .env.example .env
-cp symfony/.env.example symfony/.env
-cp nextjs/.env.example nextjs/.env.local
+bash scripts/dev-bootstrap.sh
 ```
 
-These files contain local secrets and are ignored by Git. Do not commit them.
+Or, when GNU Make is available:
+
+```bash
+make setup
+```
+
+When valid Stripe sandbox credentials are not already present in `.env`, the bootstrap prompts for:
+
+- `STRIPE_SECRET_KEY` starting with `sk_test_`;
+- `STRIPE_PUBLIC_KEY` starting with `pk_test_`.
+
+The secret key input is hidden. Existing valid credentials are preserved.
+
+The bootstrap then runs `scripts/dev-setup.sh`, which is safe to rerun and performs this sequence:
+
+1. creates local environment files from committed examples;
+2. generates and synchronizes local application and infrastructure secrets;
+3. generates TLS certificates;
+4. validates the merged Compose configuration;
+5. builds PHP-FPM and frontend images;
+6. starts PostgreSQL, Redis, RabbitMQ, ClickHouse, MinIO, and Mailpit and waits for readiness;
+7. installs Composer dependencies without auto-scripts;
+8. generates JWT keys and runs Composer auto-scripts;
+9. applies Doctrine migrations;
+10. initializes the MinIO bucket;
+11. starts Nginx, PHP-FPM, the frontend, PgAdmin, workers, and Stripe CLI.
+
+The host needs Git, Docker Compose v2, and either `mkcert` or OpenSSL. PHP, Composer, Node.js, pnpm, and Stripe CLI run inside containers.
+
+## Environment files
 
 ### Root `.env`
 
-Replace every `REPLACE_WITH_*` value from `.env.example`. The credentials in the root `.env` are used by Docker Compose to configure PostgreSQL, RabbitMQ, ClickHouse, and MinIO.
+The root file controls Compose interpolation, published ports, infrastructure credentials, Stripe sandbox credentials, and values injected into application services.
 
-The current Compose file also resolves several application variables directly from the root `.env`. Add at least the following development values:
+Important development values are:
 
 ```dotenv
+COMPOSE_FILE=docker-compose.yml:docker-compose.dev.yml
+COMPOSE_PATH_SEPARATOR=:
 APP_ENV=dev
-APP_TIMEZONE=UTC
 DEFAULT_URI=https://api.evogym.local
 CLIENT_ACTIVATION_URL=https://evogym.local/activate/
-ACTIVATION_EMAIL_SENDER=noreply@evogym.local
 AUTH_COOKIE_DOMAIN=.evogym.local
 CORS_ALLOW_ORIGIN='^https://evogym\.local$'
-
-JWT_PASSPHRASE=REPLACE_WITH_STRONG_JWT_PASSPHRASE
-STRIPE_SECRET_KEY=REPLACE_WITH_STRIPE_SECRET_KEY
-STRIPE_PUBLIC_KEY=REPLACE_WITH_STRIPE_PUBLIC_KEY
-STRIPE_WEBHOOK_SECRET=REPLACE_WITH_STRIPE_WEBHOOK_SECRET
+STRIPE_SECRET_KEY=sk_test_...
+STRIPE_PUBLIC_KEY=pk_test_...
 ```
 
-`APP_ENV=dev` must be set in the root `.env`. The Compose environment is injected into PHP-FPM and the workers and takes precedence over `APP_ENV` from `symfony/.env`. Without this override, the current Compose default is `prod`.
-
-Keep `BIND_ADDRESS=127.0.0.1` unless remote access is intentionally protected by a firewall and authentication.
+Keep `BIND_ADDRESS=127.0.0.1` unless remote access is intentionally protected.
 
 ### Symfony `.env`
 
-Replace every placeholder in `symfony/.env` and keep the service credentials aligned with the root `.env`:
+`scripts/dev-setup.sh` synchronizes:
 
-- the PostgreSQL username, password, and database in `DATABASE_URL` must match `POSTGRES_USER`, `POSTGRES_PASSWORD`, and `POSTGRES_DB`;
-- the RabbitMQ credentials in `MESSENGER_TRANSPORT_DSN` must match `RABBITMQ_DEFAULT_USER` and `RABBITMQ_DEFAULT_PASS`;
-- ClickHouse and MinIO credentials must match the root `.env` values;
-- `JWT_PASSPHRASE` must match the passphrase used to generate the local JWT key pair.
+- `APP_SECRET`;
+- PostgreSQL credentials in `DATABASE_URL`;
+- RabbitMQ credentials in `MESSENGER_TRANSPORT_DSN`;
+- JWT passphrase;
+- Stripe API credentials and fallback webhook secret;
+- ClickHouse credentials;
+- MinIO credentials and bucket.
 
-Set `APP_ENV=dev` in `symfony/.env` as well so Symfony commands remain in development mode if they are ever executed outside Compose. Repository commands should normally be executed through the PHP container.
+Inside Docker, the active Stripe listener signing secret is read from `/run/stripe-webhook/secret`. Outside Docker, Symfony falls back to `STRIPE_WEBHOOK_SECRET`.
 
 ### Next.js `.env.local`
 
-The expected local API settings are:
+The local frontend uses:
 
 ```dotenv
 NEXT_PUBLIC_API_URL=https://api.evogym.local/api
 INTERNAL_API_URL=http://nginx:8080/api
-NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=REPLACE_WITH_STRIPE_PUBLISHABLE_KEY
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_...
 ```
 
-`INTERNAL_API_URL` uses the internal Nginx endpoint available only on the Compose network. Browser requests use `NEXT_PUBLIC_API_URL`.
+`INTERNAL_API_URL` is reachable only inside the Compose network. Browser requests use `NEXT_PUBLIC_API_URL`.
 
-## Current mail limitation
+## Local domains and TLS
 
-The current `docker-compose.yml` does not declare a `mailpit` service, although the default `MAILER_DSN` points to `smtp://mailpit:1025`. Account activation and other email flows will fail unless `MAILER_DSN` is changed to an SMTP server reachable from the PHP containers or Mailpit is restored to the development Compose stack in a separate infrastructure change.
-
-The current Compose file also does not declare PgAdmin and does not publish the RabbitMQ management UI, ClickHouse, or MinIO ports. Do not rely on older README URLs for those services unless the Compose stack is changed.
-
-## Configure local domains
-
-Add the following line to `/etc/hosts` on Linux/macOS or `C:\Windows\System32\drivers\etc\hosts` on Windows:
+Add the domains to the host system:
 
 ```text
 127.0.0.1 evogym.local api.evogym.local
 ```
 
-## Generate local TLS certificates
-
-Nginx expects these exact files:
+Nginx expects:
 
 ```text
 certs/evogym.local.pem
 certs/evogym.local-key.pem
 ```
 
-Recommended `mkcert` setup:
+When `mkcert` is installed, the bootstrap installs its local CA and creates a trusted certificate. Otherwise it uses OpenSSL and the certificate must be trusted manually.
+
+## Service topology
+
+The base Compose file defines the application and core infrastructure. The development override adds:
+
+- Mailpit and its SMTP/web interface ports;
+- PgAdmin;
+- RabbitMQ management port;
+- ClickHouse host ports;
+- MinIO API and console ports;
+- the idempotent `minio-init` bucket initializer;
+- Stripe CLI webhook forwarding;
+- a private named volume shared between Stripe CLI and PHP-FPM for the current webhook signing secret.
+
+The override is selected automatically from `.env`; do not invoke only `docker-compose.yml` unless the reduced base stack is intentional.
+
+## Stripe CLI webhook forwarding
+
+The `stripe-cli` service is the Compose equivalent of running:
 
 ```bash
-mkdir -p certs
-mkcert -install
-mkcert \
-  -cert-file certs/evogym.local.pem \
-  -key-file certs/evogym.local-key.pem \
-  evogym.local api.evogym.local
+stripe listen \
+  --forward-to https://api.evogym.local/api/webhooks/stripe/ \
+  --skip-verify
 ```
 
-OpenSSL fallback:
+Inside Docker it uses the private network endpoint instead:
+
+```text
+http://nginx:8080/api/webhooks/stripe/
+```
+
+Because that connection is plain HTTP inside the isolated Compose network, TLS verification and `--skip-verify` are unnecessary.
+
+The listener:
+
+1. authenticates with the root `STRIPE_SECRET_KEY`;
+2. subscribes only to events handled by `StripeWebhookService`;
+3. forwards events to Nginx;
+4. extracts the active session's `whsec_*` value from Stripe CLI output;
+5. atomically writes it to the `stripe_webhook_secret` named volume;
+6. lets Symfony validate signatures using that current value.
+
+Manual copying of the webhook signing secret is not required. When Stripe CLI reconnects and receives a new session secret, the shared file is replaced automatically.
+
+Inspect the listener:
 
 ```bash
-mkdir -p certs
-openssl req \
-  -x509 \
-  -nodes \
-  -newkey rsa:2048 \
-  -sha256 \
-  -days 825 \
-  -keyout certs/evogym.local-key.pem \
-  -out certs/evogym.local.pem \
-  -subj '/CN=evogym.local' \
-  -addext 'subjectAltName=DNS:evogym.local,DNS:api.evogym.local'
+docker compose ps stripe-cli
+make stripe-logs
 ```
 
-A plain OpenSSL certificate is self-signed and must be trusted manually by the browser. `mkcert` installs a local CA and avoids the warning after the CA is trusted.
-
-## First build and startup
-
-Validate interpolation before building. This catches missing required secrets in the root `.env`:
+If it is unhealthy or restarting, verify the sandbox keys in `.env`, then run:
 
 ```bash
-docker compose config --quiet
+bash scripts/dev-bootstrap.sh
+docker compose up -d --force-recreate stripe-cli php-fpm frontend
+make stripe-logs
 ```
-
-Build the development images and install Symfony dependencies into the bind-mounted application directory:
-
-```bash
-docker compose build
-docker compose run --rm php-fpm composer install
-```
-
-Generate the local JWT key pair in `symfony/config/jwt/`:
-
-```bash
-docker compose run --rm php-fpm \
-  php bin/console lexik:jwt:generate-keypair --skip-if-exists
-```
-
-Start the stack and apply database migrations:
-
-```bash
-docker compose up -d
-docker compose exec php-fpm \
-  php bin/console doctrine:migrations:migrate --no-interaction
-```
-
-Inspect container state and startup logs:
-
-```bash
-docker compose ps
-docker compose logs --tail=200 nginx php-fpm frontend postgres redis rabbitmq
-```
-
-## Local URLs and ports
-
-With the default root `.env` ports:
-
-| Service | Address |
-| --- | --- |
-| Frontend through Nginx | `https://evogym.local` |
-| Symfony API | `https://api.evogym.local` |
-| OpenAPI JSON | `https://api.evogym.local/api/doc.json` |
-| Direct Next.js development server | `http://127.0.0.1:3000` |
-| PostgreSQL | `127.0.0.1:5432` |
-| Redis | `127.0.0.1:6379` |
-| RabbitMQ AMQP | `127.0.0.1:5672` |
-
-The actual host ports come from `.env`. Nginx also exposes HTTP and redirects the configured local domains to HTTPS.
 
 ## Daily start and stop
 
-Start or reconcile the current development stack:
-
 ```bash
-docker compose up -d
+make up
+make ps
+make logs
+make stripe-logs
+make down
 ```
 
-Follow the main application logs:
+Direct equivalents:
 
 ```bash
-docker compose logs -f nginx php-fpm frontend
-```
-
-Stop and remove containers without deleting persisted data:
-
-```bash
+docker compose up -d --remove-orphans
+docker compose ps
+docker compose logs -f nginx php-fpm frontend stripe-cli
 docker compose down
 ```
 
-## Applying development changes
+`docker compose down` preserves bind-mounted and named-volume data.
 
-### Next.js source changes
+## Applying changes
 
-`./nextjs` is bind-mounted at `/app`, and the development image runs `pnpm dev`. React and Next.js changes normally appear through Fast Refresh without restarting the container.
+### Next.js source
 
-Restart the frontend after changing `nextjs/.env.local` because Next.js environment values are loaded when the development process starts:
+`./nextjs` is mounted at `/app`. Source changes normally appear through Fast Refresh.
+
+Restart the frontend after changing `nextjs/.env.local`:
 
 ```bash
 docker compose restart frontend
 ```
 
-After changing `nextjs/package.json` or `nextjs/pnpm-lock.yaml`, install the exact dependencies into the persistent `frontend_node_modules` volume:
+Install changed dependencies after modifying `package.json` or `pnpm-lock.yaml`:
 
 ```bash
 docker compose exec frontend pnpm install --frozen-lockfile
 ```
 
-Rebuild the frontend image after changing its Dockerfile or base image:
+### Symfony source
 
-```bash
-docker compose up -d --build frontend
-```
+`./symfony` is mounted at `/var/www`. Request-handling changes are visible on the next request.
 
-### Symfony source changes
-
-`./symfony` is bind-mounted at `/var/www`. Controller, service, DTO, repository, and configuration changes are normally visible to PHP-FPM on the next request.
-
-Messenger consumers are long-running PHP processes. Restart them after changing code used by message handlers, scheduled tasks, cache invalidation, analytics, or payment processing:
+Restart long-running workers after changing handlers, scheduled tasks, analytics, cache invalidation, or payment processing:
 
 ```bash
 docker compose restart \
@@ -235,16 +218,11 @@ docker compose restart \
   payment-worker
 ```
 
-After changing `symfony/composer.json` or `symfony/composer.lock`:
+After changing `composer.json` or `composer.lock`:
 
 ```bash
 docker compose exec php-fpm composer install
-docker compose restart \
-  php-fpm \
-  messenger-worker \
-  analytics-worker \
-  scheduler-worker \
-  payment-worker
+docker compose restart php-fpm messenger-worker analytics-worker scheduler-worker payment-worker
 ```
 
 After adding a Doctrine migration:
@@ -254,59 +232,54 @@ docker compose exec php-fpm \
   php bin/console doctrine:migrations:migrate --no-interaction
 ```
 
-Clear the Symfony cache when configuration or cached container metadata remains stale:
+Clear Symfony cache when configuration remains stale:
 
 ```bash
 docker compose exec php-fpm php bin/console cache:clear
 ```
 
-### Compose, Dockerfile, or container environment changes
-
-After changing `docker-compose.yml`, a Dockerfile, or values injected from the root `.env`, rebuild or recreate the affected services:
+### Compose and environment changes
 
 ```bash
 docker compose config --quiet
 docker compose up -d --build --remove-orphans
 ```
 
-Use `--force-recreate` when only container environment or Compose settings changed and Docker would otherwise keep an existing container:
+Use `--force-recreate` when only container environment values changed:
 
 ```bash
 docker compose up -d --force-recreate --remove-orphans
 ```
 
-After changing `docker/conf/default.conf` or local certificates, restart Nginx:
+## Validation
 
 ```bash
-docker compose restart nginx
+make test
+make phpstan
+make typecheck
+make lint
+make build
 ```
 
-## Validation commands
-
-Run frontend checks inside the frontend container:
-
-```bash
-docker compose exec frontend pnpm lint
-docker compose exec frontend pnpm typecheck
-docker compose exec frontend pnpm build
-```
-
-Run Symfony checks inside the PHP container:
+Direct commands:
 
 ```bash
 docker compose exec php-fpm php bin/phpunit
 docker compose exec php-fpm vendor/bin/phpstan analyse
+docker compose exec frontend pnpm typecheck
+docker compose exec frontend pnpm lint
+docker compose exec frontend pnpm build
+docker compose config --quiet
 ```
 
 ## Resetting local data
 
-`docker compose down` preserves data. The development stack stores PostgreSQL, Redis, and MinIO in bind-mounted host directories and RabbitMQ and ClickHouse in named volumes.
-
-A full reset is destructive:
+A full reset deletes all application data and the shared Stripe listener volume:
 
 ```bash
 docker compose down -v
 rm -rf docker/db/data data/redis data/minio
+bash scripts/dev-bootstrap.sh
 ```
 
-This removes local application data. Do not run it when the current development database must be preserved.
+Do not run this when the current development database must be preserved.
