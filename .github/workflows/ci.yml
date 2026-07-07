@@ -181,7 +181,7 @@ jobs:
   infrastructure:
     name: Infrastructure / Compose config
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
 
     env:
       JWT_PASSPHRASE: ci-passphrase
@@ -197,6 +197,16 @@ jobs:
         run: |
           cp .env.example .env
           docker compose config --quiet
+
+      - name: Smoke test MinIO bucket initialization
+        run: |
+          docker compose up -d --wait --wait-timeout 120 minio
+          docker compose run --rm minio-init
+          docker compose run --rm minio-init
+
+      - name: Stop application Compose services
+        if: always()
+        run: docker compose down -v --remove-orphans
 
       - name: Validate observability Compose config
         working-directory: observability
