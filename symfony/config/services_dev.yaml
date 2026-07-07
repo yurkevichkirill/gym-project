@@ -1,0 +1,7 @@
+parameters:
+    env(STRIPE_WEBHOOK_SECRET_FILE): '/run/stripe-webhook/secret'
+
+services:
+    App\Payment\Service\StripeWebhookService:
+        arguments:
+            $webhookSecret: '%env(file:STRIPE_WEBHOOK_SECRET_FILE)%'
