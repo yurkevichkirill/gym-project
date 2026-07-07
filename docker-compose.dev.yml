@@ -3,6 +3,8 @@ services:
     depends_on:
       mailpit:
         condition: service_started
+    environment:
+      STRIPE_WEBHOOK_SECRET_FILE: /run/stripe-webhook/secret
     volumes:
       - stripe_webhook_secret:/run/stripe-webhook:ro
 
