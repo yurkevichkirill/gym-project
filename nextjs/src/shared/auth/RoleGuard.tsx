@@ -1,6 +1,8 @@
 'use client'
 
 import Link from "next/link";
+import {useEffect} from "react";
+import {useRouter} from "next/navigation";
 import type {ReactNode} from "react";
 import {observer} from "mobx-react-lite";
 import {AuthStatus} from "@/store/AuthStore";
@@ -46,9 +48,19 @@ const AccessFallback = ({
 
 const RoleGuard = observer(({allowedRoles, children}: RoleGuardProps) => {
     const {authStore} = useStore();
+    const router = useRouter();
     const user = authStore.user;
     const isCheckingSession = authStore.status === AuthStatus.INITIAL
         || (authStore.status === AuthStatus.LOADING && user === null);
+    const isAuthenticated = authStore.status !== AuthStatus.UNAUTHENTICATED && user !== null;
+    const isAllowed = user !== null && allowedRoles.some((role) => hasRole(user, role));
+    const accountPath = isAuthenticated && !isAllowed ? getAccountPath(user) : null;
+
+    useEffect(() => {
+        if (!isCheckingSession && authStore.status !== AuthStatus.ERROR && accountPath !== null) {
+            router.replace(accountPath);
+        }
+    }, [accountPath, authStore.status, isCheckingSession, router]);
 
     if (isCheckingSession) {
         return (
@@ -87,11 +99,7 @@ const RoleGuard = observer(({allowedRoles, children}: RoleGuardProps) => {
         );
     }
 
-    const isAllowed = allowedRoles.some((role) => hasRole(user, role));
-
     if (!isAllowed) {
-        const accountPath = getAccountPath(user);
-
         return (
             <AccessFallback
                 title="Access denied"

@@ -24,14 +24,18 @@ const PurchaseMembershipButton = observer(({
     const { authStore, membershipStore } = useStore();
     const [stripeClientSecret, setStripeClientSecret] = useState<string | null>(null);
     const [purchasedMembershipId, setPurchasedMembershipId] = useState<number | null>(null);
+    const [hasMounted, setHasMounted] = useState(false);
     const user = authStore.user;
     const isClientAccount = user !== null && isClient(user);
     const isCurrentPurchase = membershipStore.purchasingPlanId === membershipPlanId;
-    const isDisabled = !authStore.isInitialized
+    const isDisabled = !hasMounted
+        || !authStore.isInitialized
         || !isClientAccount
         || membershipStore.isPurchasing;
 
     useEffect(() => {
+        setHasMounted(true);
+
         if (!authStore.isInitialized) {
             void authStore.checkAuth();
         }
@@ -89,7 +93,7 @@ const PurchaseMembershipButton = observer(({
         void membershipStore.refreshAfterPayment(purchasedMembershipId ?? undefined);
     };
 
-    const label = !authStore.isInitialized
+    const label = !hasMounted || !authStore.isInitialized
         ? "Checking account..."
         : !isClientAccount
             ? "Client account required"
