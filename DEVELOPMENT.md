@@ -154,6 +154,15 @@ docker compose exec php-fpm \
   php bin/console doctrine:migrations:migrate --no-interaction
 ```
 
+Load development demo data with the same accounts, membership plans, training types, trainers, and trainer work times as the production demo-data command:
+
+```bash
+docker compose exec php-fpm \
+  php bin/console doctrine:fixtures:load --no-interaction
+```
+
+All demo users use `password` as the password. The seeded accounts are `admin@evogym.test`, `client1@evogym.test` through `client5@evogym.test`, and `trainer1@evogym.test` through `trainer3@evogym.test`.
+
 Inspect container state and startup logs:
 
 ```bash
