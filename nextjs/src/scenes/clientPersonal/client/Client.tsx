@@ -3,12 +3,15 @@
 import {motion} from "framer-motion";
 import {useModifyClient} from "@/hooks/useModifyClient";
 import {observer} from "mobx-react-lite";
+import {useState} from "react";
 import {useStore} from "@/store/StoreProvider";
 import {TopUpSection} from "./TopUpSection";
+import ConfirmDialog from "@/shared/ui/ConfirmDialog";
 
 const Client = observer(() => {
     const {clientStore} = useStore();
     const client = clientStore.client;
+    const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
 
     const {
         newPhone,
@@ -28,6 +31,11 @@ const Client = observer(() => {
         style: "currency",
         currency: "USD",
     }).format(client.balance / 100);
+
+    const confirmDelete = async () => {
+        await handleDelete();
+        setIsDeleteConfirmOpen(false);
+    };
 
     return (
         <motion.div className="flex flex-col rounded-2xl shadow-md ">
@@ -85,12 +93,29 @@ const Client = observer(() => {
 
                 <button
                     type="button"
-                    className="flex-1 rounded-br-2xl cursor-pointer bg-primary-300 px-10 hover:bg-primary-500 hover:text-white transition-colors"
-                    onClick={handleDelete}
+                    className="flex-1 rounded-br-2xl cursor-pointer bg-primary-300 px-10 hover:bg-primary-500 hover:text-white transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+                    disabled={clientStore.isLoading}
+                    onClick={() => setIsDeleteConfirmOpen(true)}
                 >
-                    Delete
+                    {clientStore.isLoading ? "Deleting..." : "Delete"}
                 </button>
             </div>
+
+            <ConfirmDialog
+                open={isDeleteConfirmOpen}
+                title="Delete your account?"
+                description="This removes your client profile and ends the current session. The backend can reject deletion when related operations are still active."
+                confirmLabel="Delete account"
+                cancelLabel="Keep account"
+                isConfirming={clientStore.isLoading}
+                tone="danger"
+                onConfirm={() => void confirmDelete()}
+                onCancel={() => {
+                    if (!clientStore.isLoading) {
+                        setIsDeleteConfirmOpen(false);
+                    }
+                }}
+            />
         </motion.div>
     );
 });

@@ -43,8 +43,6 @@ export const useModifyClient = (initialPhone: string) => {
     };
 
     const handleDelete = async () => {
-        if (!confirm("Delete your profile?")) return;
-
         const toastId = notify.loading("Deleting account...");
 
         try {

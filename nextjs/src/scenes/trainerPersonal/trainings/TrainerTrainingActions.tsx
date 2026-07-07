@@ -6,10 +6,14 @@ import {
     canCompleteTraining,
 } from "@/scenes/trainerPersonal/trainings/training-display";
 import { getTrainerTrainingMutationErrorMessage } from "@/scenes/trainerPersonal/trainings/training-mutation-error";
+import { primaryActionClassName } from "@/shared/Section";
+import ConfirmDialog from "@/shared/ui/ConfirmDialog";
 import { useStore } from "@/store/StoreProvider";
 import { TrainerTrainingType } from "@/types/trainer/private/trainer-training.type";
 import { observer } from "mobx-react-lite";
 import { useState } from "react";
+
+type PendingAction = "cancel" | "complete";
 
 const TrainerTrainingActions = observer(({
     training,
@@ -18,6 +22,7 @@ const TrainerTrainingActions = observer(({
 }) => {
     const { trainerTrainingStore } = useStore();
     const [error, setError] = useState<string | null>(null);
+    const [pendingAction, setPendingAction] = useState<PendingAction | null>(null);
     const canCancel = canCancelTraining(training.status);
     const canComplete = canCompleteTraining(training.status);
     const isCanceling = trainerTrainingStore.isCanceling(training.id);
@@ -25,12 +30,6 @@ const TrainerTrainingActions = observer(({
     const isBusy = trainerTrainingStore.isMutating;
 
     const handleCancel = async (): Promise<void> => {
-        if (!window.confirm(
-            `Cancel training #${training.id} for client #${training.clientId}? This may trigger payment cancellation or refund processing.`,
-        )) {
-            return;
-        }
-
         setError(null);
         const toastId = notify.loading(`Canceling training #${training.id}...`);
 
@@ -41,6 +40,7 @@ const TrainerTrainingActions = observer(({
                 "The training list and details were reloaded from the server.",
                 toastId,
             );
+            setPendingAction(null);
         } catch (cancelError: unknown) {
             const message = getTrainerTrainingMutationErrorMessage(
                 cancelError,
@@ -49,16 +49,11 @@ const TrainerTrainingActions = observer(({
 
             setError(message);
             notify.error("Training cancellation failed", message, toastId);
+            setPendingAction(null);
         }
     };
 
     const handleComplete = async (): Promise<void> => {
-        if (!window.confirm(
-            `Mark training #${training.id} as completed? The backend will reject this action until the training has finished.`,
-        )) {
-            return;
-        }
-
         setError(null);
         const toastId = notify.loading(`Completing training #${training.id}...`);
 
@@ -69,6 +64,7 @@ const TrainerTrainingActions = observer(({
                 "The training list and details were reloaded from the server.",
                 toastId,
             );
+            setPendingAction(null);
         } catch (completeError: unknown) {
             const message = getTrainerTrainingMutationErrorMessage(
                 completeError,
@@ -77,12 +73,33 @@ const TrainerTrainingActions = observer(({
 
             setError(message);
             notify.error("Training completion failed", message, toastId);
+            setPendingAction(null);
         }
     };
 
     if (!canCancel && !canComplete) {
         return null;
     }
+
+    const confirmation = pendingAction === "cancel"
+        ? {
+            title: `Cancel training #${training.id}?`,
+            description: `This cancels the training for client #${training.clientId}. The backend may start payment cancellation or refund processing.`,
+            confirmLabel: "Cancel training",
+            tone: "danger" as const,
+            isConfirming: isCanceling,
+            onConfirm: handleCancel,
+        }
+        : pendingAction === "complete"
+            ? {
+                title: `Complete training #${training.id}?`,
+                description: "The backend will reject this action until the training has finished.",
+                confirmLabel: "Complete training",
+                tone: "default" as const,
+                isConfirming: isCompleting,
+                onConfirm: handleComplete,
+            }
+            : null;
 
     return (
         <div>
@@ -91,8 +108,8 @@ const TrainerTrainingActions = observer(({
                     <button
                         type="button"
                         disabled={isBusy}
-                        className="rounded-md bg-primary-300 px-4 py-2 font-semibold transition hover:bg-primary-500 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
-                        onClick={() => void handleCancel()}
+                        className={`${primaryActionClassName} bg-primary-300`}
+                        onClick={() => setPendingAction("cancel")}
                     >
                         {isCanceling ? "Canceling..." : "Cancel training"}
                     </button>
@@ -102,8 +119,8 @@ const TrainerTrainingActions = observer(({
                     <button
                         type="button"
                         disabled={isBusy}
-                        className="rounded-md bg-secondary-500 px-4 py-2 font-semibold transition hover:bg-primary-500 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
-                        onClick={() => void handleComplete()}
+                        className={primaryActionClassName}
+                        onClick={() => setPendingAction("complete")}
                     >
                         {isCompleting ? "Completing..." : "Complete training"}
                     </button>
@@ -114,6 +131,24 @@ const TrainerTrainingActions = observer(({
                 <p className="mt-3 text-sm text-primary-500" role="alert">
                     {error}
                 </p>
+            ) : null}
+
+            {confirmation ? (
+                <ConfirmDialog
+                    open={pendingAction !== null}
+                    title={confirmation.title}
+                    description={confirmation.description}
+                    confirmLabel={confirmation.confirmLabel}
+                    cancelLabel="Keep training"
+                    tone={confirmation.tone}
+                    isConfirming={confirmation.isConfirming}
+                    onConfirm={() => void confirmation.onConfirm()}
+                    onCancel={() => {
+                        if (!isBusy) {
+                            setPendingAction(null);
+                        }
+                    }}
+                />
             ) : null}
         </div>
     );

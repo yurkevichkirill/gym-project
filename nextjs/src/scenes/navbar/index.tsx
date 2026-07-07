@@ -15,6 +15,7 @@ import { notify } from "@/lib/notify";
 import dynamic from "next/dynamic";
 import { getErrorMessage } from "@/lib/getErrorMessage";
 import { getAccountPath } from "@/lib/utils/user.types.utils";
+import ConfirmDialog from "@/shared/ui/ConfirmDialog";
 
 const LoginModal = dynamic(() => import("@/scenes/authorization"), {
     ssr: false
@@ -36,17 +37,17 @@ const Navbar = observer(() => {
 
     const [isLoginOpen, setIsLoginOpen] = useState(false);
     const [isRegisterOpen, setIsRegisterOpen] = useState(false);
+    const [isLogoutConfirmOpen, setIsLogoutConfirmOpen] = useState(false);
 
     const { authStore } = useStore();
     const accountPath = authStore.user ? getAccountPath(authStore.user) : null;
 
     const handleLogout = async () => {
-        if (!confirm("Log out from your profile?")) return;
-
         const toastId = notify.loading("Logging out...");
 
         try {
             await authStore.logout();
+            setIsLogoutConfirmOpen(false);
             router.push("/");
             notify.success("Logged out", "Log in to continue", toastId);
         } catch (error: unknown) {
@@ -118,7 +119,8 @@ const Navbar = observer(() => {
                                     ) : null}
                                     <button
                                         className="hover:text-primary-500 cursor-pointer"
-                                        type="button" onClick={handleLogout}
+                                        type="button"
+                                        onClick={() => setIsLogoutConfirmOpen(true)}
                                     >
                                         Logout
                                     </button>
@@ -183,7 +185,7 @@ const Navbar = observer(() => {
                             <button
                                 className="cursor-pointer text-left transition duration-500 hover:text-primary-300"
                                 type="button"
-                                onClick={() => { void handleLogout(); setIsMenuToggled(false); }}
+                                onClick={() => { setIsLogoutConfirmOpen(true); setIsMenuToggled(false); }}
                             >
                                 Logout
                             </button>
@@ -220,6 +222,20 @@ const Navbar = observer(() => {
             isOpen={isRegisterOpen}
             onClose={() => setIsRegisterOpen(false)}
             onSwitchToLogin={() => setIsLoginOpen(true)}
+        />
+        <ConfirmDialog
+            open={isLogoutConfirmOpen}
+            title="Log out?"
+            description="You will leave your current session and return to the public site."
+            confirmLabel="Log out"
+            cancelLabel="Stay signed in"
+            isConfirming={authStore.isLoading}
+            onConfirm={() => void handleLogout()}
+            onCancel={() => {
+                if (!authStore.isLoading) {
+                    setIsLogoutConfirmOpen(false);
+                }
+            }}
         />
     </nav>
     );

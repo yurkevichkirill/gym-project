@@ -1,6 +1,7 @@
 'use client'
 
-import {useEffect, useId, useRef} from "react";
+import { primaryActionClassName, secondaryActionClassName } from "@/shared/Section";
+import { useEffect, useId, useRef } from "react";
 
 type ConfirmDialogProps = {
     open: boolean;
@@ -49,13 +50,13 @@ const ConfirmDialog = ({
     }, [open]);
 
     const confirmClassName = tone === "danger"
-        ? "bg-red-600 text-white hover:bg-red-700"
-        : "bg-secondary-500 hover:bg-primary-500 hover:text-white";
+        ? `${primaryActionClassName} bg-primary-500 text-white hover:bg-primary-300 hover:text-gray-900`
+        : primaryActionClassName;
 
     return (
         <dialog
             ref={dialogRef}
-            className="w-[min(92vw,32rem)] rounded-2xl bg-white p-0 shadow-xl backdrop:bg-black/50"
+            className="fixed top-6 left-1/2 m-0 w-[min(92vw,32rem)] -translate-x-1/2 rounded-3xl border border-gray-100 bg-white/95 p-0 text-gray-500 shadow-xl backdrop:bg-gray-900/40 sm:top-8"
             aria-labelledby={titleId}
             aria-describedby={descriptionId}
             onCancel={(event) => {
@@ -70,17 +71,23 @@ const ConfirmDialog = ({
                 }
             }}
         >
-            <div className="p-6 sm:p-8">
-                <h2 id={titleId} className="text-2xl font-bold">
-                    {title}
-                </h2>
-                <p id={descriptionId} className="mt-3 text-gray-600">
-                    {description}
-                </p>
-                <div className="mt-8 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+            <div className="p-5 sm:p-6">
+                <div className="flex items-start gap-3 border-b border-gray-50 pb-4">
+                    <span className="mt-1 h-7 w-1 shrink-0 rounded-full bg-secondary-500" aria-hidden="true" />
+                    <div className="min-w-0">
+                        <h2 id={titleId} className="text-xl font-bold text-gray-500">
+                            {title}
+                        </h2>
+                        <p id={descriptionId} className="mt-2 text-sm leading-6 text-gray-600">
+                            {description}
+                        </p>
+                    </div>
+                </div>
+
+                <div className="mt-5 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
                     <button
                         type="button"
-                        className="rounded-md border border-gray-300 bg-white px-5 py-2 font-semibold transition hover:border-primary-500 disabled:cursor-not-allowed disabled:opacity-50"
+                        className={secondaryActionClassName}
                         disabled={isConfirming}
                         onClick={onCancel}
                     >
@@ -88,7 +95,7 @@ const ConfirmDialog = ({
                     </button>
                     <button
                         type="button"
-                        className={`rounded-md px-5 py-2 font-semibold transition disabled:cursor-not-allowed disabled:opacity-50 ${confirmClassName}`}
+                        className={confirmClassName}
                         disabled={isConfirming}
                         onClick={onConfirm}
                     >
