@@ -1,4 +1,4 @@
-.PHONY: setup up down restart ps logs migrate test phpstan lint typecheck build
+.PHONY: setup up down restart ps logs stripe-logs migrate test phpstan lint typecheck build
 
 setup:
 	bash scripts/dev-setup.sh
@@ -16,7 +16,10 @@ ps:
 	docker compose ps
 
 logs:
-	docker compose logs -f nginx php-fpm frontend
+	docker compose logs -f nginx php-fpm frontend stripe-cli
+
+stripe-logs:
+	docker compose logs -f stripe-cli
 
 migrate:
 	docker compose exec php-fpm php bin/console doctrine:migrations:migrate --no-interaction
