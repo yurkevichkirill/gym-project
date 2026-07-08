@@ -7,16 +7,16 @@ The local development environment uses a Compose file stack from the repository 
 
 Use both files for the normal local development stack. Do not run `docker-compose.dev.yml` by itself because it is only an override for the base `docker-compose.yml` file.
 
-For shorter commands in the current shell, export the Compose file stack once:
-
-```bash
-export COMPOSE_FILE=docker-compose.yml:docker-compose.dev.yml
-```
-
-After this, the guide uses plain `docker compose ...` commands. If you do not export `COMPOSE_FILE`, use the explicit form instead:
+The commands below intentionally use the explicit Compose file stack so it is always clear that the development override is enabled:
 
 ```bash
 docker compose -f docker-compose.yml -f docker-compose.dev.yml <command>
+```
+
+If you prefer shorter commands in your own shell, you can export the Compose file stack once and then omit the repeated `-f` flags:
+
+```bash
+export COMPOSE_FILE=docker-compose.yml:docker-compose.dev.yml
 ```
 
 Symfony and Next.js source directories are bind-mounted into their containers, the PHP image uses the development stage with optional Xdebug, and the frontend runs `pnpm dev` with Next.js Fast Refresh.
@@ -137,44 +137,38 @@ A plain OpenSSL certificate is self-signed and must be trusted manually by the b
 
 ## First build and startup
 
-Enable the development Compose stack for the current shell:
+Validate interpolation before building. This catches missing required secrets in the root `.env` and validates the merged base + development Compose configuration:
 
 ```bash
-export COMPOSE_FILE=docker-compose.yml:docker-compose.dev.yml
-```
-
-Validate interpolation before building. This catches missing required secrets in the root `.env`:
-
-```bash
-docker compose config --quiet
+docker compose -f docker-compose.yml -f docker-compose.dev.yml config --quiet
 ```
 
 Build the development images and install Symfony dependencies into the bind-mounted application directory:
 
 ```bash
-docker compose build
-docker compose run --rm php-fpm composer install
+docker compose -f docker-compose.yml -f docker-compose.dev.yml build
+docker compose -f docker-compose.yml -f docker-compose.dev.yml run --rm php-fpm composer install
 ```
 
 Generate the local JWT key pair in `symfony/config/jwt/`:
 
 ```bash
-docker compose run --rm php-fpm \
+docker compose -f docker-compose.yml -f docker-compose.dev.yml run --rm php-fpm \
   php bin/console lexik:jwt:generate-keypair --skip-if-exists
 ```
 
 Start the development stack and apply database migrations:
 
 ```bash
-docker compose up -d
-docker compose exec php-fpm \
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+docker compose -f docker-compose.yml -f docker-compose.dev.yml exec php-fpm \
   php bin/console doctrine:migrations:migrate --no-interaction
 ```
 
 Load development demo data with the same accounts, membership plans, training types, trainers, and trainer work times as the production demo-data command:
 
 ```bash
-docker compose exec php-fpm \
+docker compose -f docker-compose.yml -f docker-compose.dev.yml exec php-fpm \
   php bin/console doctrine:fixtures:load --no-interaction
 ```
 
@@ -183,8 +177,8 @@ All demo users use `password` as the password. The seeded accounts are `admin@ev
 Inspect container state and startup logs:
 
 ```bash
-docker compose ps
-docker compose logs --tail=200 nginx php-fpm frontend postgres redis rabbitmq mailpit
+docker compose -f docker-compose.yml -f docker-compose.dev.yml ps
+docker compose -f docker-compose.yml -f docker-compose.dev.yml logs --tail=200 nginx php-fpm frontend postgres redis rabbitmq mailpit
 ```
 
 ## Local URLs and ports
@@ -213,28 +207,22 @@ The actual host ports come from `.env`. Nginx also exposes HTTP and redirects th
 
 ## Daily start and stop
 
-Enable the development Compose stack in each new shell, unless you already exported it globally:
-
-```bash
-export COMPOSE_FILE=docker-compose.yml:docker-compose.dev.yml
-```
-
 Start or reconcile the current development stack:
 
 ```bash
-docker compose up -d
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
 ```
 
 Follow the main application logs:
 
 ```bash
-docker compose logs -f nginx php-fpm frontend
+docker compose -f docker-compose.yml -f docker-compose.dev.yml logs -f nginx php-fpm frontend
 ```
 
-Stop and remove containers without deleting persisted data:
+Stop and remove development containers without deleting persisted data:
 
 ```bash
-docker compose down
+docker compose -f docker-compose.yml -f docker-compose.dev.yml down
 ```
 
 ## Applying development changes
@@ -246,19 +234,19 @@ docker compose down
 Restart the frontend after changing `nextjs/.env.local` because Next.js environment values are loaded when the development process starts:
 
 ```bash
-docker compose restart frontend
+docker compose -f docker-compose.yml -f docker-compose.dev.yml restart frontend
 ```
 
 After changing `nextjs/package.json` or `nextjs/pnpm-lock.yaml`, install the exact dependencies into the persistent `frontend_node_modules` volume:
 
 ```bash
-docker compose exec frontend pnpm install --frozen-lockfile
+docker compose -f docker-compose.yml -f docker-compose.dev.yml exec frontend pnpm install --frozen-lockfile
 ```
 
 Rebuild the frontend image after changing its Dockerfile or base image:
 
 ```bash
-docker compose up -d --build frontend
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build frontend
 ```
 
 ### Symfony source changes
@@ -268,7 +256,7 @@ docker compose up -d --build frontend
 Messenger consumers are long-running PHP processes. Restart them after changing code used by message handlers, scheduled tasks, cache invalidation, analytics, or payment processing:
 
 ```bash
-docker compose restart \
+docker compose -f docker-compose.yml -f docker-compose.dev.yml restart \
   messenger-worker \
   analytics-worker \
   scheduler-worker \
@@ -278,8 +266,8 @@ docker compose restart \
 After changing `symfony/composer.json` or `symfony/composer.lock`:
 
 ```bash
-docker compose exec php-fpm composer install
-docker compose restart \
+docker compose -f docker-compose.yml -f docker-compose.dev.yml exec php-fpm composer install
+docker compose -f docker-compose.yml -f docker-compose.dev.yml restart \
   php-fpm \
   messenger-worker \
   analytics-worker \
@@ -290,14 +278,14 @@ docker compose restart \
 After adding a Doctrine migration:
 
 ```bash
-docker compose exec php-fpm \
+docker compose -f docker-compose.yml -f docker-compose.dev.yml exec php-fpm \
   php bin/console doctrine:migrations:migrate --no-interaction
 ```
 
 Clear the Symfony cache when configuration or cached container metadata remains stale:
 
 ```bash
-docker compose exec php-fpm php bin/console cache:clear
+docker compose -f docker-compose.yml -f docker-compose.dev.yml exec php-fpm php bin/console cache:clear
 ```
 
 ### Compose, Dockerfile, or container environment changes
@@ -305,20 +293,20 @@ docker compose exec php-fpm php bin/console cache:clear
 After changing `docker-compose.yml`, `docker-compose.dev.yml`, a Dockerfile, or values injected from the root `.env`, rebuild or recreate the affected services:
 
 ```bash
-docker compose config --quiet
-docker compose up -d --build --remove-orphans
+docker compose -f docker-compose.yml -f docker-compose.dev.yml config --quiet
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build --remove-orphans
 ```
 
 Use `--force-recreate` when only container environment or Compose settings changed and Docker would otherwise keep an existing container:
 
 ```bash
-docker compose up -d --force-recreate --remove-orphans
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --force-recreate --remove-orphans
 ```
 
 After changing `docker/conf/default.conf` or local certificates, restart Nginx:
 
 ```bash
-docker compose restart nginx
+docker compose -f docker-compose.yml -f docker-compose.dev.yml restart nginx
 ```
 
 ## Validation commands
@@ -326,16 +314,16 @@ docker compose restart nginx
 Run frontend checks inside the frontend container:
 
 ```bash
-docker compose exec frontend pnpm lint
-docker compose exec frontend pnpm typecheck
-docker compose exec frontend pnpm build
+docker compose -f docker-compose.yml -f docker-compose.dev.yml exec frontend pnpm lint
+docker compose -f docker-compose.yml -f docker-compose.dev.yml exec frontend pnpm typecheck
+docker compose -f docker-compose.yml -f docker-compose.dev.yml exec frontend pnpm build
 ```
 
 Run Symfony checks inside the PHP container:
 
 ```bash
-docker compose exec php-fpm php bin/phpunit
-docker compose exec php-fpm vendor/bin/phpstan analyse
+docker compose -f docker-compose.yml -f docker-compose.dev.yml exec php-fpm php bin/phpunit
+docker compose -f docker-compose.yml -f docker-compose.dev.yml exec php-fpm vendor/bin/phpstan analyse
 ```
 
 ## Resetting local data
@@ -345,7 +333,7 @@ docker compose exec php-fpm vendor/bin/phpstan analyse
 A full reset is destructive:
 
 ```bash
-docker compose down -v
+docker compose -f docker-compose.yml -f docker-compose.dev.yml down -v
 rm -rf docker/db/data data/redis data/minio
 ```
 
