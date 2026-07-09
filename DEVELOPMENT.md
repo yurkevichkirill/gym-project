@@ -319,11 +319,35 @@ docker compose -f docker-compose.yml -f docker-compose.dev.yml exec frontend pnp
 docker compose -f docker-compose.yml -f docker-compose.dev.yml exec frontend pnpm build
 ```
 
-Run Symfony checks inside the PHP container:
+Run Symfony checks inside the PHP container.
+
+Functional tests use the Symfony `test` environment and a separate PostgreSQL database.
+Doctrine appends `_test` to the configured database name in `APP_ENV=test`, so a local
+database such as `gym_database` becomes `gym_database_test`.
+
+Prepare or update the test database before running the full backend test suite:
 
 ```bash
-docker compose -f docker-compose.yml -f docker-compose.dev.yml exec php-fpm php bin/phpunit
-docker compose -f docker-compose.yml -f docker-compose.dev.yml exec php-fpm vendor/bin/phpstan analyse
+DC="docker compose -f docker-compose.yml -f docker-compose.dev.yml"
+
+$DC exec -e APP_ENV=test php-fpm php bin/console doctrine:database:create --env=test --if-not-exists
+$DC exec -e APP_ENV=test php-fpm php bin/console doctrine:migrations:migrate --env=test --no-interaction
+```
+
+Run PHPUnit with explicit test environment overrides:
+
+```bash
+$DC exec \
+  -e APP_ENV=test \
+  -e STRIPE_SECRET_KEY=sk_test_functional \
+  -e STRIPE_WEBHOOK_SECRET=whsec_functional_test \
+  php-fpm php bin/phpunit
+```
+
+Run static analysis:
+
+```bash
+$DC exec php-fpm vendor/bin/phpstan analyse --memory-limit=1G
 ```
 
 ## Resetting local data
