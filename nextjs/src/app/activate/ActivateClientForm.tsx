@@ -36,7 +36,7 @@ const ActivateClientForm = () => {
             await apiPost<ApiItemResponse<ClientType>>('/clients/activate/', {
                 activationToken,
                 password,
-            });
+            }, {skipAuthRefresh: true});
             setIsActivated(true);
             setPassword('');
         } catch (caughtError) {

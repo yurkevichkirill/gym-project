@@ -42,7 +42,7 @@ final readonly class ActivationEmailService
             ->subject('Activate your account')
             ->text(
                 sprintf(
-                    "Hello %s,\n\nActivate your account:\n%s.",
+                    "Hello %s,\n\nActivate your account:\n%s\n",
                     $client->getFirstName(),
                     $activationLink
                 )
