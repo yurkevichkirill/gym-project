@@ -109,7 +109,7 @@ const PurchaseMembershipButton = observer(({
                 type="button"
                 disabled={isDisabled}
                 onClick={() => void handlePurchase()}
-                className={`rounded-md bg-secondary-500 px-4 py-2 text-center font-semibold transition hover:bg-primary-500 hover:text-white disabled:cursor-not-allowed disabled:opacity-50 ${className}`}
+                className={`inline-flex min-h-10 w-full items-center justify-center rounded-md bg-secondary-500 px-3 py-2 text-center text-sm font-semibold leading-tight whitespace-normal transition hover:bg-primary-500 hover:text-white disabled:cursor-not-allowed disabled:opacity-50 ${className}`}
             >
                 {label}
             </button>
