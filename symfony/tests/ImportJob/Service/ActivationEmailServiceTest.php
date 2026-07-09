@@ -73,7 +73,7 @@ final class ActivationEmailServiceTest extends KernelTestCase
         self::assertSame('activation@example.com', $mailer->message->getFrom()[0]->getAddress());
         self::assertSame($client->getEmail(), $mailer->message->getTo()[0]->getAddress());
         self::assertSame(
-            "Hello Imported,\n\nActivate your account:\nhttps://example.com/activate/?token=token%2Fwith%2Bcharacters.",
+            "Hello Imported,\n\nActivate your account:\nhttps://example.com/activate/?token=token%2Fwith%2Bcharacters\n",
             $mailer->message->getTextBody(),
         );
     }
