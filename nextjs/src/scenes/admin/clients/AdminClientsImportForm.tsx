@@ -18,7 +18,7 @@ type FormValues = {
 };
 
 const emptyRow = (): ImportRow => ({ age: "", firstName: "", lastName: "", email: "", phone: "" });
-const inputClassName = "rounded-md border border-gray-300 px-3 py-2 focus:border-secondary-500 focus:outline-none";
+const inputClassName = "min-w-0 w-full rounded-md border border-gray-300 px-3 py-2 focus:border-secondary-500 focus:outline-none";
 const phonePattern = /^\+?[1-9]\d{4,14}$/;
 
 const AdminClientsImportForm = observer(() => {
@@ -53,23 +53,23 @@ const AdminClientsImportForm = observer(() => {
             </div>
             <div className="mt-4 grid gap-4">
                 {fields.map((field, index) => (
-                    <div key={field.id} className="grid gap-3 rounded-xl border border-gray-100 p-3 md:grid-cols-5">
+                    <div key={field.id} className="grid min-w-0 gap-3 rounded-xl border border-gray-100 p-3">
                         <input className={inputClassName} placeholder="First name" {...register(`clients.${index}.firstName`, { required: "Required" })} />
                         <input className={inputClassName} placeholder="Last name" {...register(`clients.${index}.lastName`, { required: "Required" })} />
                         <input className={inputClassName} type="email" placeholder="Email" {...register(`clients.${index}.email`, { required: "Required" })} />
                         <input className={inputClassName} placeholder="Phone" {...register(`clients.${index}.phone`, { required: "Required", pattern: { value: phonePattern, message: "Invalid phone" } })} />
-                        <div className="flex gap-2">
+                        <div className="grid min-w-0 gap-2 xs:grid-cols-[minmax(0,1fr)_auto]">
                             <input className={`${inputClassName} min-w-0 flex-1`} inputMode="numeric" placeholder="Age" {...register(`clients.${index}.age`, { required: "Required", validate: (value) => Number.isInteger(Number(value)) && Number(value) > 0 || "Invalid age" })} />
                             <button type="button" disabled={fields.length === 1} className="rounded-md border border-gray-300 px-3 font-semibold disabled:opacity-50" onClick={() => remove(index)}>
                                 Remove
                             </button>
                         </div>
-                        {errors.clients?.[index] ? <p className="text-xs text-red-600 md:col-span-5">Check all fields in this row.</p> : null}
+                        {errors.clients?.[index] ? <p className="text-xs text-red-600">Check all fields in this row.</p> : null}
                     </div>
                 ))}
             </div>
             {adminClientsStore.importResult ? (
-                <p className="mt-4 rounded-md bg-emerald-50 p-3 text-sm font-semibold text-emerald-700">
+                <p className="mt-4 overflow-hidden rounded-md bg-emerald-50 p-3 text-sm font-semibold text-emerald-700 break-words">
                     Import queued: job #{adminClientsStore.importResult.jobId}, {adminClientsStore.importResult.count} clients.
                 </p>
             ) : null}
