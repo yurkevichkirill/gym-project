@@ -62,7 +62,7 @@ const Home = () => {
                             visible: { opacity: 1, x: 0 },
                         }}
                     >
-                        <ActionButton setSelectedPage={setSelectedPage}>
+                        <ActionButton setSelectedPage={setSelectedPage} targetPage={SelectedPage.Memberships}>
                             Join Now
                         </ActionButton>
                         <a
